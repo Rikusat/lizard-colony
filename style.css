@@ -863,6 +863,26 @@ button.holding::after {
 .stage-tab { min-height: 34px; }
 .rowline.clickable { min-height: 30px; }
 
+/* ホバーツールチップ(§7): 軽く・小さく・350ms遅延で誤爆防止 */
+[data-tip] { position: relative; }
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute; left: 50%; bottom: calc(100% + 8px);
+  transform: translateX(-50%) translateY(3px);
+  white-space: nowrap; max-width: 320px;
+  background: var(--ink-700); border: 1px solid var(--border-hi); color: var(--paper-100);
+  font-size: 12px; line-height: 1.4; padding: 4px 10px;
+  border-radius: var(--radius-sm); box-shadow: var(--elev-2);
+  opacity: 0; pointer-events: none; z-index: 80;
+  transition: opacity var(--dur-base) var(--ease-out) .35s, transform var(--dur-base) var(--ease-out) .35s;
+}
+[data-tip]:hover::after, [data-tip]:focus-visible::after {
+  opacity: 1; transform: translateX(-50%) translateY(0);
+}
+/* ヘッダー内は上に出すと見切れるため下向きへ反転 */
+#topbar [data-tip]::after { bottom: auto; top: calc(100% + 8px); }
+
+
 /* ============ Phase 6: モーション横断 ============ */
 /* stagger入場(§4.3): 画面を開いた瞬間の1回だけ。40〜60ms差・上限はJS側で制御 */
 .stg { animation: stg-in var(--dur-base) var(--ease-out) backwards; animation-delay: calc(var(--i, 0) * 45ms); }
@@ -884,6 +904,9 @@ button.holding::after {
 
 .hidden { display: none !important; }
 
+@media (min-width: 1600px) {
+  main { max-width: 1880px; grid-template-columns: 288px minmax(0, 1fr) 304px; gap: 18px; }
+}
 @media (max-width: 1180px) {
   main { grid-template-columns: 1fr; }
   #left, #right { flex-direction: row; flex-wrap: wrap; }

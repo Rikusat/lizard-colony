@@ -14,7 +14,7 @@
 <!-- index.html と同じDOM構造をそのまま複製 -->
 <header id="topbar">
   <div id="brand"><div class="logo">🦎</div><h1>トカゲコロニー<small>LIZARD COLONY</small></h1></div>
-  <div class="res"><span class="ricon coin">G</span><b id="ui-coins">0</b><small id="ui-cps">+0/秒</small></div>
+  <div class="res" data-tip="コイン — トカゲが毎秒生産。購入/繁殖/設備に使う"><span class="ricon coin">G</span><b id="ui-coins">0</b><small id="ui-cps">+0/秒</small></div>
   <div class="res"><span class="ricon cricket">🦗</span><b id="ui-crickets">0</b></div>
   <div class="res"><span class="ricon gem">💎</span><b id="ui-gems">0</b></div>
   <nav>
@@ -55,7 +55,7 @@
       <div class="rowline">🍖 食料供給 <b id="ui-res-food">0</b></div>
       <div class="rowline">⚡ エネルギー <b id="ui-res-energy">0</b></div>
       <div class="rowline">🔬 研究力 <b id="ui-res-science">0</b></div>
-      <div class="rowline">🪲 侵食率 <b id="ui-invasion">0%</b></div>
+      <div class="rowline" data-tip="バガーの侵食(全惑星共通) — 毎日ログインで-40">🪲 侵食率 <b id="ui-invasion">0%</b></div>
       <div class="rowline clickable" id="row-title">🏅 <b id="ui-title">-</b> <span class="chev">▸</span></div>
     </div>
     <div class="card"><h3>💡 ヒント</h3><div class="hint-text" id="ui-hint">...</div></div>
@@ -141,6 +141,20 @@ globalThis._noStart = true;
     else { clearTimeout(Hero._timer); Hero._timer = null; } // 撮影用に停止
   }
   else if (h === "#fx-rank") { setTimeout(() => UI.rankUpFx(), 600); }
+  else if (h === "#tip-demo") { // ホバーツールチップの見た目確認(強制表示)
+    const st = document.createElement("style");
+    st.textContent = "[data-tip].demo::after{opacity:1;transform:translateX(-50%) translateY(0);transition-delay:0s}";
+    document.head.appendChild(st);
+    document.querySelector("#topbar .res").classList.add("demo");
+    document.querySelector('[data-tip*="バガー"]').classList.add("demo");
+  }
+  else if (h === "#focus-demo") { // フォーカスリングの見た目確認(:focus-visible相当)
+    const st = document.createElement("style");
+    st.textContent = ".demo-focus{outline:2px solid var(--info-500);outline-offset:2px;border-radius:6px}";
+    document.head.appendChild(st);
+    document.getElementById("btn-breed").classList.add("demo-focus");
+    document.getElementById("row-stage").classList.add("demo-focus");
+  }
   else if (h.startsWith("#hero-legend")) {
     const lz = Game.state.lizards.find(l => l.stage === "adult");
     lz.morphId = "legendary";

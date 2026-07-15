@@ -68,7 +68,9 @@ Object.assign(UI, {
       const p = open ? 1 : Game.nestProgress(n);
       const near = !open && p >= CFG.nestNearThreshold;
       const cls = n.id === "core" ? "core" : open ? "on" : near ? "near" : "off";
-      html += `<div class="wnode ${cls}" data-node="${n.id}" style="left:${x}px;top:${y}px">
+      const tip = n.id === "core" ? "巣の中心"
+        : open ? `${n.name} — 解放済み` : `${n.name} — 進捗${Math.floor(p * 100)}%`;
+      html += `<div class="wnode ${cls}" data-node="${n.id}" data-tip="${tip}" style="left:${x}px;top:${y}px">
         <span>${n.id === "core" ? "🕸" : open ? (oreById(n.reward.ore).icon) : n.icon}</span></div>`;
     }
     wrap.innerHTML = html;
