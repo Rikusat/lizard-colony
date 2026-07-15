@@ -50,11 +50,11 @@
   --planet-ruins: #C9A227;
 
   /* ---------- [2] タイポグラフィ ----------
-     Webフォント(Zen Kaku Gothic New / M PLUS Rounded 1c / DotGothic16)は
-     読込サイズ実測とディレクター確認の後に導入(Phase 1では現行スタックを維持) */
-  --font-body: "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif;
-  --font-display: var(--font-body);  /* 導入後: "M PLUS Rounded 1c" 系 */
-  --font-retro: var(--font-body);    /* 導入後: "DotGothic16"(判子ラベル限定) */
+     Webフォントは font-display: swap で読込(読込前/失敗時はシステムfallback表示)。
+     サブセット化は後回し(ディレクター判断 2026-07-15) */
+  --font-body: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif;
+  --font-display: "M PLUS Rounded 1c", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif;
+  --font-retro: "DotGothic16", "MS Gothic", "Yu Gothic", monospace; /* 判子ラベル(STAGE名/称号/BOSS等)限定 */
   --fs-caption: 13px;
   --fs-body: 16px;
   --fs-heading: 20px;

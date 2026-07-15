@@ -398,3 +398,10 @@ HQ「宇宙港」: イリジウムを5段階(20/40/80/160/320=計620)投入。�
 
 - トークンは tokens.css に責務セクション([1]〜[4]/[L]/[S])で分離。[L][S]はPhase 2〜4で縮小予定。1ファイルが肥大化(目安300行超)したら tokens-color.css / tokens-motion.css 等へ分割を検討
 - **screens/meta.js(小型モーダル7画面の束)は、今後項目が増えたら再分割を検討する**(Phase 0逸脱1の追記)
+
+### Phase 1 追補: Webフォント導入(2026-07-15・ディレクター確認済み)✅ → Phase 1 完了
+
+- **方式**: font-display: swap + 多段fallback(サブセット化は後回し)。Google Fonts CDNから Zen Kaku Gothic New(400/700) / M PLUS Rounded 1c(700のみ) / DotGothic16(400) を読込。preconnect×2で接続を先行
+- --font-body=Zen Kaku / --font-display=M PLUS Rounded(見出し: brand/card h3/modal h2/hq-h) / --font-retro=DotGothic16(判子ラベル限定。現時点はBOSS/ELITEバッジのみ・STAGE名/称号はPhase 2以降)
+- **技術方針「外部通信なし」の例外**としてCLAUDE.mdに注記(フォント読込失敗時もシステムfallbackでゲームは完全動作=DNS遮断シミュレーションで確認済み)
+- 回帰: 5画面スクリーンショット(フォント適用)+fallback表示(フォントCDN遮断)でレイアウト崩れなし・不可視テキストなし(swapのためFOITなし)
