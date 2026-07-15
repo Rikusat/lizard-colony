@@ -73,6 +73,8 @@ globalThis._noStart = true;
 <script src="js/ui/core.js"></script>
 <script src="js/ui/components.js"></script>
 <script src="js/ui/motion.js"></script>
+<script src="js/ui/hero/hero.js"></script>
+<script src="js/ui/hero/nest-reveal.js"></script>
 <script src="js/ui/screens/main.js"></script>
 <script src="js/ui/screens/breeding.js"></script>
 <script src="js/ui/screens/equipment.js"></script>
@@ -128,6 +130,12 @@ globalThis._noStart = true;
   else if (h === "#map") UI.openMap();
   else if (h === "#fac") UI.openFacilities();
   else if (h === "#dexgrid") { UI.dexTab = "dex"; UI.openDex(); }
+  else if (h === "#hero-nest" || h === "#hero-surprise" || h === "#hero-skip") {
+    const ns = buildNestWeb().filter(n => n.id !== "core").slice(0, 2);
+    UI.heroNestReveal(h === "#hero-nest" ? ns : [ns[0]], h === "#hero-surprise");
+    if (h === "#hero-skip") Hero.dismiss(true); // スキップ直後=残り香ゼロの検証
+    else { clearTimeout(Hero._timer); Hero._timer = null; } // 撮影用に停止
+  }
   else if (h === "#lore") { UI.dexTab = "lore"; UI.openDex(); } // 未開拓の大湿原を開拓UIで開く
   window.__ready = true;
 })();

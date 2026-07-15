@@ -632,6 +632,50 @@ button.holding::after {
 @keyframes toast-in { from { transform: translateX(60px); opacity: 0; } }
 @keyframes toast-out { to { transform: translateX(60px); opacity: 0; } }
 
+/* ============ ヒーローオーバーレイ(§5.8/§6) ============ */
+#hero-overlay {
+  position: fixed; inset: 0; z-index: 300; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  background: rgba(20, 13, 7, .55); backdrop-filter: blur(4px);
+  cursor: pointer; user-select: none;
+}
+#hero-overlay.show { display: flex; animation: hero-dim var(--dur-slow) var(--ease-out); }
+#hero-overlay.leaving { animation: hero-out 250ms var(--ease-out) forwards; }
+@keyframes hero-dim { from { opacity: 0; } }
+@keyframes hero-out { to { opacity: 0; } }
+#hero-overlay .hero-main { animation: hero-pop 600ms var(--ease-pop); }
+#hero-overlay .hero-info {
+  text-align: center; line-height: 1.9;
+  animation: hero-wipe 420ms var(--ease-out) 200ms backwards;
+}
+@keyframes hero-pop { from { transform: scale(.4); opacity: 0; } }
+@keyframes hero-wipe { from { transform: translateY(18px); opacity: 0; } }
+.hero-stamp {
+  display: inline-block; font-family: var(--font-retro); font-size: 12px;
+  letter-spacing: 2px; color: var(--on-amber);
+  background: var(--grad-btn-primary); border-radius: 5px; padding: 2px 10px;
+}
+.hero-name { font-family: var(--font-display); font-size: 20px; font-weight: bold; color: var(--gold); text-shadow: 0 2px 6px #000; }
+.hero-reward { font-size: 13px; color: var(--paper-100); text-shadow: 0 1px 3px #000; }
+.hero-skip { position: absolute; bottom: 10%; font-size: 12px; color: var(--sub); }
+
+/* 巣ノード解放(中庸): メダル+走る糸+琥珀の発光 */
+.hero-nest .medal {
+  position: relative; width: 92px; height: 92px; border-radius: 50%;
+  background: radial-gradient(#3a2c18, #1c1409);
+  border: 3px solid var(--amber-400); box-shadow: 0 0 34px var(--amber-glow);
+  display: flex; align-items: center; justify-content: center; font-size: 38px;
+}
+.hero-nest .medal i {
+  position: absolute; left: 50%; top: 50%; width: 2px; height: 68px;
+  background: linear-gradient(var(--amber-400), transparent);
+  transform: rotate(var(--a)) scaleY(1); transform-origin: top center; opacity: .7;
+  animation: thread-run 460ms var(--ease-out) 140ms backwards;
+}
+@keyframes thread-run { from { transform: rotate(var(--a)) scaleY(0); } }
+.hero-nest.surprise .medal { border-color: var(--life-400); box-shadow: 0 0 40px var(--life-glow); }
+.hero-nest.surprise .hero-stamp { background: var(--grad-btn-cta); color: var(--on-life); }
+
 .hidden { display: none !important; }
 
 @media (max-width: 1180px) {

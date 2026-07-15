@@ -299,10 +299,14 @@ const Game = {
         opened.push(node);
       }
     }
-    if (!silent) {
-      for (const node of opened) {
-        const o = oreById(node.reward.ore);
-        UI.toast(`🕸 巣ノード解放!「${node.name}」 → ${o.icon}${o.name}+${node.reward.n}`);
+    if (!silent && opened.length) {
+      if (UI.heroNestReveal) {
+        UI.heroNestReveal(opened); // ヒーロー演出(§6: 中庸・複数は1回に合算)
+      } else {
+        for (const node of opened) {
+          const o = oreById(node.reward.ore);
+          UI.toast(`🕸 巣ノード解放!「${node.name}」 → ${o.icon}${o.name}+${node.reward.n}`);
+        }
       }
     }
     return opened;
@@ -320,7 +324,8 @@ const Game = {
     if (node.reward) this.addOre(node.reward.ore, node.reward.n);
     const o = oreById(node.reward.ore);
     this.flashT = 0.3;
-    UI.toast(`🕸✨ 予想外のノードが解放された!!「${node.name}」 → ${o.icon}${o.name}+${node.reward.n}`);
+    if (UI.heroNestReveal) UI.heroNestReveal([node], true); // サプライズ版(少し特別)
+    else UI.toast(`🕸✨ 予想外のノードが解放された!!「${node.name}」 → ${o.icon}${o.name}+${node.reward.n}`);
     return node;
   },
 
