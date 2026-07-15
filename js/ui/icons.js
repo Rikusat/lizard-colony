@@ -37,7 +37,7 @@ const ICONS = {
   snake: '<path d="M5 18c0-3 3-4 6-4s5-1 5-3.5S13.5 7 11 7H8" fill="none"/><path d="M16 18c-3 0-5-1.5-5-4" fill="none"/><circle cx="6.5" cy="18" r="2.5"/><path d="M4 18l-2 1M4 17.4 2 17" fill="none"/>',
   hawk: '<path d="M12 5 3 12c3 0 4 1 5 3l4-3 4 3c1-2 2-3 5-3z"/><path d="M12 12v7M10 19h4" fill="none"/>',
   crow: '<path d="M5 6c5 0 9 3 10 8l4 2-4 1c-3 0-8-2-10-6z"/><circle cx="8" cy="9" r="1" fill="#000" opacity=".5"/><path d="M9 17l-2 4M13 18l-1 3" fill="none"/>',
-  monitor: '<path d="M3 14c3-1 5-4 9-4 3 0 5 1 7 3l3 2-3 1c-2 2-4 3-7 3-4 0-6-3-9-5z"/><path d="M8 19l-1 3M14 19l1 3M20 13c1-2 1-4 0-6" fill="none"/>',
+  monitor: '<path d="M2.5 13.5c3-.8 4.5-3.5 8.5-3.5 2.6 0 4.4.9 6 2.3.9.8 2.2 1.2 3.5 1.2l1.5.5-1.5 1c-1.5 2.2-3.8 3.5-7 3.5-4.5 0-6.5-2.8-11-3.5z"/><path d="M8 18.5 7 21.5M14 18.8l.8 2.7M18.5 9.5c1.2-1.6 1.2-3.8 0-5.5M12 10V7.5" fill="none"/><circle cx="17.3" cy="13.2" r="1" fill="#1A120B"/>',
   scorpion: '<path d="M7 14c0 3 2 5 5 5s5-2 5-5-2-4-5-4-3-1-3-3 1-3 3-3" fill="none"/><path d="M12 3c2 0 3 1 3 3M7 12 4 9M7 15H4M7 18l-2 2" fill="none"/><circle cx="16" cy="14" r="1.6"/>',
   spider: '<circle cx="12" cy="13" r="4"/><path d="M9 10 4 5M15 10l5-5M8 13H2M16 13h6M9 16l-4 4M15 16l4 4" fill="none"/>',
   bugger: '<ellipse cx="12" cy="13" rx="5" ry="6.5"/><path d="M12 6.5V3M9 4l1.5 2M15 4l-1.5 2M7 10H3M7 15H3.5M17 10h4M17 15h3.5M12 8v10" fill="none"/>',

@@ -860,9 +860,9 @@ const Game = {
     const b = [];
     if (!st) return b;
     const elapsed = (Date.now() - (st.lastTickAt || Date.now())) / 1000;
-    if (st.eggs && st.eggs.some((e) => e.t - elapsed <= 0)) b.push("🥚");
-    if (st.boss && st.lizards.length > 0 && elapsed > (st.boss.raidTimer || CFG.raidInterval)) b.push("⚔️");
-    if (st.lizards.length > 0 && (st.resources.crickets | 0) <= 0) b.push("⚠️");
+    if (st.eggs && st.eggs.some((e) => e.t - elapsed <= 0)) b.push(Icon.svg("egg"));
+    if (st.boss && st.lizards.length > 0 && elapsed > (st.boss.raidTimer || CFG.raidInterval)) b.push(Icon.svg("snake"));
+    if (st.lizards.length > 0 && (st.resources.crickets | 0) <= 0) b.push(Icon.svg("warn"));
     return b;
   },
   // V3 Phase5: 繁殖/変異プール = 基本種(Stage1〜5・ランク解放済み)+現Stageの固有種
@@ -1252,7 +1252,7 @@ const Game = {
       webs: [], grabs: 0, stingN: 0, enraged: false,
       dive: null, recoverT: 0, animT: 0, fleeing: false, stolenEgg: null,
     };
-    const label = `${nr.elite ? "👑Elite " : ""}${type.name}${nr.tier ? " T" + nr.tier : ""}`;
+    const label = `${nr.elite ? "Elite " : ""}${type.name}${nr.tier ? " T" + nr.tier : ""}`;
     if (this.raid.cutinT > 0 && UI.heroBossIn && UI.heroBossIn(this.raid)) {
       this.raid.heroShown = true; // Canvasカットイン・トーストは出さない(§6: 器を一本化)
     } else {

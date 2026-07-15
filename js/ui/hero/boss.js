@@ -10,7 +10,7 @@ Object.assign(UI, {
     const t = r.type;
     return Hero.show({
       cls: "hero-boss",
-      main: `<div class="boss-face">${t.icon}</div>`,
+      main: `<div class="boss-face">${Icon.svg(t.icon)}</div>`,
       info: `<div class="hero-stamp boss">${r.elite ? "ELITE BOSS" : "BOSS"}</div>
         <div class="hero-name">${t.name}${r.tier ? " T" + r.tier : ""}</div>
         <div class="hero-reward">${t.threat}!</div>`,
@@ -23,7 +23,7 @@ Object.assign(UI, {
     const t = r.type;
     const ok = Hero.show({
       cls: "hero-boss down",
-      main: `<div class="boss-face down"><span class="burst"></span>${t.icon}</div>`,
+      main: `<div class="boss-face down"><span class="burst"></span>${Icon.svg(t.icon)}</div>`,
       info: `<div class="hero-stamp">撃破!!</div>
         <div class="hero-name">${r.elite ? "Elite " : ""}${t.name}${r.tier ? " T" + r.tier : ""}</div>
         <div class="hero-reward">${msg}</div>`,

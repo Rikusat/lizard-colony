@@ -99,7 +99,7 @@ const Render = {
     // ランタン(ゆらめく)
     ctx.fillStyle = `rgba(255,220,120,${0.7 + Math.sin(this.time * 6) * 0.2})`;
     ctx.beginPath(); ctx.arc(x + 34, y - 26, 4, 0, 7); ctx.fill();
-    this.pill(ctx, x - 52, y + 14, `🧳 放浪商人 ${Math.ceil(m.t)}s`, "rgba(90,30,60,.75)", "#ffd0e0");
+    this.pill(ctx, x - 52, y + 14, `放浪商人 ${Math.ceil(m.t)}s`, "rgba(90,30,60,.75)", "#ffd0e0");
   },
 
   // ---------------- 背景(キャッシュ) ----------------
@@ -464,7 +464,7 @@ const Render = {
       ctx.ellipse(p.x - r * 0.3, p.y - 6, 9, 2, -0.2, 0, 7);
       ctx.ellipse(p.x + r * 0.25, p.y + 3, 6, 1.5, 0.15, 0, 7);
       ctx.fill();
-      this.pill(ctx, p.x - 44, p.y + r * 0.44 + 6, "💧 水場 Lv" + lv("water"));
+      this.pill(ctx, p.x - 44, p.y + r * 0.44 + 6, "水場 Lv" + lv("water"));
     }
 
     if (lv("shelter")) { // 岩の洞窟
@@ -490,7 +490,7 @@ const Render = {
       ctx.fillStyle = g;
       ctx.beginPath(); ctx.ellipse(p.x, p.y + 6, 27, 22, 0, Math.PI, 0); ctx.fill();
       ctx.fillRect(p.x - 27, p.y + 4, 54, 5);
-      this.pill(ctx, p.x - 58, p.y + 24, "🏠 シェルター Lv" + lv("shelter"));
+      this.pill(ctx, p.x - 58, p.y + 24, "シェルター Lv" + lv("shelter"));
     }
 
     if (lv("heat")) { // 吊りランプ(保温設備)
@@ -516,7 +516,7 @@ const Render = {
       ctx.beginPath(); ctx.moveTo(p.x - 58, p.y - 36); ctx.lineTo(p.x - 34, p.y - 36); ctx.lineTo(p.x - 40, p.y - 44); ctx.lineTo(p.x - 52, p.y - 44); ctx.closePath(); ctx.fill();
       ctx.fillStyle = "#ffedb0";
       ctx.beginPath(); ctx.arc(p.x - 46, p.y - 30, 8, 0, 7); ctx.fill();
-      this.pill(ctx, p.x - 50, p.y + 68, "🔥 保温設備 Lv" + lv("heat"));
+      this.pill(ctx, p.x - 50, p.y + 68, "保温設備 Lv" + lv("heat"));
     }
 
     if (lv("breedfac")) { // 繁殖施設(岩場と草の巣)
@@ -527,7 +527,7 @@ const Render = {
       this.boulder(ctx, rrand, p.x + 42, p.y + 10, 16, "#55483a");
       ctx.fillStyle = "rgba(0,0,0,.2)";
       ctx.beginPath(); ctx.ellipse(p.x + 20, p.y + 22, 8, 3, 0, 0, 7); ctx.ellipse(p.x - 12, p.y + 24, 6, 2.5, 0, 0, 7); ctx.fill();
-      this.pill(ctx, p.x - 44, p.y + 36, "🪺 繁殖施設 Lv" + lv("breedfac"));
+      this.pill(ctx, p.x - 44, p.y + 36, "繁殖施設 Lv" + lv("breedfac"));
     }
 
     if (lv("feeder")) { // 餌場(自動給餌トラフ)
@@ -547,7 +547,7 @@ const Render = {
         ctx.beginPath(); ctx.moveTo(p.x - 48, p.y + oy); ctx.lineTo(p.x + 48, p.y + oy); ctx.stroke();
       }
       ctx.shadowBlur = 0;
-      this.pill(ctx, p.x - 44, p.y + 26, "🥫 餌場 Lv" + lv("feeder"));
+      this.pill(ctx, p.x - 44, p.y + 26, "餌場 Lv" + lv("feeder"));
     }
 
     if (lv("fence")) { // 木製フェンス
@@ -568,7 +568,7 @@ const Render = {
         ctx.fillStyle = "rgba(255,255,255,.14)";
         rr(ctx, x - 3.5, y + 1.5, 3, 36, 2); ctx.fill();
       }
-      this.pill(ctx, x - 62, 206, "🚧 フェンス Lv" + lv("fence"));
+      this.pill(ctx, x - 62, 206, "フェンス Lv" + lv("fence"));
     }
   },
 
@@ -593,8 +593,8 @@ const Render = {
       ctx.beginPath(); ctx.arc(ex, y - 1, 2, 0, 7); ctx.arc(ex + 5, y - 1, 2, 0, 7); ctx.fill();
     }
     const st = Game.currentStage();
-    const label = [`🕸 ${st.nest}`];
-    if (resting > 0) label.push(`💤${resting}`);
+    const label = [`${st.nest}`];
+    if (resting > 0) label.push(`休${resting}`);
     this.pill(ctx, x - 60, y + 16, label.join(" ") + " (タップで巣)");
   },
 
@@ -709,7 +709,7 @@ const Render = {
       ctx.strokeStyle = "rgba(242,198,94,.9)"; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(x, y, 19, -Math.PI / 2, -Math.PI / 2 + prog * Math.PI * 2); ctx.stroke();
     }
-    this.pill(ctx, n.x - 24, n.y + 34, "🥚 巣");
+    this.pill(ctx, n.x - 24, n.y + 34, "卵の巣");
   },
 
   // ---------------- トカゲ(横向き・オオトカゲスタイル) ----------------
@@ -1091,17 +1091,17 @@ const Render = {
     ctx.textAlign = "center";
     if (lz.founder) { // 創始者マーク (V3 §9.4)
       ctx.font = "13px sans-serif";
-      ctx.fillText("👑", L * 0.3, -L * 0.42);
+      this.glyphCrown(ctx, L * 0.3, -L * 0.42 - 6, 11);
     }
     if (lz.poisonT > 0) { // サソリの毒: 紫の明滅
       ctx.fillStyle = `rgba(180,90,220,${0.4 + Math.sin(this.time * 10) * 0.25})`;
       ctx.beginPath(); ctx.ellipse(0, -L * 0.15, L * 0.4, L * 0.28, 0, 0, 7); ctx.fill();
       ctx.font = "13px sans-serif";
-      ctx.fillText("☠", 0, -L * 0.52);
+      this.glyphSkull(ctx, 0, -L * 0.52 - 6, 9);
     }
     if (injured) {
       ctx.font = "16px sans-serif";
-      ctx.fillText("🩹", 0, -L * 0.52);
+      this.glyphCross(ctx, 0, -L * 0.52 - 6, 8);
     } else if (lz.stage === "baby") {
       ctx.fillStyle = "rgba(0,0,0,.45)";
       rr(ctx, -19, -L * 0.52 - 13, 38, 15, 7); ctx.fill();
@@ -1137,7 +1137,7 @@ const Render = {
       ctx.setLineDash([10, 6]); ctx.lineDashOffset = -this.time * 30;
       ctx.beginPath(); ctx.ellipse(e.x + (raid.typeId === "snake" ? 90 : 0), e.y, 120, 60, 0, 0, 7); ctx.stroke();
       ctx.setLineDash([]);
-      this.pill(ctx, e.x - 30, e.y - 105, "👑 ELITE", "rgba(120,90,10,.75)", "#ffe9a0");
+      this.pill(ctx, e.x - 30, e.y - 105, "ELITE", "rgba(120,90,10,.75)", "#ffe9a0");
     }
     // Enrage: 赤い明滅
     if (raid.enraged) {
@@ -1152,7 +1152,7 @@ const Render = {
         ctx.font = "bold 17px sans-serif";
         this.centerLabel(ctx, "敵が去るまで " + Math.ceil(Math.max(0, raid.timeLeft)) + " 秒", W / 2, 70, "rgba(0,0,0,.5)", "#ffe6c8");
         if (raid.stunT > 0) {
-          this.centerLabel(ctx, "🚧 足止め中! " + raid.stunT.toFixed(1) + "s", W / 2, 100, "rgba(20,60,90,.6)", "#aadcff");
+          this.centerLabel(ctx, "足止め中! " + raid.stunT.toFixed(1) + "s", W / 2, 100, "rgba(20,60,90,.6)", "#aadcff");
         }
       }
     }
@@ -1182,7 +1182,7 @@ const Render = {
     ctx.fillRect(0, H / 2 - 52, W, 104);
     ctx.fillStyle = `rgba(255,235,210,${a})`;
     ctx.font = "bold 42px sans-serif"; ctx.textAlign = "center";
-    ctx.fillText(`${raid.elite ? "👑 " : ""}${raid.type.icon} ${raid.type.name}`, W / 2 + slide, H / 2 + 2);
+    ctx.fillText(`${raid.elite ? "ELITE " : ""}${raid.type.name}`, W / 2 + slide, H / 2 + 2);
     ctx.font = "bold 17px sans-serif";
     ctx.fillStyle = `rgba(255,180,150,${a})`;
     ctx.fillText(`BOSS TIER ${raid.tier} — ${raid.type.threat}`, W / 2 + slide, H / 2 + 34);
@@ -1201,7 +1201,7 @@ const Render = {
         ctx.beginPath(); ctx.ellipse(tgt.x, tgt.y + 6, 46, 15, 0, 0, 7); ctx.fill();
         ctx.strokeStyle = `rgba(255,60,40,${pu})`; ctx.lineWidth = 4;
         ctx.beginPath(); ctx.ellipse(tgt.x, tgt.y + 4, 62, 24, 0, 0, 7); ctx.stroke();
-        this.pill(ctx, tgt.x - 58, tgt.y - 58, "⚠ タップ連打で追い払え!", "rgba(120,20,10,.8)", "#ffd0c0");
+        this.pill(ctx, tgt.x - 58, tgt.y - 58, "タップ連打で追い払え!", "rgba(120,20,10,.8)", "#ffd0c0");
       }
     }
     this.drawBird(ctx, e.x, e.y, 1.7, "#8a6432", "#6d4d24", "#e8c46a", false);
@@ -1287,7 +1287,7 @@ const Render = {
     ctx.restore();
     // 威嚇の圧(生産低下中の表示)
     if (e.arrived) {
-      this.pill(ctx, e.x - 96, e.y - 150, "😤 威嚇中: 生産低下・繁殖不可!", "rgba(90,30,10,.75)", "#ffd0b0");
+      this.pill(ctx, e.x - 96, e.y - 150, "威嚇中: 生産低下・繁殖不可!", "rgba(90,30,10,.75)", "#ffd0b0");
     }
   },
 
@@ -1376,7 +1376,7 @@ const Render = {
         ctx.lineTo(w.x + Math.cos(ang) * 54, w.y + Math.sin(ang) * 33);
         ctx.stroke();
       }
-      if (w.burnT > 0) this.pill(ctx, w.x - 22, w.y + 36, "🔥 " + Math.ceil(w.burnT) + "s");
+      if (w.burnT > 0) this.pill(ctx, w.x - 22, w.y + 36, "焼却 " + Math.ceil(w.burnT) + "s");
       else this.pill(ctx, w.x - 30, w.y + 36, "タップ ×" + w.hp);
     }
     const s = 1.5;
@@ -1498,7 +1498,7 @@ const Render = {
       const x = W / 2 + Math.cos(this.time * 0.45) * 430;
       const y = 58 + Math.sin(this.time * 0.9) * 16;
       this.drawBird(ctx, x, y, 0.9, "#5d4a2c", "#463620", "#e8c46a", Math.cos(this.time * 0.45) > 0);
-      this.pill(ctx, x - 26, y + 22, "🦅 ワシ Lv" + lv("eagle"));
+      this.pill(ctx, x - 26, y + 22, "ワシ Lv" + lv("eagle"));
     }
     if (lv("owl")) { // 保温ライトのポールに止まる
       const x = FAC_POS.light.x, y = FAC_POS.light.y - 62;
@@ -1518,7 +1518,7 @@ const Render = {
         ctx.fillStyle = "#000";
         ctx.beginPath(); ctx.arc(x + side * 4, y - 6, 1.5, 0, 7); ctx.fill();
       }
-      this.pill(ctx, x - 34, y - 36, "🦉 フクロウ Lv" + lv("owl"));
+      this.pill(ctx, x - 34, y - 36, "フクロウ Lv" + lv("owl"));
     }
     if (lv("meerkat")) { // 二本足で見張り
       const x = 985, y = 285;
@@ -1533,7 +1533,7 @@ const Render = {
       ctx.beginPath(); ctx.arc(x - 2 + sway * 0.4, y - 23, 1.4, 0, 7); ctx.arc(x + 3 + sway * 0.4, y - 23, 1.4, 0, 7); ctx.fill();
       ctx.strokeStyle = "#8a6f4a"; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.moveTo(x + 5, y + 8); ctx.quadraticCurveTo(x + 14, y + 12, x + 15, y + 20); ctx.stroke();
-      this.pill(ctx, x - 44, y + 26, "🐹 ミーアキャット Lv" + lv("meerkat"));
+      this.pill(ctx, x - 44, y + 26, "ミーアキャット Lv" + lv("meerkat"));
     }
     if (lv("turtle")) { // 中央寄りにどっしり
       const x = 700, y = 585;
@@ -1549,7 +1549,7 @@ const Render = {
       ctx.beginPath(); ctx.ellipse(x - 27, y - 2, 8, 6, 0, 0, 7); ctx.fill();
       ctx.fillStyle = "#241a10";
       ctx.beginPath(); ctx.arc(x - 30, y - 4, 1.4, 0, 7); ctx.fill();
-      this.pill(ctx, x - 26, y + 14, "🐢 カメ Lv" + lv("turtle"));
+      this.pill(ctx, x - 26, y + 14, "カメ Lv" + lv("turtle"));
     }
     if (lv("gecko")) { // 加温パネルの近く
       const x = FAC_POS.heat.x - 90, y = FAC_POS.heat.y + 40;
@@ -1562,7 +1562,7 @@ const Render = {
       ctx.beginPath(); ctx.moveTo(x + 11, y); ctx.quadraticCurveTo(x + 22, y + Math.sin(this.time * 6) * 3, x + 27, y - 3); ctx.stroke();
       ctx.fillStyle = "#241a10";
       ctx.beginPath(); ctx.arc(x - 15, y - 2.5, 1.3, 0, 7); ctx.fill();
-      this.pill(ctx, x - 30, y + 10, "🦎 ヤモリ Lv" + lv("gecko"));
+      this.pill(ctx, x - 30, y + 10, "ヤモリ Lv" + lv("gecko"));
     }
     if (lv("ferret")) { // うろうろする回収屋
       const x = 330 + Math.sin(this.time * 0.7) * 120;
@@ -1583,7 +1583,7 @@ const Render = {
       ctx.fillStyle = "#4a3a2c";
       ctx.beginPath(); ctx.ellipse(-17, -3, 4.5, 2, 0, 0, 7); ctx.fill();
       ctx.restore();
-      this.pill(ctx, x - 36, y + 12, "🦡 フェレット Lv" + lv("ferret"));
+      this.pill(ctx, x - 36, y + 12, "フェレット Lv" + lv("ferret"));
     }
   },
 
@@ -1729,7 +1729,7 @@ const Render = {
     ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center";
     ctx.fillStyle = "#fff";
     ctx.fillText(
-      (boss ? "👹 ボス・" : "🐍 ") + tier.name + " " + fmt(Math.ceil(Math.max(0, s.hp))) + " / " + fmt(s.maxHp),
+      (boss ? "ボス・" : "") + tier.name + " " + fmt(Math.ceil(Math.max(0, s.hp))) + " / " + fmt(s.maxHp),
       bx + bw / 2, by - 8,
     );
 
@@ -1738,7 +1738,7 @@ const Render = {
       ctx.font = "bold 17px sans-serif";
       this.centerLabel(ctx, "蛇が去るまで " + Math.ceil(raid.timeLeft) + " 秒", W / 2, 70, "rgba(0,0,0,.5)", "#ffe6c8");
       if (raid.stunT > 0) {
-        this.centerLabel(ctx, "🚧 フェンスで足止め中! " + raid.stunT.toFixed(1) + "s", W / 2, 100, "rgba(20,60,90,.6)", "#aadcff");
+        this.centerLabel(ctx, "フェンスで足止め中! " + raid.stunT.toFixed(1) + "s", W / 2, 100, "rgba(20,60,90,.6)", "#aadcff");
       }
     }
     ctx.restore();
@@ -1831,3 +1831,43 @@ function hexA(hex, a) {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
 }
+
+// ---- SVG化スプリント: Canvas用ステータスグリフ(絵文字の代替・§9) ----
+Object.assign(Render, {
+  glyphCrown(ctx, x, y, s) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = "#f2c65e";
+    ctx.strokeStyle = "rgba(0,0,0,.55)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(-s, s * 0.7); ctx.lineTo(-s * 1.1, -s * 0.4); ctx.lineTo(-s * 0.45, s * 0.05);
+    ctx.lineTo(0, -s * 0.8); ctx.lineTo(s * 0.45, s * 0.05); ctx.lineTo(s * 1.1, -s * 0.4);
+    ctx.lineTo(s, s * 0.7); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+  },
+  glyphSkull(ctx, x, y, s) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = "#c07ae0";
+    ctx.beginPath(); ctx.arc(0, -s * 0.15, s, 0, 7); ctx.fill();
+    ctx.fillRect(-s * 0.55, s * 0.3, s * 1.1, s * 0.55);
+    ctx.fillStyle = "#241812";
+    ctx.beginPath(); ctx.arc(-s * 0.38, -s * 0.2, s * 0.26, 0, 7); ctx.arc(s * 0.38, -s * 0.2, s * 0.26, 0, 7); ctx.fill();
+    ctx.restore();
+  },
+  glyphCross(ctx, x, y, s) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = "#f28066";
+    ctx.strokeStyle = "rgba(0,0,0,.5)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    const w = s * 0.42;
+    ctx.rect(-w / 2, -s, w, s * 2);
+    ctx.rect(-s, -w / 2, s * 2, w);
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+  },
+});

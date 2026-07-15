@@ -247,8 +247,8 @@ const UI = {
       rt.textContent = "襲撃中!!";
       rt.classList.add("soon");
       this.els["raid-banner"].classList.remove("hidden");
-      this.els["raid-banner"].textContent =
-        `${r.elite ? "👑 " : ""}${r.type.icon} ${r.type.name}${r.tier ? " T" + r.tier : ""} 襲来中!!`;
+      this.els["raid-banner"].innerHTML =
+        `${r.elite ? Icon.svg("crown") + " " : ""}${Icon.svg(r.type.icon)} ${r.type.name}${r.tier ? " T" + r.tier : ""} 襲来中!!`;
       nb.classList.add("hidden");
     } else {
       rt.textContent = fmtTime(s.raidTimer);
@@ -259,7 +259,7 @@ const UI = {
         const t = bossTypeById(s.nextRaid.typeId);
         nb.classList.remove("hidden");
         nb.innerHTML = `<span class="boss-badge">BOSS</span>${s.nextRaid.elite ? `<span class="elite-badge">ELITE</span>` : ""}
-          <span class="nb-icon">${t.icon}</span> ${t.name}${s.nextRaid.tier ? " T" + s.nextRaid.tier : ""}
+          <span class="nb-icon">${Icon.svg(t.icon)}</span> ${t.name}${s.nextRaid.tier ? " T" + s.nextRaid.tier : ""}
           <div class="nb-threat">${t.threat}</div>`;
       } else {
         nb.classList.add("hidden");

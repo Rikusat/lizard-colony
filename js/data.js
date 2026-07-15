@@ -453,30 +453,30 @@ const bossTierFor = (rank) => {
 
 // ボス種 (GameExpansion_v2 ②)。minRank 到達で抽選プールに加入
 const BOSS_TYPES = [
-  { id: "snake",    name: "ダイジャ",       icon: "🐍", minRank: 0,  weight: 3, flying: false, dur: 45, threat: "噛みつきで負傷" },
-  { id: "hawk",     name: "オオタカ",       icon: "🦅", minRank: 40, weight: 2, flying: true,  dur: 40, threat: "レア個体をさらう" },
-  { id: "crow",     name: "オオガラス",     icon: "🐦", minRank: 40, weight: 2, flying: true,  dur: 35, threat: "卵を盗む" },
-  { id: "monitor",  name: "ヌシオオトカゲ", icon: "🦎", minRank: 45, weight: 2, flying: false, dur: 60, threat: "生産と繁殖を妨害" },
-  { id: "scorpion", name: "オオサソリ",     icon: "🦂", minRank: 48, weight: 2, flying: false, dur: 45, threat: "毒で攻撃力低下" },
-  { id: "spider",   name: "オオグモ",       icon: "🕷", minRank: 52, weight: 2, flying: false, dur: 50, threat: "ウェブで拘束" },
+  { id: "snake",    name: "ダイジャ",       icon: "snake", minRank: 0,  weight: 3, flying: false, dur: 45, threat: "噛みつきで負傷" },
+  { id: "hawk",     name: "オオタカ",       icon: "hawk", minRank: 40, weight: 2, flying: true,  dur: 40, threat: "レア個体をさらう" },
+  { id: "crow",     name: "オオガラス",     icon: "crow", minRank: 40, weight: 2, flying: true,  dur: 35, threat: "卵を盗む" },
+  { id: "monitor",  name: "ヌシオオトカゲ", icon: "monitor", minRank: 45, weight: 2, flying: false, dur: 60, threat: "生産と繁殖を妨害" },
+  { id: "scorpion", name: "オオサソリ",     icon: "scorpion", minRank: 48, weight: 2, flying: false, dur: 45, threat: "毒で攻撃力低下" },
+  { id: "spider",   name: "オオグモ",       icon: "spider", minRank: 52, weight: 2, flying: false, dur: 50, threat: "ウェブで拘束" },
   // V4 §3.5.3: バガー(侵略の意味づけ。既存ティア構造に乗る=新ループなし)
-  { id: "bugger",   name: "バガー",         icon: "🪲", minRank: 30, weight: 3, flying: false, dur: 45, threat: "惑星を侵食する外来種", bugger: true },
+  { id: "bugger",   name: "バガー",         icon: "bugger", minRank: 30, weight: 3, flying: false, dur: 45, threat: "惑星を侵食する外来種", bugger: true },
 ];
 const bossTypeById = (id) => BOSS_TYPES.find((b) => b.id === id);
 
 // 味方 (GameExpansion_v2 ⑩) — 繁殖不可・常駐・素材でLvアップ
 const ALLIES = [
-  { id: "turtle",  name: "カメ",           icon: "🐢", unlock: { rank: 45 }, unlockText: "ランク45到達",
+  { id: "turtle",  name: "カメ",           icon: "turtle", unlock: { rank: 45 }, unlockText: "ランク45到達",
     desc: "高耐久の盾。噛みつきを確率で肩代わり(25%+5%/Lv)。ヌシの生産妨害を半減" },
-  { id: "gecko",   name: "ヤモリ",         icon: "🦎", unlock: { rank: 52 }, unlockText: "ランク52到達",
+  { id: "gecko",   name: "ヤモリ",         icon: "gecko", unlock: { rank: 52 }, unlockText: "ランク52到達",
     desc: "オオグモのウェブを自動切除(Lvで加速)。コオロギ拾い +0.1/秒/Lv" },
-  { id: "owl",     name: "フクロウ",       icon: "🦉", unlock: { rank: 58 }, unlockText: "ランク58到達",
+  { id: "owl",     name: "フクロウ",       icon: "owl", unlock: { rank: 58 }, unlockText: "ランク58到達",
     desc: "オオガラスの逃走を減速(-20%-5%/Lv)。夜目の早期警戒" },
-  { id: "meerkat", name: "ミーアキャット", icon: "🐹", unlock: { wins: 60 }, unlockText: "撃退数60回",
+  { id: "meerkat", name: "ミーアキャット", icon: "meerkat", unlock: { wins: 60 }, unlockText: "撃退数60回",
     desc: "見張りで先制時間 +1.5秒/Lv。ヌシの居座り時間 -5秒/Lv" },
-  { id: "ferret",  name: "フェレット",     icon: "🦡", unlock: { rank: 65 }, unlockText: "ランク65到達",
+  { id: "ferret",  name: "フェレット",     icon: "ferret", unlock: { rank: 65 }, unlockText: "ランク65到達",
     desc: "オオサソリへの与ダメ +16%+4%/Lv。回収屋: 撃退報酬 +5%+1%/Lv" },
-  { id: "eagle",   name: "ワシ",           icon: "🦅", unlock: { rank: 70 }, unlockText: "ランク70到達",
+  { id: "eagle",   name: "ワシ",           icon: "eagle", unlock: { rank: 70 }, unlockText: "ランク70到達",
     desc: "上空を制圧しオオタカの急降下を妨害(20%+5%/Lv)" },
 ];
 const allyById = (id) => ALLIES.find((a) => a.id === id);
