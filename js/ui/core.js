@@ -70,6 +70,12 @@ const UI = {
     on("btn-nest", () => this.openNest());
     on("row-stage", () => this.openMap());
     on("row-title", () => this.openTitles());
+    // キーボード操作(§7): role=buttonの行は Enter/Space でも発火
+    for (const id of ["row-stage", "row-title"]) {
+      document.getElementById(id).addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); }
+      });
+    }
     on("btn-dex", () => this.openDex());
     on("btn-missions", () => this.openMissions());
     on("btn-settings", () => this.openSettings());
