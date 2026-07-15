@@ -127,6 +127,7 @@ globalThis._noStart = true;
   else if (h === "#pioneer") UI.confirmSwitch(7);
   else if (h === "#map") UI.openMap();
   else if (h === "#fac") UI.openFacilities();
+  else if (h === "#dexgrid") { UI.dexTab = "dex"; UI.openDex(); }
   else if (h === "#lore") { UI.dexTab = "lore"; UI.openDex(); } // 未開拓の大湿原を開拓UIで開く
   window.__ready = true;
 })();

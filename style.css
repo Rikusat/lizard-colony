@@ -286,7 +286,9 @@ button.act .price {
   background: var(--grad-row);
   border: 1px solid var(--border); border-radius: 10px;
   padding: 9px 6px; text-align: center; font-size: 11px; min-height: 78px;
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast), transform var(--dur-fast) var(--ease-pop);
 }
+.dex-cell:not(.locked):hover { border-color: var(--border-hi); box-shadow: var(--elev-1); transform: translateY(-1px); }
 .dex-cell .sw { width: 38px; height: 22px; border-radius: 11px; margin: 0 auto 5px; display: block; }
 .dex-cell.locked { opacity: .35; }
 .dex-cell .nm { font-weight: bold; line-height: 1.25; }
