@@ -110,9 +110,9 @@ button.cta .lbl small { color: var(--on-life); opacity: .75; }
   background: radial-gradient(circle at 35% 30%, #ff8866, var(--red-deep));
   color: #fff; border-radius: 50%; border: 1px solid #ffb09a;
   width: 20px; height: 20px; font-size: 12px; line-height: 18px; text-align: center;
-  animation: pop var(--dur-slow);
+  animation: pop var(--dur-slow) var(--ease-pop);
 }
-@keyframes pop { from { transform: scale(0); } }
+@keyframes pop { from { transform: scale(0); } 70% { transform: scale(1.18); } }
 
 /* ============ layout ============ */
 main {
@@ -433,8 +433,22 @@ button.holding::after {
   font-size: 13px; margin-bottom: 10px; flex-wrap: wrap;
 }
 .nest-head b { color: var(--gold); }
-.nest-tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
-.nest-tabs button { font-size: 12px; padding: 6px 12px; }
+/* タブバー(§5.6): pill型セグメント。選択タブ=.primary(塗り)+僅かな浮き */
+.nest-tabs {
+  display: inline-flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap;
+  background: var(--ink-700); border: 1px solid var(--border);
+  border-radius: var(--radius-pill); padding: 3px;
+}
+.nest-tabs button {
+  font-size: 12px; padding: 6px 14px;
+  background: transparent; border: none; border-radius: var(--radius-pill);
+  transition: background var(--dur-base) var(--ease-out), transform var(--dur-fast) var(--ease-pop);
+}
+.nest-tabs button:hover { filter: brightness(1.15); box-shadow: none; }
+.nest-tabs button.primary {
+  background: var(--grad-btn-primary); color: var(--on-amber); font-weight: bold;
+  box-shadow: var(--elev-2); transform: translateY(-1px);
+}
 
 /* V4.1: 巣ネットワーク(蜘蛛の巣・閲覧専用) */
 #nest-scroll {
