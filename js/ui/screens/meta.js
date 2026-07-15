@@ -170,10 +170,11 @@ Object.assign(UI, {
           <span style="font-size:20px">${claimed ? "✅" : done ? "🎁" : "🎯"}</span>
           <div class="grow"><b>${m.name}</b><div class="desc">報酬: ${rewardTxt}</div></div>
           ${claimed ? `<span class="lv">達成済</span>` : done ? `<button>受取</button>` : `<span style="color:var(--sub)">未達成</span>`}`;
-        if (!claimed && done) row.querySelector("button").addEventListener("click", () => {
+        if (!claimed && done) row.querySelector("button").addEventListener("click", (e) => {
           Game.state.missionsClaimed[m.id] = true;
           if (m.reward.gems) Game.state.gems += m.reward.gems;
           if (m.reward.coins) Game.state.coins += m.reward.coins;
+          Motion.burstAt(e.currentTarget); // 報酬バースト(§4.3: 取得の瞬間だけ)
           this.toast(`🎁 ミッション達成! ${m.name} → ${rewardTxt}`);
           this.openMissions();
         });

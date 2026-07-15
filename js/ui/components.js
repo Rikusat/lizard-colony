@@ -9,6 +9,8 @@ Object.assign(UI, {
     this.els["modal-title"].textContent = title;
     this.els["modal-body"].innerHTML = "";
     buildBody(this.els["modal-body"]);
+    // Phase 6(§4.3): 開いた瞬間の1回だけstagger入場。タブ切替等の再構築では発火しない
+    Motion.stagger(this.els["modal-body"], ".list-row, .breed-card, .dex-cell, .stat-cell");
     this.els["modal"].classList.remove("hidden");
   },
 

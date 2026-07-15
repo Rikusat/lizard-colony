@@ -200,7 +200,7 @@ const UI = {
     this.els["rank-bar"].style.width = (s.rankXp / Game.rankXpNeed() * 100) + "%";
     this.els["ui-pop"].textContent = s.lizards.length + "/" + Game.capacity();
     this.els["ui-stage"].textContent = Game.currentStage().name;
-    this.els["ui-wins"].textContent = s.stats.raidsWon;
+    Motion.countUp(this.els["ui-wins"], s.stats.raidsWon, (v) => Math.round(v));
     // V4: 資源フロー表示
     document.getElementById("ui-res-bio").textContent = fmt(Game.res("bio"));
     document.getElementById("ui-res-food").textContent = fmt(Game.res("food"));
