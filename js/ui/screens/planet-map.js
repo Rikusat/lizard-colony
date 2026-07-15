@@ -119,7 +119,7 @@ Object.assign(UI, {
         html += `
           <div class="planet-node ${unlocked ? "" : "locked"} ${st.id === cur.id ? "here" : ""} ${frontier && unlocked ? "frontier" : ""}" data-planet="${st.id}"
             style="left:${x}%;top:${y}%">
-            <div class="pn-ring" style="--inv:${inv}">
+            <div class="pn-ring" style="--pa:${UI.planetAccent(st.id)}">
               <div class="pn-ball" style="background:radial-gradient(circle at 35% 30%, ${st.ground}, ${st.ground2})">${unlocked ? st.icon : "🔒"}</div>
             </div>
             <div class="pn-name">${unlocked ? st.pname : "HQ Lv" + st.rank}${frontier && unlocked ? " ⭐" : ""}</div>
@@ -160,7 +160,7 @@ Object.assign(UI, {
       <div class="tv-stars"></div>
       <div class="tv-from">${from.icon} ${from.pname}</div>
       <div class="tv-ship">🚀</div>
-      <div class="tv-to">${to.icon} ${to.pname}</div>
+      <div class="tv-to" style="color:${this.planetAccent(to.id)}">${to.icon} ${to.pname}</div>
       <div class="tv-skip">クリックでスキップ</div>`;
     ov.classList.add("show");
     let done = false;

@@ -172,6 +172,19 @@ const UI = {
     this.els["ui-hint"].textContent = this.hints[this.hintIdx];
   },
 
+  // 惑星アクセント(§1.5 / Phase 8): 縁・リング・ドットの差し色のみ。土壌と魂は不変
+  planetAccents: {
+    1: "desert", 2: "grass", 3: "jungle", 4: "swamp", 5: "volcano",
+    6: "jungle", 7: "swamp", 8: "snow", 9: "cave", 10: "ruins",
+  },
+  planetAccent(id) { return `var(--planet-${this.planetAccents[id] || "desert"})`; },
+  applyPlanetAccent() {
+    const id = Game.currentStage().id;
+    if (this._accentId === id) return;
+    this._accentId = id;
+    document.documentElement.style.setProperty("--planet-accent", this.planetAccent(id));
+  },
+
   // ランクアップ(§6: 軽)。右パネルのHQ Lv行がその場でリング発光+数値ロールアップ
   rankUpFx() {
     const el = this.els["ui-rank"];
@@ -206,6 +219,7 @@ const UI = {
     this.els["rank-bar"].style.width = (s.rankXp / Game.rankXpNeed() * 100) + "%";
     this.els["ui-pop"].textContent = s.lizards.length + "/" + Game.capacity();
     this.els["ui-stage"].textContent = Game.currentStage().name;
+    this.applyPlanetAccent(); // 惑星が変わった時だけ差し色が切り替わる
     Motion.countUp(this.els["ui-wins"], s.stats.raidsWon, (v) => Math.round(v));
     // V4: 資源フロー表示
     document.getElementById("ui-res-bio").textContent = fmt(Game.res("bio"));

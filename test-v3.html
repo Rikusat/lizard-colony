@@ -49,7 +49,7 @@
     <div class="card"><h3>🏕 コロニー</h3>
       <div class="rowline">ランク <b id="ui-rank">1</b></div><div class="bar"><div id="rank-bar"></div></div>
       <div class="rowline">トカゲ数 <b id="ui-pop">0/10</b></div>
-      <div class="rowline clickable" id="row-stage">ステージ <b id="ui-stage">乾燥地帯</b> <span class="chev">▸</span></div>
+      <div class="rowline clickable" id="row-stage"><span>ステージ <span class="planet-dot"></span></span> <b id="ui-stage">乾燥地帯</b> <span class="chev">▸</span></div>
       <div class="rowline">撃退数 <b id="ui-wins">0</b></div>
       <div class="rowline">🧬 生態データ <b id="ui-res-bio">0</b></div>
       <div class="rowline">🍖 食料供給 <b id="ui-res-food">0</b></div>
@@ -141,6 +141,13 @@ globalThis._noStart = true;
     else { clearTimeout(Hero._timer); Hero._timer = null; } // 撮影用に停止
   }
   else if (h === "#fx-rank") { setTimeout(() => UI.rankUpFx(), 600); }
+  else if (h.startsWith("#accent-")) { // 惑星アクセントの強制適用(一覧確認用)
+    const pid = parseInt(h.slice(8), 10) || 1;
+    document.documentElement.style.setProperty("--planet-accent", UI.planetAccent(pid));
+    UI._accentId = pid; // updateによる上書きを防ぐ
+    UI.applyPlanetAccent = () => {};
+    document.getElementById("ui-stage").textContent = stageById(pid).pname + " / " + stageById(pid).name;
+  }
   else if (h === "#tip-demo") { // ホバーツールチップの見た目確認(強制表示)
     const st = document.createElement("style");
     st.textContent = "[data-tip].demo::after{opacity:1;transform:translateX(-50%) translateY(0);transition-delay:0s}";
