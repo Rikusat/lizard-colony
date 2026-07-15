@@ -8,7 +8,7 @@ Object.assign(UI, {
   openAllies() {
     this.openModal(`${Icon.svg("paw")} 味方 (繁殖不可の特別な仲間)`, (body) => {
       body.innerHTML = `<p style="font-size:13px;color:var(--sub);margin-bottom:10px">
-        各ボスの脅威を無力化する頼れる仲間。ボス撃破の素材でLvアップ。
+        各ボスの脅威を無力化する頼れる仲間。生態データでLvアップ。
         所持${Icon.svg("bio")}生態データ: <b style="color:var(--gold)">${fmt(Game.res("bio"))}</b></p>`;
       for (const a of ALLIES) {
         const owned = Game.state.allies[a.id];

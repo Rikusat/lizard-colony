@@ -43,7 +43,7 @@ const Game = {
     s.coins += coins;
     s.gems += gems;
     this.erosionLoginRelief(); // V4.1 §6: 定期ログインで侵食が下がる
-    setTimeout(() => UI.toast(` デイリーボーナス! ${s.daily.streak}日連続 → +${fmt(coins)}G +ジェム${gems}`), 800);
+    setTimeout(() => UI.toast(`デイリーボーナス! ${s.daily.streak}日連続 → +${fmt(coins)}G +ジェム${gems}`), 800);
   },
 
   newGame() {
@@ -249,7 +249,7 @@ const Game = {
     if (s.coins < cost) { UI.toast("コインが足りない!", true); return false; }
     s.coins -= cost;
     s.nest.lv = lv + 1;
-    UI.toast(` 巣が Lv${s.nest.lv} に! 外出枠+1・隊列枠が拡張`);
+    UI.toast(`巣が Lv${s.nest.lv} に! 外出枠+1・隊列枠が拡張`);
     return true;
   },
 
@@ -305,7 +305,7 @@ const Game = {
       } else {
         for (const node of opened) {
           const o = oreById(node.reward.ore);
-          UI.toast(` 巣ノード解放!「${node.name}」 → ${Icon.svg(o.icon)}${o.name}+${node.reward.n}`);
+          UI.toast(`巣ノード解放!「${node.name}」 → ${Icon.svg(o.icon)}${o.name}+${node.reward.n}`);
         }
       }
     }
@@ -325,7 +325,7 @@ const Game = {
     const o = oreById(node.reward.ore);
     this.flashT = 0.3;
     if (UI.heroNestReveal) UI.heroNestReveal([node], true); // サプライズ版(少し特別)
-    else UI.toast(` 予想外のノードが解放された!!「${node.name}」 → ${Icon.svg(o.icon)}${o.name}+${node.reward.n}`);
+    else UI.toast(`予想外のノードが解放された!!「${node.name}」 → ${Icon.svg(o.icon)}${o.name}+${node.reward.n}`);
     return node;
   },
 
@@ -366,7 +366,7 @@ const Game = {
     this.flashT = 0.5;
     const egg = this.state.eggs[this.state.eggs.length - 1];
     if (UI.heroMeteorite) UI.heroMeteorite(sp, morphById(morphId), egg); // 中〜重(§6)
-    else UI.toast(` 隕石を割った!! 中から${morphId === "legendary" ? "伝説の" : "希少な"}卵が…!`);
+    else UI.toast(`隕石を割った!! 中から${morphId === "legendary" ? "伝説の" : "希少な"}卵が…!`);
     return true;
   },
 
@@ -391,7 +391,7 @@ const Game = {
       pattern: PATTERNS[Math.floor(Math.random() * 4)],
       t: 30, total: 30, lucky: true,
     });
-    UI.toast(` 琥珀の遺伝子を解析! 未発見の「${mo.name} ${sp.name}」の卵が生成された`);
+    UI.toast(`琥珀の遺伝子を解析! 未発見の「${mo.name} ${sp.name}」の卵が生成された`);
     return true;
   },
 
@@ -403,7 +403,7 @@ const Game = {
     if (!this.spendOre("titaniumOre", CFG.forgeTitaniumCost)) { UI.toast(`チタン鉱が${CFG.forgeTitaniumCost}個必要`, true); return false; }
     if (!this.state.forged) this.state.forged = {};
     this.state.forged[id] = (this.state.forged[id] || 0) + 1;
-    UI.toast(` ${f.name}が化けた! Lv上限+1(現在 上限${this.facMax(f)})`);
+    UI.toast(`${f.name}が化けた! Lv上限+1(現在 上限${this.facMax(f)})`);
     return true;
   },
 
@@ -421,7 +421,7 @@ const Game = {
       t: 30, total: 30, lucky: true,
     });
     this.flashT = 0.6;
-    UI.toast(" アメジストが共鳴し、始祖の卵が姿を現した…!");
+    UI.toast("アメジストが共鳴し、始祖の卵が姿を現した…!");
     return true;
   },
 
@@ -451,12 +451,12 @@ const Game = {
         this.flashT = 1;
         this.slowmo = 1;
         if (UI.heroRocketLaunch) UI.heroRocketLaunch(); // 一生に数回級(§6)
-        else UI.toast(" ロケット完成!!! トカゲ文明は再び星の海へ — アメジスト+20 / 全惑星の生産+10%(恒久)");
+        else UI.toast("ロケット完成!!! トカゲ文明は再び星の海へ — アメジスト+20 / 全惑星の生産+10%(恒久)");
       } else {
-        UI.toast(` ロケット建造 第${r.stage}段階が完了! (全${CFG.rocketStages.length}段階)`);
+        UI.toast(`ロケット建造 第${r.stage}段階が完了! (全${CFG.rocketStages.length}段階)`);
       }
     } else {
-      UI.toast(` イリジウム${amount}を投入(${r.invested}/${this.rocketStageNeed()})`);
+      UI.toast(`イリジウム${amount}を投入(${r.invested}/${this.rocketStageNeed()})`);
     }
     return true;
   },
@@ -479,7 +479,7 @@ const Game = {
     const before = this.state.erosion || 0;
     this.state.erosion = Math.max(0, before - down);
     if (before >= CFG.erosionT1) {
-      UI.toast(` ログインでバガー侵食率が回復した(${Math.round(before)}%→${Math.round(this.state.erosion)}%)`);
+      UI.toast(`ログインでバガー侵食率が回復した(${Math.round(before)}%→${Math.round(this.state.erosion)}%)`);
     }
   },
 
@@ -501,7 +501,7 @@ const Game = {
     if (this.state.coins < cost) { UI.toast("コインが足りない!", true); return false; }
     this.state.coins -= cost;
     this.addRes(kind, CFG.convertBatch);
-    UI.toast(` ${fmt(cost)}G → ${resById(kind).icon}${resById(kind).name}+${CFG.convertBatch} に変換した`);
+    UI.toast(`${fmt(cost)}G → ${resById(kind).icon}${resById(kind).name}+${CFG.convertBatch} に変換した`);
     return true;
   },
   // 生態データ→研究力変換
@@ -510,7 +510,7 @@ const Game = {
     if (this.res("bio") < need) { UI.toast(`生態データが${fmt(need)}必要`, true); return false; }
     this.addRes("bio", -need);
     this.addRes("science", CFG.convertBatch);
-    UI.toast(` 生態データ${fmt(need)} → 研究力+${CFG.convertBatch} に変換した`);
+    UI.toast(`生態データ${fmt(need)} → 研究力+${CFG.convertBatch} に変換した`);
     return true;
   },
 
@@ -525,7 +525,7 @@ const Game = {
     if (s.coins < cost) { UI.toast("コインが足りない!", true); return false; }
     s.coins -= cost;
     s.devLv = (s.devLv || 0) + 1;
-    UI.toast(` 惑星開発 Lv${s.devLv}! この惑星の生産+2%・エネルギー産出が増えた`);
+    UI.toast(`惑星開発 Lv${s.devLv}! この惑星の生産+2%・エネルギー産出が増えた`);
     return true;
   },
 
@@ -715,9 +715,9 @@ const Game = {
 
     UI.toast(`${target.icon} コロニー「${target.name}」へ移動 — ${target.envText}`);
     if (pioneered) {
-      UI.toast(` 開拓ボーナス! 本部Lv${this.hqLevel()}の支援: コオロギ+${fmt(CFG.pioneerCrickets + this.hqLevel() * 20)}・開拓資金+${fmt(CFG.pioneerCoins + this.hqLevel() * 2000)}G・水場とシェルターを無償設置`);
-      if (founded > 0) UI.toast(` 創始者の卵を${founded}匹ぶん持ち込んだ! 新天地で血統が続く…`);
-      if (starters > 0) UI.toast(` この惑星には現地のトカゲ${starters}匹が暮らしていた! 共存の始まりだ`);
+      UI.toast(`開拓ボーナス! 本部Lv${this.hqLevel()}の支援: コオロギ+${fmt(CFG.pioneerCrickets + this.hqLevel() * 20)}・開拓資金+${fmt(CFG.pioneerCoins + this.hqLevel() * 2000)}G・水場とシェルターを無償設置`);
+      if (founded > 0) UI.toast(`創始者の卵を${founded}匹ぶん持ち込んだ! 新天地で血統が続く…`);
+      if (starters > 0) UI.toast(`この惑星には現地のトカゲ${starters}匹が暮らしていた! 共存の始まりだ`);
     }
     if (report) this.toastOfflineReport(target, report);
     this.save();
@@ -810,7 +810,7 @@ const Game = {
     // まとまった時間が経っていれば「おかえり」通知
     if (total > 60) {
       const gained = Math.max(0, Math.floor(this.state.coins - before));
-      UI.toast(` おかえり! 離席中(${fmtDur(total)})も稼働 — 生産+${fmt(gained)}G`);
+      UI.toast(`おかえり! 離席中(${fmtDur(total)})も稼働 — 生産+${fmt(gained)}G`);
     }
   },
 
@@ -891,7 +891,7 @@ const Game = {
     const sp = speciesById(speciesId), mo = morphById(morphId);
     const gems = sp.stars;
     this.state.gems += gems;
-    if (!silent) UI.toast(` 図鑑に新登録! ${sp.name}(${mo.name}) +ジェム${gems}`);
+    if (!silent) UI.toast(`図鑑に新登録! ${sp.name}(${mo.name}) +ジェム${gems}`);
   },
 
   // ---------------- 経済・育成 ----------------
@@ -903,7 +903,7 @@ const Game = {
     }
     this.state.coins -= cost;
     this.state.crickets += n;
-    if (!silent) UI.toast(` コオロギを${n}匹購入した`);
+    if (!silent) UI.toast(`コオロギを${n}匹購入した`);
     return true;
   },
 
@@ -927,7 +927,7 @@ const Game = {
     // 成長処理
     if (lz.stage === "baby" && lz.xp >= CFG.babyXpToAdult) {
       lz.stage = "adult"; lz.xp = 0; lz.level = 1;
-      UI.toast(` ${this.lizardName(lz)} がアダルトに成長!`);
+      UI.toast(`${this.lizardName(lz)} がアダルトに成長!`);
     } else if (lz.stage === "adult" && lz.xp >= CFG.adultXpPerLevel) {
       lz.xp -= CFG.adultXpPerLevel; lz.level++;
       this.popup(lz.x, lz.y - 34, "Lv" + lz.level + "!", "#ffd24c");
@@ -953,7 +953,7 @@ const Game = {
     this.state.stats.sold++;
     this.state.lizards = this.state.lizards.filter((x) => x.id !== lz.id);
     if (this.selectedId === lz.id) this.selectedId = null;
-    UI.toast(` ${this.lizardName(lz)} を ${fmt(price)}G で売却した`);
+    UI.toast(`${this.lizardName(lz)} を ${fmt(price)}G で売却した`);
   },
 
   healWithGem(lz) {
@@ -961,7 +961,7 @@ const Game = {
     if (lz.injuredT <= 0) return;
     this.state.gems--;
     lz.injuredT = 0;
-    UI.toast(` ${this.lizardName(lz)} が回復した!`);
+    UI.toast(`${this.lizardName(lz)} が回復した!`);
   },
 
   lizardName(lz) {
@@ -985,7 +985,7 @@ const Game = {
     if (!a || !b || a === b) return false;
     // ヌシオオトカゲの威嚇中は繁殖できない
     if (this.raid && this.raid.typeId === "monitor" && this.raid.snake.arrived) {
-      if (!silent) UI.toast(" ヌシに威嚇されて繁殖できない! 先に撃退しよう", true);
+      if (!silent) UI.toast("ヌシに威嚇されて繁殖できない! 先に撃退しよう", true);
       return false;
     }
     if (!this.canBreed(a) || !this.canBreed(b)) { if (!silent) UI.toast("繁殖できない状態のトカゲがいる", true); return false; }
@@ -1007,7 +1007,7 @@ const Game = {
     const hatchMult = Math.max(0.2, (1 - this.facLv("heat") * 0.025) * (1 - (((this.state.nest && this.state.nest.lv) || 1) - 1) * 0.03) * (1 - this.researchBonus("hatch")));
     const total = CFG.hatchBasePerStar * sp.stars * hatchMult;
     this.state.eggs.push({ ...genes, t: total, total });
-    UI.toast(` 卵が産まれた! (${sp.name}系)`);
+    UI.toast(`卵が産まれた! (${sp.name}系)`);
     return true;
   },
 
@@ -1096,16 +1096,16 @@ const Game = {
       // 創始者 (V3 §9.4): 旧コロニーの血統を継ぐ個体
       lz.founder = true;
       this.flashT = 0.5;
-      UI.toast(` 創始者が誕生! ${this.lizardName(lz)} — あの子の血が新天地で続く`);
+      UI.toast(`創始者が誕生! ${this.lizardName(lz)} — あの子の血が新天地で続く`);
     } else if (egg.morphId === "legendary") {
       // 伝説個体の専用登場演出 (⑨-6)
       this.flashT = 0.8;
       this.slowmo = 1.2;
       this.popupBurst(lz.x, lz.y - 30);
       if (UI.heroLegendBirth) UI.heroLegendBirth(lz); // 一生に数回級(§6)
-      else UI.toast(` 伝説個体が誕生!! ${this.lizardName(lz)} — 唯一無二の輝き!`);
+      else UI.toast(`伝説個体が誕生!! ${this.lizardName(lz)} — 唯一無二の輝き!`);
     } else {
-      UI.toast(` ${this.lizardName(lz)} が孵化した!${egg.lucky ? " (ラッキー卵!)" : ""}`);
+      UI.toast(`${this.lizardName(lz)} が孵化した!${egg.lucky ? " (ラッキー卵!)" : ""}`);
     }
   },
 
@@ -1121,22 +1121,22 @@ const Game = {
       s.rank++;
       const bonus = s.rank * 100;
       s.coins += bonus;
-      UI.toast(` コロニーランク ${s.rank} に上昇! ボーナス ${fmt(bonus)}G`);
+      UI.toast(`コロニーランク ${s.rank} に上昇! ボーナス ${fmt(bonus)}G`);
       if (UI.rankUpFx) UI.rankUpFx(); // 軽(§6): 画面を占有しないその場リング
       // ショップ進化・自動補給の解禁通知 (GameExpansion_v2 ⑤)
       if (SHOP_TIERS.some((t) => t.rank === s.rank)) {
-        UI.toast(` まとめ買いが解放された! 購入単位が ×${fmt(shopUnitsFor(s.rank)[1])} に育った!`);
+        UI.toast(`まとめ買いが解放された! 購入単位が ×${fmt(shopUnitsFor(s.rank)[1])} に育った!`);
       }
       if (s.rank === CFG.autoSupplyRank) {
-        UI.toast(" 自動補給が解禁! ショップ欄のトグルでONにできる");
+        UI.toast("自動補給が解禁! ショップ欄のトグルでONにできる");
       }
     }
     if (this.currentStage().id !== prevStage) {
-      UI.toast(` コロニーが「${this.currentStage().name}」へ広がった! 新種族が解放!`);
+      UI.toast(`コロニーが「${this.currentStage().name}」へ広がった! 新種族が解放!`);
     } else if (this.unlockedStages().length > prevUnlocked) {
       // 手動選択中に新ステージが解放された場合の移住案内
       const st = this.unlockedStages().slice(-1)[0];
-      UI.toast(` 新ステージ「${st.name}」が解放! ステージ欄から移住できる`);
+      UI.toast(`新ステージ「${st.name}」が解放! ステージ欄から移住できる`);
     }
   },
 
@@ -1174,7 +1174,7 @@ const Game = {
     }
     this.addRes("bio", -cost);
     a.lv++;
-    UI.toast(` ${allyById(id).name} が Lv${a.lv} に成長した!`);
+    UI.toast(`${allyById(id).name} が Lv${a.lv} に成長した!`);
     return true;
   },
 
@@ -1190,7 +1190,7 @@ const Game = {
     if (this.state.coins < cost) return UI.toast("コインが足りない!", true);
     this.state.coins -= cost;
     this.state.facilities[id]++;
-    UI.toast(` ${f.name} が Lv${this.facLv(id)} になった!`);
+    UI.toast(`${f.name} が Lv${this.facLv(id)} になった!`);
   },
 
   // ---------------- 襲撃(防衛バトル / GameExpansion_v2 ①②) ----------------
@@ -1287,7 +1287,7 @@ const Game = {
     // Enrage (T5+): 残り20%で激昂
     if (r.tierDef && r.tierDef.enrage && !r.enraged && e.hp < e.maxHp * 0.2 && e.hp > 0) {
       r.enraged = true;
-      UI.toast(" 敵が激昂した!! 攻撃が苛烈になる!", true);
+      UI.toast("敵が激昂した!! 攻撃が苛烈になる!", true);
     }
     return e.hp <= 0;
   },
@@ -1379,7 +1379,7 @@ const Game = {
             tgt.hiddenT = CFG.hawkHideTime;
             r.grabs++;
             this.popup(tgt.x, tgt.y - 30, "さらわれた!", "#ff5544");
-            UI.toast(` ${this.lizardName(tgt)} がさらわれた! (${Math.round(CFG.hawkHideTime)}秒後に戻る)`, true);
+            UI.toast(`${this.lizardName(tgt)} がさらわれた! (${Math.round(CFG.hawkHideTime)}秒後に戻る)`, true);
           }
           r.dive = null; r.recoverT = 2.2; r.hawkT = 8;
           if (r.grabs >= CFG.hawkGrabLimit) return this.endRaid(false, "grab");
@@ -1415,11 +1415,11 @@ const Game = {
       if (r.grabT <= 0) {
         if (this.state.eggs.length > 0) {
           r.stolenEgg = this.state.eggs.shift();
-          UI.toast(" オオガラスが卵をくわえた! 逃げられる前に撃墜しろ!", true);
+          UI.toast("オオガラスが卵をくわえた! 逃げられる前に撃墜しろ!", true);
         } else {
           const loss = Math.floor(this.state.crickets * 0.1);
           this.state.crickets -= loss;
-          if (loss > 0) UI.toast(` 卵がないのでコオロギを${fmt(loss)}匹食い荒らされた!`, true);
+          if (loss > 0) UI.toast(`卵がないのでコオロギを${fmt(loss)}匹食い荒らされた!`, true);
         }
         r.fleeing = true;
       }
@@ -1441,7 +1441,7 @@ const Game = {
         this.popup(v.x, v.y - 20, "毒!", "#c07ae0");
         hit++;
       }
-      if (hit) UI.toast(` 毒針! ${hit}匹の攻撃力が半減… (水場Lvで早く抜ける)`, true);
+      if (hit) UI.toast(`毒針! ${hit}匹の攻撃力が半減… (水場Lvで早く抜ける)`, true);
       r.stingN++;
       if (r.stingN % 2 === 0) this.injureLizards(1); // 2回に1回は直接負傷も
       return;
@@ -1474,7 +1474,7 @@ const Game = {
       this.popup(v.x, v.y - 20, "負傷!", "#ff5544");
       hit++;
     }
-    if (hit) UI.toast(` 敵の攻撃! ${hit}匹が負傷…`, true);
+    if (hit) UI.toast(`敵の攻撃! ${hit}匹が負傷…`, true);
   },
 
   // クモの巣
@@ -1492,7 +1492,7 @@ const Game = {
         burnT: burn ? burnBase + i * 3 : 0,
       });
     }
-    UI.toast(" ウェブが張られた! タップ連打でほつれる" + (burn ? " (炎で自然に焼ける)" : ""), true);
+    UI.toast("ウェブが張られた! タップ連打でほつれる" + (burn ? " (炎で自然に焼ける)" : ""), true);
   },
 
   updateWebs(r, dt) {
@@ -1571,9 +1571,9 @@ const Game = {
       this.popupBurst(r.snake.x, r.snake.y);
       this.slowmo = 0.6; // 撃破スローモーション
     } else {
-      if (reason === "egg") UI.toast(" オオガラスに卵を奪われた…!", true);
-      else if (reason === "grab") UI.toast(" オオタカは仲間をさらって去った…(時間経過で戻ってくる)", true);
-      else UI.toast(" 敵は満足して去っていった…負傷者を回復させよう", true);
+      if (reason === "egg") UI.toast("オオガラスに卵を奪われた…!", true);
+      else if (reason === "grab") UI.toast("オオタカは仲間をさらって去った…(時間経過で戻ってくる)", true);
+      else UI.toast("敵は満足して去っていった…負傷者を回復させよう", true);
     }
     this.raid = null;
     s.raidTimer = CFG.raidInterval;
@@ -1589,7 +1589,7 @@ const Game = {
   raidNow() {
     if (this.raid) return;
     this.state.raidTimer = Math.min(this.state.raidTimer, 2);
-    UI.toast(" 蛇を挑発した! すぐに来るぞ…");
+    UI.toast("蛇を挑発した! すぐに来るぞ…");
   },
 
   // ---------------- メインループ ----------------
@@ -1659,7 +1659,7 @@ const Game = {
         const u = a.unlock;
         if ((u.rank && s.rank >= u.rank) || (u.wins && s.stats.raidsWon >= u.wins)) {
           s.allies[a.id] = { lv: 1 };
-          UI.toast(` 味方が仲間になった! ${a.icon} ${a.name} — ${a.desc}`);
+          UI.toast(`味方が仲間になった! ${a.icon} ${a.name} — ${a.desc}`);
         }
       }
       this.checkTitles();
@@ -1820,7 +1820,7 @@ const Game = {
       try { ok = L.cond(s); } catch (e) { ok = false; }
       if (ok) {
         s.lore[L.id] = true;
-        UI.toast(` Lore解放:「${L.name}」(図鑑のLoreタブで読める)`);
+        UI.toast(`Lore解放:「${L.name}」(図鑑のLoreタブで読める)`);
       }
     }
   },
@@ -1833,7 +1833,7 @@ const Game = {
       if (t.cond(s)) {
         s.titles[t.id] = true;
         if (!s.titleSel) s.titleSel = t.id;
-        UI.toast(` 称号を獲得! 「${t.name}」 (統計から変更できる)`);
+        UI.toast(`称号を獲得! 「${t.name}」 (統計から変更できる)`);
       }
     }
   },
@@ -1872,7 +1872,7 @@ const Game = {
       this.merchant.t -= dt;
       if (this.merchant.t <= 0) {
         this.merchant = null;
-        UI.toast(" 放浪商人は去っていった…");
+        UI.toast("放浪商人は去っていった…");
       }
       return;
     }
@@ -1881,7 +1881,7 @@ const Game = {
     if (this._merchantT <= 0) {
       this._merchantT = rnd(CFG.merchantIntervalMin, CFG.merchantIntervalMax);
       this.rollMerchant();
-      UI.toast(` 放浪商人がやってきた! (${Math.round(CFG.merchantStay)}秒滞在)`);
+      UI.toast(`放浪商人がやってきた! (${Math.round(CFG.merchantStay)}秒滞在)`);
     }
   },
 
@@ -1922,14 +1922,14 @@ const Game = {
         pattern: PATTERNS[Math.floor(Math.random() * 4)],
         t: 30, total: 30, lucky: o.kind === "legendegg",
       });
-      UI.toast(` ${o.label} を購入! 巣で孵化が始まった`);
+      UI.toast(`${o.label} を購入! 巣で孵化が始まった`);
     } else if (o.kind === "bio") {
       this.addRes("bio", 80);
-      UI.toast(" 生態データ×80 を購入!");
+      UI.toast("生態データ×80 を購入!");
     } else {
       const g = Math.max(5000, Math.floor(this.incomePerSec() * 600));
       this.state.coins += g;
-      UI.toast(` コイン袋を購入! +${fmt(g)}G`);
+      UI.toast(`コイン袋を購入! +${fmt(g)}G`);
     }
     m.offers.splice(i, 1);
     return true;
@@ -1954,7 +1954,7 @@ const Game = {
       pattern: PATTERNS[Math.floor(Math.random() * 4)],
       t: 45, total: 45, lucky: true,
     });
-    UI.toast(" ラッキー卵が巣に現れた! 何が生まれるかはお楽しみ…");
+    UI.toast("ラッキー卵が巣に現れた! 何が生まれるかはお楽しみ…");
   },
 
   // ---------------- セーブ / ロード (V3: WorldData形式) ----------------
@@ -2232,9 +2232,9 @@ const Game = {
         world = this.migrateV3to4(data);
         const r = world._refund41;
         setTimeout(() => {
-          UI.toast(" Idle Nest アップデート! 巣は全惑星共通の自動成長ネットワークになりました");
+          UI.toast("Idle Nest アップデート! 巣は全惑星共通の自動成長ネットワークになりました");
           if (r && (r.amber > 0 || r.iridium > 0)) {
-            UI.toast(` 旧探索の払い戻し: 琥珀+${r.amber} イリジウム+${r.iridium} 隕石+${r.meteorite} オリハルコン+${r.orichalcum}`);
+            UI.toast(`旧探索の払い戻し: 琥珀+${r.amber} イリジウム+${r.iridium} 隕石+${r.meteorite} オリハルコン+${r.orichalcum}`);
           }
         }, 900);
       } else if (data.version === 2) {
@@ -2243,9 +2243,9 @@ const Game = {
         world = this.migrateV3to4(this.migrateV2to3(data));
         const r = world._refund;
         setTimeout(() => {
-          UI.toast(" Planet Reptileアップデート! セーブをV4形式へ移行しました(旧データはバックアップ済み)");
+          UI.toast("Planet Reptileアップデート! セーブをV4形式へ移行しました(旧データはバックアップ済み)");
           if (r && (r.refundG > 0 || r.bio > 0)) {
-            UI.toast(` 素材システム廃止にともない払い戻し: +${fmt(r.refundG)}G / 生態データ+${fmt(r.bio)} / 研究力+${fmt(r.science)}`);
+            UI.toast(`素材システム廃止にともない払い戻し: +${fmt(r.refundG)}G / 生態データ+${fmt(r.bio)} / 研究力+${fmt(r.science)}`);
           }
         }, 900);
       } else {
@@ -2253,7 +2253,7 @@ const Game = {
         try { localStorage.setItem(CFG.saveBackupKey, raw); } catch (e) { /* noop */ }
         try { localStorage.setItem(CFG.saveBackupKeyV3, raw); } catch (e) { /* noop */ }
         world = this.migrateV3to4(this.migrateV2to3(this.migrateV1(data)));
-        setTimeout(() => UI.toast(" セーブを最新形式へ移行しました。旧データはバックアップ済み"), 900);
+        setTimeout(() => UI.toast("セーブを最新形式へ移行しました。旧データはバックアップ済み"), 900);
       }
       this.applyWorld(world);
       // V4.1: 留守中の侵食上昇(全体で1回だけ)と巣の一括解放
@@ -2261,7 +2261,7 @@ const Game = {
       if (awaySec > 60) this.erosionRise(awaySec);
       const openedOffline = this.checkNestWeb(true);
       if (openedOffline.length > 0) {
-        setTimeout(() => UI.toast(` 留守中に巣ノードが${openedOffline.length}個 開いていた!(巣画面で確認)`), 700);
+        setTimeout(() => UI.toast(`留守中に巣ノードが${openedOffline.length}個 開いていた!(巣画面で確認)`), 700);
       }
       // 全惑星のオフライン進行(旧惑星も生き続ける)
       const reports = [];

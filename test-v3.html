@@ -149,6 +149,17 @@ globalThis._noStart = true;
         + "</div>";
     });
   }
+  else if (h === "#detail") { // 個体詳細パネル(QA用)
+    const lz = Game.state.lizards.find(l => l.stage === "adult");
+    lz.injuredT = 30; lz.founder = true; // 全行を出す
+    Game.selectedId = lz.id;
+    UI.renderDetail(true);
+  }
+  else if (h === "#missions") UI.openMissions();
+  else if (h === "#settings") UI.openSettings();
+  else if (h === "#stats") UI.openStats();
+  else if (h === "#allies") UI.openAllies();
+  else if (h === "#titles") UI.openTitles();
   else if (h === "#fx-rank") { setTimeout(() => UI.rankUpFx(), 600); }
   else if (h.startsWith("#accent-")) { // 惑星アクセントの強制適用(一覧確認用)
     const pid = parseInt(h.slice(8), 10) || 1;
