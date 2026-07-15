@@ -166,13 +166,30 @@ const UI = {
     this.els["ui-hint"].textContent = this.hints[this.hintIdx];
   },
 
+  // 資源ピルのジュース(§5.1)。quietDelta以下の変動(毎秒の自動収入)は演出しない
+  resPill(id, value, quietDelta) {
+    const el = this.els[id] || document.getElementById(id);
+    const delta = el._mv === undefined ? 0 : value - el._mv;
+    Motion.countUp(el, value);
+    if (Math.abs(delta) <= (quietDelta || 0)) return;
+    const pill = el.closest(".res");
+    if (!pill) return;
+    if (delta > 0) {
+      Motion.play(pill, "gain");
+      Motion.play(pill.querySelector(".ricon"), "bounce");
+    } else if (delta < 0) {
+      Motion.play(pill, "loss");
+    }
+  },
+
   // ---------------- 定期更新 ----------------
   update() {
     const s = Game.state;
-    this.els["ui-coins"].textContent = fmt(s.coins);
+    // 資源ピル(§5.1): 平常の自動収入は静かに回し、まとまった増減だけ弾ませる
+    this.resPill("ui-coins", s.coins, Game.incomePerSec() * 0.5);
     this.els["ui-cps"].textContent = "+" + Game.incomePerSec().toFixed(1) + "/秒";
-    this.els["ui-crickets"].textContent = fmt(s.crickets);
-    this.els["ui-gems"].textContent = fmt(s.gems);
+    this.resPill("ui-crickets", s.crickets, 0);
+    this.resPill("ui-gems", s.gems, 0);
     this.els["ui-rank"].textContent = s.rank;
     this.els["rank-bar"].style.width = (s.rankXp / Game.rankXpNeed() * 100) + "%";
     this.els["ui-pop"].textContent = s.lizards.length + "/" + Game.capacity();

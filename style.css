@@ -50,6 +50,15 @@ body {
 }
 .res b { color: var(--gold); min-width: 48px; text-align: right; font-variant-numeric: tabular-nums; }
 .res small { color: var(--green); font-size: 11px; }
+/* 資源ピルのジュース(UISkills §5.1): 増加=琥珀の発光+アイコン弾み / 減少=警告色を一瞬 */
+.res.gain { animation: res-gain var(--dur-slow) var(--ease-out); }
+@keyframes res-gain {
+  from { box-shadow: inset 0 2px 6px rgba(0, 0, 0, .6), 0 0 16px var(--amber-glow); border-color: var(--amber-400); }
+}
+.ricon.bounce { animation: icon-bounce var(--dur-slow) var(--ease-pop); }
+@keyframes icon-bounce { 30% { transform: scale(1.22); } }
+.res.loss b { animation: res-loss var(--dur-slow); }
+@keyframes res-loss { from { color: var(--warn-500); } }
 
 /* CSS製リソースアイコン(Win10で豆腐にならないように) */
 .ricon {
