@@ -276,10 +276,10 @@ for (const st of STAGES) st.pname = `惑星${PLANET_NAMES[st.id]}`;
 
 // V4 §3.3: 資源定義(フロー型・4種でスタート)
 const RES = [
-  { id: "bio",     name: "生態データ", icon: "🧬", hint: "育成・繁殖・図鑑から生まれる" },
-  { id: "food",    name: "食料供給",   icon: "🍖", hint: "餌場やGold変換で確保。自動給餌の燃料" },
-  { id: "energy",  name: "エネルギー", icon: "⚡", hint: "惑星開発やGold変換で確保" },
-  { id: "science", name: "研究力",     icon: "🔬", hint: "探索の深層・生態データ変換で得る" },
+  { id: "bio",     name: "生態データ", icon: "bio", hint: "育成・繁殖・図鑑から生まれる" },
+  { id: "food",    name: "食料供給",   icon: "food", hint: "餌場やGold変換で確保。自動給餌の燃料" },
+  { id: "energy",  name: "エネルギー", icon: "energy", hint: "惑星開発やGold変換で確保" },
+  { id: "science", name: "研究力",     icon: "science", hint: "探索の深層・生態データ変換で得る" },
 ];
 const resById = (id) => RES.find((r) => r.id === id);
 
@@ -313,12 +313,12 @@ const LORE = [
 // V4.1: 希少鉱石(§5 巣ノード報酬・フロー資源とは別ウォレット)
 // ============================================================
 const ORES = [
-  { id: "amethyst",    name: "アメジスト",   icon: "🔮", hint: "最上位の貴重鉱石。やり込みの証" },
-  { id: "iridium",     name: "イリジウム",   icon: "⚙️", hint: "ロケット建造の燃料。惑星移住計画へ" },
-  { id: "amber",       name: "琥珀",         icon: "🟠", hint: "太古の遺伝子を封じた樹脂。遺伝子解析に" },
-  { id: "meteorite",   name: "隕石",         icon: "☄️", hint: "中身が未確定の鉱塊。割ると希少個体が…" },
-  { id: "orichalcum",  name: "オリハルコン", icon: "🔩", hint: "伝説の金属。HQ上位研究の鍵" },
-  { id: "titaniumOre", name: "チタン鉱",     icon: "⛏️", hint: "設備を\"化けさせる\"特殊鉱石(上限突破)" },
+  { id: "amethyst",    name: "アメジスト",   icon: "amethyst", hint: "最上位の貴重鉱石。やり込みの証" },
+  { id: "iridium",     name: "イリジウム",   icon: "iridium", hint: "ロケット建造の燃料。惑星移住計画へ" },
+  { id: "amber",       name: "琥珀",         icon: "amber", hint: "太古の遺伝子を封じた樹脂。遺伝子解析に" },
+  { id: "meteorite",   name: "隕石",         icon: "meteorite", hint: "中身が未確定の鉱塊。割ると希少個体が…" },
+  { id: "orichalcum",  name: "オリハルコン", icon: "orichalcum", hint: "伝説の金属。HQ上位研究の鍵" },
+  { id: "titaniumOre", name: "チタン鉱",     icon: "titanium", hint: "設備を\"化けさせる\"特殊鉱石(上限突破)" },
 ];
 const oreById = (id) => ORES.find((o) => o.id === id);
 
@@ -328,12 +328,12 @@ const oreById = (id) => ORES.find((o) => o.id === id);
 // ============================================================
 const NESTWEB_RINGS = [8, 12, 16, 20, 24];
 const NEST_CONDS = [
-  { type: "bred",    name: "繁殖",        base: 15,  icon: "💕" },
-  { type: "hatched", name: "孵化",        base: 12,  icon: "🐣" },
-  { type: "species", name: "発見種族",    base: 4,   icon: "🦎" },
-  { type: "morphs",  name: "レアモーフ",  base: 3,   icon: "✨" },
-  { type: "dexRate", name: "図鑑率",      base: 10,  icon: "📖" },
-  { type: "wins",    name: "撃退",        base: 20,  icon: "🛡" },
+  { type: "bred",    name: "繁殖",        base: 15,  icon: "breed" },
+  { type: "hatched", name: "孵化",        base: 12,  icon: "egg" },
+  { type: "species", name: "発見種族",    base: 4,   icon: "lizard" },
+  { type: "morphs",  name: "レアモーフ",  base: 3,   icon: "spark" },
+  { type: "dexRate", name: "図鑑率",      base: 10,  icon: "dex" },
+  { type: "wins",    name: "撃退",        base: 20,  icon: "shield" },
 ];
 const NEST_ORES_BY_RING = [
   ["amber", "titaniumOre"],

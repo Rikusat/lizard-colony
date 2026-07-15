@@ -60,7 +60,7 @@ Object.assign(UI, {
       } else {
         row.innerHTML = `
           <span class="fic">${f.icon}</span>
-          <div class="grow"><b>${f.name}</b> <span class="lv">Lv${lv}/${fmax}${Game.state.forged && Game.state.forged[f.id] ? " ⛏️" : ""}</span>
+          <div class="grow"><b>${f.name}</b> <span class="lv">Lv${lv}/${fmax}${Game.state.forged && Game.state.forged[f.id] ? Icon.svg("titanium") : ""}</span>
             <div class="desc">${f.desc}</div></div>
           <button ${maxed ? "disabled" : ""}>${maxed ? "MAX" : "強化 " + fmt(cost) + "G"}</button>`;
         if (!maxed) row.querySelector("button").addEventListener("click", () => {

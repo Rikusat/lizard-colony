@@ -305,7 +305,7 @@ const Game = {
       } else {
         for (const node of opened) {
           const o = oreById(node.reward.ore);
-          UI.toast(`🕸 巣ノード解放!「${node.name}」 → ${o.icon}${o.name}+${node.reward.n}`);
+          UI.toast(`🕸 巣ノード解放!「${node.name}」 → ${Icon.svg(o.icon)}${o.name}+${node.reward.n}`);
         }
       }
     }
@@ -325,7 +325,7 @@ const Game = {
     const o = oreById(node.reward.ore);
     this.flashT = 0.3;
     if (UI.heroNestReveal) UI.heroNestReveal([node], true); // サプライズ版(少し特別)
-    else UI.toast(`🕸✨ 予想外のノードが解放された!!「${node.name}」 → ${o.icon}${o.name}+${node.reward.n}`);
+    else UI.toast(`🕸✨ 予想外のノードが解放された!!「${node.name}」 → ${Icon.svg(o.icon)}${o.name}+${node.reward.n}`);
     return node;
   },
 

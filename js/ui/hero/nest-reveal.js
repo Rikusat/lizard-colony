@@ -13,14 +13,14 @@ Object.assign(UI, {
     const sum = {};
     for (const n of nodes) sum[n.reward.ore] = (sum[n.reward.ore] || 0) + n.reward.n;
     const rewardText = Object.entries(sum)
-      .map(([ore, n]) => { const d = oreById(ore); return `${d.icon}${d.name}+${n}`; })
+      .map(([ore, n]) => { const d = oreById(ore); return `${Icon.svg(d.icon)}${d.name}+${n}`; })
       .join(" ");
     const threads = [0, 60, 120, 180, 240, 300]
       .map((a) => `<i style="--a:${a}deg"></i>`).join("");
     const more = nodes.length > 1 ? ` ほか+${nodes.length - 1}` : "";
     const ok = Hero.show({
       cls: "hero-nest" + (surprise ? " surprise" : ""),
-      main: `<div class="medal">${threads}<span>${o.icon}</span></div>`,
+      main: `<div class="medal">${threads}<span>${Icon.svg(o.icon)}</span></div>`,
       info: `<div class="hero-stamp">${surprise ? "予想外の解放!!" : "巣ノード解放"}</div>
         <div class="hero-name">${first.name}${more}</div>
         <div class="hero-reward">${rewardText} — 巣ネットワークが届けてくれた</div>`,

@@ -71,7 +71,7 @@ Object.assign(UI, {
       const tip = n.id === "core" ? "巣の中心"
         : open ? `${n.name} — 解放済み` : `${n.name} — 進捗${Math.floor(p * 100)}%`;
       html += `<div class="wnode ${cls}" data-node="${n.id}" data-tip="${tip}" style="left:${x}px;top:${y}px">
-        <span>${n.id === "core" ? "🕸" : open ? (oreById(n.reward.ore).icon) : n.icon}</span></div>`;
+        <span>${n.id === "core" ? Icon.svg("nestweb") : open ? Icon.svg(oreById(n.reward.ore).icon) : Icon.svg(n.icon)}</span></div>`;
     }
     wrap.innerHTML = html;
     // タップ=ツールチップのみ(§4.2)。解放操作は存在しない
@@ -85,11 +85,11 @@ Object.assign(UI, {
         const condTxt = n.conds.map((c) => {
           const def = NEST_CONDS.find((d) => d.type === c.type);
           const cur = Math.floor(Game.nestMetric(c.type));
-          return `${def.icon}${def.name} ${Math.min(cur, c.need)}/${c.need}${c.type === "dexRate" ? "%" : ""}`;
+          return `${Icon.svg(def.icon)}${def.name} ${Math.min(cur, c.need)}/${c.need}${c.type === "dexRate" ? "%" : ""}`;
         }).join(" + ");
         tip.classList.remove("hidden");
         tip.innerHTML = `<b>${n.name}</b> ${open ? "✅解放済み" : ""}<br>
-          条件: ${condTxt}<br>報酬: ${o.icon}${o.name}×${n.reward.n}
+          条件: ${condTxt}<br>報酬: ${Icon.svg(o.icon)}${o.name}×${n.reward.n}
           ${open ? "" : `<br><span style="color:var(--sub)">いつもの繁殖を続ければ自然に開く</span>`}`;
       });
     }

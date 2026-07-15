@@ -24,7 +24,7 @@ Object.assign(UI, {
     const el = document.createElement("div");
     const cls = type === true ? "bad" : (type || "");
     el.className = "toast" + (cls ? " " + cls : "");
-    el.textContent = msg;
+    el.innerHTML = msg; // 内部生成の文字列のみ(SVGアイコンを含められるようinnerHTML)
     this.els["toasts"].appendChild(el);
     while (this.els["toasts"].children.length > 5) this.els["toasts"].firstChild.remove();
     setTimeout(() => el.classList.add("out"), 3650);

@@ -95,6 +95,7 @@ const ICONS = {
   fire: '<path d="M12 2c1 3-2 4-2 7a2 2 0 0 0 4 .5C16 11 17 13 17 15a5 5 0 0 1-10 0c0-5 4-7 5-13z" fill="none"/>',
   unknown: '<circle cx="12" cy="12" r="9" fill="none"/><path d="M9 9.5A3 3 0 0 1 15 10c0 2-3 2-3 4M12 17.5v.5" fill="none"/>',
   close: '<path d="M5 5l14 14M19 5 5 19" fill="none"/>',
+  shield: '<path d="M12 3 5 6v6c0 5 3.5 8 7 9 3.5-1 7-4 7-9V6z" fill="none"/><path d="M9 12l2 2 4-4" fill="none"/>',
 };
 
 const Icon = {
