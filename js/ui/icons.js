@@ -104,7 +104,8 @@ const Icon = {
     if (this.injected) return;
     this.injected = true;
     const defs = Object.entries(ICONS)
-      .map(([id, body]) => `<symbol id="i-${id}" viewBox="0 0 24 24">${body}</symbol>`)
+      .map(([id, body]) => `<symbol id="i-${id}" viewBox="0 0 24 24">
+        <g fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</g></symbol>`)
       .join("");
     const div = document.createElement("div");
     div.style.display = "none";

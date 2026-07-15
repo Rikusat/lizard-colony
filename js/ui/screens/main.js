@@ -66,16 +66,15 @@ Object.assign(UI, {
       <div class="stat"><span>攻撃力</span><b>${Game.lizardAtk(lz).toFixed(1)}</b></div>
       <div class="stat"><span>生産/秒</span><b>${Game.lizardIncome(lz).toFixed(2)}G</b></div>
       ${lz.injuredT > 0 ? `<div class="injured">負傷中 (あと${Math.ceil(lz.injuredT)}秒)</div>` : ""}
-      ${lz.breedCd > 0 ? `<div style="color:var(--sub)">💕 繁殖まで ${Math.ceil(lz.breedCd)}秒</div>` : ""}
-      ${lz.founder ? `<div style="color:var(--gold)">👑 創始者 — 旧コロニーの血統</div>` : ""}
-      ${lz.exploring ? `<div style="color:#8fd0ff">🔦 探索派遣中</div>` : ""}
-      <div class="btns">
-        <button data-act="feed">🦗 餌やり</button>
-        ${lz.injuredT > 0 ? `<button data-act="heal">💎1 回復</button>` : ""}
-        <button data-act="pin">${(Game.state.nest.pins || []).includes(lz.id) ? "📌解除" : "📌ピン"}</button>
+      ${lz.breedCd > 0 ? `<div style="color:var(--sub)">${Icon.svg("breed")} 繁殖まで ${Math.ceil(lz.breedCd)}秒</div>` : ""}
+      ${lz.founder ? `<div style="color:var(--gold)">${Icon.svg("crown")} 創始者 — 旧コロニーの血統</div>` : ""}
+            <div class="btns">
+        <button data-act="feed">${Icon.svg("cricket")} 餌やり</button>
+        ${lz.injuredT > 0 ? `<button data-act="heal">${Icon.svg("gem")}1 回復</button>` : ""}
+        <button data-act="pin">${Icon.svg("pin")}${(Game.state.nest.pins || []).includes(lz.id) ? "解除" : "ピン"}</button>
         ${Game.stageSpecificSpecies().length && Game.res("bio") >= CFG.mutateBioCost && speciesById(lz.speciesId).stage !== Game.currentStage().id
-          ? `<button data-act="mutate">🧬 変異(🧬${CFG.mutateBioCost})</button>` : ""}
-        <button data-act="sell">💰 売却 ${fmt(Game.lizardSellPrice(lz))}</button>
+          ? `<button data-act="mutate">${Icon.svg("bio")} 変異(${CFG.mutateBioCost})</button>` : ""}
+        <button data-act="sell">${Icon.svg("coin")} 売却 ${fmt(Game.lizardSellPrice(lz))}</button>
         <button data-act="close">閉じる</button>
       </div>`;
   },

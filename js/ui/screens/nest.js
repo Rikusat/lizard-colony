@@ -27,7 +27,7 @@ Object.assign(UI, {
       <div class="nest-head">
         <span>解放済み <b>${counts.open}/${counts.total}</b>
           ${next ? ` / 次に開きそう: <b>${next.name}</b>(${Math.floor(nextP * 100)}%)` : ""}
-          ${web.surprises ? ` / ✨先行解放 ${web.surprises}回` : ""}</span>
+          ${web.surprises ? ` / ${Icon.svg("spark")}先行解放 ${web.surprises}回` : ""}</span>
         <span class="nest-legend">
           <i class="lg on"></i>解放済み <i class="lg near"></i>もうすぐ <i class="lg off"></i>未解放
         </span>
@@ -88,7 +88,7 @@ Object.assign(UI, {
           return `${Icon.svg(def.icon)}${def.name} ${Math.min(cur, c.need)}/${c.need}${c.type === "dexRate" ? "%" : ""}`;
         }).join(" + ");
         tip.classList.remove("hidden");
-        tip.innerHTML = `<b>${n.name}</b> ${open ? "✅解放済み" : ""}<br>
+        tip.innerHTML = `<b>${n.name}</b> ${open ? Icon.svg("check") + "解放済み" : ""}<br>
           条件: ${condTxt}<br>報酬: ${Icon.svg(o.icon)}${o.name}×${n.reward.n}
           ${open ? "" : `<br><span style="color:var(--sub)">いつもの繁殖を続ければ自然に開く</span>`}`;
       });

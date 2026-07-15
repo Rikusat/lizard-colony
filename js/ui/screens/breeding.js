@@ -44,14 +44,14 @@ Object.assign(UI, {
     const ab = body.querySelector("#auto-breed");
     if (ab) ab.addEventListener("click", () => {
       Game.state.autoBreed = !Game.state.autoBreed;
-      this.toast(Game.state.autoBreed ? "🪺 繁殖予約ON: スロットが空くたび自動でクイック繁殖" : "繁殖予約OFF");
+      this.toast(Game.state.autoBreed ? "繁殖予約ON: スロットが空くたび自動でクイック繁殖" : "繁殖予約OFF");
       this.rebuildBreed();
     });
     const qb = body.querySelector("#quick-breed");
     qb.addEventListener("click", () => {
       const pair = Game.quickBreedPick();
       if (pair && Game.quickBreed()) {
-        this.toast(`⚡ 選抜: ${Game.lizardName(pair[0])} Lv${pair[0].level} × ${Game.lizardName(pair[1])} Lv${pair[1].level}(レア度と成長が最も高いペア)`);
+        this.toast(`選抜: ${Game.lizardName(pair[0])} Lv${pair[0].level} × ${Game.lizardName(pair[1])} Lv${pair[1].level}(レア度と成長が最も高いペア)`);
       }
       this.rebuildBreed();
     });

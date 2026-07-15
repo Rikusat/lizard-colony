@@ -22,6 +22,6 @@ Object.assign(UI, {
         <div class="hero-reward">${legend ? "唯一無二の輝きが眠っている" : "希少な血統が眠っている"} — 卵スロットへ</div>`,
       total: legend ? 2800 : 2200,
     });
-    if (!ok) UI.toast(`☄️ 隕石を割った!! 中から${legend ? "伝説の" : "希少な"}卵が…!`);
+    if (!ok) UI.toast(`隕石を割った!! 中から${legend ? "伝説の" : "希少な"}卵が…!`);
   },
 });

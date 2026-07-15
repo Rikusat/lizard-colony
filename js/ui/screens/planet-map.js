@@ -6,7 +6,7 @@
 Object.assign(UI, {
   // ---------------- V3: Stage切替(独立コロニー) ----------------
   openStages() {
-    this.openModal("🌍 コロニー一覧 (各Stageは独立して生き続ける)", (body) => {
+    this.openModal(`${Icon.svg("planet")} コロニー一覧 (各Stageは独立して生き続ける)`, (body) => {
       body.innerHTML = "";
       const cur = Game.currentStage();
       for (const st of STAGES) {
@@ -27,11 +27,11 @@ Object.assign(UI, {
             <span class="fic" style="background:${st.ground};border-color:${st.accent}">${Icon.svg(st.icon)}</span>
             <div class="grow"><b>${st.name}</b> ${badges}
               <div class="desc">${extra}</div></div>
-            ${here ? `<span class="lv">滞在中</span>` : `<button>${pioneered ? "移動" : "⛏ 開拓"}</button>`}`;
+            ${here ? `<span class="lv">滞在中</span>` : `<button>${pioneered ? "移動" : Icon.svg("build") + " 開拓"}</button>`}`;
           if (!here) row.querySelector("button").addEventListener("click", () => this.confirmSwitch(st.id));
         } else {
           row.innerHTML = `
-            <span class="fic">🔒</span>
+            <span class="fic">${Icon.svg("lock")}</span>
             <div class="grow"><b>${st.name}</b>
               <div class="desc">${st.envText}</div></div>
             <span class="lv">R${st.rank}で解放</span>`;
@@ -65,7 +65,7 @@ Object.assign(UI, {
         新しい土地の開拓には本部Lv${Game.hqLevel()}の支援(コオロギ・資金・水場/シェルター無償)が付く。<br>
         <b style="color:var(--gold)">創始者の卵</b>: 今のコロニーから血統を最大${max}匹まで連れて行ける(繁殖できるよう2匹推奨。個体自体は移動しない)。</p>
       <div class="breed-filters" style="margin-bottom:10px">
-        <button id="pioneer-go" class="primary">${picks.length ? `👑 ${picks.length}匹連れて開拓する` : "この2匹を選んで開拓"}</button>
+        <button id="pioneer-go" class="primary">${picks.length ? `${Icon.svg("crown")} ${picks.length}匹連れて開拓する` : "この2匹を選んで開拓"}</button>
         <button id="pioneer-skip">連れずに開拓</button>
       </div>
       <div class="breed-grid" id="founder-list" style="max-height:44vh"></div>`;
@@ -85,7 +85,7 @@ Object.assign(UI, {
       cell.className = "breed-cell" + (sel ? " sel" : "");
       cell.innerHTML = `<span class="sw" style="background:${col.css}"></span>
         <div class="nm">${Game.lizardName(lz)}</div>
-        <div class="mo">Lv${lz.level}${lz.founder ? " 👑" : ""}</div>`;
+        <div class="mo">Lv${lz.level}${lz.founder ? " " + Icon.svg("crown") : ""}</div>`;
       cell.addEventListener("click", () => {
         const i = picks.indexOf(lz.id);
         if (i >= 0) picks.splice(i, 1);
@@ -122,16 +122,16 @@ Object.assign(UI, {
             <div class="pn-ring" style="--pa:${UI.planetAccent(st.id)}">
               <div class="pn-ball" style="background:radial-gradient(circle at 35% 30%, ${st.ground}, ${st.ground2})">${Icon.svg(unlocked ? st.icon : "lock")}</div>
             </div>
-            <div class="pn-name">${unlocked ? st.pname : "HQ Lv" + st.rank}${frontier && unlocked ? " ⭐" : ""}</div>
-            <div class="pn-sub">${unlocked ? (data && data.pioneered ? `🦎${pop} ${badges}` : "未開拓") : ""}</div>
+            <div class="pn-name">${unlocked ? st.pname : "HQ Lv" + st.rank}${frontier && unlocked ? " " + Icon.svg("star") : ""}</div>
+            <div class="pn-sub">${unlocked ? (data && data.pioneered ? `${Icon.svg("lizard")}${pop} ${badges}` : "未開拓") : ""}</div>
           </div>`;
       }
       const ero = Math.round(Game.state.erosion || 0);
       html += `</div>
         <div class="map-legend">
-          <span>⭐ フロンティア(生産・報酬・XPボーナス)</span>
+          <span>${Icon.svg("star")} フロンティア(生産・報酬・XPボーナス)</span>
           <span>◎ 現在地</span>
-          <span class="map-ero">🪲 侵食率(全惑星共通)
+          <span class="map-ero">${Icon.svg("erosion")} 侵食率(全惑星共通)
             <span class="bar"><span style="width:${ero}%"></span></span> <b>${ero}%</b></span>
           <span style="color:var(--sub)">タップで宇宙船が出発(クリックでスキップ)</span>
         </div>`;
@@ -159,7 +159,7 @@ Object.assign(UI, {
     ov.innerHTML = `
       <div class="tv-stars"></div>
       <div class="tv-from">${Icon.svg(from.icon)} ${from.pname}</div>
-      <div class="tv-ship">🚀</div>
+      <div class="tv-ship">${Icon.svg("rocket")}</div>
       <div class="tv-to" style="color:${this.planetAccent(to.id)}">${Icon.svg(to.icon)} ${to.pname}</div>
       <div class="tv-skip">クリックでスキップ</div>`;
     ov.classList.add("show");
@@ -194,7 +194,7 @@ Object.assign(UI, {
     // V4: 先頭は惑星マップボタン
     const mapBtn = document.createElement("button");
     mapBtn.className = "stage-tab map-tab";
-    mapBtn.innerHTML = `<span class="si">🪐</span><span class="sn">マップ</span>`;
+    mapBtn.innerHTML = `<span class="si">${Icon.svg("planet")}</span><span class="sn">マップ</span>`;
     mapBtn.addEventListener("click", () => this.openMap());
     bar.appendChild(mapBtn);
     for (const t of tabs) {
@@ -203,7 +203,7 @@ Object.assign(UI, {
       el.title = t.unlocked ? t.st.envText : `R${t.st.rank}で解放`;
       el.innerHTML = t.unlocked
         ? `<span class="si">${Icon.svg(t.st.icon)}</span><span class="sn">${PLANET_NAMES[t.st.id]}</span><span class="sp">${t.pop}</span><span class="sb">${t.badges}</span>`
-        : `<span class="si">🔒</span><span class="sn">${t.st.name}</span><span class="sp">R${t.st.rank}</span>`;
+        : `<span class="si">${Icon.svg("lock")}</span><span class="sn">${t.st.name}</span><span class="sp">R${t.st.rank}</span>`;
       if (t.unlocked && t.st.id !== cur.id) el.addEventListener("click", () => this.travelTo(t.st.id));
       bar.appendChild(el);
     }

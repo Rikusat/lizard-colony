@@ -42,7 +42,7 @@ function attachHold(el, fn) {
   let timer = null, count = 0, held = false;
   const stop = () => {
     if (timer) { clearTimeout(timer); timer = null; }
-    if (held && count > 0) UI.toast(`⚡ 連続実行 ×${count}`);
+    if (held && count > 0) UI.toast(`${Icon.svg("energy")} 連続実行 ×${count}`);
     el.classList.remove("holding");
     el.style.removeProperty("--hold-p");
     const b = el.querySelector(".hold-count");

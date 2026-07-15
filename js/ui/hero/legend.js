@@ -18,6 +18,6 @@ Object.assign(UI, {
         <div class="hero-reward">${sp.name} — 唯一無二の輝きがコロニーに宿った</div>`,
       total: 3000,
     });
-    if (!ok) UI.toast(`🌈 伝説個体が誕生!! ${Game.lizardName(lz)} — 唯一無二の輝き!`);
+    if (!ok) UI.toast(`伝説個体が誕生!! ${Game.lizardName(lz)} — 唯一無二の輝き!`);
   },
 });

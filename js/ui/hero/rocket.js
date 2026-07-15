@@ -21,6 +21,6 @@ Object.assign(UI, {
         <div class="hero-reward">全惑星の生産+10%(恒久) / アメジスト+20 / Lore「新天地へ」解読</div>`,
       total: 3200,
     });
-    if (!ok) UI.toast("🚀 ロケット完成!!! 全惑星の生産+10%(恒久) — Lore「新天地へ」");
+    if (!ok) UI.toast("ロケット完成!!! 全惑星の生産+10%(恒久) — Lore「新天地へ」");
   },
 });

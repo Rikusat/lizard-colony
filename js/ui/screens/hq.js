@@ -28,10 +28,10 @@ Object.assign(UI, {
           <div class="p-class">HQ Lv${lvl}</div>
           <div class="p-score">全惑星恒久バフ: 生産+${(lvl * 0.2).toFixed(1)}% / 開拓支給の増額 / フロンティア: ${Icon.svg(frontier.icon)}${frontier.pname}</div>
           <div class="p-rank">HQは全惑星の成果で成長し、決してリセットされない</div>
-          <button id="hq-lore" style="margin-top:8px">📖 惑星レプタイル物語(Lore)を読む</button>
+          <button id="hq-lore" style="margin-top:8px">${Icon.svg("scroll")} 惑星レプタイル物語(Lore)を読む</button>
         </div>
 
-        <h4 class="hq-h">💱 資源管理 — Gold→資源変換(所持 ${fmt(s.coins)}G)</h4>
+        <h4 class="hq-h">${Icon.svg("coin")} 資源管理 — Gold→資源変換(所持 ${fmt(s.coins)}G)</h4>
         <div class="breed-filters" style="flex-wrap:wrap">
           <button id="cv-food">${Icon.svg("food")} 食料+${CFG.convertBatch} (${fmt(CFG.goldToFoodRate * CFG.convertBatch)}G)</button>
           <button id="cv-energy">${Icon.svg("energy")} エネルギー+${CFG.convertBatch} (${fmt(CFG.goldToEnergyRate * CFG.convertBatch)}G)</button>
@@ -50,9 +50,9 @@ Object.assign(UI, {
         <h4 class="hq-h">${Icon.svg("erosion")} バガー侵食(全惑星共通・1日1回のログインが特効薬)</h4>
         <div id="hq-invasion">${invHtml}</div>
 
-        <h4 class="hq-h">🚀 宇宙港 — ロケット建造(長期目標)</h4>
+        <h4 class="hq-h">${Icon.svg("rocket")} 宇宙港 — ロケット建造(長期目標)</h4>
         <div class="list-row">
-          <span class="fic">${rocket.done ? "🛰" : "🚀"}</span>
+          <span class="fic">${Icon.svg(rocket.done ? "planet" : "rocket")}</span>
           <div class="grow"><b>${rocket.done ? "ロケット完成 — 星の海へ(全惑星の生産+10%)" : `建造 第${rocket.stage + 1}/${CFG.rocketStages.length}段階`}</b>
             <div class="desc">${rocket.done ? "トカゲ文明の新たな章がLoreに刻まれた" : `イリジウム ${rocket.invested}/${Game.rocketStageNeed()}(所持${Icon.svg("iridium")}${fmt(Game.ore("iridium"))})`}</div>
             ${rocket.done ? "" : `<div class="bar"><div style="width:${(rocket.invested / Math.max(1, Game.rocketStageNeed()) * 100).toFixed(0)}%"></div></div>`}</div>
@@ -70,7 +70,7 @@ Object.assign(UI, {
         <h4 class="hq-h">${Icon.svg("titanium")} チタン鍛造 — 設備を化けさせる(Lv上限+1 / チタン鉱${CFG.forgeTitaniumCost})</h4>
         <div class="breed-filters" style="flex-wrap:wrap" id="hq-forge"></div>
 
-        <h4 class="hq-h">🔬 研究(恒久・全惑星適用) — 🔬${fmt(Game.res("science"))} / 所持${fmt(s.coins)}G</h4>
+        <h4 class="hq-h">${Icon.svg("science")} 研究(恒久・全惑星適用) — ${Icon.svg("science")}${fmt(Game.res("science"))} / 所持${fmt(s.coins)}G</h4>
         <div id="research-list"></div>`;
       body.querySelector("#hq-lore").addEventListener("click", () => { this.dexTab = "lore"; this.openDex(); });
       body.querySelector("#cv-food").addEventListener("click", () => { Game.convertGold("food"); this.openHQ(); });
@@ -102,10 +102,10 @@ Object.assign(UI, {
         const row = document.createElement("div");
         row.className = "list-row" + (done ? " done" : "");
         row.innerHTML = `
-          <span class="fic">${done ? "✅" : locked ? "🔒" : "🔬"}</span>
+          <span class="fic">${Icon.svg(done ? "check" : locked ? "lock" : "science")}</span>
           <div class="grow"><b>${r.name}</b><div class="desc">${r.desc}</div></div>
           ${done ? `<span class="lv">済</span>` : locked ? `<span style="color:var(--sub)">要:${researchById(r.req).name}</span>`
-            : `<button>${r.cost.orichalcum ? `🔩${r.cost.orichalcum}` : `🔬${r.cost.science || 0}+${fmt(r.cost.coins || 0)}G`}</button>`}`;
+            : `<button>${r.cost.orichalcum ? `${Icon.svg("orichalcum")}${r.cost.orichalcum}` : `${Icon.svg("science")}${r.cost.science || 0}+${fmt(r.cost.coins || 0)}G`}</button>`}`;
         if (!done && !locked) row.querySelector("button").addEventListener("click", () => {
           Game.buyResearch(r.id);
           this.openHQ();

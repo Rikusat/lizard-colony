@@ -155,7 +155,7 @@ const TITLES = [
 const EVENTS = [
   { id: "festival", name: "豊穣祭",         icon: "spark", dur: 60, incomeMult: 2,   desc: "コイン生産2倍のお祭り!" },
   { id: "swarm",    name: "コオロギ大発生", icon: "cricket", dur: 60, cricketRate: 3,  desc: "コオロギが大量に湧く!" },
-  { id: "storm",    name: "嵐",             icon: "warn", dur: 45, incomeMult: 0.5, endGems: 4, desc: "生産半減…耐え切れば💎4" },
+  { id: "storm",    name: "嵐",             icon: "warn", dur: 45, incomeMult: 0.5, endGems: 4, desc: "生産半減…耐え切ればジェム4個" },
   { id: "heatwave", name: "猛暑日",         icon: "heat", dur: 60, xpMult: 1.5,     desc: "代謝が上がり餌のXP+50%" },
 ];
 
