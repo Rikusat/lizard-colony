@@ -852,7 +852,7 @@ const Game = {
     const parts = [];
     if (r.coins > 0) parts.push(`生産+${fmt(r.coins)}G`);
     if (r.wins > 0) parts.push(`襲撃${r.wins}回撃退`);
-    UI.toast(`⏰ ${stage.icon}${stage.name}の留守中: ${parts.join(" / ")}`);
+    UI.toast(`${Icon.svg(stage.icon)}${stage.name}の留守中: ${parts.join(" / ")}`);
   },
 
   // Stage切替バー用のバッジ (§10.1)
@@ -1846,9 +1846,9 @@ const Game = {
       if (this.event.t <= 0) {
         if (this.event.def.endGems) {
           this.state.gems += this.event.def.endGems;
-          UI.toast(`${this.event.def.icon} 「${this.event.def.name}」を耐え切った! +💎${this.event.def.endGems}`);
+          UI.toast(`${Icon.svg(this.event.def.icon)}「${this.event.def.name}」を耐え切った! +${Icon.svg("gem")}${this.event.def.endGems}`);
         } else {
-          UI.toast(`${this.event.def.icon} 「${this.event.def.name}」が終わった`);
+          UI.toast(`${Icon.svg(this.event.def.icon)}「${this.event.def.name}」が終わった`);
         }
         this.event = null;
       }
@@ -1861,7 +1861,7 @@ const Game = {
       if (Math.random() < CFG.eventChance) {
         const def = EVENTS[Math.floor(Math.random() * EVENTS.length)];
         this.event = { def, t: def.dur };
-        UI.toast(`${def.icon} イベント発生! 「${def.name}」 — ${def.desc}`, def.id === "storm");
+        UI.toast(`${Icon.svg(def.icon)} イベント発生! 「${def.name}」 — ${def.desc}`, def.id === "storm");
       }
     }
   },

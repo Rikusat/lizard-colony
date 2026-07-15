@@ -6,7 +6,7 @@
 Object.assign(UI, {
   // ---------------- モーダル共通 ----------------
   openModal(title, buildBody) {
-    this.els["modal-title"].textContent = title;
+    this.els["modal-title"].innerHTML = title; // SVGアイコンを含むため(内部生成のみ)
     this.els["modal-body"].innerHTML = "";
     buildBody(this.els["modal-body"]);
     // Phase 6(§4.3): 開いた瞬間の1回だけstagger入場。タブ切替等の再構築では発火しない

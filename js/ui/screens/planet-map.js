@@ -24,7 +24,7 @@ Object.assign(UI, {
           const here = cur.id === st.id;
           const pioneered = data && data.pioneered;
           row.innerHTML = `
-            <span class="fic" style="background:${st.ground};border-color:${st.accent}">${st.icon}</span>
+            <span class="fic" style="background:${st.ground};border-color:${st.accent}">${Icon.svg(st.icon)}</span>
             <div class="grow"><b>${st.name}</b> ${badges}
               <div class="desc">${extra}</div></div>
             ${here ? `<span class="lv">滞在中</span>` : `<button>${pioneered ? "移動" : "⛏ 開拓"}</button>`}`;
@@ -53,7 +53,7 @@ Object.assign(UI, {
     const st = stageById(stageId);
     const max = CFG.founderCount;
     this.founderPicks = [];
-    this.openModal(`⛏ ${st.icon}「${st.name}」を開拓する`, (body) => this.buildPioneer(body, stageId));
+    this.openModal(`${Icon.svg("build")} ${Icon.svg(st.icon)}「${st.name}」を開拓する`, (body) => this.buildPioneer(body, stageId));
   },
 
   buildPioneer(body, stageId) {
@@ -100,7 +100,7 @@ Object.assign(UI, {
 
   // ---------------- V4 §4-1: 惑星マップ+宇宙船トランジション ----------------
   openMap() {
-    this.openModal("🪐 惑星マップ — Planet Reptile", (body) => {
+    this.openModal(`${Icon.svg("planet")} 惑星マップ — Planet Reptile`, (body) => {
       const s = Game.state;
       const cur = Game.currentStage();
       const pos = {
@@ -120,7 +120,7 @@ Object.assign(UI, {
           <div class="planet-node ${unlocked ? "" : "locked"} ${st.id === cur.id ? "here" : ""} ${frontier && unlocked ? "frontier" : ""}" data-planet="${st.id}"
             style="left:${x}%;top:${y}%">
             <div class="pn-ring" style="--pa:${UI.planetAccent(st.id)}">
-              <div class="pn-ball" style="background:radial-gradient(circle at 35% 30%, ${st.ground}, ${st.ground2})">${unlocked ? st.icon : "🔒"}</div>
+              <div class="pn-ball" style="background:radial-gradient(circle at 35% 30%, ${st.ground}, ${st.ground2})">${Icon.svg(unlocked ? st.icon : "lock")}</div>
             </div>
             <div class="pn-name">${unlocked ? st.pname : "HQ Lv" + st.rank}${frontier && unlocked ? " ⭐" : ""}</div>
             <div class="pn-sub">${unlocked ? (data && data.pioneered ? `🦎${pop} ${badges}` : "未開拓") : ""}</div>
@@ -158,9 +158,9 @@ Object.assign(UI, {
     }
     ov.innerHTML = `
       <div class="tv-stars"></div>
-      <div class="tv-from">${from.icon} ${from.pname}</div>
+      <div class="tv-from">${Icon.svg(from.icon)} ${from.pname}</div>
       <div class="tv-ship">🚀</div>
-      <div class="tv-to" style="color:${this.planetAccent(to.id)}">${to.icon} ${to.pname}</div>
+      <div class="tv-to" style="color:${this.planetAccent(to.id)}">${Icon.svg(to.icon)} ${to.pname}</div>
       <div class="tv-skip">クリックでスキップ</div>`;
     ov.classList.add("show");
     let done = false;
@@ -202,7 +202,7 @@ Object.assign(UI, {
       el.className = "stage-tab" + (t.st.id === cur.id ? " active" : "") + (t.unlocked ? "" : " locked");
       el.title = t.unlocked ? t.st.envText : `R${t.st.rank}で解放`;
       el.innerHTML = t.unlocked
-        ? `<span class="si">${t.st.icon}</span><span class="sn">${PLANET_NAMES[t.st.id]}</span><span class="sp">${t.pop}</span><span class="sb">${t.badges}</span>`
+        ? `<span class="si">${Icon.svg(t.st.icon)}</span><span class="sn">${PLANET_NAMES[t.st.id]}</span><span class="sp">${t.pop}</span><span class="sb">${t.badges}</span>`
         : `<span class="si">🔒</span><span class="sn">${t.st.name}</span><span class="sp">R${t.st.rank}</span>`;
       if (t.unlocked && t.st.id !== cur.id) el.addEventListener("click", () => this.travelTo(t.st.id));
       bar.appendChild(el);

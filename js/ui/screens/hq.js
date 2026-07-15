@@ -26,7 +26,7 @@ Object.assign(UI, {
       body.innerHTML = `
         <div class="prestige-box">
           <div class="p-class">HQ Lv${lvl}</div>
-          <div class="p-score">全惑星恒久バフ: 生産+${(lvl * 0.2).toFixed(1)}% / 開拓支給の増額 / フロンティア: ${frontier.icon}${frontier.pname}</div>
+          <div class="p-score">全惑星恒久バフ: 生産+${(lvl * 0.2).toFixed(1)}% / 開拓支給の増額 / フロンティア: ${Icon.svg(frontier.icon)}${frontier.pname}</div>
           <div class="p-rank">HQは全惑星の成果で成長し、決してリセットされない</div>
           <button id="hq-lore" style="margin-top:8px">📖 惑星レプタイル物語(Lore)を読む</button>
         </div>
@@ -40,7 +40,7 @@ Object.assign(UI, {
         <div class="rowline" style="font-size:12px;color:var(--sub)">
           所持: ${Icon.svg("bio")}${fmt(Game.res("bio"))} / ${Icon.svg("food")}${fmt(Game.res("food"))} / ${Icon.svg("energy")}${fmt(Game.res("energy"))} / ${Icon.svg("science")}${fmt(Game.res("science"))}</div>
 
-        <h4 class="hq-h">🏗 惑星開発 — ${cur.icon}${cur.pname}(Lv${s.devLv || 0}/${CFG.devMaxLv})</h4>
+        <h4 class="hq-h">${Icon.svg("build")} 惑星開発 — ${Icon.svg(cur.icon)}${cur.pname}(Lv${s.devLv || 0}/${CFG.devMaxLv})</h4>
         <div class="list-row">
           <div class="grow"><b>開発度を上げる</b>
             <div class="desc">この惑星の生産+2%/Lv・エネルギー産出+。Goldの大きな使い道</div></div>

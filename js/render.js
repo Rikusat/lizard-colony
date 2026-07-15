@@ -55,7 +55,7 @@ const Render = {
     // イベント中の表示
     if (Game.event) {
       ctx.font = "bold 16px sans-serif";
-      this.centerLabel(ctx, `${Game.event.def.icon} ${Game.event.def.name} 残り${Math.ceil(Game.event.t)}秒 — ${Game.event.def.desc}`,
+      this.centerLabel(ctx, `${Game.event.def.name} 残り${Math.ceil(Game.event.t)}秒 — ${Game.event.def.desc}`,
         W / 2, H - 26, "rgba(60,40,10,.7)", "#ffe9b0");
     }
     if (Game.raid && Game.raid.cutinT > 0 && !Game.raid.heroShown) this.drawCutin(ctx, Game.raid);

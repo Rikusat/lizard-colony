@@ -153,10 +153,10 @@ const TITLES = [
 
 // 定期イベント (⑨-13〜15: 既存数値の一時変化+ご褒美)
 const EVENTS = [
-  { id: "festival", name: "豊穣祭",         icon: "🎉", dur: 60, incomeMult: 2,   desc: "コイン生産2倍のお祭り!" },
-  { id: "swarm",    name: "コオロギ大発生", icon: "🦗", dur: 60, cricketRate: 3,  desc: "コオロギが大量に湧く!" },
-  { id: "storm",    name: "嵐",             icon: "⛈", dur: 45, incomeMult: 0.5, endGems: 4, desc: "生産半減…耐え切れば💎4" },
-  { id: "heatwave", name: "猛暑日",         icon: "🌡", dur: 60, xpMult: 1.5,     desc: "代謝が上がり餌のXP+50%" },
+  { id: "festival", name: "豊穣祭",         icon: "spark", dur: 60, incomeMult: 2,   desc: "コイン生産2倍のお祭り!" },
+  { id: "swarm",    name: "コオロギ大発生", icon: "cricket", dur: 60, cricketRate: 3,  desc: "コオロギが大量に湧く!" },
+  { id: "storm",    name: "嵐",             icon: "warn", dur: 45, incomeMult: 0.5, endGems: 4, desc: "生産半減…耐え切れば💎4" },
+  { id: "heatwave", name: "猛暑日",         icon: "heat", dur: 60, xpMult: 1.5,     desc: "代謝が上がり餌のXP+50%" },
 ];
 
 // ショップ進化: ランクに応じて購入単位が繰り上がる (GameExpansion_v2 ⑤)
@@ -244,25 +244,25 @@ const FACILITY_SYNERGIES = [
 // ステージ(コロニーランクで進行)。rock/pebble は地面テクスチャ用の対比色
 // env=環境ギミック / bosses=このステージで出やすい専用敵(抽選重み×2) / envText=UI表示
 const STAGES = [
-  { id: 1, name: "乾燥地帯", rank: 1,  icon: "🏜", mat: "乾いた砂",   nest: "地下巣穴",     sky: "#c9a86a", sky2: "#8f7440", ground: "#b28e5a", ground2: "#8a6b40", accent: "#6d5432", rock: "#8a7355", pebble: "#cbb083",
+  { id: 1, name: "乾燥地帯", rank: 1,  icon: "p-desert", mat: "乾いた砂",   nest: "地下巣穴",     sky: "#c9a86a", sky2: "#8f7440", ground: "#b28e5a", ground2: "#8a6b40", accent: "#6d5432", rock: "#8a7355", pebble: "#cbb083",
     env: {}, bosses: [], envText: "はじまりの地" },
-  { id: 2, name: "草原",     rank: 5,  icon: "🌿", mat: "草の実",     nest: "草の根の巣",   sky: "#a8c47a", sky2: "#6f8f4a", ground: "#7da35a", ground2: "#5d7d40", accent: "#46602f", rock: "#7d7462", pebble: "#aa9c74",
+  { id: 2, name: "草原",     rank: 5,  icon: "p-grass", mat: "草の実",     nest: "草の根の巣",   sky: "#a8c47a", sky2: "#6f8f4a", ground: "#7da35a", ground2: "#5d7d40", accent: "#46602f", rock: "#7d7462", pebble: "#aa9c74",
     env: {}, bosses: [], envText: "穏やかな草の海" },
-  { id: 3, name: "森林",     rank: 10, icon: "🌲", mat: "樹液",       nest: "巨木の樹上巣", sky: "#5f8a5a", sky2: "#39573a", ground: "#4c7040", ground2: "#37522e", accent: "#263a20", rock: "#63614f", pebble: "#8c866a",
+  { id: 3, name: "森林",     rank: 10, icon: "p-forest", mat: "樹液",       nest: "巨木の樹上巣", sky: "#5f8a5a", sky2: "#39573a", ground: "#4c7040", ground2: "#37522e", accent: "#263a20", rock: "#63614f", pebble: "#8c866a",
     env: {}, bosses: [], envText: "木漏れ日の森" },
-  { id: 4, name: "湿地",     rank: 18, icon: "🌾", mat: "泥炭",       nest: "湿地の巣",     sky: "#6a9a8a", sky2: "#40655c", ground: "#5a7a62", ground2: "#405a48", accent: "#2c4034", rock: "#5f6a5e", pebble: "#83907f",
+  { id: 4, name: "湿地",     rank: 18, icon: "p-swamp", mat: "泥炭",       nest: "湿地の巣",     sky: "#6a9a8a", sky2: "#40655c", ground: "#5a7a62", ground2: "#405a48", accent: "#2c4034", rock: "#5f6a5e", pebble: "#83907f",
     env: {}, bosses: [], envText: "霧の沼地" },
-  { id: 5, name: "火山",     rank: 28, icon: "🌋", mat: "黒曜石",     nest: "火山洞窟",     sky: "#8a4a3a", sky2: "#4a241c", ground: "#6e4234", ground2: "#4a2a21", accent: "#301a14", rock: "#6a544a", pebble: "#96624c",
+  { id: 5, name: "火山",     rank: 28, icon: "p-volcano", mat: "黒曜石",     nest: "火山洞窟",     sky: "#8a4a3a", sky2: "#4a241c", ground: "#6e4234", ground2: "#4a2a21", accent: "#301a14", rock: "#6a544a", pebble: "#96624c",
     env: { burnWebs: true }, bosses: [], envText: "熱でクモのウェブが焼ける" },
-  { id: 6, name: "密林",     rank: 50, icon: "🌴", mat: "希少花",     nest: "巨木(樹上)",   sky: "#4f7a46", sky2: "#2e4c2c", ground: "#3e5c33", ground2: "#2a4024", accent: "#1c2e18", rock: "#55604a", pebble: "#75885e",
+  { id: 6, name: "密林",     rank: 50, icon: "p-jungle", mat: "希少花",     nest: "巨木(樹上)",   sky: "#4f7a46", sky2: "#2e4c2c", ground: "#3e5c33", ground2: "#2a4024", accent: "#1c2e18", rock: "#55604a", pebble: "#75885e",
     env: { crickets: 0.3 }, bosses: ["spider", "crow"], envText: "生命が濃く、コオロギが自然に湧く(+0.3/秒)" },
-  { id: 7, name: "大湿原",   rank: 60, icon: "🥀", mat: "菌糸",       nest: "沼底の巣",     sky: "#8a9a92", sky2: "#57685f", ground: "#4c5f52", ground2: "#36463c", accent: "#26332b", rock: "#5d685f", pebble: "#7e8a7c",
+  { id: 7, name: "大湿原",   rank: 60, icon: "p-marsh", mat: "菌糸",       nest: "沼底の巣",     sky: "#8a9a92", sky2: "#57685f", ground: "#4c5f52", ground2: "#36463c", accent: "#26332b", rock: "#5d685f", pebble: "#7e8a7c",
     env: { poisonMult: 0.7, incomeMult: 1.05 }, bosses: ["scorpion", "crow"], envText: "水気が満ち、毒が早く抜け(-30%)生産+5%" },
-  { id: 8, name: "雪原",     rank: 70, icon: "❄️", mat: "氷晶",       nest: "氷穴",         sky: "#a8c4e0", sky2: "#5f7fa5", ground: "#dde8f2", ground2: "#aebfd2", accent: "#8fa5bf", rock: "#8a95a5", pebble: "#c3ccd9",
+  { id: 8, name: "雪原",     rank: 70, icon: "p-snow", mat: "氷晶",       nest: "氷穴",         sky: "#a8c4e0", sky2: "#5f7fa5", ground: "#dde8f2", ground2: "#aebfd2", accent: "#8fa5bf", rock: "#8a95a5", pebble: "#c3ccd9",
     env: { recoveryMult: 0.5, heatBoost: 2 }, bosses: ["hawk", "monitor"], envText: "低温で負傷回復が半減。保温設備の効果2倍" },
-  { id: 9, name: "洞窟",     rank: 80, icon: "🕳", mat: "燐光石",     nest: "深淵洞",       sky: "#2a2438", sky2: "#161221", ground: "#3a3348", ground2: "#262032", accent: "#4f4568", rock: "#55496e", pebble: "#6e5f8a",
+  { id: 9, name: "洞窟",     rank: 80, icon: "p-cave", mat: "燐光石",     nest: "深淵洞",       sky: "#2a2438", sky2: "#161221", ground: "#3a3348", ground2: "#262032", accent: "#4f4568", rock: "#55496e", pebble: "#6e5f8a",
     env: { capMult: 0.92, morphBonus: 0.03 }, bosses: ["spider", "scorpion"], envText: "薄暗く頭数上限-8%。モーフ変異率+3%" },
-  { id: 10, name: "古代遺跡", rank: 90, icon: "🏛", mat: "遺物片",    nest: "遺跡地下墓所", sky: "#c9924f", sky2: "#7a4f33", ground: "#8a7355", ground2: "#5f4c38", accent: "#46362a", rock: "#7d7468", pebble: "#a89a83",
+  { id: 10, name: "古代遺跡", rank: 90, icon: "p-ruins", mat: "遺物片",    nest: "遺跡地下墓所", sky: "#c9924f", sky2: "#7a4f33", ground: "#8a7355", ground2: "#5f4c38", accent: "#46362a", rock: "#7d7468", pebble: "#a89a83",
     env: { relic: true }, bosses: ["snake", "hawk", "crow", "monitor", "scorpion", "spider"], envText: "遺物ボーナス: 撃退数×0.1%の生産増(最大+20%)" },
 ];
 const stageById = (id) => STAGES.find((s) => s.id === id);
