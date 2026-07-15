@@ -11,7 +11,7 @@ Object.assign(UI, {
     for (let i = 0; i < Game.eggSlotCap(); i++) {
       const div = document.createElement("div");
       div.className = "egg-slot";
-      div.innerHTML = `<span class="ico"></span><span class="info"></span><span class="t"></span><button data-egg="${i}" class="hidden">💎1</button>`;
+      div.innerHTML = `<span class="ico"></span><span class="info"></span><span class="t"></span><button data-egg="${i}" class="hidden"><svg class="icon"><use href="#i-gem"/></svg>1</button>`;
       box.appendChild(div);
     }
   },
@@ -26,10 +26,10 @@ Object.assign(UI, {
       const btn = el.querySelector("button");
       if (egg) {
         el.classList.add("filled");
-        el.querySelector(".ico").textContent = egg.lucky ? "🌈" : "🥚";
+        el.querySelector(".ico").innerHTML = Icon.svg("egg", egg.lucky ? "ic-lucky" : "");
         const sp = speciesById(egg.speciesId);
         // 遺伝解析室: レア予兆の表示(演出のみ)
-        const omen = genelab && (egg.morphId !== "normal" || sp.stars >= 4) ? " ✨" : "";
+        const omen = genelab && (egg.morphId !== "normal" || sp.stars >= 4) ? " " + Icon.svg("spark") : "";
         el.querySelector(".info").textContent = sp.name + "系" + omen;
         el.querySelector(".t").textContent =
           egg.t <= 0 ? "スペース待ち" : fmtTime(egg.t);
@@ -60,12 +60,12 @@ Object.assign(UI, {
       <h4><span class="sw" style="display:inline-block;width:20px;height:12px;border-radius:6px;background:${col.css};border:1px solid #0006"></span>
         ${Game.lizardName(lz)}</h4>
       <div class="stars">${"★".repeat(sp.stars)}${"☆".repeat(5 - sp.stars)} <span style="color:var(--sub)">${mo.name}</span></div>
-      <div class="stat"><span>${lz.stage === "baby" ? "🐣 ベビー" : "🦎 アダルト Lv" + lz.level}</span>
+      <div class="stat"><span>${lz.stage === "baby" ? "ベビー" : "アダルト Lv" + lz.level}</span>
         <span>XP ${Math.floor(lz.xp)}/${xpMax}</span></div>
       <div class="bar"><div style="width:${clamp(lz.xp / xpMax * 100, 0, 100)}%"></div></div>
-      <div class="stat"><span>⚔ 攻撃力</span><b>${Game.lizardAtk(lz).toFixed(1)}</b></div>
-      <div class="stat"><span>💰 生産/秒</span><b>${Game.lizardIncome(lz).toFixed(2)}G</b></div>
-      ${lz.injuredT > 0 ? `<div class="injured">🩹 負傷中 (あと${Math.ceil(lz.injuredT)}秒)</div>` : ""}
+      <div class="stat"><span>攻撃力</span><b>${Game.lizardAtk(lz).toFixed(1)}</b></div>
+      <div class="stat"><span>生産/秒</span><b>${Game.lizardIncome(lz).toFixed(2)}G</b></div>
+      ${lz.injuredT > 0 ? `<div class="injured">負傷中 (あと${Math.ceil(lz.injuredT)}秒)</div>` : ""}
       ${lz.breedCd > 0 ? `<div style="color:var(--sub)">💕 繁殖まで ${Math.ceil(lz.breedCd)}秒</div>` : ""}
       ${lz.founder ? `<div style="color:var(--gold)">👑 創始者 — 旧コロニーの血統</div>` : ""}
       ${lz.exploring ? `<div style="color:#8fd0ff">🔦 探索派遣中</div>` : ""}

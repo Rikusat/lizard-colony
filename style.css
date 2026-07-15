@@ -859,6 +859,7 @@ button.holding::after {
 @keyframes orb-in { from { transform: translate(-50%, -50%) scale(.2); opacity: 0; } }
 
 /* ============ SVGアイコン(§9: 絵文字全面禁止) ============ */
+.icon.ic-lucky { color: var(--amber-400); animation: rainbow-shift 2.2s linear infinite; }
 .icon {
   width: 1.1em; height: 1.1em; display: inline-block; vertical-align: -0.18em;
   fill: currentColor; stroke: currentColor; stroke-width: 0;

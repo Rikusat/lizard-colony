@@ -6,7 +6,7 @@
 Object.assign(UI, {
   // ---------------- V4 §3.4: HQ(本部) — 全惑星共通の中枢 ----------------
   openHQ() {
-    this.openModal("🏰 HQ(本部) — 惑星ネットワークの中枢", (body) => {
+    this.openModal(`${Icon.svg("hq")} HQ(本部) — 惑星ネットワークの中枢`, (body) => {
       const s = Game.state;
       const lvl = Game.hqLevel();
       const cur = Game.currentStage();
@@ -21,8 +21,8 @@ Object.assign(UI, {
           <b>${ero}%</b></div>
         <div style="font-size:12px;color:${eroStage ? "var(--red)" : "var(--sub)"}">
           ${eroStage === 0 ? "無害な水準。毎日ログインすれば低く保てる" :
-            eroStage === 1 ? "⚠ 影響発生中: 生産-5%・繁殖CD+15%・ボス強化。ログインやバガー撃破で下がる" :
-            "⚠⚠ 侵食が濃い: 生産-10%・繁殖CD+30%。だが可逆——今日から取り戻せる"}</div>`;
+            eroStage === 1 ? "影響発生中: 生産-5%・繁殖CD+15%・ボス強化。ログインやバガー撃破で下がる" :
+            "侵食が濃い: 生産-10%・繁殖CD+30%。だが可逆——今日から取り戻せる"}</div>`;
       body.innerHTML = `
         <div class="prestige-box">
           <div class="p-class">HQ Lv${lvl}</div>

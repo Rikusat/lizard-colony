@@ -7,14 +7,14 @@ Object.assign(UI, {
   // ---------------- 設備 (V4 §3.1: 通常/防衛の2タブ・統廃合済み10種) ----------------
   openFacilities() {
     if (!this.facTab) this.facTab = "norm";
-    this.openModal("🏗 設備", (body) => this.buildFacilities(body));
+    this.openModal(`${Icon.svg("build")} 設備`, (body) => this.buildFacilities(body));
   },
 
   buildFacilities(body) {
     body.innerHTML = `
       <div class="nest-tabs">
-        <button data-ftab="norm" class="${this.facTab === "norm" ? "primary" : ""}">🏡 通常設備(育成・QoL)</button>
-        <button data-ftab="def" class="${this.facTab === "def" ? "primary" : ""}">🛡 防衛設備(ボス対策)</button>
+        <button data-ftab="norm" class="${this.facTab === "norm" ? "primary" : ""}">${Icon.svg("shelter")} 通常設備(育成・QoL)</button>
+        <button data-ftab="def" class="${this.facTab === "def" ? "primary" : ""}">${Icon.svg("shield")} 防衛設備(ボス対策)</button>
       </div>
       <div id="fac-list"></div>`;
     for (const btn of body.querySelectorAll("[data-ftab]")) {
@@ -29,7 +29,7 @@ Object.assign(UI, {
       const row = document.createElement("div");
       row.className = "list-row";
       row.innerHTML = `
-        <span class="fic">🕳</span>
+        <span class="fic">${Icon.svg("burrow")}</span>
         <div class="grow"><b>すみか(巣穴)</b> <span class="lv">Lv${nl}/${CFG.nestLvMax}</span>
           <div class="desc">外出枠+1/Lv・卵スロット(Lv2/6で+1)・孵化-3%/Lv・カラス猶予+1秒/Lv</div></div>
         <button ${nl >= CFG.nestLvMax ? "disabled" : ""}>${nl >= CFG.nestLvMax ? "MAX" : "強化 " + fmt(Game.nestLvUpCost()) + "G"}</button>`;
@@ -53,13 +53,13 @@ Object.assign(UI, {
       row.className = "list-row" + (locked ? " done" : "");
       if (locked) {
         row.innerHTML = `
-          <span class="fic">🔒</span>
+          <span class="fic">${Icon.svg("lock")}</span>
           <div class="grow"><b>${f.name}</b>
             <div class="desc">${f.desc}</div></div>
           <span class="lv">HQ Lv${f.unlock}で解放</span>`;
       } else {
         row.innerHTML = `
-          <span class="fic">${f.icon}</span>
+          <span class="fic">${Icon.svg(f.icon)}</span>
           <div class="grow"><b>${f.name}</b> <span class="lv">Lv${lv}/${fmax}${Game.state.forged && Game.state.forged[f.id] ? Icon.svg("titanium") : ""}</span>
             <div class="desc">${f.desc}</div></div>
           <button ${maxed ? "disabled" : ""}>${maxed ? "MAX" : "強化 " + fmt(cost) + "G"}</button>`;
@@ -72,12 +72,12 @@ Object.assign(UI, {
     }
     // シナジー示唆 (効果は自然に重なるだけ・専用ルールなし)
     const syn = document.createElement("div");
-    let synHtml = `<h4 style="color:var(--gold);font-size:13px;margin:14px 0 8px">🔗 シナジーのヒント</h4>`;
+    let synHtml = `<h4 style="color:var(--gold);font-size:13px;margin:14px 0 8px">シナジーのヒント</h4>`;
     for (const sy of FACILITY_SYNERGIES) {
       const have = sy.ids.filter((id) => Game.facLv(id) > 0).length;
       const names = sy.ids.map((id) => facilityById(id).name).join("+");
       synHtml += `<div class="list-row" style="padding:7px 10px">
-        <span class="fic" style="font-size:14px">${have === sy.ids.length ? "✅" : have + "/" + sy.ids.length}</span>
+        <span class="fic" style="font-size:14px">${have === sy.ids.length ? Icon.svg("check") : have + "/" + sy.ids.length}</span>
         <div class="grow"><b>${sy.name}</b><div class="desc">${names} — ${sy.desc}</div></div></div>`;
     }
     syn.innerHTML = synHtml;

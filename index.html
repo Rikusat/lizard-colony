@@ -14,18 +14,18 @@
 
 <header id="topbar">
   <div id="brand">
-    <div class="logo">🦎</div>
+    <div class="logo"><svg class="icon"><use href="#i-lizard"/></svg></div>
     <h1>トカゲコロニー<small>LIZARD COLONY</small></h1>
   </div>
   <div class="res" data-tip="コイン — トカゲが毎秒生産。購入/繁殖/設備に使う"><span class="ricon coin">G</span><b id="ui-coins">0</b><small id="ui-cps">+0/秒</small></div>
   <div class="res" data-tip="コオロギ — 餌。与えるとXPになり成長する"><span class="ricon cricket"><svg class="icon"><use href="#i-cricket"/></svg></span><b id="ui-crickets">0</b></div>
   <div class="res" data-tip="ジェム — 即時孵化・即回復・レア卵に使う希少通貨"><span class="ricon gem"><svg class="icon"><use href="#i-gem"/></svg></span><b id="ui-gems">0</b></div>
   <nav>
-    <button id="btn-hq">🏰 本部</button>
-    <button id="btn-dex">📖 図鑑</button>
-    <button id="btn-missions">🎯 ミッション<span id="mission-badge" class="badge hidden">!</span></button>
-    <button id="btn-stats">📊 統計</button>
-    <button id="btn-settings">⚙ 設定</button>
+    <button id="btn-hq"><svg class="icon"><use href="#i-hq"/></svg> 本部</button>
+    <button id="btn-dex"><svg class="icon"><use href="#i-dex"/></svg> 図鑑</button>
+    <button id="btn-missions"><svg class="icon"><use href="#i-mission"/></svg> ミッション<span id="mission-badge" class="badge hidden">!</span></button>
+    <button id="btn-stats"><svg class="icon"><use href="#i-stats"/></svg> 統計</button>
+    <button id="btn-settings"><svg class="icon"><use href="#i-settings"/></svg> 設定</button>
   </nav>
 </header>
 
@@ -35,18 +35,18 @@
   <aside id="left">
     <div class="card">
       <h3>ショップ / 行動</h3>
-      <button id="btn-buy10" class="act"><span class="bicon">🦗</span><span class="lbl">コオロギ ×10<small>トカゲの餌</small></span><span class="price">100G</span></button>
-      <button id="btn-buy100" class="act"><span class="bicon">🦗</span><span class="lbl">コオロギ ×100<small>まとめ買い</small></span><span class="price">1,000G</span></button>
-      <button id="btn-autosupply" class="act hidden"><span class="bicon">🔁</span><span class="lbl">自動補給: OFF<small>R100で解禁</small></span></button>
-      <button id="btn-feedall" class="act cta"><span class="bicon">🍴</span><span class="lbl">一括餌やり<small>全員に1匹ずつ</small></span></button>
-      <button id="btn-breed" class="act cta"><span class="bicon">💕</span><span class="lbl">繁殖する<small>アダルト2匹で卵を作る</small></span></button>
-      <button id="btn-fac" class="act"><span class="bicon">🏗</span><span class="lbl">設備<small>コロニーを強化</small></span></button>
-      <button id="btn-allies" class="act"><span class="bicon">🐾</span><span class="lbl">味方<small>特別な仲間たち</small></span></button>
-      <button id="btn-nest" class="act"><span class="bicon">🕸</span><span class="lbl">巣ネットワーク<small>放置で勝手に育つ</small></span><span id="nest-badge" class="badge hidden">!</span></button>
-      <button id="btn-merchant" class="act hidden"><span class="bicon">🧳</span><span class="lbl">放浪商人<small>期間限定ショップ!</small></span></button>
+      <button id="btn-buy10" class="act"><span class="bicon"><svg class="icon"><use href="#i-cricket"/></svg></span><span class="lbl">コオロギ ×10<small>トカゲの餌</small></span><span class="price">100G</span></button>
+      <button id="btn-buy100" class="act"><span class="bicon"><svg class="icon"><use href="#i-cricket"/></svg></span><span class="lbl">コオロギ ×100<small>まとめ買い</small></span><span class="price">1,000G</span></button>
+      <button id="btn-autosupply" class="act hidden"><span class="bicon"><svg class="icon"><use href="#i-auto"/></svg></span><span class="lbl">自動補給: OFF<small>R100で解禁</small></span></button>
+      <button id="btn-feedall" class="act cta"><span class="bicon"><svg class="icon"><use href="#i-feed"/></svg></span><span class="lbl">一括餌やり<small>全員に1匹ずつ</small></span></button>
+      <button id="btn-breed" class="act cta"><span class="bicon"><svg class="icon"><use href="#i-breed"/></svg></span><span class="lbl">繁殖する<small>アダルト2匹で卵を作る</small></span></button>
+      <button id="btn-fac" class="act"><span class="bicon"><svg class="icon"><use href="#i-build"/></svg></span><span class="lbl">設備<small>コロニーを強化</small></span></button>
+      <button id="btn-allies" class="act"><span class="bicon"><svg class="icon"><use href="#i-paw"/></svg></span><span class="lbl">味方<small>特別な仲間たち</small></span></button>
+      <button id="btn-nest" class="act"><span class="bicon"><svg class="icon"><use href="#i-nestweb"/></svg></span><span class="lbl">巣ネットワーク<small>放置で勝手に育つ</small></span><span id="nest-badge" class="badge hidden">!</span></button>
+      <button id="btn-merchant" class="act hidden"><span class="bicon"><svg class="icon"><use href="#i-merchant"/></svg></span><span class="lbl">放浪商人<small>期間限定ショップ!</small></span></button>
     </div>
     <div class="card">
-      <h3>🥚 卵スロット</h3>
+      <h3><svg class="icon"><use href="#i-egg"/></svg> 卵スロット</h3>
       <div id="egg-slots"></div>
     </div>
   </aside>
@@ -59,14 +59,14 @@
 
   <aside id="right">
     <div class="card" id="raid-card">
-      <h3>🐍 襲撃予告</h3>
+      <h3><svg class="icon"><use href="#i-snake"/></svg> 襲撃予告</h3>
       <div id="raid-timer">--:--</div>
       <div id="next-boss" class="hidden"></div>
-      <button id="btn-raid-now" class="danger">🐍 今すぐ襲来!</button>
+      <button id="btn-raid-now" class="danger"><svg class="icon"><use href="#i-snake"/></svg> 今すぐ襲来!</button>
     </div>
     <div class="card">
-      <h3>🏕 コロニー</h3>
-      <div class="rowline">🏰 HQ Lv <b id="ui-rank">1</b></div>
+      <h3><svg class="icon"><use href="#i-shelter"/></svg> コロニー</h3>
+      <div class="rowline"><span><svg class="icon"><use href="#i-hq"/></svg> HQ Lv</span> <b id="ui-rank">1</b></div>
       <div class="bar"><div id="rank-bar"></div></div>
       <div class="rowline">トカゲ数 <b id="ui-pop">0/10</b></div>
       <div class="rowline clickable" id="row-stage" tabindex="0" role="button" title="タップで惑星マップ"><span><svg class="icon"><use href="#i-planet"/></svg> 惑星 <span class="planet-dot"></span></span> <b id="ui-stage">乾燥地帯</b> <span class="chev">▸</span></div>
@@ -78,10 +78,10 @@
       <div class="rowline" data-tip="ボス撃破や生態データ変換で獲得 — HQ研究に使う"><span><svg class="icon"><use href="#i-science"/></svg> 研究力</span> <b id="ui-res-science">0</b></div>
       <div class="sep"></div>
       <div class="rowline" data-tip="バガーの侵食(全惑星共通) — 毎日ログインで-40"><span><svg class="icon"><use href="#i-erosion"/></svg> 侵食率</span> <b id="ui-invasion">0%</b></div>
-      <div class="rowline clickable" id="row-title" tabindex="0" role="button" title="タップで称号変更">🏅 <b id="ui-title">-</b> <span class="chev">▸</span></div>
+      <div class="rowline clickable" id="row-title" tabindex="0" role="button" title="タップで称号変更"><span><svg class="icon"><use href="#i-medal"/></svg> 称号</span> <b id="ui-title">-</b> <span class="chev">▸</span></div>
     </div>
     <div class="card">
-      <h3>💡 ヒント</h3>
+      <h3><svg class="icon"><use href="#i-hint"/></svg> ヒント</h3>
       <div class="hint-text" id="ui-hint">トカゲをクリックすると詳細が見られます。餌をあげて育てよう!</div>
     </div>
   </aside>

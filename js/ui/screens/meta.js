@@ -6,10 +6,10 @@
 Object.assign(UI, {
   // ---------------- 味方 (GameExpansion_v2 ⑩) ----------------
   openAllies() {
-    this.openModal("🐾 味方 (繁殖不可の特別な仲間)", (body) => {
+    this.openModal(`${Icon.svg("paw")} 味方 (繁殖不可の特別な仲間)`, (body) => {
       body.innerHTML = `<p style="font-size:13px;color:var(--sub);margin-bottom:10px">
         各ボスの脅威を無力化する頼れる仲間。ボス撃破の素材でLvアップ。
-        所持🧬生態データ: <b style="color:var(--gold)">${fmt(Game.res("bio"))}</b></p>`;
+        所持${Icon.svg("bio")}生態データ: <b style="color:var(--gold)">${fmt(Game.res("bio"))}</b></p>`;
       for (const a of ALLIES) {
         const owned = Game.state.allies[a.id];
         const row = document.createElement("div");
@@ -21,14 +21,14 @@ Object.assign(UI, {
             <span class="fic">${a.icon}</span>
             <div class="grow"><b>${a.name}</b> <span class="lv">Lv${owned.lv}/${CFG.allyMaxLv}</span>
               <div class="desc">${a.desc}</div></div>
-            <button ${maxed || Game.res("bio") < cost ? "disabled" : ""}>${maxed ? "MAX" : "強化 🧬" + cost}</button>`;
+            <button ${maxed || Game.res("bio") < cost ? "disabled" : ""}>${maxed ? "MAX" : `強化 ${Icon.svg("bio")}` + cost}</button>`;
           if (!maxed) row.querySelector("button").addEventListener("click", () => {
             Game.allyLvUp(a.id);
             this.openAllies();
           });
         } else {
           row.innerHTML = `
-            <span class="fic">❓</span>
+            <span class="fic">${Icon.svg("unknown")}</span>
             <div class="grow"><b>${a.name}</b>
               <div class="desc">入手条件: ${a.unlockText}</div></div>
             <span style="color:var(--sub)">未加入</span>`;
@@ -40,7 +40,7 @@ Object.assign(UI, {
 
   // ---------------- 称号 (⑨-1) ----------------
   openTitles() {
-    this.openModal("🏅 称号", (body) => {
+    this.openModal(`${Icon.svg("medal")} 称号`, (body) => {
       body.innerHTML = `<p style="font-size:13px;color:var(--sub);margin-bottom:10px">
         条件を達成すると自動で獲得。好きな称号をコロニーに掲げよう。</p>`;
       for (const t of TITLES) {
@@ -49,13 +49,13 @@ Object.assign(UI, {
         const row = document.createElement("div");
         row.className = "list-row" + (owned ? "" : " done");
         row.innerHTML = `
-          <span class="fic">${owned ? "🏅" : "🔒"}</span>
+          <span class="fic">${Icon.svg(owned ? "medal" : "lock")}</span>
           <div class="grow"><b>${owned ? t.name : "???"}</b>
             <div class="desc">${t.hint}</div></div>
           ${owned ? (selected ? `<span class="lv">掲示中</span>` : `<button>掲げる</button>`) : ""}`;
         if (owned && !selected) row.querySelector("button").addEventListener("click", () => {
           Game.state.titleSel = t.id;
-          this.toast(`🏅 称号「${t.name}」を掲げた!`);
+          this.toast(`${Icon.svg("medal")} 称号「${t.name}」を掲げた!`);
           this.openTitles();
         });
         body.appendChild(row);
@@ -65,22 +65,22 @@ Object.assign(UI, {
 
   // ---------------- 統計ダッシュボード (⑨-4/20/23/25) ----------------
   openStats() {
-    this.openModal("📊 統計ダッシュボード", (body) => {
+    this.openModal(`${Icon.svg("stats")} 統計ダッシュボード`, (body) => {
       const s = Game.state;
       const p = Game.prestige();
       const pc = Game.prestigeClass();
       const rows = [
-        ["🏆 コロニーランク", s.rank],
-        ["🦎 現在のトカゲ数", `${s.lizards.length} / ${Game.capacity()}`],
-        ["🐣 累計孵化数", s.stats.hatched],
-        ["💕 累計繁殖回数", s.stats.bred],
-        ["🍴 累計餌やり回数", fmt(s.stats.fed)],
-        ["🛡 撃退数", s.stats.raidsWon],
-        ["👹 ボス撃破数", s.stats.bossWon],
-        ["💰 売却数", s.stats.sold],
-        ["📖 図鑑コンプ率", (Game.dexRate() * 100).toFixed(1) + "%"],
-        ["🏅 獲得称号", `${Object.keys(s.titles).length} / ${TITLES.length}`],
-        ["📅 連続ログイン", s.daily.streak + "日"],
+        [`${Icon.svg("crown")} コロニーランク`, s.rank],
+        [`${Icon.svg("lizard")} 現在のトカゲ数`, `${s.lizards.length} / ${Game.capacity()}`],
+        [`${Icon.svg("egg")} 累計孵化数`, s.stats.hatched],
+        [`${Icon.svg("breed")} 累計繁殖回数`, s.stats.bred],
+        [`${Icon.svg("feed")} 累計餌やり回数`, fmt(s.stats.fed)],
+        [`${Icon.svg("shield")} 撃退数`, s.stats.raidsWon],
+        [`${Icon.svg("crown")} ボス撃破数`, s.stats.bossWon],
+        [`${Icon.svg("coin")} 売却数`, s.stats.sold],
+        [`${Icon.svg("dex")} 図鑑コンプ率`, (Game.dexRate() * 100).toFixed(1) + "%"],
+        [`${Icon.svg("medal")} 獲得称号`, `${Object.keys(s.titles).length} / ${TITLES.length}`],
+        [`${Icon.svg("calendar")} 連続ログイン`, s.daily.streak + "日"],
       ];
       body.innerHTML = `
         <div class="prestige-box">
@@ -91,7 +91,7 @@ Object.assign(UI, {
         <div class="stats-grid">
           ${rows.map(([k, v]) => `<div class="stat-cell"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("")}
         </div>
-        <button id="btn-export" style="width:100%;margin-top:12px">📸 コロニー全景を画像で保存 (SNS共有用)</button>`;
+        <button id="btn-export" style="width:100%;margin-top:12px">${Icon.svg("camera")} コロニー全景を画像で保存 (SNS共有用)</button>`;
       body.querySelector("#btn-export").addEventListener("click", () => this.exportShot());
     });
   },
@@ -111,7 +111,7 @@ Object.assign(UI, {
     ctx.fillStyle = "#f2c65e";
     ctx.font = "bold 34px sans-serif";
     ctx.textAlign = "left";
-    ctx.fillText("🦎 トカゲコロニー", 24, 44);
+    ctx.fillText("トカゲコロニー", 24, 44);
     ctx.font = "16px sans-serif";
     ctx.fillStyle = "#ede3d0";
     ctx.fillText(
@@ -124,26 +124,26 @@ Object.assign(UI, {
     a.download = `lizard-colony-rank${s.rank}.png`;
     a.href = out.toDataURL("image/png");
     a.click();
-    this.toast("📸 コロニー全景を保存した!");
+    this.toast(`${Icon.svg("camera")} コロニー全景を保存した!`);
   },
 
   // ---------------- 放浪商人 (⑨-11) ----------------
   openMerchant() {
     const m = Game.merchant;
     if (!m) return;
-    this.openModal("🧳 放浪商人", (body) => {
+    this.openModal(`${Icon.svg("merchant")} 放浪商人`, (body) => {
       if (!Game.merchant || !Game.merchant.offers.length) {
         body.innerHTML = `<p>「もう売るものがないよ。また来るね」</p>`;
         return;
       }
       body.innerHTML = `<p style="font-size:13px;color:var(--sub);margin-bottom:10px">
-        「いいものあるよ。ジェムで払っておくれ」(滞在 残り${Math.ceil(Game.merchant.t)}秒 / 所持💎${fmt(Game.state.gems)})</p>`;
+        「いいものあるよ。ジェムで払っておくれ」(滞在 残り${Math.ceil(Game.merchant.t)}秒 / 所持${Icon.svg("gem")}${fmt(Game.state.gems)})</p>`;
       Game.merchant.offers.forEach((o, i) => {
         const row = document.createElement("div");
         row.className = "list-row";
         row.innerHTML = `
           <div class="grow"><b>${o.label}</b></div>
-          <button ${Game.state.gems < o.price ? "disabled" : ""}>💎${o.price}</button>`;
+          <button ${Game.state.gems < o.price ? "disabled" : ""}>${Icon.svg("gem")}${o.price}</button>`;
         row.querySelector("button").addEventListener("click", () => {
           Game.buyMerchant(i);
           this.openMerchant();
@@ -155,7 +155,7 @@ Object.assign(UI, {
 
   // ---------------- ミッション ----------------
   openMissions() {
-    this.openModal("🎯 ミッション", (body) => {
+    this.openModal(`${Icon.svg("mission")} ミッション`, (body) => {
       body.innerHTML = "";
       for (const m of MISSIONS) {
         const claimed = Game.state.missionsClaimed[m.id];
@@ -163,11 +163,11 @@ Object.assign(UI, {
         const row = document.createElement("div");
         row.className = "list-row" + (claimed ? " done" : "");
         const rewardTxt = [
-          m.reward.gems ? `💎${m.reward.gems}` : "",
+          m.reward.gems ? `${Icon.svg("gem")}${m.reward.gems}` : "",
           m.reward.coins ? `${fmt(m.reward.coins)}G` : "",
         ].filter(Boolean).join(" ");
         row.innerHTML = `
-          <span style="font-size:20px">${claimed ? "✅" : done ? "🎁" : "🎯"}</span>
+          <span style="font-size:20px">${Icon.svg(claimed ? "check" : done ? "gift" : "mission")}</span>
           <div class="grow"><b>${m.name}</b><div class="desc">報酬: ${rewardTxt}</div></div>
           ${claimed ? `<span class="lv">達成済</span>` : done ? `<button>受取</button>` : `<span style="color:var(--sub)">未達成</span>`}`;
         if (!claimed && done) row.querySelector("button").addEventListener("click", (e) => {
@@ -175,7 +175,7 @@ Object.assign(UI, {
           if (m.reward.gems) Game.state.gems += m.reward.gems;
           if (m.reward.coins) Game.state.coins += m.reward.coins;
           Motion.burstAt(e.currentTarget); // 報酬バースト(§4.3: 取得の瞬間だけ)
-          this.toast(`🎁 ミッション達成! ${m.name} → ${rewardTxt}`);
+          this.toast(`${Icon.svg("gift")} ミッション達成! ${m.name} → ${rewardTxt}`);
           this.openMissions();
         });
         body.appendChild(row);
@@ -185,7 +185,7 @@ Object.assign(UI, {
 
   // ---------------- 設定 ----------------
   openSettings() {
-    this.openModal("⚙ 設定", (body) => {
+    this.openModal(`${Icon.svg("settings")} 設定`, (body) => {
       body.innerHTML = `
         <div class="list-row"><div class="grow"><b>セーブ</b><div class="desc">10秒ごとに自動保存されます</div></div>
           <button id="set-save">今すぐ保存</button></div>
@@ -196,14 +196,14 @@ Object.assign(UI, {
         <div class="list-row"><div class="grow"><b>データ初期化</b><div class="desc">すべての進行状況を削除して最初から</div></div>
           <button id="set-reset" class="danger">初期化</button></div>
         <div style="font-size:12px;color:var(--sub);line-height:1.7;margin-top:10px">
-          <b style="color:var(--gold)">🦎 遊び方</b><br>
+          <b style="color:var(--gold)">${Icon.svg("lizard")} 遊び方</b><br>
           1. コオロギを買ってトカゲに餌やり → 成長・レベルアップ<br>
           2. アダルト2匹で繁殖 → 卵が孵化してコロニー拡大<br>
           3. 定期的に蛇が襲来! トカゲたちが自動で戦う<br>
           4. 撃退報酬で設備を強化し、図鑑コンプリートを目指そう!
         </div>`;
       body.querySelector("#set-save").addEventListener("click", () => {
-        Game.save(); this.toast("💾 セーブしました");
+        Game.save(); this.toast(`${Icon.svg("save")} セーブしました`);
       });
       body.querySelector("#set-rollback41").addEventListener("click", () => {
         if (confirm("V4.1移行前のバックアップへ巻き戻しますか? 移行後の進行は失われます。")) Game.restoreV4Backup();

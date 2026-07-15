@@ -211,24 +211,24 @@ const PATTERNS = ["none", "stripe", "spots", "bands"];
 // 設備マスタ (V4 §3.1: 26種→10種へ統廃合。tab="norm"通常/"def"防衛。深いLvカーブ=Goldシンク)
 const FACILITIES = [
   // --- 通常設備(育成・繁殖・QoL) ---
-  { id: "water",       name: "水場",     icon: "💧", tab: "norm", unlock: 0,  max: 20, baseCost: 300,    costMult: 1.5,
+  { id: "water",       name: "水場",     icon: "water", tab: "norm", unlock: 0,  max: 20, baseCost: 300,    costMult: 1.5,
     desc: "生産 +7%/Lv・毒の持続 -5%/Lv(給水塔・高級水槽を統合)" },
-  { id: "heat",        name: "保温設備", icon: "🔥", tab: "norm", unlock: 0,  max: 20, baseCost: 350,    costMult: 1.5,
+  { id: "heat",        name: "保温設備", icon: "heat", tab: "norm", unlock: 0,  max: 20, baseCost: 350,    costMult: 1.5,
     desc: "餌XP +6%/Lv・負傷回復 +4%/Lv・孵化 -2.5%/Lv(ライト・保温器・温室を統合)" },
-  { id: "feeder",      name: "餌場",     icon: "🥫", tab: "norm", unlock: 10, max: 10, baseCost: 5000,   costMult: 1.6,
+  { id: "feeder",      name: "餌場",     icon: "feeder", tab: "norm", unlock: 10, max: 10, baseCost: 5000,   costMult: 1.6,
     desc: "コオロギ湧き +0.5/秒/Lv・食料供給 +0.05/秒/Lv・毎秒Lv匹へ自動給餌(食料を消費)" },
-  { id: "breedfac",    name: "繁殖施設", icon: "🪺", tab: "norm", unlock: 20, max: 15, baseCost: 20000,  costMult: 1.6,
+  { id: "breedfac",    name: "繁殖施設", icon: "breedfac", tab: "norm", unlock: 20, max: 15, baseCost: 20000,  costMult: 1.6,
     desc: "繁殖CD -4%/Lv・モーフ変異 +0.8%/Lv・伝説 +0.07%/Lv。Lv3:卵のレア予兆 / Lv5:繁殖予約" },
-  { id: "observatory", name: "展望台",   icon: "🔭", tab: "norm", unlock: 25, max: 10, baseCost: 30000,  costMult: 1.6,
+  { id: "observatory", name: "展望台",   icon: "observatory", tab: "norm", unlock: 25, max: 10, baseCost: 30000,  costMult: 1.6,
     desc: "先制 +0.8秒/Lv・図鑑コンプ率×4%/Lvぶん生産(展望岩・標本棚・研究所を統合)" },
   // --- 防衛設備(ボス対策専用) ---
-  { id: "fence",       name: "フェンス", icon: "🚧", tab: "def", unlock: 0,  max: 10, baseCost: 500,    costMult: 1.6,
+  { id: "fence",       name: "フェンス", icon: "fence", tab: "def", unlock: 0,  max: 10, baseCost: 500,    costMult: 1.6,
     desc: "先制攻撃時間 +2秒/Lv・敵の攻撃間隔 +1秒/Lv" },
-  { id: "shelter",     name: "シェルター", icon: "🏠", tab: "def", unlock: 0, max: 10, baseCost: 400,   costMult: 1.6,
+  { id: "shelter",     name: "シェルター", icon: "shelter", tab: "def", unlock: 0, max: 10, baseCost: 400,   costMult: 1.6,
     desc: "ベビーを保護・攻撃回避 +6%/Lv" },
-  { id: "watchtower",  name: "監視塔",   icon: "🗽", tab: "def", unlock: 40, max: 10, baseCost: 100000, costMult: 1.7,
+  { id: "watchtower",  name: "監視塔",   icon: "watchtower", tab: "def", unlock: 40, max: 10, baseCost: 100000, costMult: 1.7,
     desc: "迎撃の総攻撃力 +4%/Lv" },
-  { id: "trap",        name: "罠設備",   icon: "⚔️", tab: "def", unlock: 45, max: 15, baseCost: 200000, costMult: 1.6,
+  { id: "trap",        name: "罠設備",   icon: "trap", tab: "def", unlock: 45, max: 15, baseCost: 200000, costMult: 1.6,
     desc: "侵入時ダメージ +1.2%/Lv・毒軽減 +2.5%/Lv・急降下妨害 +3.5%/Lv。Lv3:ウェブ自動焼却(罠+薬草園+反射板+篝火を統合)" },
 ];
 

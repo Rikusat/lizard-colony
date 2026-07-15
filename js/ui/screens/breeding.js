@@ -7,7 +7,7 @@ Object.assign(UI, {
   // ---------------- 繁殖(系統→個体の二段階選択 / GameExpansion_v2 ⑦⑧) ----------------
   openBreed() {
     this.breedView = { speciesId: null, picks: [], onlyReady: false, sort: "rare" };
-    this.openModal("💕 繁殖", (body) => this.buildBreed(body));
+    this.openModal(`${Icon.svg("breed")} 繁殖`, (body) => this.buildBreed(body));
   },
 
   buildBreed(body) {
@@ -35,10 +35,10 @@ Object.assign(UI, {
       <p style="font-size:13px;color:var(--sub);margin-bottom:10px">
         系統を選んで2匹ペアを決めよう。突然変異で新モーフや上位種族が生まれることも…!
         (卵スロット ${Game.state.eggs.length}/${Game.eggSlotCap()})</p>
-      <button id="quick-breed" class="cta">⚡ クイック繁殖 (最善の2匹を自動選抜・長押しで連続)</button>
+      <button id="quick-breed" class="cta">${Icon.svg("energy")} クイック繁殖 (最善の2匹を自動選抜・長押しで連続)</button>
       ${Game.facLv("breedfac") >= 5
-        ? `<button id="auto-breed" class="${Game.state.autoBreed ? "primary" : ""}" style="width:100%;margin-bottom:10px">🪺 繁殖予約: ${Game.state.autoBreed ? "ON(卵スロットが空くと自動繁殖)" : "OFF"}</button>`
-        : `<div style="font-size:12px;color:var(--sub);margin-bottom:10px">🪺 繁殖施設Lv5で「繁殖予約」(自動繁殖)が解禁</div>`}
+        ? `<button id="auto-breed" class="${Game.state.autoBreed ? "primary" : ""}" style="width:100%;margin-bottom:10px">${Icon.svg("breedfac")} 繁殖予約: ${Game.state.autoBreed ? "ON(卵スロットが空くと自動繁殖)" : "OFF"}</button>`
+        : `<div style="font-size:12px;color:var(--sub);margin-bottom:10px">繁殖施設Lv5で「繁殖予約」(自動繁殖)が解禁</div>`}
       <div id="breed-species"></div>`;
 
     const ab = body.querySelector("#auto-breed");
@@ -130,10 +130,10 @@ Object.assign(UI, {
       const col = Render.lizardColor(lz);
       const cell = document.createElement("div");
       cell.className = "breed-cell" + (ok ? "" : " cd") + (v.picks.includes(lz.id) ? " sel" : "");
-      const status = ok ? "⭕ 繁殖可"
-        : lz.injuredT > 0 ? "🩹 負傷中"
+      const status = ok ? "繁殖可"
+        : lz.injuredT > 0 ? "負傷中"
         : lz.breedCd > 0 ? "CD " + Math.ceil(lz.breedCd) + "s"
-        : "🐣 ベビー";
+        : "ベビー";
       cell.innerHTML = `
         <span class="sw" style="background:${col.css}"></span>
         <div class="nm">${Game.lizardName(lz)}</div>
@@ -157,7 +157,7 @@ Object.assign(UI, {
       const b = Game.state.lizards.find((x) => x.id === v.picks[1]);
       if (a && b) {
         go.disabled = false;
-        go.textContent = `💕 この2匹で繁殖する (${fmt(Game.breedCost(a, b))}G)`;
+        go.textContent = `この2匹で繁殖する (${fmt(Game.breedCost(a, b))}G)`;
         go.onclick = () => {
           if (Game.breed(a.id, b.id)) {
             v.picks = [];

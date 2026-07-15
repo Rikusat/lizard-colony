@@ -7,7 +7,7 @@ Object.assign(UI, {
   openNest() {
     Game.ensureNestWeb();
     const st = Game.currentStage();
-    this.openModal(`🕸 巣ネットワーク — 全惑星共通(閲覧専用)`, (body) => this.buildNest(body));
+    this.openModal(`${Icon.svg("nestweb")} 巣ネットワーク — 全惑星共通(閲覧専用)`, (body) => this.buildNest(body));
     // 既読化(バッジ解除)
     Game.state.nestWeb.seen = Game.nestWebCounts().open;
   },

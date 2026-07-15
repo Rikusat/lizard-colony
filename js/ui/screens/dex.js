@@ -7,14 +7,14 @@ Object.assign(UI, {
   // ---------------- 図鑑 ----------------
   openDex() {
     if (!this.dexTab) this.dexTab = "dex";
-    this.openModal("📖 トカゲ図鑑", (body) => this.buildDex(body));
+    this.openModal(`${Icon.svg("dex")} トカゲ図鑑`, (body) => this.buildDex(body));
   },
 
   buildDex(body) {
     body.innerHTML = `
       <div class="nest-tabs">
-        <button data-dtab="dex" class="${this.dexTab === "dex" ? "primary" : ""}">🦎 図鑑</button>
-        <button data-dtab="lore" class="${this.dexTab === "lore" ? "primary" : ""}">📖 Lore(世界観)</button>
+        <button data-dtab="dex" class="${this.dexTab === "dex" ? "primary" : ""}">${Icon.svg("lizard")} 図鑑</button>
+        <button data-dtab="lore" class="${this.dexTab === "lore" ? "primary" : ""}">${Icon.svg("scroll")} Lore(世界観)</button>
       </div>
       <div id="dex-body"></div>`;
     for (const btn of body.querySelectorAll("[data-dtab]")) {
@@ -32,8 +32,8 @@ Object.assign(UI, {
         const row = document.createElement("div");
         row.className = "list-row" + (got ? "" : " done");
         row.innerHTML = got
-          ? `<span class="fic">📜</span><div class="grow"><b>${L.name}</b><div class="desc">${L.text}</div></div>`
-          : `<span class="fic">🔒</span><div class="grow"><b>???</b><div class="desc">冒険を進めると解読される…</div></div>`;
+          ? `<span class="fic">${Icon.svg("scroll")}</span><div class="grow"><b>${L.name}</b><div class="desc">${L.text}</div></div>`
+          : `<span class="fic">${Icon.svg("lock")}</span><div class="grow"><b>???</b><div class="desc">冒険を進めると解読される…</div></div>`;
         box.appendChild(row);
       }
       return;
@@ -44,7 +44,7 @@ Object.assign(UI, {
     box.innerHTML = `<div class="dex-summary">コンプ率: <b style="color:var(--gold)">${(got / total * 100).toFixed(1)}%</b> (${got}/${total})
       <div class="bar"><div style="width:${got / total * 100}%"></div></div>
       <div style="font-size:12px;color:var(--sub);margin-top:5px">
-        🏆 コンプ報酬(恒久): 現在 生産+${Math.round(bonus * 100)}% — 25%/50%/75%/100%で +2/4/6/10%</div></div>`;
+        ${Icon.svg("crown")} コンプ報酬(恒久): 現在 生産+${Math.round(bonus * 100)}% — 25%/50%/75%/100%で +2/4/6/10%</div></div>`;
     const stageId = Game.currentStage().id;
     // V4: 惑星別に区切って表示
     for (const st of STAGES) {
