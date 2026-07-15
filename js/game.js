@@ -1102,7 +1102,8 @@ const Game = {
       this.flashT = 0.8;
       this.slowmo = 1.2;
       this.popupBurst(lz.x, lz.y - 30);
-      UI.toast(`🌈✨ 伝説個体が誕生!! ${this.lizardName(lz)} — 唯一無二の輝き!`);
+      if (UI.heroLegendBirth) UI.heroLegendBirth(lz); // 一生に数回級(§6)
+      else UI.toast(`🌈✨ 伝説個体が誕生!! ${this.lizardName(lz)} — 唯一無二の輝き!`);
     } else {
       UI.toast(`🐣 ${this.lizardName(lz)} が孵化した!${egg.lucky ? " (ラッキー卵!)" : ""}`);
     }

@@ -78,6 +78,7 @@ globalThis._noStart = true;
 <script src="js/ui/hero/boss.js"></script>
 <script src="js/ui/hero/meteorite.js"></script>
 <script src="js/ui/hero/rocket.js"></script>
+<script src="js/ui/hero/legend.js"></script>
 <script src="js/ui/screens/main.js"></script>
 <script src="js/ui/screens/breeding.js"></script>
 <script src="js/ui/screens/equipment.js"></script>
@@ -140,6 +141,13 @@ globalThis._noStart = true;
     else { clearTimeout(Hero._timer); Hero._timer = null; } // 撮影用に停止
   }
   else if (h === "#fx-rank") { setTimeout(() => UI.rankUpFx(), 600); }
+  else if (h.startsWith("#hero-legend")) {
+    const lz = Game.state.lizards.find(l => l.stage === "adult");
+    lz.morphId = "legendary";
+    UI.heroLegendBirth(lz);
+    if (h.endsWith("-skip")) Hero.dismiss(true);
+    else { clearTimeout(Hero._timer); Hero._timer = null; }
+  }
   else if (h.startsWith("#hero-rocket")) {
     UI.heroRocketLaunch();
     if (h.endsWith("-skip")) Hero.dismiss(true);
