@@ -535,7 +535,7 @@ button.holding::after {
 .planet-node.locked { opacity: .45; cursor: default; }
 .planet-node .pn-ring {
   width: 52px; height: 52px; border-radius: 50%; margin: 0 auto;
-  background: conic-gradient(#e05b41 calc(var(--inv) * 1%), rgba(255,255,255,.14) 0);
+  background: conic-gradient(var(--boss-500) calc(var(--inv) * 1%), rgba(255, 255, 255, .14) 0);
   display: flex; align-items: center; justify-content: center;
 }
 .planet-node .pn-ball {
@@ -544,9 +544,27 @@ button.holding::after {
   box-shadow: inset -6px -6px 12px rgba(0,0,0,.5), 0 0 12px rgba(0,0,0,.6);
 }
 .planet-node.here .pn-ball { box-shadow: 0 0 0 3px var(--gold), inset -6px -6px 12px rgba(0,0,0,.5); }
-.planet-node:not(.locked):not(.here):hover .pn-ball { box-shadow: 0 0 0 2px #8fd0ff, inset -6px -6px 12px rgba(0,0,0,.5); }
-.planet-node .pn-name { font-size: 11px; margin-top: 4px; color: var(--text); text-shadow: 0 1px 2px #000; }
+.planet-node.frontier .pn-ball {
+  animation: frontier-breathe 2.4s var(--ease-in-out) infinite alternate;
+}
+@keyframes frontier-breathe {
+  from { box-shadow: 0 0 8px var(--amber-glow-soft), inset -6px -6px 12px rgba(0,0,0,.5); }
+  to   { box-shadow: 0 0 20px var(--amber-glow), inset -6px -6px 12px rgba(0,0,0,.5); }
+}
+.planet-node.here.frontier .pn-ball { animation: none; box-shadow: 0 0 0 3px var(--gold), 0 0 18px var(--amber-glow), inset -6px -6px 12px rgba(0,0,0,.5); }
+.planet-node:not(.locked):not(.here):hover .pn-ball { box-shadow: 0 0 0 2px var(--info-500), inset -6px -6px 12px rgba(0,0,0,.5); }
+.planet-node.locked .pn-ball { filter: grayscale(.7) brightness(.75); }
+.planet-node .pn-name { font-family: var(--font-retro); font-size: 12px; margin-top: 4px; color: var(--text); text-shadow: 0 1px 2px #000; }
 .planet-node .pn-sub { font-size: 10px; color: var(--sub); }
+
+.map-legend {
+  display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center;
+  font-size: 12px; color: var(--text); margin-top: var(--space-2);
+}
+.map-ero { display: inline-flex; align-items: center; gap: 6px; }
+.map-ero .bar { width: 90px; height: 8px; display: inline-block; }
+.map-ero .bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--boss-600), var(--boss-500)); border-radius: inherit; }
+.map-ero b { color: var(--boss-500); font-variant-numeric: tabular-nums; }
 
 /* 宇宙船トランジション */
 #travel-overlay {

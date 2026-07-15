@@ -117,7 +117,7 @@ Object.assign(UI, {
         const [x, y] = pos[st.id];
         const frontier = st.id === Game.frontierId();
         html += `
-          <div class="planet-node ${unlocked ? "" : "locked"} ${st.id === cur.id ? "here" : ""}" data-planet="${st.id}"
+          <div class="planet-node ${unlocked ? "" : "locked"} ${st.id === cur.id ? "here" : ""} ${frontier && unlocked ? "frontier" : ""}" data-planet="${st.id}"
             style="left:${x}%;top:${y}%">
             <div class="pn-ring" style="--inv:${inv}">
               <div class="pn-ball" style="background:radial-gradient(circle at 35% 30%, ${st.ground}, ${st.ground2})">${unlocked ? st.icon : "🔒"}</div>
@@ -126,9 +126,15 @@ Object.assign(UI, {
             <div class="pn-sub">${unlocked ? (data && data.pioneered ? `🦎${pop} ${badges}` : "未開拓") : ""}</div>
           </div>`;
       }
+      const ero = Math.round(Game.state.erosion || 0);
       html += `</div>
-        <div style="font-size:12px;color:var(--sub);margin-top:8px">
-          ⭐=フロンティア(生産・報酬・XPボーナス) / 🪲侵食率は全惑星共通 ${Math.round(Game.state.erosion || 0)}% / タップで宇宙船が出発(クリックでスキップ)</div>`;
+        <div class="map-legend">
+          <span>⭐ フロンティア(生産・報酬・XPボーナス)</span>
+          <span>◎ 現在地</span>
+          <span class="map-ero">🪲 侵食率(全惑星共通)
+            <span class="bar"><span style="width:${ero}%"></span></span> <b>${ero}%</b></span>
+          <span style="color:var(--sub)">タップで宇宙船が出発(クリックでスキップ)</span>
+        </div>`;
       body.innerHTML = html;
       for (const node of body.querySelectorAll(".planet-node")) {
         const id = +node.dataset.planet;
