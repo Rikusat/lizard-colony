@@ -75,6 +75,7 @@ globalThis._noStart = true;
 <script src="js/ui/motion.js"></script>
 <script src="js/ui/hero/hero.js"></script>
 <script src="js/ui/hero/nest-reveal.js"></script>
+<script src="js/ui/hero/boss.js"></script>
 <script src="js/ui/screens/main.js"></script>
 <script src="js/ui/screens/breeding.js"></script>
 <script src="js/ui/screens/equipment.js"></script>
@@ -135,6 +136,13 @@ globalThis._noStart = true;
     UI.heroNestReveal(h === "#hero-nest" ? ns : [ns[0]], h === "#hero-surprise");
     if (h === "#hero-skip") Hero.dismiss(true); // スキップ直後=残り香ゼロの検証
     else { clearTimeout(Hero._timer); Hero._timer = null; } // 撮影用に停止
+  }
+  else if (h.startsWith("#hero-boss")) {
+    const fake = { type: bossTypeById("monitor"), typeId: "monitor", tier: 4, elite: true, boss: false };
+    if (h === "#hero-bossdown") UI.heroBossDown(fake, "👑Elite ヌシオオトカゲ T4 を撃破! +48.2KG +💎3 +🧬6");
+    else UI.heroBossIn(fake);
+    if (h.endsWith("-skip")) Hero.dismiss(true);
+    else { clearTimeout(Hero._timer); Hero._timer = null; }
   }
   else if (h === "#lore") { UI.dexTab = "lore"; UI.openDex(); } // 未開拓の大湿原を開拓UIで開く
   window.__ready = true;

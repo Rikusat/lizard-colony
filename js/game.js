@@ -1248,7 +1248,11 @@ const Game = {
       dive: null, recoverT: 0, animT: 0, fleeing: false, stolenEgg: null,
     };
     const label = `${nr.elite ? "👑Elite " : ""}${type.name}${nr.tier ? " T" + nr.tier : ""}`;
-    UI.toast(nr.boss || nr.tier ? `👹 BOSS襲来!! ${label} — ${type.threat}!` : `🐍 ${this.raid.snakeTier.name}が襲来した! コロニーを守れ!`, true);
+    if (this.raid.cutinT > 0 && UI.heroBossIn && UI.heroBossIn(this.raid)) {
+      this.raid.heroShown = true; // Canvasカットイン・トーストは出さない(§6: 器を一本化)
+    } else {
+      UI.toast(nr.boss || nr.tier ? `👹 BOSS襲来!! ${label} — ${type.threat}!` : `🐍 ${this.raid.snakeTier.name}が襲来した! コロニーを守れ!`, true);
+    }
     this.combatSurge(); // V3: 巣から全軍一斉出撃
   },
 
@@ -1557,7 +1561,8 @@ const Game = {
         s.eggs.push(r.stolenEgg);
         msg += " / 卵を取り返した!";
       }
-      UI.toast(msg);
+      if (UI.heroBossDown && (r.elite || r.boss || (r.tier || 0) >= 3)) UI.heroBossDown(r, msg);
+      else UI.toast(msg);
       this.popupBurst(r.snake.x, r.snake.y);
       this.slowmo = 0.6; // 撃破スローモーション
     } else {

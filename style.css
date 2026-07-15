@@ -676,6 +676,24 @@ button.holding::after {
 .hero-nest.surprise .medal { border-color: var(--life-400); box-shadow: 0 0 40px var(--life-glow); }
 .hero-nest.surprise .hero-stamp { background: var(--grad-btn-cta); color: var(--on-life); }
 
+/* ボス襲来・撃破(中): 赤い暗転+スラムイン / 撃破は金のバースト */
+#hero-overlay.hero-boss { background: rgba(40, 10, 5, .58); }
+#hero-overlay.hero-boss.down { background: rgba(20, 13, 7, .55); }
+.hero-boss .boss-face {
+  font-size: 84px; line-height: 1; filter: drop-shadow(0 0 24px rgba(224, 83, 59, .55));
+  animation: boss-slam 500ms var(--ease-pop);
+}
+@keyframes boss-slam { from { transform: scale(2.4); opacity: 0; } 70% { transform: scale(.92); } }
+.hero-boss .boss-face.down { position: relative; filter: grayscale(.4) drop-shadow(0 0 18px var(--amber-glow)); animation: boss-down 600ms var(--ease-pop); }
+@keyframes boss-down { from { transform: scale(1.4) rotate(0deg); } to { transform: scale(1) rotate(8deg); } }
+.hero-boss .boss-face .burst {
+  position: absolute; inset: -22px; border-radius: 50%; pointer-events: none;
+  border: 3px solid var(--amber-400); opacity: 0;
+  animation: burst-ring 700ms var(--ease-out) 120ms;
+}
+@keyframes burst-ring { from { transform: scale(.4); opacity: .9; } to { transform: scale(1.5); opacity: 0; } }
+.hero-stamp.boss { background: var(--grad-btn-danger); color: #ffe0d0; }
+
 .hidden { display: none !important; }
 
 @media (max-width: 1180px) {

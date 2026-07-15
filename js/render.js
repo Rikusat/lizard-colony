@@ -58,7 +58,7 @@ const Render = {
       this.centerLabel(ctx, `${Game.event.def.icon} ${Game.event.def.name} 残り${Math.ceil(Game.event.t)}秒 — ${Game.event.def.desc}`,
         W / 2, H - 26, "rgba(60,40,10,.7)", "#ffe9b0");
     }
-    if (Game.raid && Game.raid.cutinT > 0) this.drawCutin(ctx, Game.raid);
+    if (Game.raid && Game.raid.cutinT > 0 && !Game.raid.heroShown) this.drawCutin(ctx, Game.raid);
     // 伝説誕生などのフラッシュ
     if (Game.flashT > 0) {
       ctx.fillStyle = `rgba(255,250,230,${Math.min(0.85, Game.flashT)})`;
