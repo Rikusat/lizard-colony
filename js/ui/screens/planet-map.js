@@ -171,7 +171,7 @@ Object.assign(UI, {
       this.confirmSwitch(id);
     };
     ov.onclick = finish;
-    setTimeout(finish, 1400);
+    setTimeout(finish, Motion.reduced ? 500 : 1400); // reduced時は即到着(§4.4)
   },
 
   // ---------------- V3: Stage切替バー (§10.1) ----------------

@@ -599,9 +599,24 @@ button.holding::after {
 }
 #travel-overlay .tv-from { left: 8%; }
 #travel-overlay .tv-to { right: 8%; }
+#travel-overlay .tv-stars {
+  position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .16) 0 2px, transparent 2px 130px),
+    repeating-linear-gradient(90deg, rgba(143, 208, 255, .12) 0 3px, transparent 3px 220px);
+  background-size: 260px 100%, 440px 100%;
+  animation: warp-streak .5s linear infinite;
+}
+@keyframes warp-streak { to { background-position: -260px 0, -440px 0; } }
 #travel-overlay .tv-ship {
   position: absolute; top: 44%; font-size: 42px;
-  animation: fly 1.4s ease-in-out forwards;
+  animation: fly 1.4s var(--ease-in-out) forwards;
+}
+#travel-overlay .tv-ship::after {
+  content: ""; position: absolute; right: 82%; top: 58%; width: 130px; height: 4px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(270deg, var(--amber-glow), rgba(228, 188, 58, 0));
+  transform: rotate(-45deg); transform-origin: right center;
 }
 @keyframes fly {
   from { left: 12%; transform: rotate(45deg) scale(.8); }

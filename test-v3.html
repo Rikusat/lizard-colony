@@ -139,6 +139,12 @@ globalThis._noStart = true;
     else { clearTimeout(Hero._timer); Hero._timer = null; } // 撮影用に停止
   }
   else if (h === "#fx-rank") { setTimeout(() => UI.rankUpFx(), 600); }
+  else if (h === "#hero-warp") {
+    UI.confirmSwitch = () => {}; // 演出のみ(切替は発火させない)
+    UI.travelTo(5);
+    const ov = document.getElementById("travel-overlay");
+    ov.onclick = null; // 撮影用に保持
+  }
   else if (h.startsWith("#hero-meteor")) {
     const sp = speciesById("futoago"), legend = h.includes("legend");
     UI.heroMeteorite(sp, morphById(legend ? "legendary" : "albino"),
