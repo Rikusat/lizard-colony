@@ -41,4 +41,34 @@ const Motion = {
     void el.offsetWidth; // reflowでアニメをリセット
     el.classList.add(cls);
   },
+
+  // stagger入場(§4.3): 開いた瞬間の1回だけ。cap超過分は即時表示(パフォーマンス上限)
+  staggerCap: 14,
+  stagger(root, selector) {
+    if (this.reduced || !root) return;
+    const items = root.querySelectorAll(selector);
+    const n = Math.min(items.length, this.staggerCap);
+    for (let i = 0; i < n; i++) {
+      items[i].style.setProperty("--i", i);
+      items[i].classList.add("stg");
+    }
+  },
+
+  // 報酬バースト(§4.3): 要素の中心から粒を数個飛ばす。取得の瞬間だけ使う
+  burstAt(el, count) {
+    if (this.reduced || !el) return;
+    if (document.querySelectorAll(".burst-p").length > 24) return; // 同時数の上限
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    for (let i = 0; i < (count || 8); i++) {
+      const p = document.createElement("span");
+      p.className = "burst-p";
+      const a = Math.random() * Math.PI * 2, d = 34 + Math.random() * 44;
+      p.style.left = cx + "px"; p.style.top = cy + "px";
+      p.style.setProperty("--dx", Math.cos(a) * d + "px");
+      p.style.setProperty("--dy", Math.sin(a) * d - 18 + "px");
+      p.addEventListener("animationend", () => p.remove());
+      document.body.appendChild(p);
+    }
+  },
 };

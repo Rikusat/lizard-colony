@@ -177,7 +177,7 @@ button.act .price {
   text-shadow: 0 0 18px rgba(242, 198, 94, .35), 0 2px 4px rgba(0, 0, 0, .8);
   margin: 2px 0 10px;
 }
-#raid-timer.soon { color: var(--red); animation: blink .55s infinite alternate; text-shadow: 0 0 22px rgba(224, 91, 65, .6); }
+#raid-timer.soon { color: var(--red); animation: blink .55s var(--ease-in-out) infinite alternate; text-shadow: 0 0 22px rgba(224, 91, 65, .6); }
 @keyframes blink { from { opacity: 1; } to { opacity: .45; } }
 #btn-raid-now { width: 100%; }
 
@@ -232,7 +232,7 @@ button.act .price {
   padding: 9px 30px; font-size: 21px; font-weight: bold; color: #ffe9d0;
   pointer-events: none; text-shadow: 0 2px 3px #000;
   box-shadow: 0 0 30px rgba(255, 80, 40, .45);
-  animation: banner-pulse 1s infinite alternate;
+  animation: banner-pulse 1s var(--ease-in-out) infinite alternate;
 }
 @keyframes banner-pulse { from { box-shadow: 0 0 18px rgba(255, 80, 40, .3); } to { box-shadow: 0 0 42px rgba(255, 80, 40, .65); } }
 
@@ -376,7 +376,7 @@ button.act .price {
   padding: 2px 8px; font-size: 12px; font-weight: bold;
   pointer-events: none;
 }
-button.holding { animation: hold-flash .15s infinite alternate; border-color: var(--gold); }
+button.holding { animation: hold-flash .15s var(--ease-in-out) infinite alternate; border-color: var(--gold); }
 button.holding::after {
   content: ""; position: absolute; inset: -4px; border-radius: inherit;
   padding: 2px; pointer-events: none;
@@ -412,7 +412,7 @@ button.holding::after {
 .rowline .chev { color: var(--gold); font-size: 12px; }
 .elite-badge {
   background: var(--grad-btn-primary); color: var(--on-amber); border: 1px solid #ffd700;
-  animation: elite-shine 1.2s infinite alternate;
+  animation: elite-shine 1.2s var(--ease-in-out) infinite alternate;
 }
 @keyframes elite-shine { from { filter: brightness(1); } to { filter: brightness(1.4); } }
 
@@ -521,7 +521,7 @@ button.holding::after {
   border-color: var(--amber-400); background: linear-gradient(var(--card-hi), #3a2c18);
   box-shadow: 0 0 10px var(--amber-glow-soft);
 }
-.wnode.near { border-color: var(--life-400); box-shadow: 0 0 10px var(--life-glow); animation: node-pulse 1s infinite alternate; }
+.wnode.near { border-color: var(--life-400); box-shadow: 0 0 10px var(--life-glow); animation: node-pulse 1s var(--ease-in-out) infinite alternate; }
 .wnode.off { opacity: .42; }
 .wnode.off span { filter: grayscale(1) brightness(.7); }
 #nest-tip {
@@ -805,7 +805,7 @@ button.holding::after {
   position: absolute; bottom: -26px; left: 50%; transform: translateX(-50%);
   width: 18px; height: 34px; border-radius: 50% 50% 60% 60%;
   background: radial-gradient(circle at 50% 20%, #fff8d8, var(--warn-500) 45%, var(--boss-500) 80%, transparent);
-  animation: flame-flicker 90ms linear infinite alternate;
+  animation: flame-flicker 90ms var(--ease-in-out) infinite alternate;
 }
 @keyframes flame-flicker { to { transform: translateX(-50%) scaleY(1.25) scaleX(.9); } }
 .hero-rocket .smoke {
@@ -848,6 +848,25 @@ button.holding::after {
   animation: orb-in 700ms var(--ease-pop) 250ms backwards, rainbow-shift 1.8s linear infinite;
 }
 @keyframes orb-in { from { transform: translate(-50%, -50%) scale(.2); opacity: 0; } }
+
+/* ============ Phase 6: モーション横断 ============ */
+/* stagger入場(§4.3): 画面を開いた瞬間の1回だけ。40〜60ms差・上限はJS側で制御 */
+.stg { animation: stg-in var(--dur-base) var(--ease-out) backwards; animation-delay: calc(var(--i, 0) * 45ms); }
+@keyframes stg-in { from { opacity: 0; transform: translateY(8px); } }
+/* 報酬バースト(§4.3): 取得の瞬間だけ。粒は600msで完全消滅 */
+.burst-p {
+  position: fixed; width: 7px; height: 7px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff3cf, var(--amber-400));
+  box-shadow: 0 0 8px var(--amber-glow);
+  pointer-events: none; z-index: 400;
+  animation: burst-fly 600ms var(--ease-out) forwards;
+}
+@keyframes burst-fly {
+  to { transform: translate(var(--dx), var(--dy)) scale(.3); opacity: 0; }
+}
+/* クリック弾み: 操作可能な行・セルにも(§4.3 タップ弾み) */
+.rowline.clickable, .breed-card, .breed-cell, .stage-tab { transition: transform var(--dur-fast) var(--ease-pop), border-color var(--dur-fast), box-shadow var(--dur-fast); }
+.rowline.clickable:active, .breed-card:active, .breed-cell:not(.cd):active { transform: scale(.98); }
 
 .hidden { display: none !important; }
 
