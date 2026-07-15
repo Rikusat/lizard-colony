@@ -1118,6 +1118,7 @@ const Game = {
       const bonus = s.rank * 100;
       s.coins += bonus;
       UI.toast(`🏆 コロニーランク ${s.rank} に上昇! ボーナス ${fmt(bonus)}G`);
+      if (UI.rankUpFx) UI.rankUpFx(); // 軽(§6): 画面を占有しないその場リング
       // ショップ進化・自動補給の解禁通知 (GameExpansion_v2 ⑤)
       if (SHOP_TIERS.some((t) => t.rank === s.rank)) {
         UI.toast(`🛒 まとめ買いが解放された! 購入単位が ×${fmt(shopUnitsFor(s.rank)[1])} に育った!`);

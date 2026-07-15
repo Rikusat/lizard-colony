@@ -166,6 +166,12 @@ const UI = {
     this.els["ui-hint"].textContent = this.hints[this.hintIdx];
   },
 
+  // ランクアップ(§6: 軽)。右パネルのHQ Lv行がその場でリング発光+数値ロールアップ
+  rankUpFx() {
+    const el = this.els["ui-rank"];
+    if (el) Motion.play(el.closest(".rowline"), "rankup");
+  },
+
   // 資源ピルのジュース(§5.1)。quietDelta以下の変動(毎秒の自動収入)は演出しない
   resPill(id, value, quietDelta) {
     const el = this.els[id] || document.getElementById(id);
@@ -190,7 +196,7 @@ const UI = {
     this.els["ui-cps"].textContent = "+" + Game.incomePerSec().toFixed(1) + "/秒";
     this.resPill("ui-crickets", s.crickets, 0);
     this.resPill("ui-gems", s.gems, 0);
-    this.els["ui-rank"].textContent = s.rank;
+    Motion.countUp(this.els["ui-rank"], s.rank, (v) => Math.round(v));
     this.els["rank-bar"].style.width = (s.rankXp / Game.rankXpNeed() * 100) + "%";
     this.els["ui-pop"].textContent = s.lizards.length + "/" + Game.capacity();
     this.els["ui-stage"].textContent = Game.currentStage().name;

@@ -137,6 +137,7 @@ globalThis._noStart = true;
     if (h === "#hero-skip") Hero.dismiss(true); // スキップ直後=残り香ゼロの検証
     else { clearTimeout(Hero._timer); Hero._timer = null; } // 撮影用に停止
   }
+  else if (h === "#fx-rank") { setTimeout(() => UI.rankUpFx(), 600); }
   else if (h.startsWith("#hero-boss")) {
     const fake = { type: bossTypeById("monitor"), typeId: "monitor", tier: 4, elite: true, boss: false };
     if (h === "#hero-bossdown") UI.heroBossDown(fake, "👑Elite ヌシオオトカゲ T4 を撃破! +48.2KG +💎3 +🧬6");
