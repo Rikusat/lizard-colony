@@ -1,0 +1,18 @@
+# 開発用テストページ(本番には不要)
+test-bench.html
+test-field.html
+test-lizards.html
+test-v3.html
+
+# 設計・実装ドキュメント
+CLAUDE.md
+HANDOFF.md
+V3_CodebaseAudit.md
+GameExpansion/
+
+# 企画用参照画像(実行時に未使用・約4.7MB)
+image/
+
+# ローカル環境
+.claude/
+node_modules/

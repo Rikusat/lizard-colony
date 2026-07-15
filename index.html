@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>トカゲコロニー 〜蛇を倒して、最強のコロニーを作れ！〜</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header id="topbar">
+  <div id="brand">
+    <div class="logo">🦎</div>
+    <h1>トカゲコロニー<small>LIZARD COLONY</small></h1>
+  </div>
+  <div class="res"><span class="ricon coin">G</span><b id="ui-coins">0</b><small id="ui-cps">+0/秒</small></div>
+  <div class="res"><span class="ricon cricket">🦗</span><b id="ui-crickets">0</b></div>
+  <div class="res"><span class="ricon gem">💎</span><b id="ui-gems">0</b></div>
+  <nav>
+    <button id="btn-hq">🏰 本部</button>
+    <button id="btn-dex">📖 図鑑</button>
+    <button id="btn-missions">🎯 ミッション<span id="mission-badge" class="badge hidden">!</span></button>
+    <button id="btn-stats">📊 統計</button>
+    <button id="btn-settings">⚙ 設定</button>
+  </nav>
+</header>
+
+<div id="stage-bar"></div>
+
+<main>
+  <aside id="left">
+    <div class="card">
+      <h3>ショップ / 行動</h3>
+      <button id="btn-buy10" class="act"><span class="bicon">🦗</span><span class="lbl">コオロギ ×10<small>トカゲの餌</small></span><span class="price">100G</span></button>
+      <button id="btn-buy100" class="act"><span class="bicon">🦗</span><span class="lbl">コオロギ ×100<small>まとめ買い</small></span><span class="price">1,000G</span></button>
+      <button id="btn-autosupply" class="act hidden"><span class="bicon">🔁</span><span class="lbl">自動補給: OFF<small>R100で解禁</small></span></button>
+      <button id="btn-feedall" class="act primary"><span class="bicon">🍴</span><span class="lbl">一括餌やり<small>全員に1匹ずつ</small></span></button>
+      <button id="btn-breed" class="act"><span class="bicon">💕</span><span class="lbl">繁殖する<small>アダルト2匹で卵を作る</small></span></button>
+      <button id="btn-fac" class="act"><span class="bicon">🏗</span><span class="lbl">設備<small>コロニーを強化</small></span></button>
+      <button id="btn-allies" class="act"><span class="bicon">🐾</span><span class="lbl">味方<small>特別な仲間たち</small></span></button>
+      <button id="btn-nest" class="act"><span class="bicon">🕸</span><span class="lbl">巣ネットワーク<small>放置で勝手に育つ</small></span><span id="nest-badge" class="badge hidden">!</span></button>
+      <button id="btn-merchant" class="act hidden"><span class="bicon">🧳</span><span class="lbl">放浪商人<small>期間限定ショップ!</small></span></button>
+    </div>
+    <div class="card">
+      <h3>🥚 卵スロット</h3>
+      <div id="egg-slots"></div>
+    </div>
+  </aside>
+
+  <section id="center">
+    <div id="frame"><canvas id="game" width="1280" height="720"></canvas></div>
+    <div id="raid-banner" class="hidden"></div>
+    <div id="detail" class="hidden"></div>
+  </section>
+
+  <aside id="right">
+    <div class="card" id="raid-card">
+      <h3>🐍 襲撃予告</h3>
+      <div id="raid-timer">--:--</div>
+      <div id="next-boss" class="hidden"></div>
+      <button id="btn-raid-now" class="danger">🐍 今すぐ襲来!</button>
+    </div>
+    <div class="card">
+      <h3>🏕 コロニー</h3>
+      <div class="rowline">🏰 HQ Lv <b id="ui-rank">1</b></div>
+      <div class="bar"><div id="rank-bar"></div></div>
+      <div class="rowline">トカゲ数 <b id="ui-pop">0/10</b></div>
+      <div class="rowline clickable" id="row-stage" title="タップで惑星マップ">🪐 惑星 <b id="ui-stage">乾燥地帯</b> <span class="chev">▸</span></div>
+      <div class="rowline">撃退数 <b id="ui-wins">0</b></div>
+      <div class="rowline">🧬 生態データ <b id="ui-res-bio">0</b></div>
+      <div class="rowline">🍖 食料供給 <b id="ui-res-food">0</b></div>
+      <div class="rowline">⚡ エネルギー <b id="ui-res-energy">0</b></div>
+      <div class="rowline">🔬 研究力 <b id="ui-res-science">0</b></div>
+      <div class="rowline">🪲 侵食率 <b id="ui-invasion">0%</b></div>
+      <div class="rowline clickable" id="row-title" title="タップで称号変更">🏅 <b id="ui-title">-</b> <span class="chev">▸</span></div>
+    </div>
+    <div class="card">
+      <h3>💡 ヒント</h3>
+      <div class="hint-text" id="ui-hint">トカゲをクリックすると詳細が見られます。餌をあげて育てよう!</div>
+    </div>
+  </aside>
+</main>
+
+<div id="modal" class="hidden">
+  <div id="modal-box">
+    <header><h2 id="modal-title"></h2><button id="modal-close">×</button></header>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="js/data.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V3 UI テスト(開発用)</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- index.html と同じDOM構造をそのまま複製 -->
+<header id="topbar">
+  <div id="brand"><div class="logo">🦎</div><h1>トカゲコロニー<small>LIZARD COLONY</small></h1></div>
+  <div class="res"><span class="ricon coin">G</span><b id="ui-coins">0</b><small id="ui-cps">+0/秒</small></div>
+  <div class="res"><span class="ricon cricket">🦗</span><b id="ui-crickets">0</b></div>
+  <div class="res"><span class="ricon gem">💎</span><b id="ui-gems">0</b></div>
+  <nav>
+    <button id="btn-hq">🏰 本部</button><button id="btn-dex">📖 図鑑</button>
+    <button id="btn-missions">🎯 ミッション<span id="mission-badge" class="badge hidden">!</span></button>
+    <button id="btn-stats">📊 統計</button><button id="btn-settings">⚙ 設定</button>
+  </nav>
+</header>
+<div id="stage-bar"></div>
+<main>
+  <aside id="left">
+    <div class="card"><h3>ショップ / 行動</h3>
+      <button id="btn-buy10" class="act"><span class="bicon">🦗</span><span class="lbl">コオロギ ×10<small>トカゲの餌</small></span><span class="price">100G</span></button>
+      <button id="btn-buy100" class="act"><span class="bicon">🦗</span><span class="lbl">コオロギ ×100<small>まとめ買い</small></span><span class="price">1,000G</span></button>
+      <button id="btn-autosupply" class="act hidden"><span class="bicon">🔁</span><span class="lbl">自動補給: OFF<small>R100で解禁</small></span></button>
+      <button id="btn-feedall" class="act primary"><span class="bicon">🍴</span><span class="lbl">一括餌やり<small>全員に1匹ずつ</small></span></button>
+      <button id="btn-breed" class="act"><span class="bicon">💕</span><span class="lbl">繁殖する<small>アダルト2匹で卵を作る</small></span></button>
+      <button id="btn-fac" class="act"><span class="bicon">🏗</span><span class="lbl">設備<small>コロニーを強化</small></span></button>
+      <button id="btn-allies" class="act"><span class="bicon">🐾</span><span class="lbl">味方<small>特別な仲間たち</small></span></button>
+      <button id="btn-nest" class="act"><span class="bicon">🕳</span><span class="lbl">巣・探索<small>探索隊とツリー</small></span><span id="nest-badge" class="badge hidden">!</span></button>
+      <button id="btn-merchant" class="act hidden"><span class="bicon">🧳</span><span class="lbl">放浪商人<small>期間限定ショップ!</small></span></button>
+    </div>
+    <div class="card"><h3>🥚 卵スロット</h3><div id="egg-slots"></div></div>
+  </aside>
+  <section id="center">
+    <div id="frame"><canvas id="game" width="1280" height="720"></canvas></div>
+    <div id="raid-banner" class="hidden"></div>
+    <div id="detail" class="hidden"></div>
+  </section>
+  <aside id="right">
+    <div class="card" id="raid-card"><h3>🐍 襲撃予告</h3><div id="raid-timer">--:--</div><div id="next-boss" class="hidden"></div><button id="btn-raid-now" class="danger">🐍 今すぐ襲来!</button></div>
+    <div class="card"><h3>🏕 コロニー</h3>
+      <div class="rowline">ランク <b id="ui-rank">1</b></div><div class="bar"><div id="rank-bar"></div></div>
+      <div class="rowline">トカゲ数 <b id="ui-pop">0/10</b></div>
+      <div class="rowline clickable" id="row-stage">ステージ <b id="ui-stage">乾燥地帯</b> <span class="chev">▸</span></div>
+      <div class="rowline">撃退数 <b id="ui-wins">0</b></div>
+      <div class="rowline">🧬 生態データ <b id="ui-res-bio">0</b></div>
+      <div class="rowline">🍖 食料供給 <b id="ui-res-food">0</b></div>
+      <div class="rowline">⚡ エネルギー <b id="ui-res-energy">0</b></div>
+      <div class="rowline">🔬 研究力 <b id="ui-res-science">0</b></div>
+      <div class="rowline">🪲 侵食率 <b id="ui-invasion">0%</b></div>
+      <div class="rowline clickable" id="row-title">🏅 <b id="ui-title">-</b> <span class="chev">▸</span></div>
+    </div>
+    <div class="card"><h3>💡 ヒント</h3><div class="hint-text" id="ui-hint">...</div></div>
+  </aside>
+</main>
+<div id="modal" class="hidden"><div id="modal-box"><header><h2 id="modal-title"></h2><button id="modal-close">×</button></header><div id="modal-body"></div></div></div>
+<div id="toasts"></div>
+<script src="js/data.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script>
+// 豊かなV3状態を構築(セーブには触れない)
+globalThis._noStart = true;
+</script>
+<script src="js/ui.js"></script>
+<script>
+(function () {
+  const s = Game.state;
+  s.rank = 106; s.coins = 5e8; s.gems = 300; s.crickets = 2e6;
+  s.stageSel = 9; // 洞窟
+  // 複数コロニーを構築
+  Game.world = Game.toWorld();
+  for (const st of Game.world.stages) {
+    st.pioneered = st.stageId >= 8; // 8,9,10 は開拓済み
+    st.lastTickAt = Date.now();
+    if (st.pioneered) {
+      st.lizards = [];
+      const n = st.stageId === 9 ? 60 : 20;
+      for (let i = 0; i < n; i++) {
+        const sp = SPECIES[i % SPECIES.length];
+        const lz = Game.makeLizard(sp.id, MORPHS[i % 4].id, { hue: sp.hue, sat: sp.sat, light: sp.light, pattern: PATTERNS[i % 4] }, i % 6 === 0 ? "baby" : "adult");
+        lz.level = 8; Game.ensureRuntime(lz); st.lizards.push(lz);
+      }
+      st.boss.wins = 40;
+      st.nest = { lv: 4, pins: [] };
+    }
+  }
+  Game.world.currentStageId = 9;
+  Game.applyWorld(Game.world);
+  const s2 = Game.state; // applyWorldでstateが差し替わるため再取得
+  s2.res = { bio: 800, food: 120, energy: 300, science: 60 };
+  s2.erosion = 42; s2.devLv = 6;
+  s2.facilities.water = 12; s2.facilities.heat = 10; s2.facilities.feeder = 6;
+  s2.facilities.breedfac = 8; s2.facilities.observatory = 5;
+  s2.facilities.fence = 6; s2.facilities.shelter = 5; s2.facilities.watchtower = 4; s2.facilities.trap = 7;
+  // V4.1: 巣ネットワークを進めておく(累計値から自動解放)+鉱石所持
+  s2.stats.bred = 600; s2.stats.hatched = 480; s2.stats.raidsWon = 400;
+  Game.checkNestWeb(true);
+  s2.rare = { amethyst: 3, iridium: 45, amber: 22, meteorite: 2, orichalcum: 4, titaniumOre: 6 };
+  s2.rocket = { stage: 2, invested: 30, done: false };
+  Game.save = () => {}; // セーブ無効化
+  UI.update();
+  // #nest / #stages / #hq でモーダルを開いた状態を撮る
+  const h = location.hash;
+  if (h === "#nest") UI.openNest();
+  else if (h === "#stages") UI.openStages();
+  else if (h === "#hq") UI.openHQ();
+  else if (h === "#pioneer") UI.confirmSwitch(7);
+  else if (h === "#map") UI.openMap();
+  else if (h === "#lore") { UI.dexTab = "lore"; UI.openDex(); } // 未開拓の大湿原を開拓UIで開く
+  window.__ready = true;
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>フィールド描画テスト(開発用)</title>
+<style>body{background:#171008;margin:0}canvas{display:block}</style>
+</head>
+<body>
+<canvas id="game" width="1280" height="720"></canvas>
+<script src="js/data.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script>
+// 全設備Lv5・卵3個・トカゲ30匹の賑わった状態を再現する開発用ページ
+// (メモリ上だけで動作し、セーブデータには触れない)
+globalThis.UI = { toast: () => {} }; // ui.js非読込のためスタブ
+Game.newGame();
+Game.state.rank = parseInt(new URLSearchParams(location.search).get("rank") || "77", 10); // ?rank=◯でステージ切替
+for (const f of FACILITIES) Game.state.facilities[f.id] = 5;
+Game.state.eggs = [
+  { speciesId: "leopa", morphId: "normal", hue: 48, sat: 85, light: 55, pattern: "spots", t: 40, total: 90 },
+  { speciesId: "futoago", morphId: "golden", hue: 28, sat: 60, light: 50, pattern: "bands", t: 20, total: 90 },
+  { speciesId: "komodo", morphId: "normal", hue: 80, sat: 18, light: 33, pattern: "none", t: 70, total: 90 },
+];
+Game.state.lizards = [];
+const morphs = ["normal", "normal", "normal", "albino", "melanistic", "golden"];
+const lizardCount = parseInt(new URLSearchParams(location.search).get("n") || "30", 10); // ?n=◯で匹数変更
+for (let i = 0; i < lizardCount; i++) {
+  const sp = SPECIES[i % SPECIES.length];
+  const lz = Game.makeLizard(sp.id, morphs[i % morphs.length], {
+    hue: sp.hue + (Math.random() - 0.5) * 30, sat: sp.sat, light: sp.light,
+    pattern: PATTERNS[i % 4],
+  }, i % 5 === 0 ? "baby" : "adult");
+  Game.ensureRuntime(lz);
+  lz.angle = Math.random() < 0.5 ? 0.1 : Math.PI - 0.1;
+  Game.state.lizards.push(lz);
+}
+// 襲撃中のボスを表示。?boss=snake|hawk|crow|monitor|scorpion|spider&elite=1 で切替
+const params = new URLSearchParams(location.search);
+const typeId = params.get("boss") || "snake";
+const type = bossTypeById(typeId);
+const tierDef = bossTierFor(Game.state.rank);
+Game.state.allies = { eagle: { lv: 3 }, owl: { lv: 2 }, meerkat: { lv: 1 }, gecko: { lv: 4 }, turtle: { lv: 5 }, ferret: { lv: 2 } };
+Game.raid = {
+  typeId, type, boss: true, elite: params.get("elite") === "1",
+  tier: tierDef.tier, tierDef, snakeTier: snakeTierFor(Game.state.rank),
+  snake: {
+    hp: 15200, maxHp: 24300,
+    x: type.flying ? 700 : SNAKE_HOME.x,
+    y: type.flying ? 200 : SNAKE_HOME.y,
+    arrived: true, phase: 1,
+  },
+  timeLeft: 28, stunT: 0, biteT: 5, shake: 0, cutinT: 0,
+  webs: [], grabs: 0, stingN: 0, enraged: params.get("enrage") === "1",
+  dive: null, recoverT: 0, animT: 0, fleeing: false, stolenEgg: null,
+};
+if (typeId === "spider") Game.spawnWebs(Game.raid);
+if (typeId === "crow") Game.raid.stolenEgg = Game.state.eggs[0];
+// 休憩ローテーションを収束させてから描画(群衆対策の確認用)
+for (let t = 0; t < 60; t += 0.5) Game.updateResting(0.5);
+Render.init();
+Render.time = 1.3;
+Render.draw();
+</script>
+</body>
+</html>

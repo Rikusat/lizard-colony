@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>トカゲ描画テスト(開発用)</title>
+<style>body{background:#5a3a32;margin:0}canvas{display:block}</style>
+</head>
+<body>
+<canvas id="game" width="1280" height="1180"></canvas>
+<script src="js/data.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script>
+// 全種族×全模様のトカゲを格子状に配置して描画確認する開発用ページ
+// (メモリ上だけで動作し、セーブデータには触れない)
+globalThis.UI = { toast: () => {} }; // ui.js非読込のためスタブ
+Game.newGame();
+Game.state.lizards = [];
+let id = 1;
+const morphs = ["normal", "albino", "melanistic", "golden"];
+SPECIES.forEach((sp, r) => {
+  PATTERNS.forEach((pat, c) => {
+    const lz = Game.makeLizard(sp.id, morphs[c % 4], {
+      hue: sp.hue, sat: sp.sat, light: sp.light, pattern: pat,
+    }, "adult");
+    lz.x = 200 + c * 310;
+    lz.y = 85 + r * 82;
+    lz.tx = lz.x; lz.ty = lz.y;
+    lz.angle = 0.15;
+    lz.moving = true;
+    Game.state.lizards.push(lz);
+  });
+});
+Render.init();
+Render.time = 1.3;
+const ctx = Render.ctx;
+ctx.fillStyle = "#6b4a3c"; ctx.fillRect(0, 0, 1280, 1180);
+for (const lz of Game.state.lizards) Render.drawLizard(ctx, lz);
+</script>
+</body>
+</html>

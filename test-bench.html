@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>描画ベンチマーク(開発用)</title>
+<style>body{background:#171008;margin:0;color:#fff}canvas{display:block}</style>
+</head>
+<body>
+<canvas id="game" width="1280" height="720"></canvas>
+<script src="js/data.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script>
+// V3 Phase0: 描画コスト実測。?n=匹数 &full=1 で休憩システム無効(全個体描画)
+globalThis.UI = { toast: () => {} };
+const params = new URLSearchParams(location.search);
+const N = parseInt(params.get("n") || "120", 10);
+if (params.get("full") === "1") CFG.maxVisibleLizards = 9999;
+if (params.get("cap")) CFG.maxVisibleLizards = parseInt(params.get("cap"), 10);
+Game.newGame();
+Game.state.rank = 105;
+Game.state.raidTimer = 99999;
+Game.state.lizards = [];
+for (const f of FACILITIES) Game.state.facilities[f.id] = Math.min(5, f.max);
+for (let i = 0; i < N; i++) {
+  const sp = SPECIES[i % SPECIES.length];
+  const lz = Game.makeLizard(sp.id, MORPHS[i % 4].id, {
+    hue: sp.hue, sat: sp.sat, light: sp.light, pattern: PATTERNS[i % 4],
+  }, "adult");
+  Game.ensureRuntime(lz);
+  Game.state.lizards.push(lz);
+}
+// 休憩ローテーションを収束させてから計測(実運用状態に合わせる)
+for (let t = 0; t < 120; t += 0.5) Game.updateResting(0.5);
+Render.init();
+// 同期計測(RAF非依存): ウォームアップ30 + 計測300フレームを一気に描画
+const WARM = 30, MEASURE = 300;
+for (let i = 0; i < WARM; i++) { Game.tick(1 / 60); Render.time += 1 / 60; Render.draw(); }
+const t0 = performance.now();
+for (let i = 0; i < MEASURE; i++) { Game.tick(1 / 60); Render.time += 1 / 60; Render.draw(); }
+const avg = (performance.now() - t0) / MEASURE;
+const ctx = Render.ctx;
+ctx.fillStyle = "rgba(0,0,0,.82)";
+ctx.fillRect(160, 250, 960, 210);
+ctx.fillStyle = "#ffd24c";
+ctx.font = "bold 46px monospace";
+ctx.textAlign = "center";
+ctx.fillText(`avg ${avg.toFixed(2)} ms/frame`, 640, 335);
+ctx.font = "bold 28px monospace";
+ctx.fillText(`n=${N} full=${params.get("full") || 0} 描画対象=${Game.state.lizards.filter(l => Game.isVisible(l)).length}体 (60fps枠=16.7ms)`, 640, 400);
+document.title = `bench ${avg.toFixed(2)}ms`;
+</script>
+</body>
+</html>
