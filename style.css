@@ -1,21 +1,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-:root {
-  --bg: #171008;
-  --card: #2c2114;
-  --card2: #3d2e1a;
-  --card-hi: #4d3a20;
-  --border: #5d4930;
-  --border-hi: #96793f;
-  --gold: #f2c65e;
-  --gold-deep: #c89638;
-  --text: #f5ecd8;
-  --sub: #b9a887;
-  --red: #e0704f;
-  --red-deep: #8f2f1c;
-  --green: #9ecf68;
-  --shadow: 0 6px 18px rgba(0, 0, 0, .5);
-}
+/* カラー/字/空間/モーションのトークンは tokens.css(UISkills §1〜§4)で定義。
+   旧変数名(--gold 等)は tokens.css [L]セクションのエイリアスとして存続 */
 
 html, body { height: 100%; }
 body {
@@ -24,7 +10,7 @@ body {
     repeating-linear-gradient(45deg, rgba(255, 255, 255, .015) 0 2px, transparent 2px 7px),
     var(--bg);
   color: var(--text);
-  font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif;
+  font-family: var(--font-body);
   user-select: none;
   overflow-x: hidden;
 }
@@ -33,7 +19,7 @@ body {
 #topbar {
   display: flex; align-items: center; gap: 16px;
   padding: 10px 22px;
-  background: linear-gradient(#453217, #241a0e);
+  background: var(--grad-topbar);
   border-bottom: 2px solid var(--border-hi);
   box-shadow: 0 4px 16px rgba(0, 0, 0, .55);
   flex-wrap: wrap;
@@ -56,7 +42,7 @@ body {
 
 .res {
   background: linear-gradient(#1a1207, #241a0e);
-  border: 1px solid var(--border); border-radius: 999px;
+  border: 1px solid var(--border); border-radius: var(--radius-pill);
   padding: 6px 16px 6px 8px;
   display: flex; align-items: center; gap: 8px; font-size: 16px;
   box-shadow: inset 0 2px 6px rgba(0, 0, 0, .6);
@@ -79,7 +65,7 @@ body {
 
 /* ============ buttons ============ */
 button {
-  background: linear-gradient(#54401f, #372813);
+  background: var(--grad-btn);
   color: var(--text);
   border: 1px solid var(--border);
   border-bottom: 3px solid #140d05;
@@ -87,26 +73,26 @@ button {
   padding: 8px 14px; font-size: 14px; cursor: pointer; position: relative;
   font-family: inherit;
   text-shadow: 0 1px 2px rgba(0, 0, 0, .6);
-  transition: filter .1s, border-color .1s;
+  transition: filter var(--dur-fast), border-color var(--dur-fast);
 }
 button:hover { filter: brightness(1.2); border-color: var(--border-hi); }
 button:active { transform: translateY(2px); border-bottom-width: 1px; }
 button:disabled { opacity: .4; cursor: default; filter: none; }
 button.danger {
-  background: linear-gradient(#a03824, #6b2113);
+  background: var(--grad-btn-danger);
   border-color: #c86a50; border-bottom-color: #3a0f06;
 }
 button.primary {
-  background: linear-gradient(#c89638, #8f6620);
-  border-color: #f2c65e; border-bottom-color: #4d3208;
-  color: #241505; font-weight: bold; text-shadow: 0 1px 1px rgba(255, 255, 255, .3);
+  background: var(--grad-btn-primary);
+  border-color: var(--gold); border-bottom-color: #4d3208;
+  color: var(--on-amber); font-weight: bold; text-shadow: 0 1px 1px rgba(255, 255, 255, .3);
 }
 .badge {
   position: absolute; top: -7px; right: -7px;
   background: radial-gradient(circle at 35% 30%, #ff8866, var(--red-deep));
   color: #fff; border-radius: 50%; border: 1px solid #ffb09a;
   width: 20px; height: 20px; font-size: 12px; line-height: 18px; text-align: center;
-  animation: pop .3s;
+  animation: pop var(--dur-slow);
 }
 @keyframes pop { from { transform: scale(0); } }
 
@@ -121,9 +107,9 @@ main {
 #left, #right { display: flex; flex-direction: column; gap: 12px; }
 
 .card {
-  background: linear-gradient(#352817, var(--card));
+  background: var(--grad-card);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   padding: 12px;
   box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, .05);
 }
@@ -139,7 +125,7 @@ button.act {
   padding: 9px 10px; margin-bottom: 8px; text-align: left;
 }
 button.act .bicon {
-  width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+  width: 30px; height: 30px; border-radius: var(--radius-sm); flex-shrink: 0;
   background: rgba(0, 0, 0, .35); border: 1px solid rgba(255, 255, 255, .1);
   display: flex; align-items: center; justify-content: center; font-size: 16px;
 }
@@ -147,7 +133,7 @@ button.act .lbl { flex: 1; line-height: 1.2; }
 button.act .lbl small { display: block; color: var(--sub); font-size: 10px; }
 button.act .price {
   color: var(--gold); font-size: 12px; font-weight: bold;
-  background: rgba(0, 0, 0, .4); padding: 3px 8px; border-radius: 999px;
+  background: rgba(0, 0, 0, .4); padding: 3px 8px; border-radius: var(--radius-pill);
   white-space: nowrap;
 }
 
@@ -167,14 +153,14 @@ button.act .price {
 #btn-raid-now { width: 100%; }
 
 .bar {
-  background: #140d05; border-radius: 999px; height: 12px; overflow: hidden;
+  background: #140d05; border-radius: var(--radius-pill); height: 12px; overflow: hidden;
   border: 1px solid var(--border); box-shadow: inset 0 2px 4px rgba(0, 0, 0, .7);
 }
 .bar > div {
   height: 100%; width: 0%;
   background: linear-gradient(90deg, #8a6a2c, var(--gold));
   box-shadow: 0 0 8px rgba(242, 198, 94, .5);
-  transition: width .3s;
+  transition: width var(--dur-slow);
 }
 
 .hint-text { font-size: 12px; color: var(--sub); line-height: 1.7; }
@@ -219,7 +205,7 @@ button.act .price {
 #detail {
   position: absolute; left: 22px; bottom: 22px; width: 264px;
   background: linear-gradient(rgba(42, 32, 17, .97), rgba(28, 20, 10, .97));
-  border: 2px solid var(--gold-deep); border-radius: 14px;
+  border: 2px solid var(--gold-deep); border-radius: var(--radius-md);
   padding: 12px; font-size: 13px;
   box-shadow: var(--shadow);
 }
@@ -229,7 +215,7 @@ button.act .price {
 #detail .btns { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
 #detail .btns button { font-size: 12px; padding: 5px 9px; }
 #detail .injured { color: var(--red); font-weight: bold; margin-top: 4px; }
-.sw { display: inline-block; width: 22px; height: 13px; border-radius: 8px; border: 1px solid rgba(0, 0, 0, .5); box-shadow: inset 0 1px 2px rgba(255, 255, 255, .3); }
+.sw { display: inline-block; width: 22px; height: 13px; border-radius: var(--radius-sm); border: 1px solid rgba(0, 0, 0, .5); box-shadow: inset 0 1px 2px rgba(255, 255, 255, .3); }
 
 /* ============ modal ============ */
 #modal {
@@ -238,11 +224,11 @@ button.act .price {
   backdrop-filter: blur(2px);
 }
 #modal-box {
-  background: linear-gradient(#3a2c18, var(--card));
+  background: var(--grad-modal);
   border: 2px solid var(--gold-deep); border-radius: 16px;
   width: min(720px, 94vw); max-height: 86vh; display: flex; flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, .7);
-  animation: modal-in .18s;
+  box-shadow: var(--elev-3);
+  animation: modal-in var(--dur-base);
 }
 @keyframes modal-in { from { transform: scale(.94); opacity: 0; } }
 #modal-box header {
@@ -259,7 +245,7 @@ button.act .price {
 .dex-summary { margin-bottom: 12px; font-size: 14px; }
 .dex-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
 .dex-cell {
-  background: linear-gradient(var(--card2), var(--card));
+  background: var(--grad-row);
   border: 1px solid var(--border); border-radius: 10px;
   padding: 9px 6px; text-align: center; font-size: 11px; min-height: 78px;
 }
@@ -271,7 +257,7 @@ button.act .price {
 /* facilities / missions rows */
 .list-row {
   display: flex; align-items: center; gap: 12px;
-  background: linear-gradient(var(--card2), var(--card));
+  background: var(--grad-row);
   border: 1px solid var(--border); border-radius: 10px;
   padding: 10px 12px; margin-bottom: 9px; font-size: 13px;
 }
@@ -289,10 +275,10 @@ button.act .price {
 #quick-breed { width: 100%; margin-bottom: 12px; padding: 11px; font-size: 14px; }
 .breed-card {
   display: flex; align-items: center; gap: 12px;
-  background: linear-gradient(var(--card2), var(--card));
+  background: var(--grad-row);
   border: 1px solid var(--border); border-radius: 10px;
   padding: 10px 12px; margin-bottom: 8px; font-size: 14px; cursor: pointer;
-  transition: border-color .1s;
+  transition: border-color var(--dur-fast);
 }
 .breed-card:hover { border-color: var(--gold); }
 .breed-card.cd { opacity: .5; }
@@ -301,7 +287,7 @@ button.act .price {
 .breed-card .desc { color: var(--sub); font-size: 12px; }
 .ready-badge {
   background: rgba(127, 178, 79, .25); color: var(--green);
-  border: 1px solid var(--green); border-radius: 999px;
+  border: 1px solid var(--green); border-radius: var(--radius-pill);
   padding: 3px 10px; font-size: 12px; white-space: nowrap;
 }
 .ready-badge.off { background: rgba(0, 0, 0, .3); color: var(--sub); border-color: var(--border); }
@@ -316,7 +302,7 @@ button.act .price {
 .breed-cell {
   background: var(--card2); border: 1px solid var(--border); border-radius: 9px;
   padding: 8px; font-size: 12px; cursor: pointer; text-align: center;
-  transition: border-color .1s;
+  transition: border-color var(--dur-fast);
 }
 .breed-cell:hover { border-color: var(--gold); }
 .breed-cell.sel { border-color: var(--gold); background: var(--card-hi); box-shadow: 0 0 10px rgba(242, 198, 94, .3); }
@@ -332,7 +318,7 @@ button.act .price {
 .hold-count {
   position: absolute; top: -9px; right: -6px;
   background: radial-gradient(circle at 35% 30%, #ffe9a0, var(--gold-deep));
-  color: #241505; border: 1px solid #fff3cf; border-radius: 999px;
+  color: var(--on-amber); border: 1px solid #fff3cf; border-radius: var(--radius-pill);
   padding: 2px 8px; font-size: 12px; font-weight: bold;
   pointer-events: none;
 }
@@ -356,12 +342,12 @@ button.holding { animation: hold-flash .15s infinite alternate; border-color: va
   font-size: 10px; font-weight: bold; letter-spacing: 1px; margin-right: 5px;
   vertical-align: 2px;
 }
-.boss-badge { background: linear-gradient(#a03824, #6b2113); color: #ffe0d0; border: 1px solid #c86a50; }
+.boss-badge { background: var(--grad-btn-danger); color: #ffe0d0; border: 1px solid #c86a50; }
 .rowline.clickable { cursor: pointer; border-radius: 6px; padding: 2px 4px; margin: 4px -4px; }
 .rowline.clickable:hover { background: rgba(242, 198, 94, .12); }
 .rowline .chev { color: var(--gold); font-size: 12px; }
 .elite-badge {
-  background: linear-gradient(#c89638, #8f6620); color: #241505; border: 1px solid #ffd700;
+  background: var(--grad-btn-primary); color: var(--on-amber); border: 1px solid #ffd700;
   animation: elite-shine 1.2s infinite alternate;
 }
 @keyframes elite-shine { from { filter: brightness(1); } to { filter: brightness(1.4); } }
@@ -369,7 +355,7 @@ button.holding { animation: hold-flash .15s infinite alternate; border-color: va
 /* 統計ダッシュボード (Phase4) */
 .prestige-box {
   text-align: center; padding: 14px;
-  background: linear-gradient(var(--card2), var(--card));
+  background: var(--grad-row);
   border: 1px solid var(--gold-deep); border-radius: 12px; margin-bottom: 12px;
 }
 .prestige-box .p-class {
@@ -390,26 +376,26 @@ button.holding { animation: hold-flash .15s infinite alternate; border-color: va
 /* ============ V3: Stage切替バー ============ */
 #stage-bar {
   display: flex; gap: 6px; padding: 6px 14px;
-  background: linear-gradient(#241a0e, #1c1409);
+  background: var(--grad-stagebar);
   border-bottom: 1px solid var(--border);
   overflow-x: auto; scrollbar-width: thin;
 }
 .stage-tab {
   display: flex; align-items: center; gap: 5px;
   padding: 5px 10px; font-size: 12px; white-space: nowrap;
-  border-radius: 8px; flex-shrink: 0;
+  border-radius: var(--radius-sm); flex-shrink: 0;
 }
 .stage-tab .si { font-size: 15px; }
 .stage-tab .sp {
-  background: rgba(0, 0, 0, .4); border-radius: 999px;
+  background: rgba(0, 0, 0, .4); border-radius: var(--radius-pill);
   padding: 1px 7px; font-size: 11px; color: var(--gold);
 }
 .stage-tab .sb { font-size: 11px; }
 .stage-tab.active {
-  background: linear-gradient(#c89638, #8f6620);
-  border-color: var(--gold); color: #241505; font-weight: bold;
+  background: var(--grad-btn-primary);
+  border-color: var(--gold); color: var(--on-amber); font-weight: bold;
 }
-.stage-tab.active .sp { color: #241505; background: rgba(255, 255, 255, .3); }
+.stage-tab.active .sp { color: var(--on-amber); background: rgba(255, 255, 255, .3); }
 .stage-tab.locked { opacity: .45; }
 
 /* ============ V3: 巣・探索ビュー ============ */
@@ -440,15 +426,15 @@ button.holding { animation: hold-flash .15s infinite alternate; border-color: va
 }
 .wnode.core {
   width: 56px; height: 56px; font-size: 24px;
-  border-color: var(--gold); box-shadow: 0 0 18px rgba(242, 198, 94, .45);
+  border-color: var(--gold); box-shadow: 0 0 18px var(--amber-glow);
   background: radial-gradient(#3a2c18, #1c1409);
 }
 .wnode.on { border-color: var(--gold); background: linear-gradient(var(--card-hi), #3a2c18); }
-.wnode.near { border-color: #7fe07a; animation: node-pulse 1s infinite alternate; }
+.wnode.near { border-color: var(--life-400); animation: node-pulse 1s infinite alternate; }
 .wnode.off { opacity: .5; }
 .wnode.off span { filter: grayscale(1) brightness(.7); }
 #nest-tip {
-  margin-top: 8px; padding: 8px 10px; border-radius: 8px; font-size: 12px;
+  margin-top: 8px; padding: 8px 10px; border-radius: var(--radius-sm); font-size: 12px;
   background: var(--card-hi); border: 1px solid var(--border); line-height: 1.6;
 }
 #nest-tip b { color: var(--gold); }
@@ -531,7 +517,7 @@ button.holding { animation: hold-flash .15s infinite alternate; border-color: va
   border-radius: 10px;
   padding: 10px 16px; font-size: 13px; line-height: 1.5;
   box-shadow: var(--shadow);
-  animation: toast-in .25s;
+  animation: toast-in var(--dur-base);
 }
 .toast.bad { border-color: var(--red); border-left-color: var(--red); }
 @keyframes toast-in { from { transform: translateX(60px); opacity: 0; } }
