@@ -21,7 +21,7 @@ Object.assign(UI, {
     const ok = Hero.show({
       cls: "hero-nest" + (surprise ? " surprise" : ""),
       main: `<div class="medal">${threads}<span>${o.icon}</span></div>`,
-      info: `<div class="hero-stamp">${surprise ? "✨ 予想外の解放!!" : "巣ノード解放"}</div>
+      info: `<div class="hero-stamp">${surprise ? "予想外の解放!!" : "巣ノード解放"}</div>
         <div class="hero-name">${first.name}${more}</div>
         <div class="hero-reward">${rewardText} — 巣ネットワークが届けてくれた</div>`,
       total: surprise ? 2000 : 1600,
