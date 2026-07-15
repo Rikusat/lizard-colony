@@ -479,6 +479,15 @@ button.holding::after {
     radial-gradient(1100px 1100px at 50% 50%, #14100a 0%, #0b0906 75%);
 }
 #nest-scroll:active { cursor: grabbing; }
+/* 糸の3状態(Phase 4): 結線=琥珀の光 / 片側のみ=淡い琥珀 / 未解放=気配 */
+#nest-web line.lit { stroke: var(--amber-400); stroke-opacity: .60; stroke-width: 2; }
+#nest-web line.half { stroke: var(--amber-500); stroke-opacity: .28; stroke-width: 1.5; }
+#nest-web line.off { stroke: #fff; stroke-opacity: .07; stroke-width: 1; }
+.nest-legend { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--sub); }
+.nest-legend .lg { width: 10px; height: 10px; border-radius: 50%; display: inline-block; border: 2px solid var(--border); }
+.nest-legend .lg.on { border-color: var(--amber-400); background: rgba(228, 188, 58, .35); }
+.nest-legend .lg.near { border-color: var(--life-400); }
+.nest-legend .lg.off { opacity: .5; }
 #nest-web { position: relative; width: 1100px; height: 1100px; }
 .wnode {
   position: absolute; transform: translate(-50%, -50%);
@@ -491,9 +500,12 @@ button.holding::after {
   border-color: var(--gold); box-shadow: 0 0 18px var(--amber-glow);
   background: radial-gradient(#3a2c18, #1c1409);
 }
-.wnode.on { border-color: var(--gold); background: linear-gradient(var(--card-hi), #3a2c18); }
-.wnode.near { border-color: var(--life-400); animation: node-pulse 1s infinite alternate; }
-.wnode.off { opacity: .5; }
+.wnode.on {
+  border-color: var(--amber-400); background: linear-gradient(var(--card-hi), #3a2c18);
+  box-shadow: 0 0 10px var(--amber-glow-soft);
+}
+.wnode.near { border-color: var(--life-400); box-shadow: 0 0 10px var(--life-glow); animation: node-pulse 1s infinite alternate; }
+.wnode.off { opacity: .42; }
 .wnode.off span { filter: grayscale(1) brightness(.7); }
 #nest-tip {
   margin-top: 8px; padding: 8px 10px; border-radius: var(--radius-sm); font-size: 12px;

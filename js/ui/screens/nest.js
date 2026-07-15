@@ -28,6 +28,9 @@ Object.assign(UI, {
         <span>解放済み <b>${counts.open}/${counts.total}</b>
           ${next ? ` / 次に開きそう: <b>${next.name}</b>(${Math.floor(nextP * 100)}%)` : ""}
           ${web.surprises ? ` / ✨先行解放 ${web.surprises}回` : ""}</span>
+        <span class="nest-legend">
+          <i class="lg on"></i>解放済み <i class="lg near"></i>もうすぐ <i class="lg off"></i>未解放
+        </span>
         <span style="font-size:11px;color:var(--sub)">操作は不要。繁殖を続ければ勝手に育つ</span>
       </div>
       <div id="nest-scroll"><div id="nest-web"></div></div>
@@ -52,8 +55,10 @@ Object.assign(UI, {
         if (d < bd) { bd = d; best = m; }
       }
       const [bx, by] = posOf(best);
-      const lit = web.nodes[n.id] && (best.id === "core" || web.nodes[best.id]);
-      svg += `<line x1="${bx}" y1="${by}" x2="${x}" y2="${y}" stroke="${lit ? "rgba(242,198,94,.55)" : "rgba(255,255,255,.08)"}" stroke-width="${lit ? 2 : 1}"/>`;
+      const open = !!web.nodes[n.id];
+      const parentOpen = best.id === "core" || !!web.nodes[best.id];
+      const cls = open && parentOpen ? "lit" : open ? "half" : "off";
+      svg += `<line class="${cls}" x1="${bx}" y1="${by}" x2="${x}" y2="${y}"/>`;
     }
     svg += `</svg>`;
     let html = svg;
