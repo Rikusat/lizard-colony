@@ -580,7 +580,7 @@ button.holding::after {
 .map-ero { display: inline-flex; align-items: center; gap: 6px; }
 .map-ero .bar { width: 90px; height: 8px; display: inline-block; }
 .map-ero .bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--boss-600), var(--boss-500)); border-radius: inherit; }
-.map-ero b { color: var(--boss-500); font-variant-numeric: tabular-nums; }
+.map-ero b { color: var(--boss-400); font-variant-numeric: tabular-nums; }
 
 /* 宇宙船トランジション */
 #travel-overlay {
@@ -636,7 +636,7 @@ button.holding::after {
 }
 .hq-h::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
 .inv-row { display: flex; align-items: center; gap: 8px; font-size: 12px; margin: 4px 0; }
-.inv-row b { color: var(--boss-500); min-width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
+.inv-row b { color: var(--boss-400); min-width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
 
 /* toasts */
 #toasts { position: fixed; right: 18px; bottom: 18px; display: flex; flex-direction: column; gap: 9px; z-index: 60; max-width: 380px; }

@@ -34,6 +34,7 @@
 
   /* ---------- [1.4] セマンティック ---------- */
   --boss-500: #E0533B;
+  --boss-400: #F28066;      /* 暗背景上のテキスト用(Phase 7追記・AA実測で追加) */
   --boss-600: #8F2F1C;      /* 押下・影側(UISkills追記) */
   --info-500: #46B7C9;
   --gem-500: #4FC3E8;
@@ -107,7 +108,7 @@
   --gold-deep: var(--amber-500);
   --text: var(--paper-100);
   --sub: var(--sand-200);
-  --red: var(--boss-500);
+  --red: var(--boss-400);  /* テキスト用途が主のためAA確保側へ(Phase 7) */
   --red-deep: var(--boss-600);
   --green: var(--life-400);
   --shadow: var(--elev-2);
