@@ -39,6 +39,7 @@ function attachHold(el, fn) {
     if (timer) { clearTimeout(timer); timer = null; }
     if (held && count > 0) UI.toast(`⚡ 連続実行 ×${count}`);
     el.classList.remove("holding");
+    el.style.removeProperty("--hold-p");
     const b = el.querySelector(".hold-count");
     if (b) b.remove();
     count = 0;
@@ -54,8 +55,9 @@ function attachHold(el, fn) {
       el.appendChild(b);
     }
     b.textContent = "×" + count;
-    // 押し続けるほど加速するオートリピート
+    // 押し続けるほど加速するオートリピート(加速度合いをリングへ同期 §5.2)
     const iv = Math.max(CFG.holdMin, CFG.holdStart - count * CFG.holdAccel);
+    el.style.setProperty("--hold-p", ((CFG.holdStart - iv) / (CFG.holdStart - CFG.holdMin)).toFixed(3));
     timer = setTimeout(step, iv * 1000);
   };
   el.addEventListener("pointerdown", () => {

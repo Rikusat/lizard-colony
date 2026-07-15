@@ -23,12 +23,14 @@
   --amber-400: #E4BC3A;
   --amber-600: #9A7A18;
   --amber-glow: rgba(228, 188, 58, .45);
+  --amber-glow-soft: rgba(228, 188, 58, .20); /* ホバー等の弱い発光(Phase 2追記) */
 
   /* ---------- [1.3] セカンダリ(トカゲの緑 = 生命・行動) ---------- */
   --life-500: #5FBF6A;
   --life-400: #7BD986;
   --life-600: #3E9E49;
   --life-glow: rgba(123, 217, 134, .40);
+  --on-life: #0F2E14;                          /* 生命の緑面上のテキスト(Phase 2追記) */
 
   /* ---------- [1.4] セマンティック ---------- */
   --boss-500: #E0533B;
@@ -114,6 +116,7 @@
      繰り返し登場するグラデーション面。Phase 2のコンポーネント刷新で
      正式なサーフェス仕様(UISkills §5)へ置き換える予定の中継トークン */
   --grad-btn: linear-gradient(#54401f, #372813);
+  --grad-btn-cta: linear-gradient(var(--life-500), var(--life-600)); /* 主CTA(§5.2) */
   --grad-btn-danger: linear-gradient(#a03824, #6b2113);
   --grad-btn-primary: linear-gradient(var(--amber-500), #8f6620);
   --grad-card: linear-gradient(#352817, var(--card));

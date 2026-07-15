@@ -83,11 +83,12 @@ button {
   padding: 8px 14px; font-size: 14px; cursor: pointer; position: relative;
   font-family: inherit;
   text-shadow: 0 1px 2px rgba(0, 0, 0, .6);
-  transition: filter var(--dur-fast), border-color var(--dur-fast);
+  transition: filter var(--dur-fast), border-color var(--dur-fast),
+    transform var(--dur-fast) var(--ease-pop), box-shadow var(--dur-fast);
 }
-button:hover { filter: brightness(1.2); border-color: var(--border-hi); }
-button:active { transform: translateY(2px); border-bottom-width: 1px; }
-button:disabled { opacity: .4; cursor: default; filter: none; }
+button:hover { filter: brightness(1.2); border-color: var(--border-hi); box-shadow: 0 0 12px var(--amber-glow-soft); }
+button:active { transform: translateY(1px) scale(.96); border-bottom-width: 1px; }
+button:disabled { opacity: .5; cursor: default; filter: none; transform: none; box-shadow: none; }
 button.danger {
   background: var(--grad-btn-danger);
   border-color: #c86a50; border-bottom-color: #3a0f06;
@@ -97,6 +98,13 @@ button.primary {
   border-color: var(--gold); border-bottom-color: #4d3208;
   color: var(--on-amber); font-weight: bold; text-shadow: 0 1px 1px rgba(255, 255, 255, .3);
 }
+button.cta {
+  background: var(--grad-btn-cta);
+  border-color: var(--life-400); border-bottom-color: #163A1C;
+  color: var(--on-life); font-weight: bold; text-shadow: 0 1px 1px rgba(255, 255, 255, .25);
+}
+button.cta:hover { box-shadow: 0 0 12px var(--life-glow); }
+button.cta .lbl small { color: var(--on-life); opacity: .75; }
 .badge {
   position: absolute; top: -7px; right: -7px;
   background: radial-gradient(circle at 35% 30%, #ff8866, var(--red-deep));
@@ -334,6 +342,15 @@ button.act .price {
   pointer-events: none;
 }
 button.holding { animation: hold-flash .15s infinite alternate; border-color: var(--gold); }
+button.holding::after {
+  content: ""; position: absolute; inset: -4px; border-radius: inherit;
+  padding: 2px; pointer-events: none;
+  background: conic-gradient(var(--life-400) calc(var(--hold-p, 0) * 360deg), rgba(255, 255, 255, .12) 0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
 @keyframes hold-flash { from { filter: brightness(1.05); } to { filter: brightness(1.35); } }
 
 /* タップ判定の確保(モバイル44px) */
