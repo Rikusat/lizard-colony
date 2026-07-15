@@ -450,7 +450,8 @@ const Game = {
         this.state.lore.rocket = true;
         this.flashT = 1;
         this.slowmo = 1;
-        UI.toast("🚀🎆 ロケット完成!!! トカゲ文明は再び星の海へ — アメジスト+20 / 全惑星の生産+10%(恒久)");
+        if (UI.heroRocketLaunch) UI.heroRocketLaunch(); // 一生に数回級(§6)
+        else UI.toast("🚀🎆 ロケット完成!!! トカゲ文明は再び星の海へ — アメジスト+20 / 全惑星の生産+10%(恒久)");
       } else {
         UI.toast(`🚀 ロケット建造 第${r.stage}段階が完了! (全${CFG.rocketStages.length}段階)`);
       }

@@ -762,6 +762,67 @@ button.holding::after {
 }
 .hero-stamp.legendbadge { background: linear-gradient(90deg, #e05b41, #c9a227, #5fbf6a, #46b7c9, #9b6bd6); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
 
+/* ロケット発射(一生に数回級): 夜空+CSS製ロケットの上昇+光の柱 */
+#hero-overlay.hero-rocket {
+  background:
+    radial-gradient(2px 2px at 18% 24%, #fff8, transparent),
+    radial-gradient(1.5px 1.5px at 64% 14%, #fff6, transparent),
+    radial-gradient(2px 2px at 82% 55%, #fff7, transparent),
+    radial-gradient(1.5px 1.5px at 34% 70%, #fff5, transparent),
+    rgba(7, 9, 18, .93);
+}
+.hero-rocket .pad { position: relative; width: 160px; height: 240px; }
+.hero-rocket .rocket {
+  position: absolute; left: 50%; bottom: 30px; width: 44px; height: 110px;
+  transform: translateX(-50%);
+  animation: rocket-rise 2.4s cubic-bezier(.55, 0, .85, .4) 500ms forwards, rocket-shake 120ms linear 8;
+}
+@keyframes rocket-rise { to { transform: translateX(-50%) translateY(-460px); } }
+@keyframes rocket-shake { 50% { margin-left: -2px; } }
+.hero-rocket .nose {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  border-left: 14px solid transparent; border-right: 14px solid transparent;
+  border-bottom: 26px solid var(--boss-500);
+}
+.hero-rocket .body {
+  position: absolute; top: 24px; left: 50%; transform: translateX(-50%);
+  width: 28px; height: 62px; border-radius: 6px 6px 4px 4px;
+  background: linear-gradient(90deg, #cfd6dd, #f4f7f9 45%, #9aa4ad);
+}
+.hero-rocket .body .window {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+  width: 14px; height: 14px; border-radius: 50%;
+  background: radial-gradient(circle at 36% 32%, #bfe9ff, var(--info-500));
+  border: 2px solid #6b7680;
+}
+.hero-rocket .fin {
+  position: absolute; bottom: 22px; width: 0; height: 0;
+  border-top: 22px solid transparent;
+}
+.hero-rocket .fin.l { left: -2px; border-right: 16px solid var(--boss-500); }
+.hero-rocket .fin.r { right: -2px; border-left: 16px solid var(--boss-500); }
+.hero-rocket .flame {
+  position: absolute; bottom: -26px; left: 50%; transform: translateX(-50%);
+  width: 18px; height: 34px; border-radius: 50% 50% 60% 60%;
+  background: radial-gradient(circle at 50% 20%, #fff8d8, var(--warn-500) 45%, var(--boss-500) 80%, transparent);
+  animation: flame-flicker 90ms linear infinite alternate;
+}
+@keyframes flame-flicker { to { transform: translateX(-50%) scaleY(1.25) scaleX(.9); } }
+.hero-rocket .smoke {
+  position: absolute; bottom: -34px; left: 50%; transform: translateX(-50%);
+  width: 70px; height: 26px; border-radius: 50%;
+  background: radial-gradient(rgba(240, 234, 220, .5), transparent 70%);
+  animation: smoke-puff 900ms var(--ease-out) 500ms forwards;
+}
+@keyframes smoke-puff { to { transform: translateX(-50%) scale(2.4); opacity: 0; } }
+.hero-rocket .beam {
+  position: absolute; left: 50%; bottom: 0; width: 4px; height: 0;
+  transform: translateX(-50%);
+  background: linear-gradient(rgba(255, 244, 214, 0), var(--amber-glow));
+  animation: beam-grow 2.4s var(--ease-out) 700ms forwards;
+}
+@keyframes beam-grow { to { height: 420px; } }
+
 .hidden { display: none !important; }
 
 @media (max-width: 1180px) {
