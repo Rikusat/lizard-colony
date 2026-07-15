@@ -17,12 +17,15 @@ Object.assign(UI, {
   },
 
   // ---------------- トースト ----------------
-  toast(msg, bad) {
+  // type: true/"boss"=危機 / "life"=成功 / "info"=情報 / 省略=報酬(琥珀) §5.5
+  toast(msg, type) {
     const el = document.createElement("div");
-    el.className = "toast" + (bad ? " bad" : "");
+    const cls = type === true ? "bad" : (type || "");
+    el.className = "toast" + (cls ? " " + cls : "");
     el.textContent = msg;
     this.els["toasts"].appendChild(el);
     while (this.els["toasts"].children.length > 5) this.els["toasts"].firstChild.remove();
+    setTimeout(() => el.classList.add("out"), 3650);
     setTimeout(() => el.remove(), 4000);
   },
 });
