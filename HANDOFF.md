@@ -315,3 +315,52 @@ HQ「宇宙港」: イリジウムを5段階(20/40/80/160/320=計620)投入。�
 3. 惑星別侵略圧→グローバル侵食率へ**統合**(設計書の未決定3で統合案を採用)
 4. サプライズ解放の確率(2%)は非表示(純粋な驚きとして演出)
 5. 実装中の事故: ui.js置換時にアンカー範囲が広くopenHQ/openAlliesを一時消失→**Vercelデプロイ済みV4版から復元**して改修適用(復元後に構文・スクショ検証済み)
+
+---
+
+# HANDOFF — UI_Overhaul_Sprint (Neo-Terrarium) 実装記録
+
+- 基準文書: `docs/UI_Overhaul_Sprint.md` / デザインシステム: `docs/UISkills.md`
+- 制約: ゲームシステム/ループ/バランス不変・PCブラウザのみ・絵文字全面禁止(Phase 1以降で置換)・一括置換前のgrep件数確認を厳守
+
+## Phase 0 — ui.js 責務分割(2026-07-15・純リファクタ)✅
+
+### 構成差分レポート(UISkills §8 vs 実構成)
+
+分割前はUI層が単一 `js/ui.js`(1362行・メソッド35+ヘルパ2+起動コード)に全責務混在。§8推奨構成へ以下のとおり写像(ビルド無し規約のため、モジュールは `Object.assign(UI, {...})` で単一シングルトンを拡張する方式。読込順: core → components → screens/* → boot):
+
+| §8推奨 | 実ファイル | 内容 |
+|---|---|---|
+| (司令塔) | `js/ui/core.js` | UI宣言/状態/init(イベント配線)/毎秒update/ヒント |
+| ui/components | `js/ui/components.js` | openModal/closeModal/toast + on/attachHold(長押し) |
+| ui/screens/main | `js/ui/screens/main.js` | 卵スロット/個体詳細パネル |
+| ui/screens/breeding | `js/ui/screens/breeding.js` | 繁殖二段階+クイック繁殖 |
+| ui/screens/equipment | `js/ui/screens/equipment.js` | 設備2タブ+すみかLv |
+| ui/screens/planetMap | `js/ui/screens/planet-map.js` | 惑星マップ/移住/開拓/ワープ/ステージバー |
+| ui/screens/nest | `js/ui/screens/nest.js` | 巣ネットワーク(閲覧専用) |
+| ui/screens/hq | `js/ui/screens/hq.js` | HQ(資源/開発/侵食/宇宙港/ラボ/鍛造/研究) |
+| ui/screens/dex | `js/ui/screens/dex.js` | 図鑑+Lore |
+| (小型画面束) | `js/ui/screens/meta.js` | 味方/称号/統計/共有/商人/ミッション/設定 |
+| (起動) | `js/ui/boot.js` | Game/Render/UI.init()(必ず最後に読込) |
+| ui/tokens | — | **Phase 1で新設**(現状トークンなし・style.cssにハードコード) |
+| ui/hero | — | **Phase 5で新設**(現状カットイン類はrender.js内) |
+| ui/motion | — | **Phase 6で新設**(attachHoldは暫定components置き) |
+
+### 実施内容(コミット C0-1〜C0-6)
+
+- 行単位境界の抽出ツール(`extract_ui.py`)でメンバー名指定の「移動」のみ実施。**文字列一括置換は不使用**(安全制約1)。各抽出前に定義の一意性を件数確認
+- 起動コードを boot.js へ先行分離(C0-1)し、以後のscreens追加はscriptタグ挿入のみで安全化
+- git初期化+ベースラインコミット(ロールバック可能化)。ui.js→core.js は `git mv` で履歴継承
+
+### 回帰確認
+
+- 全11モジュール構文チェックPASS / UIメンバー数40(=分割前35メソッド+5プロパティ)で完全一致 / 全エントリポイント(openXxx等24種)が一意に生存
+- 各コミット後にスクリーンショット回帰: 新規起動/メイン(フル状態)/繁殖/巣/HQ/惑星マップ/図鑑Lore — すべて分割前と同一
+- ゲームロジックのnodeテスト(V4.1の59項目)全PASS
+
+### 逸脱・判断
+
+1. **screens/meta.js に小型モーダル7画面を束ねた**(§8は1ファイル1責務だが、各画面20〜40行のため7ファイル分割は過剰と判断。Phase 4で画面刷新時に必要なら分離)
+2. **updateStageBar は screens/planet-map.js へ**(毎秒更新だが内容は惑星ナビゲーションのため)
+3. **tokens/hero/motion は未作成**(Phase 0は挙動不変が完了条件のため。各Phaseで新設)
+4. **test-v3.html も新読込順へ更新**(回帰ハーネス維持のため)
