@@ -187,10 +187,28 @@ button.act .price {
 /* ============ canvas ============ */
 #center { position: relative; min-width: 0; }
 #frame {
+  position: relative;
   padding: 8px; border-radius: 18px;
   background: linear-gradient(160deg, #6b5433, #3a2c18 40%, #241a0e);
   border: 1px solid var(--border-hi);
   box-shadow: var(--shadow);
+}
+/* テラリウムのガラス面(§5.9): 額縁のみ。Canvasの描画・クリックには干渉しない */
+#frame::before {
+  content: ""; position: absolute; inset: 8px; border-radius: 12px;
+  pointer-events: none; z-index: 2;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, calc(.30 * var(--terra-glass))),
+    inset 0 0 0 1px rgba(255, 255, 255, calc(.10 * var(--terra-glass))),
+    inset 0 -20px 34px rgba(0, 0, 0, calc(.30 * var(--terra-glass))),
+    inset 0 0 64px rgba(0, 0, 0, calc(.20 * var(--terra-glass)));
+}
+#frame::after {
+  content: ""; position: absolute; inset: 8px; border-radius: 12px;
+  pointer-events: none; z-index: 2;
+  background: linear-gradient(115deg,
+    rgba(255, 255, 255, calc(.09 * var(--terra-sheen))) 0%,
+    rgba(255, 255, 255, 0) 24%);
 }
 #game {
   display: block; width: 100%; height: auto;
