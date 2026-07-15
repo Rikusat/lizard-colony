@@ -76,6 +76,7 @@ globalThis._noStart = true;
 <script src="js/ui/hero/hero.js"></script>
 <script src="js/ui/hero/nest-reveal.js"></script>
 <script src="js/ui/hero/boss.js"></script>
+<script src="js/ui/hero/meteorite.js"></script>
 <script src="js/ui/screens/main.js"></script>
 <script src="js/ui/screens/breeding.js"></script>
 <script src="js/ui/screens/equipment.js"></script>
@@ -138,6 +139,13 @@ globalThis._noStart = true;
     else { clearTimeout(Hero._timer); Hero._timer = null; } // 撮影用に停止
   }
   else if (h === "#fx-rank") { setTimeout(() => UI.rankUpFx(), 600); }
+  else if (h.startsWith("#hero-meteor")) {
+    const sp = speciesById("futoago"), legend = h.includes("legend");
+    UI.heroMeteorite(sp, morphById(legend ? "legendary" : "albino"),
+      { hue: sp.hue, sat: sp.sat, light: sp.light });
+    if (h.endsWith("-skip")) Hero.dismiss(true);
+    else { clearTimeout(Hero._timer); Hero._timer = null; }
+  }
   else if (h.startsWith("#hero-boss")) {
     const fake = { type: bossTypeById("monitor"), typeId: "monitor", tier: 4, elite: true, boss: false };
     if (h === "#hero-bossdown") UI.heroBossDown(fake, "👑Elite ヌシオオトカゲ T4 を撃破! +48.2KG +💎3 +🧬6");

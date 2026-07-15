@@ -364,7 +364,9 @@ const Game = {
       t: 25, total: 25, lucky: true,
     });
     this.flashT = 0.5;
-    UI.toast(`☄️ 隕石を割った!! 中から${morphId === "legendary" ? "🌈伝説の" : "希少な"}卵が…!`);
+    const egg = this.state.eggs[this.state.eggs.length - 1];
+    if (UI.heroMeteorite) UI.heroMeteorite(sp, morphById(morphId), egg); // 中〜重(§6)
+    else UI.toast(`☄️ 隕石を割った!! 中から${morphId === "legendary" ? "🌈伝説の" : "希少な"}卵が…!`);
     return true;
   },
 
