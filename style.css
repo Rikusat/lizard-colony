@@ -323,7 +323,7 @@ button.act .price {
   padding: 10px 12px; margin-bottom: 8px; font-size: 14px; cursor: pointer;
   transition: border-color var(--dur-fast);
 }
-.breed-card:hover { border-color: var(--gold); }
+.breed-card:hover { border-color: var(--life-400); box-shadow: var(--elev-1); }
 .breed-card.cd { opacity: .5; }
 .breed-card .sw { width: 34px; height: 20px; border-radius: 10px; flex-shrink: 0; }
 .breed-card .grow { flex: 1; }
@@ -347,8 +347,8 @@ button.act .price {
   padding: 8px; font-size: 12px; cursor: pointer; text-align: center;
   transition: border-color var(--dur-fast);
 }
-.breed-cell:hover { border-color: var(--gold); }
-.breed-cell.sel { border-color: var(--gold); background: var(--card-hi); box-shadow: 0 0 10px rgba(242, 198, 94, .3); }
+.breed-cell:hover { border-color: var(--life-400); }
+.breed-cell.sel { border-color: var(--life-400); background: var(--card-hi); box-shadow: 0 0 10px var(--life-glow); }
 .breed-cell.cd { opacity: .45; cursor: default; }
 .breed-cell .sw { width: 30px; height: 17px; border-radius: 9px; display: inline-block; }
 .breed-cell .nm { font-weight: bold; margin-top: 3px; line-height: 1.25; }

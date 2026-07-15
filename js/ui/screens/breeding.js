@@ -35,7 +35,7 @@ Object.assign(UI, {
       <p style="font-size:13px;color:var(--sub);margin-bottom:10px">
         系統を選んで2匹ペアを決めよう。突然変異で新モーフや上位種族が生まれることも…!
         (卵スロット ${Game.state.eggs.length}/${Game.eggSlotCap()})</p>
-      <button id="quick-breed" class="primary">⚡ クイック繁殖 (最善の2匹を自動選抜・長押しで連続)</button>
+      <button id="quick-breed" class="cta">⚡ クイック繁殖 (最善の2匹を自動選抜・長押しで連続)</button>
       ${Game.facLv("breedfac") >= 5
         ? `<button id="auto-breed" class="${Game.state.autoBreed ? "primary" : ""}" style="width:100%;margin-bottom:10px">🪺 繁殖予約: ${Game.state.autoBreed ? "ON(卵スロットが空くと自動繁殖)" : "OFF"}</button>`
         : `<div style="font-size:12px;color:var(--sub);margin-bottom:10px">🪺 繁殖施設Lv5で「繁殖予約」(自動繁殖)が解禁</div>`}
@@ -114,7 +114,7 @@ Object.assign(UI, {
         <button id="bf-level" class="${v.sort === "level" ? "primary" : ""}">レベル順</button>
       </div>
       <div class="breed-grid" id="breed-grid"></div>
-      <button id="breed-go" disabled>2匹選んでね</button>`;
+      <button id="breed-go" class="cta" disabled>2匹選んでね</button>`;
 
     body.querySelector("#breed-back").addEventListener("click", () => {
       v.speciesId = null; v.picks = [];
