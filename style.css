@@ -453,6 +453,34 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 #feeder-dial.min.auto-on { box-shadow: none; }
 #feeder-dial.min #fd-crank { box-shadow: 0 0 10px rgba(0, 0, 0, .35); }
 
+/* ---- 羅針盤スキン(砂漠=古代遺跡・crank.md §3.4) ---- */
+#feeder-dial.skin-compass {
+  background: linear-gradient(#4a4234, #2c261c);
+  border-color: #6b5d42;
+}
+#feeder-dial.skin-compass #fd-crank {
+  background: radial-gradient(circle at 35% 28%, #55492f, #241f14);
+  border-color: #6b5d42;
+}
+#feeder-dial.skin-compass .fd-track { background: #1c1810; border-color: #4a4234; }
+#feeder-dial.skin-compass .fd-lknob {
+  background: linear-gradient(#8a7146, #5d4a2c); border-color: #3a2f1c;
+}
+#feeder-dial.skin-compass .fd-notch { background: #6b5d42; }
+#feeder-dial.skin-compass .fd-notch.n2 { background: #8a7146; }
+#feeder-dial.skin-compass .fd-sw { background: linear-gradient(#4a4234, #2c261c); border-color: #6b5d42; }
+/* 待機微動: 針が北を探す(±3°)・彫刻帯は緩やかに逆行(fx0/reducedで停止) */
+.cp-needle { transform-origin: 32px 32px; animation: cp-sway 4.2s var(--ease-in-out) infinite alternate; }
+@keyframes cp-sway { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+.cp-band { transform-origin: 32px 32px; animation: cp-drift 24s linear infinite reverse; }
+@keyframes cp-drift { to { transform: rotate(360deg); } }
+.cp-band.fx0, .cp-needle.fx0 { animation: none; }
+/* 北極星石: 通常は石、オート中は緑に灯る(直感アンカー補強) */
+.cp-north { fill: #6b5d42; transition: fill var(--dur-base); }
+#feeder-dial.auto-on .cp-north { fill: var(--life-400); filter: drop-shadow(0 0 3px rgba(123, 217, 134, .8)); }
+/* 長押し: 刻印が琥珀に灯る */
+#feeder-dial.skin-compass #fd-crank.holding .cp-band circle { stroke: var(--amber-glow); }
+
 /* オート稼働: 回転周期はレートに同期(--fd-spinをJSが設定) */
 #feeder-dial.auto-on { box-shadow: var(--elev-2), 0 0 14px var(--amber-glow-soft); }
 #feeder-dial.auto-on .fd-wheel { animation: fd-idle-turn var(--fd-spin, 1.6s) linear infinite; }
