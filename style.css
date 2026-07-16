@@ -338,20 +338,22 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
   70% { transform: translate(calc(-2px * var(--dread)), calc(1px * var(--dread))); }
 }
 
-/* ============ 給餌ダイヤル(§5.10・飼育槽の備え付け) ============ */
+/* ============ 給餌クランク(§5.10 v2.1: クランク1個へ集約) ============ */
 #feeder-dial {
-  position: absolute; right: 22px; bottom: 20px; z-index: 3;
-  display: flex; align-items: center; gap: 8px;
+  position: absolute; right: 20px; bottom: 18px; z-index: 3;
+  display: flex; align-items: center; gap: 7px;
   background: linear-gradient(var(--ink-700), var(--ink-800));
   border: 1px solid var(--amber-600); border-radius: var(--radius-md);
-  padding: 6px 10px 6px 6px; box-shadow: var(--elev-2);
+  padding: 7px 8px; box-shadow: var(--elev-2);
 }
+.fd-main { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 #fd-crank {
-  width: 56px; height: 56px; padding: 2px; border-radius: 50%;
+  width: 64px; height: 64px; padding: 2px; border-radius: 50%;
   background: radial-gradient(circle at 35% 28%, #4d3a20, var(--ink-800));
   border: 1px solid var(--amber-600); border-bottom-width: 3px;
 }
 #fd-crank:hover { box-shadow: 0 0 12px var(--amber-glow-soft); }
+#fd-crank.holding { box-shadow: 0 0 14px var(--amber-glow); }
 .fd-svg { width: 100%; height: 100%; display: block; }
 .fd-housing { fill: var(--ink-900); }
 .fd-rim { fill: none; stroke: var(--amber-600); stroke-width: 2.5; }
@@ -359,59 +361,72 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 .fd-spokes { stroke: var(--amber-500); stroke-width: 2.5; stroke-linecap: round; fill: none; }
 .fd-hub { fill: var(--amber-400); }
 .fd-knob { fill: var(--amber-400); stroke: var(--amber-600); stroke-width: 1.5; }
-.fd-feet { stroke: var(--ink-600); stroke-width: 3; fill: none; stroke-linecap: round; }
-.fd-wheel { transform-origin: 32px 34px; }
+.fd-wheel { transform-origin: 32px 32px; }
 #fd-crank.spin .fd-wheel { animation: fd-spin 520ms var(--ease-pop); }
 @keyframes fd-spin { to { transform: rotate(360deg); } }
 #feeder-dial.fed { animation: res-gain var(--dur-slow) var(--ease-out); }
 #feeder-dial.empty { animation: fd-empty 300ms var(--ease-in-out); }
 @keyframes fd-empty { 30% { transform: translateX(-3px); } 70% { transform: translateX(3px); } }
-.fd-info { display: flex; flex-direction: column; gap: 3px; min-width: 96px; }
-.fd-title { font-family: var(--font-display); font-size: 11px; color: var(--gold); letter-spacing: 1px; }
-.fd-stock { display: flex; align-items: center; gap: 5px; font-size: 13px; }
+.fd-stock { display: flex; align-items: center; gap: 4px; font-size: 11px; }
 .fd-stock b { color: var(--gold); font-variant-numeric: tabular-nums; }
-.fd-targets { font-size: 11px; color: var(--sub); margin-left: 2px; }
-.fd-targets b { color: var(--sub); }
-.fd-controls { display: flex; align-items: center; gap: 6px; }
-/* トグル=ランプ+ロッカースイッチ(§5.2確定) */
-.fd-switch {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 11px; padding: 3px 8px 3px 6px; border-radius: 4px;
-  background: var(--grad-console); border: 1px solid #554020; border-bottom: 2px solid #171008;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
+#feeder-dial.gold-driven .fd-stock b { color: var(--amber-400); text-shadow: 0 0 8px var(--amber-glow-soft); }
+
+/* 縦レバー(レート表示を位置で担う=文字なし) */
+.fd-lever {
+  position: relative; width: 22px; height: 64px; cursor: pointer;
+  border-radius: var(--radius-sm);
 }
-.fd-switch::before { /* ランプ */
-  content: ""; width: 6px; height: 6px; border-radius: 50%;
+.fd-lever .fd-track {
+  position: absolute; left: 50%; top: 6px; bottom: 6px; width: 6px;
+  transform: translateX(-50%);
+  background: var(--lcd-bg); border: 1px solid var(--lcd-border); border-radius: 3px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .9);
+}
+.fd-notch {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  border-radius: 50%; background: var(--ink-600);
+}
+.fd-notch.n2 { top: 8px;  width: 6px; height: 6px; }   /* 高(上) */
+.fd-notch.n1 { top: 30px; width: 5px; height: 5px; }
+.fd-notch.n0 { bottom: 8px; width: 4px; height: 4px; } /* 低(下) */
+.fd-lknob {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  width: 16px; height: 12px; border-radius: 3px;
+  background: linear-gradient(#e4bc3a, #9a7a18);
+  border: 1px solid var(--amber-600);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .6), inset 0 1px 0 rgba(255, 255, 255, .35);
+  transition: top var(--dur-base) var(--ease-pop);
+  pointer-events: none;
+}
+.fd-lever[data-rate="2"] .fd-lknob { top: 5px; }
+.fd-lever[data-rate="1"] .fd-lknob { top: 26px; }
+.fd-lever[data-rate="0"] .fd-lknob { top: 47px; }
+
+/* 縦2段トグル(オート/補給)。補給はghostで控えめ */
+.fd-side { display: flex; flex-direction: column; gap: 6px; }
+.fd-sw {
+  position: relative; width: 30px; height: 29px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; color: var(--sub);
+}
+.fd-sw .icon { width: 15px; height: 15px; }
+.fd-sw .fd-lamp {
+  position: absolute; top: 3px; right: 3px; width: 5px; height: 5px; border-radius: 50%;
   background: var(--ink-600); box-shadow: inset 0 1px 1px rgba(0, 0, 0, .6);
   transition: background var(--dur-base), box-shadow var(--dur-base);
 }
-.fd-sw-knob { /* ロッカー窓 */
-  width: 26px; height: 12px; border-radius: 2px; position: relative;
-  background: var(--lcd-bg); box-shadow: inset 0 1px 3px rgba(0, 0, 0, .9);
-  transition: background var(--dur-base) var(--ease-out);
+.fd-sw.on { color: var(--life-400); border-color: var(--life-600); }
+.fd-sw.on .fd-lamp { background: var(--life-400); box-shadow: 0 0 6px var(--life-glow); }
+.fd-sw.ghost {
+  background: transparent; border-color: var(--ink-600); box-shadow: none;
+  border-bottom-width: 1px; opacity: .75;
 }
-.fd-sw-knob::after { /* ロッカー片 */
-  content: ""; position: absolute; top: 2px; left: 2px; width: 11px; height: 8px; border-radius: 1.5px;
-  background: linear-gradient(#6d5636, #4a3818);
-  transition: left var(--dur-base) var(--ease-pop), background var(--dur-base);
-}
-.fd-switch.on { border-color: var(--life-600); color: var(--life-400); }
-.fd-switch.on::before { background: var(--life-400); box-shadow: 0 0 6px var(--life-glow); }
-.fd-switch.on .fd-sw-knob::after { left: 13px; background: linear-gradient(#8fdc9a, #3e9e49); }
-.fd-switch.gold { border-color: var(--amber-600); color: var(--amber-400); }
-.fd-switch.gold::before { background: var(--amber-400); box-shadow: 0 0 6px var(--amber-glow-soft); }
-.fd-switch.gold .fd-sw-knob::after { left: 13px; background: linear-gradient(#ffe9a8, #c9a227); }
-/* Gold駆動中(補給ON・在庫が対象未満): 在庫数字を琥珀で明示 */
-#feeder-dial.gold-driven .fd-stock b { color: var(--amber-400); text-shadow: 0 0 8px var(--amber-glow-soft); }
-.fd-rate { display: inline-flex; background: var(--ink-900); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 2px; }
-.fd-rate button {
-  font-size: 10px; padding: 2px 7px; min-height: 0; border: none; border-radius: var(--radius-pill);
-  background: transparent; color: var(--sub);
-}
-.fd-rate button.on { background: var(--grad-btn-primary); color: var(--on-amber); font-weight: bold; }
-/* オート稼働中: ゆっくり等速回転+淡い発光のみ(§5.10・トースト等は出さない) */
+.fd-sw.ghost.on { opacity: 1; color: var(--amber-400); border-color: var(--amber-600); }
+.fd-sw.ghost.on .fd-lamp { background: var(--amber-400); box-shadow: 0 0 6px var(--amber-glow-soft); }
+
+/* オート稼働: 回転周期はレートに同期(--fd-spinをJSが設定) */
 #feeder-dial.auto-on { box-shadow: var(--elev-2), 0 0 14px var(--amber-glow-soft); }
-#feeder-dial.auto-on .fd-wheel { animation: fd-idle-turn 6s linear infinite; }
+#feeder-dial.auto-on .fd-wheel { animation: fd-idle-turn var(--fd-spin, 1.6s) linear infinite; }
 @keyframes fd-idle-turn { to { transform: rotate(360deg); } }
 
 /* ============ egg slots ============ */

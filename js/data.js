@@ -123,7 +123,8 @@ const CFG = {
   invasionRaidAccel: 0.002, // 1ptごとの襲撃間隔短縮率(最大0.2)
   // V4: 繁殖予約(QoL §3.1.3)
   autoBreedInterval: 6,     // 自動繁殖の試行間隔(秒)
-  dialRates: [10, 5, 2.5],  // 給餌ダイヤルのオート間隔(秒): 低/中/高(Brushup V2 Phase1)
+  dialRates: [4, 1, 0.15],  // 給餌間隔(秒) 低/中/高。高=旧・長押し一括餌やり速度(v2.1 §1.4)
+  dialSpinSec: [5, 1.6, 0.4], // オート回転の1周秒数(視覚)。レートに同期(v2.1 §1.4)
   // Brushup V2 Phase3: ボス脅威表現(描画のみ・戦闘ロジック不変)
   bossScaleBoss: 1.45,      // ボス級(tier/boss/elite)の基本拡大率
   bossScaleTier: 0.06,      // ティア1ごとの追加拡大

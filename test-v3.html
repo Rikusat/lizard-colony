@@ -347,6 +347,46 @@ globalThis._noStart = true;
       </div>`;
     });
   }
+  else if (h === "#dial-diag") { // v2.1骨格: 3点の数値検証
+    (async () => {
+      const out = [];
+      const d = Game.ensureDial();
+      // ① レバー: クリック位置でレートが変わるか(上/中/下をディスパッチ)
+      const lever = document.getElementById("fd-lever");
+      const r0 = lever.getBoundingClientRect();
+      for (const [name, frac] of [["上", 0.15], ["中", 0.5], ["下", 0.85]]) {
+        lever.dispatchEvent(new PointerEvent("pointerdown", { clientY: r0.top + r0.height * frac, bubbles: true }));
+        out.push(`レバー${name}→rate${d.rate}`);
+      }
+      // ② タップ=1掴み
+      Game.state.crickets = 100000;
+      const c0 = Game.state.crickets;
+      document.getElementById("fd-crank").click();
+      out.push(`タップ: コオロギ${c0}→${Game.state.crickets}`);
+      // ③ 長押し連続 と オート高 の同速(2秒ずつ実測)
+      const crank = document.getElementById("fd-crank");
+      let feedsHold = 0;
+      const orig = Game.feedAll.bind(Game);
+      Game.feedAll = (s) => { feedsHold++; return orig(s); };
+      crank.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      await new Promise((r) => setTimeout(r, 2000 + CFG.holdDelay * 1000));
+      crank.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+      Game.feedAll = orig;
+      let feedsAuto = 0;
+      const orig2 = Game.feedAll.bind(Game);
+      Game.feedAll = (s) => { feedsAuto++; return orig2(s); };
+      d.auto = true; d.rate = 2;
+      for (let i = 0; i < 200; i++) Game.dialTick(0.01); // 2秒ぶん
+      Game.feedAll = orig2;
+      d.auto = false;
+      out.push(`同速検証(2秒間): 長押し${feedsHold}回 / オート高${feedsAuto}回 (間隔=CFG.dialRates[2]=${CFG.dialRates[2]}s)`);
+      const el = document.createElement("div");
+      el.id = "diag-out";
+      el.style.cssText = "position:fixed;top:4px;left:4px;z-index:999;background:#043;color:#cfc;padding:6px 10px;font-size:12px;white-space:pre";
+      el.textContent = out.join(" | ");
+      document.body.appendChild(el);
+    })();
+  }
   else if (h === "#eggs") { // Phase0検証: 予兆sparkつき卵スロット
     Game.state.eggs.push(
       { speciesId: "komodo", morphId: "legendary", hue: 80, sat: 18, light: 33, pattern: "none", t: 120, total: 120, lucky: true },
