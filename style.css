@@ -291,6 +291,10 @@ button.act .price {
 }
 .fd-switch.on { border-color: var(--life-600); color: var(--life-400); }
 .fd-switch.on .fd-sw-knob { background: var(--life-500); box-shadow: 0 0 8px var(--life-glow); }
+.fd-switch.gold { border-color: var(--amber-600); color: var(--amber-400); }
+.fd-switch.gold .fd-sw-knob { background: var(--amber-500); box-shadow: 0 0 8px var(--amber-glow-soft); }
+/* Gold駆動中(補給ON・在庫が対象未満): 在庫数字を琥珀で明示 */
+#feeder-dial.gold-driven .fd-stock b { color: var(--amber-400); text-shadow: 0 0 8px var(--amber-glow-soft); }
 .fd-rate { display: inline-flex; background: var(--ink-900); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 2px; }
 .fd-rate button {
   font-size: 10px; padding: 2px 7px; min-height: 0; border: none; border-radius: var(--radius-pill);

@@ -149,8 +149,10 @@ globalThis._noStart = true;
         + "</div>";
     });
   }
-  else if (h === "#dial-auto") { // オート稼働状態の確認
-    Game.ensureDial().auto = true;
+  else if (h === "#dial-auto" || h === "#dial-gold") { // オート/Gold駆動状態の確認
+    const d = Game.ensureDial();
+    d.auto = true;
+    if (h === "#dial-gold") { d.supply = true; Game.state.crickets = 0; }
     UI.updateFeeder();
   }
   else if (h === "#click-crank") { // Phase1回帰: クランク実クリックで給餌されるか

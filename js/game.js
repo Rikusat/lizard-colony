@@ -949,6 +949,17 @@ const Game = {
     const interval = CFG.dialRates[d.rate] || CFG.dialRates[1];
     if (this._dialT < interval) return;
     this._dialT = 0;
+    // コオロギ自動補給(Brushup V2): 不足分だけ通常と同コストでGoldから購入。
+    // Goldが尽きたら静かに買えず在庫ぶんのみ給餌=一時停止、回復すれば自然に再開
+    if (d.supply) {
+      const s = this.state;
+      const need = s.lizards.filter((l) => l.injuredT <= 0 && !this.isAway(l)).length;
+      const shortfall = Math.max(0, need - Math.floor(s.crickets));
+      if (shortfall > 0) {
+        const buy = Math.min(shortfall, Math.floor(s.coins / CFG.cricketCost));
+        if (buy > 0) { s.coins -= buy * CFG.cricketCost; s.crickets += buy; }
+      }
+    }
     this.feedAll(true); // 在庫切れ・対象なしでも静かに何もしない
   },
 

@@ -32,6 +32,8 @@ Object.assign(UI, {
         <div class="fd-controls">
           <button id="fd-auto" class="fd-switch" role="switch" aria-checked="false" title="オート給餌(設定レートで自動的にクランクが回る)">
             <span class="fd-sw-knob"></span>オート</button>
+          <button id="fd-supply" class="fd-switch" role="switch" aria-checked="false" title="コオロギ自動補給(オート中の不足分をGoldから通常価格で自動購入。Goldがある限り永続稼働)">
+            <span class="fd-sw-knob"></span><svg class="icon"><use href="#i-coin"/></svg></button>
           <span class="fd-rate" id="fd-rate" title="オートの給餌頻度">
             <button data-rate="0">低</button><button data-rate="1">中</button><button data-rate="2">高</button>
           </span>
@@ -58,6 +60,11 @@ Object.assign(UI, {
       d.auto = !d.auto;
       this.updateFeeder();
     });
+    el.querySelector("#fd-supply").addEventListener("click", () => {
+      const d = Game.ensureDial();
+      d.supply = !d.supply;
+      this.updateFeeder();
+    });
     for (const b of el.querySelectorAll("#fd-rate button")) {
       b.addEventListener("click", () => {
         Game.ensureDial().rate = +b.dataset.rate;
@@ -80,6 +87,12 @@ Object.assign(UI, {
     const sw = document.getElementById("fd-auto");
     sw.classList.toggle("on", d.auto);
     sw.setAttribute("aria-checked", d.auto);
+    const sup = document.getElementById("fd-supply");
+    sup.classList.toggle("on", d.supply);
+    sup.classList.toggle("gold", d.supply);
+    sup.setAttribute("aria-checked", d.supply);
+    // Gold駆動中の表示: 補給ON・オート中・在庫が対象数未満
+    dial.classList.toggle("gold-driven", d.supply && d.auto && Math.floor(Game.state.crickets) < targets);
     for (const b of document.querySelectorAll("#fd-rate button")) {
       b.classList.toggle("on", +b.dataset.rate === d.rate);
     }
