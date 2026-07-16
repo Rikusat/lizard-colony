@@ -278,6 +278,29 @@ button.act .price {
 .fd-stock b { color: var(--gold); font-variant-numeric: tabular-nums; }
 .fd-targets { font-size: 11px; color: var(--sub); margin-left: 2px; }
 .fd-targets b { color: var(--sub); }
+.fd-controls { display: flex; align-items: center; gap: 6px; }
+.fd-switch {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; padding: 3px 8px 3px 4px; border-radius: var(--radius-pill);
+  background: var(--ink-900); border: 1px solid var(--border); border-bottom-width: 1px;
+}
+.fd-sw-knob {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--ink-600); border: 1px solid var(--border);
+  transition: background var(--dur-base) var(--ease-out), box-shadow var(--dur-base);
+}
+.fd-switch.on { border-color: var(--life-600); color: var(--life-400); }
+.fd-switch.on .fd-sw-knob { background: var(--life-500); box-shadow: 0 0 8px var(--life-glow); }
+.fd-rate { display: inline-flex; background: var(--ink-900); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 2px; }
+.fd-rate button {
+  font-size: 10px; padding: 2px 7px; min-height: 0; border: none; border-radius: var(--radius-pill);
+  background: transparent; color: var(--sub);
+}
+.fd-rate button.on { background: var(--grad-btn-primary); color: var(--on-amber); font-weight: bold; }
+/* オート稼働中: ゆっくり等速回転+淡い発光のみ(§5.10・トースト等は出さない) */
+#feeder-dial.auto-on { box-shadow: var(--elev-2), 0 0 14px var(--amber-glow-soft); }
+#feeder-dial.auto-on .fd-wheel { animation: fd-idle-turn 6s linear infinite; }
+@keyframes fd-idle-turn { to { transform: rotate(360deg); } }
 
 /* ============ egg slots ============ */
 #egg-slots { display: flex; flex-direction: column; gap: 7px; }

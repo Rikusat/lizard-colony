@@ -78,6 +78,7 @@ const Game = {
       rocket: { stage: 0, invested: 0, done: false },
       forged: {},          // チタン鉱による設備の上限突破
       autoBreed: false,    // V4: 繁殖予約
+      dial: { auto: false, rate: 1, supply: false }, // Brushup V2: 給餌ダイヤル
       stageWins: 0,        // この惑星での撃退数(Elite周期用)
       nest: { lv: 1, pins: [] }, // すみか(住居)Lv・ピン留め個体
       research: {},        // HQ研究
@@ -935,6 +936,22 @@ const Game = {
     return true;
   },
 
+  ensureDial() {
+    if (!this.state.dial) this.state.dial = { auto: false, rate: 1, supply: false };
+    return this.state.dial;
+  },
+
+  // 給餌ダイヤルのオート(Brushup V2 Phase1)。効果は既存feedAllの再利用・通知は出さない
+  dialTick(dt) {
+    const d = this.ensureDial();
+    if (!d.auto) return;
+    this._dialT = (this._dialT || 0) + dt;
+    const interval = CFG.dialRates[d.rate] || CFG.dialRates[1];
+    if (this._dialT < interval) return;
+    this._dialT = 0;
+    this.feedAll(true); // 在庫切れ・対象なしでも静かに何もしない
+  },
+
   feedAll(silent) {
     let fed = 0;
     for (const lz of this.state.lizards) {
@@ -1699,6 +1716,7 @@ const Game = {
     this.updateLuckyEgg(dt);
     if (this.flashT > 0) this.flashT = Math.max(0, this.flashT - dt);
 
+    this.dialTick(dt); // 給餌ダイヤルのオート(Brushup V2)
     // V4.1: 巣ネットワークの自動解放チェック(操作ゼロ・毎秒)
     this._nestT = (this._nestT || 0) + dt;
     if (this._nestT >= 1) {
@@ -2019,6 +2037,7 @@ const Game = {
       allies: s.allies,
       res: s.res || { bio: 0, food: 0, energy: 0, science: 0 }, // V4: 資源フロー
       nestWeb: s.nestWeb || { nodes: {}, surprises: 0 },         // V4.1: 巣(WorldData直下・全惑星共通)
+      dial: s.dial || { auto: false, rate: 1, supply: false },   // Brushup V2: 給餌ダイヤル
       rareWallet: s.rare || {},                                  // V4.1: 希少鉱石
       erosion: s.erosion || 0,                                   // V4.1: 侵食率
       forged: s.forged || {},
@@ -2050,6 +2069,7 @@ const Game = {
       crickets: active.resources.crickets,
       res: w.res || { bio: 0, food: 0, energy: 0, science: 0 },
       nestWeb: w.nestWeb || { nodes: {}, surprises: 0 },
+      dial: w.dial || { auto: false, rate: 1, supply: false },
       rare: w.rareWallet || { amethyst: 0, iridium: 0, amber: 0, meteorite: 0, orichalcum: 0, titaniumOre: 0 },
       erosion: w.erosion || 0,
       rocket: (w.headquarters && w.headquarters.rocket) || { stage: 0, invested: 0, done: false },

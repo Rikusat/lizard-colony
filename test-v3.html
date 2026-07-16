@@ -149,6 +149,10 @@ globalThis._noStart = true;
         + "</div>";
     });
   }
+  else if (h === "#dial-auto") { // オート稼働状態の確認
+    Game.ensureDial().auto = true;
+    UI.updateFeeder();
+  }
   else if (h === "#click-crank") { // Phase1回帰: クランク実クリックで給餌されるか
     setTimeout(() => {
       const before = { crickets: Game.state.crickets, xp: Game.state.lizards.reduce((a, l) => a + l.xp, 0) };

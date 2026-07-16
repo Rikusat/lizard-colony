@@ -29,6 +29,13 @@ Object.assign(UI, {
         <div class="fd-title">給餌クランク</div>
         <div class="fd-stock"><svg class="icon"><use href="#i-cricket"/></svg><b id="fd-crickets">0</b>
           <span class="fd-targets">対象 <b id="fd-targets">0</b>匹</span></div>
+        <div class="fd-controls">
+          <button id="fd-auto" class="fd-switch" role="switch" aria-checked="false" title="オート給餌(設定レートで自動的にクランクが回る)">
+            <span class="fd-sw-knob"></span>オート</button>
+          <span class="fd-rate" id="fd-rate" title="オートの給餌頻度">
+            <button data-rate="0">低</button><button data-rate="1">中</button><button data-rate="2">高</button>
+          </span>
+        </div>
       </div>`;
     center.appendChild(el);
 
@@ -45,6 +52,18 @@ Object.assign(UI, {
       }
       this.updateFeeder();
     });
+    // オートトグル(スイッチ)+レート(pillセグメント)
+    el.querySelector("#fd-auto").addEventListener("click", () => {
+      const d = Game.ensureDial();
+      d.auto = !d.auto;
+      this.updateFeeder();
+    });
+    for (const b of el.querySelectorAll("#fd-rate button")) {
+      b.addEventListener("click", () => {
+        Game.ensureDial().rate = +b.dataset.rate;
+        this.updateFeeder();
+      });
+    }
     this.updateFeeder();
   },
 
@@ -55,5 +74,14 @@ Object.assign(UI, {
     Motion.countUp(c, Math.floor(Game.state.crickets), (v) => fmt(Math.floor(v)));
     const targets = Game.state.lizards.filter((l) => l.injuredT <= 0 && !Game.isAway(l)).length;
     document.getElementById("fd-targets").textContent = targets;
+    const d = Game.ensureDial();
+    const dial = document.getElementById("feeder-dial");
+    dial.classList.toggle("auto-on", d.auto);
+    const sw = document.getElementById("fd-auto");
+    sw.classList.toggle("on", d.auto);
+    sw.setAttribute("aria-checked", d.auto);
+    for (const b of document.querySelectorAll("#fd-rate button")) {
+      b.classList.toggle("on", +b.dataset.rate === d.rate);
+    }
   },
 });
