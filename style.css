@@ -148,6 +148,14 @@ main {
 }
 .card h3::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
 
+/* 左列のグループラベル(§Phase2.2: 行動/遷移で呼吸を分ける) */
+.btn-grp {
+  font-size: 10px; color: var(--sub); letter-spacing: 3px;
+  margin: 2px 0 6px; display: flex; align-items: center; gap: 8px;
+}
+.btn-grp::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+.btn-grp.gap { margin-top: var(--space-4); }
+
 /* 左メニューのアクションボタン */
 button.act {
   width: 100%; display: flex; align-items: center; gap: 10px;
