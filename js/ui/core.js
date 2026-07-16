@@ -137,6 +137,7 @@ const UI = {
 
     this.buildEggSlots();
     this.initFeeder(); // 給餌ダイヤル(飼育槽右下・Brushup V2 Phase1)
+    this.initBossHud(); // ボスHPバー(上部中央・Brushup V2 Phase3)
     setInterval(() => this.rotateHint(), 12000);
     // #breed で繁殖画面を直接開く(動作確認・デバッグ用)
     if (location.hash === "#breed") setTimeout(() => this.openBreed(), 400);
@@ -299,6 +300,7 @@ const UI = {
     this.els["mission-badge"].classList.toggle("hidden", !claimable);
 
     this.updateFeeder();
+    this.updateBossHud();
     this.updateEggSlots();
     this.renderDetail(false);
   },

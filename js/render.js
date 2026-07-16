@@ -1168,33 +1168,11 @@ const Render = {
       ctx.lineWidth = 4;
       ctx.beginPath(); ctx.ellipse(e.x + (raid.typeId === "snake" ? 90 : 0), e.y, 105, 52, 0, 0, 7); ctx.stroke();
     }
-    ctx.restore(); // 変換ここまで(バー・ラベルは等倍で描く)
-    // 蛇以外はここで共通HPバー・残り時間を描く(蛇は自前)
-    if (raid.typeId !== "snake") {
-      this.drawBossBar(ctx, raid, e.x, e.y - 70, raid.type.icon + " " + raid.type.name);
-      if (e.arrived && !raid.fleeing) {
-        ctx.font = "bold 17px sans-serif";
-        this.centerLabel(ctx, "敵が去るまで " + Math.ceil(Math.max(0, raid.timeLeft)) + " 秒", W / 2, 70, "rgba(0,0,0,.5)", "#ffe6c8");
-        if (raid.stunT > 0) {
-          this.centerLabel(ctx, "足止め中! " + raid.stunT.toFixed(1) + "s", W / 2, 100, "rgba(20,60,90,.6)", "#aadcff");
-        }
-      }
-    }
+    ctx.restore(); // 変換ここまで
+    // HPバー・残り時間はDOMのボスHUD(§3.3)へ移設。Canvasには描かない
   },
 
-  drawBossBar(ctx, raid, x, y, label) {
-    const e = raid.snake;
-    const bw = 190;
-    const bx = x - bw / 2, by = y;
-    ctx.fillStyle = "rgba(0,0,0,.65)";
-    rr(ctx, bx - 3, by - 3, bw + 6, 18, 6); ctx.fill();
-    const grad = ctx.createLinearGradient(bx, 0, bx + bw, 0);
-    grad.addColorStop(0, "#e05b41"); grad.addColorStop(1, "#a82d18");
-    ctx.fillStyle = grad;
-    rr(ctx, bx, by, bw * Math.max(0, e.hp / e.maxHp), 12, 4); ctx.fill();
-    ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "#fff";
-    ctx.fillText(`${label}${raid.tier ? " T" + raid.tier : ""} ${fmt(Math.ceil(Math.max(0, e.hp)))} / ${fmt(e.maxHp)}`, x, by - 8);
-  },
+
 
   // 登場カットイン (T2+)
   drawCutin(ctx, raid) {
@@ -1740,31 +1718,7 @@ const Render = {
       ctx.stroke();
     }
 
-    // --- HPバー+階級名 ---
-    const bw = Math.min(240, 150 * scale);
-    const bx = hx - bw / 2 + 60 * scale, by = hy - 58 * scale;
-    ctx.fillStyle = "rgba(0,0,0,.65)";
-    rr(ctx, bx - 3, by - 3, bw + 6, 18, 6); ctx.fill();
-    const hpr = Math.max(0, s.hp / s.maxHp);
-    const grad = ctx.createLinearGradient(bx, 0, bx + bw, 0);
-    grad.addColorStop(0, "#e05b41"); grad.addColorStop(1, "#a82d18");
-    ctx.fillStyle = grad;
-    rr(ctx, bx, by, bw * hpr, 12, 4); ctx.fill();
-    ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center";
-    ctx.fillStyle = "#fff";
-    ctx.fillText(
-      (boss ? "ボス・" : "") + tier.name + " " + fmt(Math.ceil(Math.max(0, s.hp))) + " / " + fmt(s.maxHp),
-      bx + bw / 2, by - 8,
-    );
-
-    // 残り時間・フェンス足止め
-    if (s.arrived) {
-      ctx.font = "bold 17px sans-serif";
-      this.centerLabel(ctx, "蛇が去るまで " + Math.ceil(raid.timeLeft) + " 秒", W / 2, 70, "rgba(0,0,0,.5)", "#ffe6c8");
-      if (raid.stunT > 0) {
-        this.centerLabel(ctx, "フェンスで足止め中! " + raid.stunT.toFixed(1) + "s", W / 2, 100, "rgba(20,60,90,.6)", "#aadcff");
-      }
-    }
+    // HPバー・階級名・残り時間はDOMのボスHUD(§3.3)へ移設
     ctx.restore();
   },
 

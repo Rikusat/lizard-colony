@@ -266,6 +266,58 @@ button.act .price {
 }
 @keyframes banner-pulse { from { box-shadow: 0 0 18px rgba(255, 80, 40, .3); } to { box-shadow: 0 0 42px rgba(255, 80, 40, .65); } }
 
+/* ============ ボスHPバー HUD(§6.1・戦闘中のみ表示) ============ */
+#boss-hud {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  z-index: 3; display: flex; align-items: center; gap: 10px;
+  min-width: 380px; max-width: 60%;
+  background: linear-gradient(var(--ink-800), var(--ink-900));
+  border: 1px solid var(--boss-600); border-radius: var(--radius-md);
+  padding: 8px 14px 8px 8px; box-shadow: var(--elev-3), 0 0 18px rgba(224, 83, 59, calc(.3 * var(--dread)));
+  animation: bosshud-in var(--dur-slow) var(--ease-pop);
+}
+@keyframes bosshud-in { from { transform: translateX(-50%) translateY(-16px); opacity: 0; } }
+.bh-portrait {
+  width: 44px; height: 44px; flex-shrink: 0; border-radius: 6px;
+  background: var(--lcd-bg); border: 1px solid var(--boss-600);
+  border-left: 3px solid var(--boss-500);
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, .9);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--boss-400); font-size: 24px;
+}
+.bh-mid { flex: 1; min-width: 0; }
+.bh-name { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
+.bh-name b { font-family: var(--font-retro); font-size: 16px; letter-spacing: 2px; color: var(--paper-100); }
+.bh-tier {
+  font-family: var(--font-retro); font-size: 11px; letter-spacing: 1px;
+  background: var(--grad-btn-danger); color: #ffe0d0;
+  border-radius: 4px; padding: 1px 7px;
+}
+.bh-elite {
+  font-family: var(--font-retro); font-size: 11px; letter-spacing: 1px;
+  background: var(--grad-btn-primary); color: var(--on-amber);
+  border-radius: 4px; padding: 1px 7px;
+}
+.bh-bar {
+  height: 12px; border-radius: 4px; overflow: hidden;
+  background: var(--lcd-bg); border: 1px solid var(--lcd-border);
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, .8);
+}
+.bh-fill {
+  height: 100%; width: 100%;
+  background: linear-gradient(90deg, var(--boss-600), var(--boss-500) 60%, var(--boss-400));
+  transition: width .25s linear;
+}
+.bh-nums {
+  display: flex; justify-content: space-between; gap: 10px;
+  font-size: 11px; color: var(--sub); margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+#boss-hud.enraged { border-color: var(--boss-500); }
+#boss-hud.enraged .bh-fill { animation: enrage-fill .5s var(--ease-in-out) infinite alternate; }
+#boss-hud.enraged .bh-name b { color: var(--boss-400); animation: enrage-fill .5s var(--ease-in-out) infinite alternate; }
+@keyframes enrage-fill { from { filter: brightness(1); } to { filter: brightness(1.6); } }
+
 /* ============ 危機状態 Dread(§6.1・ボス戦中のみ・--dreadで強度制御) ============ */
 #dread-vign {
   position: absolute; inset: 8px; border-radius: 12px;
