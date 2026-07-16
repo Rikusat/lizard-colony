@@ -432,10 +432,10 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 .fd-sw.ghost.on { opacity: 1; color: var(--amber-400); border-color: var(--amber-600); }
 .fd-sw.ghost.on .fd-lamp { background: var(--amber-400); box-shadow: 0 0 6px var(--amber-glow-soft); }
 
-/* 折りたたみハンドル+折りたたみ状態(クランクが回っているのみ) */
+/* 折りたたみハンドル(右上・クランク本体から干渉しない側)+折りたたみ=丸クランクのみ */
 #fd-fold {
-  position: absolute; top: -1px; left: -1px; width: 18px; height: 18px; padding: 0;
-  border-radius: var(--radius-md) 0 6px 0;
+  position: absolute; top: -1px; right: -1px; width: 18px; height: 18px; padding: 0;
+  border-radius: 0 var(--radius-md) 0 6px;
   background: var(--ink-800); border: 1px solid var(--amber-600); border-bottom-width: 1px;
   display: flex; align-items: center; justify-content: center; opacity: .6;
 }
@@ -446,12 +446,19 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
   transition: transform var(--dur-base) var(--ease-pop);
 }
 #feeder-dial.min .fd-chev { transform: rotate(135deg) translate(1px, -1px); } /* ▲=ひらく */
-#feeder-dial.min { padding: 4px; gap: 0; background: transparent; border-color: transparent; box-shadow: none; }
+/* 畳んだ後: 外枠パネル(角丸四角)の層を完全に排除し、回る丸クランクだけを残す */
+#feeder-dial.min {
+  padding: 0; gap: 0;
+  background: none; border: none; box-shadow: none;
+}
 #feeder-dial.min .fd-lever, #feeder-dial.min .fd-side, #feeder-dial.min .fd-stock { display: none; }
-#feeder-dial.min #fd-fold { opacity: 0; }
-#feeder-dial.min:hover #fd-fold { opacity: .9; }
+#feeder-dial.min.fed, #feeder-dial.min.empty { animation: none; } /* 四角い明滅も出さない */
 #feeder-dial.min.auto-on { box-shadow: none; }
 #feeder-dial.min #fd-crank { box-shadow: 0 0 10px rgba(0, 0, 0, .35); }
+#feeder-dial.min #fd-fold {
+  opacity: 0; top: -6px; right: -6px; border-radius: 50%;
+}
+#feeder-dial.min:hover #fd-fold { opacity: .9; }
 
 /* ---- 羅針盤スキン(砂漠=古代遺跡・crank.md §3.4) ---- */
 #feeder-dial.skin-compass {
