@@ -360,6 +360,26 @@ globalThis._noStart = true;
       </div>`;
     });
   }
+  else if (h === "#stage10") { // 遺跡惑星(オリジン)へ移動した状態
+    Game.selectStage(10);
+    UI._crankSkinId = null;
+    UI.updateFeeder();
+  }
+  else if (h === "#skin-switch-diag") { // 惑星移動でスキンが切り替わる実証
+    const face = () => document.getElementById("fd-crank").innerHTML;
+    const kind = () => face().includes("cp-bronze") ? "羅針盤" : face().includes("fd-brass") ? "真鍮" : "?";
+    const out = [];
+    out.push("現在(ID" + Game.currentStage().id + ")=" + kind());
+    Game.selectStage(10); UI.updateFeeder();
+    out.push("ID10へ移動=" + kind());
+    Game.selectStage(1); UI.updateFeeder();
+    out.push("ID1へ移動=" + kind());
+    const el = document.createElement("div");
+    el.id = "diag-out";
+    el.style.cssText = "position:fixed;top:4px;left:4px;z-index:999;background:#043;color:#cfc;padding:6px 10px;font-size:13px";
+    el.textContent = "SKIN-SWITCH: " + out.join(" → ");
+    document.body.appendChild(el);
+  }
   else if (h.startsWith("#skin-compass")) { // 羅針盤スキンの強制適用(割り当て確定前の判定用)
     CrankSkins.byPlanet[Game.currentStage().id] = "compass";
     UI._crankSkinId = null;

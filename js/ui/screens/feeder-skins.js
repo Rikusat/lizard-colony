@@ -12,8 +12,13 @@
 // =============================================================
 
 const CrankSkins = {
-  // 惑星ID→スキンID(Phase 2で確定表をcrank.mdへ。現状は全惑星default)
-  byPlanet: {},
+  // 惑星ID→スキンID(crank.md §3.1の確定表と1:1。フォールバックに頼らず全惑星を明示)
+  // 1=乾燥地帯(アリド)=始まりの地・教科書(不変) / 10=古代遺跡(オリジン)=羅針盤(確定)
+  byPlanet: {
+    1: "default", 2: "default", 3: "default", 4: "default", 5: "default",
+    6: "default", 7: "default", 8: "default", 9: "default",
+    10: "compass",
+  },
 
   skins: {
     // 現行の真鍮クランク(Brushup V2.1確定版)をそのまま"default"として登録
