@@ -295,14 +295,18 @@ globalThis._noStart = true;
         + "</div>";
     });
   }
-  else if (h.startsWith("#boss-live") || h === "#boss-approach") {
+  else if (h.startsWith("#boss-live") || h === "#boss-approach" || h === "#boss-enrage") {
     if (h.endsWith("-strong")) document.documentElement.style.setProperty("--dread", "1"); // 中案比較用 // Phase3: ボス戦の見た目確認
     Game.state.nextRaid = { typeId: "monitor", tier: 5, elite: true, boss: false };
     Game.startRaid();
     Hero.dismiss(true); // カットインは飛ばして戦闘状態を見る
     Game.raid.snake.hp = Game.raid.snake.maxHp = 9e9; // 撮影用: 即撃破を防ぐ
     Game.raid.timeLeft = 9999;
-    if (h.startsWith("#boss-live")) {
+    if (h === "#boss-enrage") {
+      Game.raid.snake.arrived = true;
+      Game.raid.snake.x = 850; Game.raid.cutinT = 0; Game.raid.stunT = 0;
+      Game.raid.snake.maxHp = 9e9; Game.raid.snake.hp = 1.7e9; // 19%=Enrage圏(即死しない)
+    } else if (h.startsWith("#boss-live")) {
       Game.raid.snake.arrived = true;
       Game.raid.snake.x = 850; Game.raid.cutinT = 0; Game.raid.stunT = 0;
     } else {

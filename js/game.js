@@ -1310,7 +1310,11 @@ const Game = {
     if (dps > 0) {
       e.hp -= dps * dt;
       r.shake = 2;
-      if (Math.random() < dt * 3) this.popup(e.x + rnd(-30, 30), e.y - 40, "-" + fmt(dps), "#ff8866");
+      if (r.hitT > 0) r.hitT -= dt;
+      if (Math.random() < dt * 3) {
+        r.hitT = 0.1; // 被弾フラッシュ(Brushup V2 §3.3・描画のみ)
+        this.popup(e.x + rnd(-30, 30), e.y - 40, "-" + fmt(dps), "#ff8866", true);
+      }
     }
     // Enrage (T5+): 残り20%で激昂
     if (r.tierDef && r.tierDef.enrage && !r.enraged && e.hp < e.maxHp * 0.2 && e.hp > 0) {
@@ -1810,8 +1814,8 @@ const Game = {
     }
   },
 
-  popup(x, y, txt, color) {
-    this.popups.push({ x, y, txt, color, ttl: 1.2 });
+  popup(x, y, txt, color, big) {
+    this.popups.push({ x, y, txt, color, big, ttl: 1.2 });
   },
 
   // ---------------- Phase4: 終盤コンテンツ (GameExpansion_v2 ⑨) ----------------

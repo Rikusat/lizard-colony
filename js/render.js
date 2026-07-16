@@ -1136,6 +1136,12 @@ const Render = {
     if (!e.arrived && !raid.type.flying) {
       ctx.filter = "brightness(0.32) saturate(0.5)";
       ctx.globalAlpha = 0.9;
+    } else if (raid.hitT > 0) {
+      ctx.filter = "brightness(2) saturate(1.4)"; // 被弾フラッシュ(§3.3)
+    } else if (raid.enraged) {
+      // Enrage: ボス本体が赤く明滅(既存判定に同期・§3.3)
+      const p = 0.5 + Math.sin(this.time * 12) * 0.5;
+      ctx.filter = `brightness(${(1.05 + p * 0.35).toFixed(2)}) saturate(${(1.2 + p * 0.5).toFixed(2)}) hue-rotate(-${Math.round(p * 14)}deg)`;
     }
     // ティアオーラ (T3+)
     if (raid.tierDef && raid.tierDef.aura) {
@@ -1732,10 +1738,18 @@ const Render = {
 
   drawPopups(ctx) {
     ctx.textAlign = "center";
-    ctx.font = "bold 17px sans-serif";
     for (const p of Game.popups) {
       ctx.globalAlpha = clamp(p.ttl, 0, 1);
-      ctx.fillStyle = "rgba(0,0,0,.7)"; ctx.fillText(p.txt, p.x + 1.5, p.y + 1.5);
+      if (p.big) {
+        // 重いダメージ数値(Brushup V2 §3.3): 大きく出て弾んで着地
+        const age = 1.2 - p.ttl;
+        const pop = 1 + Math.max(0, 0.5 - age) * 0.9;
+        ctx.font = `bold ${Math.round(26 * pop)}px sans-serif`;
+        ctx.fillStyle = "rgba(0,0,0,.75)"; ctx.fillText(p.txt, p.x + 2, p.y + 2);
+      } else {
+        ctx.font = "bold 17px sans-serif";
+        ctx.fillStyle = "rgba(0,0,0,.7)"; ctx.fillText(p.txt, p.x + 1.5, p.y + 1.5);
+      }
       ctx.fillStyle = p.color; ctx.fillText(p.txt, p.x, p.y);
     }
     ctx.globalAlpha = 1;
