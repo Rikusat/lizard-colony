@@ -72,7 +72,7 @@ Object.assign(UI, {
         const sp = speciesById(egg.speciesId);
         // 遺伝解析室: レア予兆の表示(演出のみ)
         const omen = genelab && (egg.morphId !== "normal" || sp.stars >= 4) ? " " + Icon.svg("spark") : "";
-        el.querySelector(".info").textContent = sp.name + "系" + omen;
+        el.querySelector(".info").innerHTML = sp.name + "系" + omen; // SVG予兆を含むためinnerHTML
         el.querySelector(".t").textContent =
           egg.t <= 0 ? "スペース待ち" : fmtTime(egg.t);
         btn.classList.toggle("hidden", egg.t <= 0);

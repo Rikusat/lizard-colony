@@ -716,3 +716,35 @@ paper 11.26 / sand 7.91 / life-400 7.45〜7.81 / amber-400 7.45 / boss-400 5.20(
 - **https://lizardcolony.vercel.app へ本番反映**(dpl_4uQqJ5NxQNCbw6efd3xVP5zyeiMQ)。内容: V4.1(Idle Nest)+UI刷新スプリント(Neo-Terrarium Phase 0〜9+SVG化)+UI_Brushup_V2(Phase 0〜4)の全変更
 - ライブ検証: トップ200/新モジュール(js/ui/screens/nest.js)配信/tokens.cssにterra-glass・dread・grad-console定義/本番スクリーンショットで新UI表示を確認
 - **Phase 0の本番巣バグ(V4版の取り残しTypeError)はこのデプロイで解消**
+
+---
+
+# HANDOFF — UI_Brushup_V2.1 (Refinement) 実装記録
+
+- 基準文書: `docs/UI_Brushup_V2.1_Sprint.md` / 上位目標:「最大のUX」=表記を削り・操作を集約し・粗さを取る
+
+## Phase 0 — 表記バグの掃討(2026-07-16)✅
+
+### 原因(アイコン挿入経路の取りこぼし・2つの型)
+
+1. **SVG文字列→textContent型**(報告事例): 卵スロットの予兆spark(`Icon.svg()`の戻り値を含む文字列を`.textContent`へ代入)→SVGタグがエスケープされ文字列表示
+2. **アイコンID生文字列型**: SVG化スプリントでicon値をIDへ変えた後、`${x.icon}`を`Icon.svg()`で包み損ねた箇所→「p-cave 惑星カヴム」「water水場」のようにIDが文字表示
+
+### 修正範囲(同型を全モジュールでgrep洗い出し→7箇所)
+
+| 箇所 | 型 | 修正 |
+|---|---|---|
+| main.js 卵スロット予兆(報告事例) | 1 | innerHTML化 |
+| dex.js 図鑑の惑星グループ見出し | 1+2 | innerHTML+Icon.svg |
+| hq.js チタン鍛造の設備ボタン | 2 | innerHTML+Icon.svg |
+| meta.js 味方(加入済み行)のアイコン | 2 | Icon.svg |
+| game.js Gold→資源変換トースト | 2 | Icon.svg |
+| game.js 惑星移動トースト | 2 | Icon.svg |
+| game.js 味方加入トースト | 2 | Icon.svg |
+
+### 残存ゼロの証明
+
+- **ソース監査**: `.icon`の補間でIcon.svg非経由の箇所=0(class="icon"等の定義を除外したgrep)
+- **ランタイム**: 5画面(卵/HQ/味方加入済み/図鑑/新規)のDOMダンプに `&lt;svg` =0
+- 回帰: 修正4画面のスクショ(予兆spark・惑星見出し・鍛造・味方行がアイコン表示)+ロジック59項目 全PASS
+- 検証ハーネス追加: #eggs(予兆つき卵)/#allies-owned(加入済み味方)

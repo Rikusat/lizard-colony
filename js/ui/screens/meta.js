@@ -18,7 +18,7 @@ Object.assign(UI, {
           const maxed = owned.lv >= CFG.allyMaxLv;
           const cost = Game.allyLvUpCost(a.id);
           row.innerHTML = `
-            <span class="fic">${a.icon}</span>
+            <span class="fic">${Icon.svg(a.icon)}</span>
             <div class="grow"><b>${a.name}</b> <span class="lv">Lv${owned.lv}/${CFG.allyMaxLv}</span>
               <div class="desc">${a.desc}</div></div>
             <button ${maxed || Game.res("bio") < cost ? "disabled" : ""}>${maxed ? "MAX" : `強化 ${Icon.svg("bio")}` + cost}</button>`;

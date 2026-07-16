@@ -89,7 +89,7 @@ Object.assign(UI, {
       if (forge) {
         for (const f of FACILITIES) {
           const b = document.createElement("button");
-          b.textContent = `${f.icon}${f.name}(上限${Game.facMax(f)})`;
+          b.innerHTML = `${Icon.svg(f.icon)}${f.name}(上限${Game.facMax(f)})`;
           b.disabled = Game.ore("titaniumOre") < CFG.forgeTitaniumCost;
           b.addEventListener("click", () => { Game.forgeFacility(f.id); this.openHQ(); });
           forge.appendChild(b);

@@ -52,7 +52,7 @@ Object.assign(UI, {
       if (!list.length) continue;
       const head = document.createElement("h4");
       head.className = "hq-h";
-      head.textContent = `${st.icon} ${st.pname}(${st.name})`;
+      head.innerHTML = `${Icon.svg(st.icon)} ${st.pname}(${st.name})`;
       box.appendChild(head);
       const grid = document.createElement("div");
       grid.className = "dex-grid";

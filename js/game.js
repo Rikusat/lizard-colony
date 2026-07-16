@@ -502,7 +502,7 @@ const Game = {
     if (this.state.coins < cost) { UI.toast("コインが足りない!", true); return false; }
     this.state.coins -= cost;
     this.addRes(kind, CFG.convertBatch);
-    UI.toast(`${fmt(cost)}G → ${resById(kind).icon}${resById(kind).name}+${CFG.convertBatch} に変換した`);
+    UI.toast(`${fmt(cost)}G → ${Icon.svg(resById(kind).icon)}${resById(kind).name}+${CFG.convertBatch} に変換した`);
     return true;
   },
   // 生態データ→研究力変換
@@ -714,7 +714,7 @@ const Game = {
     for (const lz of s.lizards) this.ensureRuntime(lz);
     if (!s.nextRaid) this.rollNextRaid();
 
-    UI.toast(`${target.icon} コロニー「${target.name}」へ移動 — ${target.envText}`);
+    UI.toast(`${Icon.svg(target.icon)} コロニー「${target.name}」へ移動 — ${target.envText}`);
     if (pioneered) {
       UI.toast(`開拓ボーナス! 本部Lv${this.hqLevel()}の支援: コオロギ+${fmt(CFG.pioneerCrickets + this.hqLevel() * 20)}・開拓資金+${fmt(CFG.pioneerCoins + this.hqLevel() * 2000)}G・水場とシェルターを無償設置`);
       if (founded > 0) UI.toast(`創始者の卵を${founded}匹ぶん持ち込んだ! 新天地で血統が続く…`);
@@ -1693,7 +1693,7 @@ const Game = {
         const u = a.unlock;
         if ((u.rank && s.rank >= u.rank) || (u.wins && s.stats.raidsWon >= u.wins)) {
           s.allies[a.id] = { lv: 1 };
-          UI.toast(`味方が仲間になった! ${a.icon} ${a.name} — ${a.desc}`);
+          UI.toast(`味方が仲間になった! ${Icon.svg(a.icon)} ${a.name} — ${a.desc}`);
         }
       }
       this.checkTitles();

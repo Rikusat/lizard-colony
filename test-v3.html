@@ -347,6 +347,17 @@ globalThis._noStart = true;
       </div>`;
     });
   }
+  else if (h === "#eggs") { // Phase0検証: 予兆sparkつき卵スロット
+    Game.state.eggs.push(
+      { speciesId: "komodo", morphId: "legendary", hue: 80, sat: 18, light: 33, pattern: "none", t: 120, total: 120, lucky: true },
+      { speciesId: "futoago", morphId: "albino", hue: 28, sat: 60, light: 50, pattern: "none", t: 60, total: 60 },
+      { speciesId: "kanahebi", morphId: "normal", hue: 35, sat: 55, light: 45, pattern: "none", t: 30, total: 30 });
+    UI.updateEggSlots();
+  }
+  else if (h === "#allies-owned") { // Phase0検証: 加入済み味方行のアイコン
+    for (const a of ALLIES) Game.state.allies[a.id] = { lv: 2 };
+    UI.openAllies();
+  }
   else if (h === "#dial-auto" || h === "#dial-gold") { // オート/Gold駆動状態の確認
     const d = Game.ensureDial();
     d.auto = true;
