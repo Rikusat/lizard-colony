@@ -226,6 +226,7 @@ globalThis._noStart = true;
 <script src="js/ui/hero/rocket.js"></script>
 <script src="js/ui/hero/legend.js"></script>
 <script src="js/ui/screens/main.js"></script>
+<script src="js/ui/screens/feeder-skins.js"></script>
 <script src="js/ui/screens/feeder.js"></script>
 <script src="js/ui/screens/breeding.js"></script>
 <script src="js/ui/screens/equipment.js"></script>
@@ -358,6 +359,15 @@ globalThis._noStart = true;
         ${col("c", "案C: 上質クラフト", "革・木の風合い+ステッチ(破線)+わずかに傾いだアイコンチップ。手仕事の温かさと厚み")}
       </div>`;
     });
+  }
+  else if (h === "#skin-test") { // Phase0: スキン差し替えの器の動作証明(ハーネス限定)
+    CrankSkins.skins._test = {
+      id: "_test", dialClass: "skin-default",
+      face: () => CrankSkins.skins.default.face().replace('class="fd-rim"', 'class="fd-rim" style="stroke:var(--info-500)"'),
+    };
+    CrankSkins.byPlanet[Game.currentStage().id] = "_test";
+    UI._crankSkinId = null; // 再適用を促す
+    UI.updateFeeder();
   }
   else if (h === "#dial-diag") { // v2.1骨格: 3点の数値検証
     (async () => {
