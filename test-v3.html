@@ -385,6 +385,20 @@ globalThis._noStart = true;
     el.textContent = "SKIN-SWITCH: " + out.join(" → ");
     document.body.appendChild(el);
   }
+  else if (h.startsWith("#skin-neon")) { // ネオン操作盤(ID2実割り当て)の確認
+    Game.selectStage(2);
+    UI._crankSkinId = null;
+    const d = Game.ensureDial();
+    if (h.includes("auto")) d.auto = true;
+    if (h.includes("min")) d.min = true;
+    UI.updateFeeder();
+    if (h.includes("zoom")) {
+      const st = document.createElement("style");
+      st.textContent = "#feeder-dial{transform:scale(3.4);transform-origin:100% 100%;}";
+      document.head.appendChild(st);
+    }
+    if (h.includes("hold")) document.getElementById("fd-crank").classList.add("holding");
+  }
   else if (h.startsWith("#skin-compass")) { // 羅針盤スキンの強制適用(割り当て確定前の判定用)
     CrankSkins.byPlanet[Game.currentStage().id] = "compass";
     UI._crankSkinId = null;

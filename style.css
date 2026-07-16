@@ -546,6 +546,65 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 #feeder-dial.skin-compass #fd-crank.holding ~ * .cp-band circle,
 #feeder-dial.skin-compass #fd-crank.holding .cp-band circle { stroke: var(--amber-glow); }
 
+/* ---- ネオン操作盤スキン(ID2 摩天楼スラム・crank.md §3.4/§4.5: 電子の機構) ---- */
+#feeder-dial.skin-neon {
+  background: linear-gradient(#171923, #0d0e15);
+  border-color: #2a2e44;
+}
+#feeder-dial.skin-neon #fd-crank {
+  background: radial-gradient(circle at 35% 28%, #1c2030, #07080f);
+  border-color: #2a2e44;
+}
+#feeder-dial.skin-neon .fd-track { background: #07080f; border-color: #2a2e44; }
+#feeder-dial.skin-neon .fd-lknob {
+  background: linear-gradient(#5fccd9, #2a7c8a); border-color: #0b3a42;
+}
+#feeder-dial.skin-neon .fd-notch { background: #2a2e44; }
+#feeder-dial.skin-neon .fd-notch.n2 { background: #5fccd9; }
+#feeder-dial.skin-neon .fd-sw { background: linear-gradient(#171923, #0d0e15); border-color: #2a2e44; }
+
+/* セグメント(格差: hi=明るく安定 / lo=薄暗い / dead=死に / flick=不規則明滅) */
+.e-seg.hi { fill: rgba(95, 204, 217, .85); }
+.e-seg.lo { fill: rgba(120, 90, 110, .30); }
+.e-seg.dead { fill: rgba(60, 60, 75, .25); }
+.e-seg.flick { fill: rgba(217, 87, 176, .5); animation: e-flicker 3.7s steps(1) infinite; }
+@keyframes e-flicker {
+  0%, 100% { opacity: .55; } 8% { opacity: .1; } 11% { opacity: .7; }
+  13% { opacity: .15; } 47% { opacity: .6; } 52% { opacity: .2; } 55% { opacity: .65; }
+}
+.e-seg.flick.fx0 { animation: none; }
+/* 走査線: 5.5秒で盤を降りる(待機微動) */
+.e-scan { animation: e-scanline 5.5s linear infinite; }
+@keyframes e-scanline { from { transform: translateY(6px); } to { transform: translateY(58px); } }
+.e-scan.fx0 { animation: none; }
+/* 稼働コア: 通常=薄いシアン待機 / オート=緑の電源LED(直感アンカー) */
+.e-core { fill: rgba(95, 204, 217, .35); transition: fill var(--dur-base); }
+#feeder-dial.skin-neon.auto-on .e-core {
+  fill: var(--life-400);
+  filter: drop-shadow(0 0 3.5px rgba(123, 217, 134, .9));
+}
+
+/* 電子の物理①: タップ=コマ送りの一回転(慣性ゼロ・即開始即停止・行き過ぎなし) */
+#feeder-dial.skin-neon #fd-crank.spin .fd-wheel {
+  animation: e-snap .42s steps(8, end);
+}
+@keyframes e-snap { to { transform: rotate(360deg); } }
+/* 電子の物理②: オート回転=steps(12)の離散スナップ(平均速度=レート同期を厳密維持) */
+#feeder-dial.skin-neon.auto-on .fd-wheel {
+  animation: fd-idle-turn var(--fd-spin, 1.6s) steps(12, end) infinite;
+}
+/* 電子の物理③: オート中タップ=グリッチ(RGBずれ+ステップジッタ・ばね/身震いにしない) */
+#feeder-dial.skin-neon #fd-crank.boing { animation: e-glitch .22s steps(2, end); }
+@keyframes e-glitch {
+  0% { transform: translate(1.5px, 0); filter: hue-rotate(90deg) saturate(2); }
+  50% { transform: translate(-1.5px, .5px); filter: hue-rotate(-70deg) saturate(1.8); }
+  100% { transform: none; filter: none; }
+}
+/* 長押し=信号ストリーム: ビームが高速点滅 */
+#feeder-dial.skin-neon #fd-crank.holding .e-beam { animation: e-beam-blink .14s steps(2) infinite; }
+#feeder-dial.skin-neon #fd-crank.holding .e-beam-halo { animation: e-beam-blink .14s steps(2) infinite; }
+@keyframes e-beam-blink { 50% { opacity: .25; } }
+
 /* オート稼働: 回転周期はレートに同期(--fd-spinをJSが設定) */
 #feeder-dial.auto-on { box-shadow: var(--elev-2), 0 0 14px var(--amber-glow-soft); }
 #feeder-dial.auto-on .fd-wheel { animation: fd-idle-turn var(--fd-spin, 1.6s) linear infinite; }

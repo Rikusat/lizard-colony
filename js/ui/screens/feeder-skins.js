@@ -15,7 +15,7 @@ const CrankSkins = {
   // 惑星ID→スキンID(crank.md §3.1の確定表と1:1。フォールバックに頼らず全惑星を明示)
   // 1=乾燥地帯(アリド)=始まりの地・教科書(不変) / 10=古代遺跡(オリジン)=羅針盤(確定)
   byPlanet: {
-    1: "default", 2: "default", 3: "default", 4: "default", 5: "default",
+    1: "default", 2: "neon", 3: "default", 4: "default", 5: "default",
     6: "default", 7: "default", 8: "default", 9: "default",
     10: "compass",
   },
@@ -153,7 +153,66 @@ const CrankSkins = {
             <path d="M14 22a20 20 0 0 1 22-9" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="3" stroke-linecap="round"/>
           </svg>`;
       },
-    }
+    },
+
+    // ネオンの操作盤(ID2 摩天楼スラム=ネオヴェルデ)。crank.md §3.4/§4.5: 電子の機構
+    // 慣性ゼロ・離散スナップ・グリッチ。格差=左上弧が明るく右下弧が薄暗い(死に/明滅セグメント)
+    neon: {
+      id: "neon",
+      dialClass: "skin-neon",
+      face() {
+        const fx = CFG.crankFxLevel > 0 ? "" : " fx0";
+        // 外周24セグメント: 左上弧(15..23,0..4)=高層hi / 右下弧=スラムlo(+死に14,17/明滅19)
+        let outer = "";
+        for (let i = 0; i < 24; i++) {
+          const deg = i * 15;
+          const hi = (i >= 15 || i <= 4);
+          let cls = hi ? "e-seg hi" : "e-seg lo";
+          if (i === 14 || i === 17) cls = "e-seg dead";
+          if (i === 19) cls = "e-seg flick" + fx;
+          outer += `<rect x="30.7" y="7.6" width="2.6" height="5.6" rx="1" transform="rotate(${deg} 32 32)" class="${cls}"/>`;
+        }
+        let inner = "";
+        for (let i = 0; i < 12; i++) {
+          const deg = i * 30 + 15;
+          const hi = (i >= 8 || i <= 2);
+          inner += `<rect x="30.9" y="16.4" width="2.2" height="4.2" rx="1" transform="rotate(${deg} 32 32)" class="e-seg ${hi ? "hi" : "lo"}"/>`;
+        }
+        return `
+          <svg viewBox="0 0 64 64" class="fd-svg" aria-hidden="true">
+            <defs>
+              <radialGradient id="ne-glass" cx=".38" cy=".3" r="1">
+                <stop offset="0" style="stop-color:#161a28"/>
+                <stop offset="1" style="stop-color:#07080f"/>
+              </radialGradient>
+            </defs>
+            <!-- 黒曜ガラスの盤(静)+格差ベゼル(左=シアン鮮明/右=くすみ) -->
+            <circle cx="32" cy="32" r="25.5" fill="url(#ne-glass)"/>
+            <path d="M32 6.5A25.5 25.5 0 0 0 6.5 32" fill="none" stroke="rgba(95,204,217,.75)" stroke-width="1.6"/>
+            <path d="M6.5 32A25.5 25.5 0 0 0 32 57.5" fill="none" stroke="rgba(95,204,217,.30)" stroke-width="1.4"/>
+            <path d="M32 6.5A25.5 25.5 0 0 1 57.5 32" fill="none" stroke="rgba(217,87,176,.55)" stroke-width="1.6"/>
+            <path d="M57.5 32A25.5 25.5 0 0 1 32 57.5" fill="none" stroke="rgba(120,90,110,.28)" stroke-width="1.4"/>
+            <!-- 回る主体(.fd-wheel): セグメント環+走査ビーム -->
+            <g class="fd-wheel">
+              ${outer}
+              ${inner}
+              <g class="e-beam-g">
+                <path d="M32 32L32 8.6" stroke="rgba(95,204,217,.9)" stroke-width="1.6" class="e-beam"/>
+                <path d="M32 8.6l-1.8 3.4h3.6z" fill="rgba(95,204,217,.9)" class="e-beam"/>
+                <path d="M32 32L32 8.6" stroke="rgba(95,204,217,.25)" stroke-width="4" class="e-beam-halo"/>
+              </g>
+              <circle cx="32" cy="32" r="9.5" fill="none" stroke="rgba(95,204,217,.18)" stroke-width=".8" stroke-dasharray="2 3"/>
+            </g>
+            <!-- 稼働コア(オート=緑の電源LED・直感アンカー) -->
+            <circle cx="32" cy="32" r="5.2" fill="#0b0d14" stroke="rgba(95,204,217,.4)" stroke-width="1"/>
+            <circle cx="32" cy="32" r="2.6" class="e-core"/>
+            <!-- 走査線(待機微動・fx0/reducedで停止) -->
+            <g class="e-scan${fx}"><rect x="8" y="0" width="48" height="1.4" fill="rgba(159,208,255,.14)"/></g>
+            <!-- ガラスの照り(静) -->
+            <path d="M14 21a20 20 0 0 1 21-9.5" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="3" stroke-linecap="round"/>
+          </svg>`;
+      },
+    },
   },
 
   // 現在の惑星に対応するスキン(未割り当てはdefault)
