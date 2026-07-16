@@ -398,10 +398,11 @@ globalThis._noStart = true;
     for (const a of ALLIES) Game.state.allies[a.id] = { lv: 2 };
     UI.openAllies();
   }
-  else if (h === "#dial-auto" || h === "#dial-gold") { // オート/Gold駆動状態の確認
+  else if (h === "#dial-auto" || h === "#dial-gold" || h === "#dial-min") { // オート/Gold駆動状態の確認
     const d = Game.ensureDial();
     d.auto = true;
     if (h === "#dial-gold") { d.supply = true; Game.state.crickets = 0; }
+    if (location.search.includes("min") || h === "#dial-min") d.min = true;
     UI.updateFeeder();
   }
   else if (h === "#click-crank") { // Phase1回帰: クランク実クリックで給餌されるか

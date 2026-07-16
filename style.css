@@ -355,13 +355,19 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 #fd-crank:hover { box-shadow: 0 0 12px var(--amber-glow-soft); }
 #fd-crank.holding { box-shadow: 0 0 14px var(--amber-glow); }
 .fd-svg { width: 100%; height: 100%; display: block; }
-.fd-housing { fill: var(--ink-900); }
-.fd-rim { fill: none; stroke: var(--amber-600); stroke-width: 2.5; }
-.fd-plate { fill: var(--ink-700); }
-.fd-spokes { stroke: var(--amber-500); stroke-width: 2.5; stroke-linecap: round; fill: none; }
-.fd-hub { fill: var(--amber-400); }
-.fd-knob { fill: var(--amber-400); stroke: var(--amber-600); stroke-width: 1.5; }
+.fd-rim { fill: none; stroke: var(--amber-600); stroke-width: 2; }
+.fd-rim-in { stroke: rgba(0, 0, 0, .55); stroke-width: 1.5; }
+.fd-plate2 { }
+.fd-plate-line { stroke: var(--amber-600); stroke-width: 1; stroke-opacity: .8; }
+.fd-spokes { stroke: var(--on-amber); stroke-width: 2.2; stroke-linecap: round; fill: none; stroke-opacity: .55; }
+.fd-hub { fill: var(--amber-600); stroke: var(--on-amber); stroke-width: 1; stroke-opacity: .4; }
+.fd-hub-pin { fill: var(--paper-100); fill-opacity: .8; }
+.fd-handle-grip { fill: #6d4d24; stroke: rgba(0, 0, 0, .5); stroke-width: .8; }
+.fd-handle-cap { fill: var(--amber-400); stroke: var(--amber-600); stroke-width: 1.2; }
 .fd-wheel { transform-origin: 32px 32px; }
+/* オート中タップのばね応答(§1.3): 弾み+一瞬の増速はJSが--fd-spinで担う */
+#fd-crank.boing { animation: fd-boing 600ms var(--ease-pop); }
+@keyframes fd-boing { 30% { transform: scale(1.14); } 60% { transform: scale(.96); } }
 #fd-crank.spin .fd-wheel { animation: fd-spin 520ms var(--ease-pop); }
 @keyframes fd-spin { to { transform: rotate(360deg); } }
 #feeder-dial.fed { animation: res-gain var(--dur-slow) var(--ease-out); }
@@ -382,13 +388,14 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
   background: var(--lcd-bg); border: 1px solid var(--lcd-border); border-radius: 3px;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, .9);
 }
+/* 目盛り(文字なし): 上ほど太く明るい横線=速い、を位置と線で伝える */
 .fd-notch {
   position: absolute; left: 50%; transform: translateX(-50%);
-  border-radius: 50%; background: var(--ink-600);
+  border-radius: 1px; background: var(--ink-600);
 }
-.fd-notch.n2 { top: 8px;  width: 6px; height: 6px; }   /* 高(上) */
-.fd-notch.n1 { top: 30px; width: 5px; height: 5px; }
-.fd-notch.n0 { bottom: 8px; width: 4px; height: 4px; } /* 低(下) */
+.fd-notch.n2 { top: 9px;  width: 12px; height: 2.5px; background: var(--amber-600); }
+.fd-notch.n1 { top: 31px; width: 9px;  height: 2px; }
+.fd-notch.n0 { bottom: 9px; width: 6px; height: 1.5px; }
 .fd-lknob {
   position: absolute; left: 50%; transform: translateX(-50%);
   width: 16px; height: 12px; border-radius: 3px;
@@ -418,11 +425,33 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 .fd-sw.on { color: var(--life-400); border-color: var(--life-600); }
 .fd-sw.on .fd-lamp { background: var(--life-400); box-shadow: 0 0 6px var(--life-glow); }
 .fd-sw.ghost {
-  background: transparent; border-color: var(--ink-600); box-shadow: none;
-  border-bottom-width: 1px; opacity: .75;
+  background: transparent; border-color: transparent; box-shadow: none;
+  border-bottom-width: 1px; opacity: .45; width: 26px; height: 24px;
 }
+.fd-sw.ghost:hover { opacity: .85; border-color: var(--ink-600); }
 .fd-sw.ghost.on { opacity: 1; color: var(--amber-400); border-color: var(--amber-600); }
 .fd-sw.ghost.on .fd-lamp { background: var(--amber-400); box-shadow: 0 0 6px var(--amber-glow-soft); }
+
+/* 折りたたみハンドル+折りたたみ状態(クランクが回っているのみ) */
+#fd-fold {
+  position: absolute; top: -1px; left: -1px; width: 18px; height: 18px; padding: 0;
+  border-radius: var(--radius-md) 0 6px 0;
+  background: var(--ink-800); border: 1px solid var(--amber-600); border-bottom-width: 1px;
+  display: flex; align-items: center; justify-content: center; opacity: .6;
+}
+#fd-fold:hover { opacity: 1; }
+.fd-chev {
+  width: 7px; height: 7px; border-left: 2px solid var(--sub); border-bottom: 2px solid var(--sub);
+  transform: rotate(-45deg) translate(1px, -1px); /* ▼=たたむ */
+  transition: transform var(--dur-base) var(--ease-pop);
+}
+#feeder-dial.min .fd-chev { transform: rotate(135deg) translate(1px, -1px); } /* ▲=ひらく */
+#feeder-dial.min { padding: 4px; gap: 0; background: transparent; border-color: transparent; box-shadow: none; }
+#feeder-dial.min .fd-lever, #feeder-dial.min .fd-side, #feeder-dial.min .fd-stock { display: none; }
+#feeder-dial.min #fd-fold { opacity: 0; }
+#feeder-dial.min:hover #fd-fold { opacity: .9; }
+#feeder-dial.min.auto-on { box-shadow: none; }
+#feeder-dial.min #fd-crank { box-shadow: 0 0 10px rgba(0, 0, 0, .35); }
 
 /* オート稼働: 回転周期はレートに同期(--fd-spinをJSが設定) */
 #feeder-dial.auto-on { box-shadow: var(--elev-2), 0 0 14px var(--amber-glow-soft); }
