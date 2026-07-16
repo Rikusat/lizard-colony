@@ -307,6 +307,18 @@ globalThis._noStart = true;
     Game.tickCorpse = () => {}; // 撮影用に凍結
     Game.rollNextRaid();
   }
+  else if (h === "#boss-size-cur" || h === "#boss-size-a" || h === "#boss-size-b") {
+    // cur=現行1.75 / a=1.40 / b=1.25 // Phase2: サイズ案比較
+    if (h.endsWith("-a")) { CFG.bossScaleBoss = 1.25; CFG.bossScaleTier = 0.03; } // T5=1.40
+    else if (h.endsWith("-b")) { CFG.bossScaleBoss = 1.20; CFG.bossScaleTier = 0.01; } // T5=1.25
+    Game.state.nextRaid = { typeId: "snake", tier: 5, elite: false, boss: true };
+    Game.startRaid();
+    Hero.dismiss(true);
+    Game.raid.snake.hp = Game.raid.snake.maxHp = 9e9;
+    Game.raid.timeLeft = 9999;
+    Game.raid.snake.arrived = true;
+    Game.raid.snake.x = 850; Game.raid.cutinT = 0; Game.raid.stunT = 0;
+  }
   else if (h.startsWith("#boss-live") || h === "#boss-approach" || h === "#boss-enrage") {
     if (h.endsWith("-strong")) document.documentElement.style.setProperty("--dread", "1"); // 中案比較用 // Phase3: ボス戦の見た目確認
     Game.state.nextRaid = { typeId: "monitor", tier: 5, elite: true, boss: false };
