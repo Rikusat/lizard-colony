@@ -117,6 +117,10 @@
      繰り返し登場するグラデーション面。Phase 2のコンポーネント刷新で
      正式なサーフェス仕様(UISkills §5)へ置き換える予定の中継トークン */
   --grad-btn: linear-gradient(#54401f, #372813);
+  --grad-console: linear-gradient(#443216, #2c2010);       /* 操作卓の真鍮面(Brushup V2 §2) */
+  --lcd-bg: #10130A;                                        /* 計器窓 */
+  --lcd-text: #B9E06A;                                      /* 計器の文字(AA 12.4:1) */
+  --lcd-border: #2C3316;
   --grad-btn-cta: linear-gradient(var(--life-500), var(--life-600)); /* 主CTA(§5.2) */
   --grad-btn-danger: linear-gradient(#a03824, #6b2113);
   --grad-btn-primary: linear-gradient(var(--amber-500), #8f6620);

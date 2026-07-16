@@ -75,37 +75,46 @@ body {
 #topbar nav { margin-left: auto; display: flex; gap: 10px; }
 
 /* ============ buttons ============ */
+/* 操作卓モジュール(§5.2確定: 案B+Aの立体の手触り)。種別=左端インジケータ+計器窓 */
 button {
-  background: var(--grad-btn);
+  background: var(--grad-console);
   color: var(--text);
-  border: 1px solid var(--border);
-  border-bottom: 3px solid #140d05;
-  border-radius: 10px;
+  border: 1px solid #554020;
+  border-bottom: 3px solid #171008;
+  border-radius: 6px;
   padding: 8px 14px; font-size: 14px; cursor: pointer; position: relative;
   font-family: inherit;
   text-shadow: 0 1px 2px rgba(0, 0, 0, .6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), inset -1px 0 0 rgba(0, 0, 0, .35);
   transition: filter var(--dur-fast), border-color var(--dur-fast),
     transform var(--dur-fast) var(--ease-pop), box-shadow var(--dur-fast);
 }
-button:hover { filter: brightness(1.2); border-color: var(--border-hi); box-shadow: 0 0 12px var(--amber-glow-soft); }
-button:active { transform: translateY(1px) scale(.96); border-bottom-width: 1px; }
+button:hover { filter: brightness(1.16); border-color: var(--border-hi); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), 0 0 12px var(--amber-glow-soft); }
+button:active { transform: translateY(2px) scale(.97); border-bottom-width: 1px; box-shadow: inset 0 2px 6px rgba(0, 0, 0, .45); }
 button:disabled { opacity: .5; cursor: default; filter: none; transform: none; box-shadow: none; }
-button.danger {
-  background: var(--grad-btn-danger);
-  border-color: #c86a50; border-bottom-color: #3a0f06;
+/* 控えめなコーナーねじ(右側2点・小さく淡く) */
+button.act::before, button.act::after {
+  content: ""; position: absolute; right: 5px; width: 4px; height: 4px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #a88d54, #4a3818);
+  box-shadow: inset 0 -1px 1px rgba(0, 0, 0, .6); opacity: .55; pointer-events: none;
 }
-button.primary {
-  background: var(--grad-btn-primary);
-  border-color: var(--gold); border-bottom-color: #4d3208;
-  color: var(--on-amber); font-weight: bold; text-shadow: 0 1px 1px rgba(255, 255, 255, .3);
-}
-button.cta {
-  background: var(--grad-btn-cta);
-  border-color: var(--life-400); border-bottom-color: #163A1C;
-  color: var(--on-life); font-weight: bold; text-shadow: 0 1px 1px rgba(255, 255, 255, .25);
-}
-button.cta:hover { box-shadow: 0 0 12px var(--life-glow); }
-button.cta .lbl small { color: var(--on-life); opacity: .75; }
+button.act::before { top: 5px; }
+button.act::after { bottom: 5px; }
+/* 種別インジケータ(左端バー=アイコン機器窓の左縁)+ラベル色 */
+button.danger { border-color: #6d3524; }
+button.danger .bicon, button.danger .fic { border-left-color: var(--boss-500); color: var(--boss-400); }
+button.danger:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 0 12px rgba(224, 83, 59, .25); }
+button.primary { border-color: var(--amber-600); }
+button.primary .bicon { border-left-color: var(--amber-500); color: var(--amber-400); }
+button.primary .lbl { color: var(--amber-400); font-weight: bold; }
+button.primary .lbl small { color: var(--sub); font-weight: normal; }
+button.cta { border-color: var(--life-600); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), 0 0 10px rgba(123, 217, 134, .12); }
+button.cta .bicon { border-left-color: var(--life-500); color: var(--life-400); box-shadow: inset 0 1px 4px rgba(0, 0, 0, .9), 0 0 8px rgba(123, 217, 134, .2); }
+button.cta .lbl { color: var(--life-400); font-weight: bold; }
+button.cta .lbl small { color: var(--sub); font-weight: normal; }
+button.cta:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), 0 0 12px var(--life-glow); }
+/* 危機ボタン(今すぐ襲来)はアイコン窓なしでも伝わるようラベルも色付け */
+button.danger { color: var(--boss-400); }
 .badge {
   position: absolute; top: -7px; right: -7px;
   background: radial-gradient(circle at 35% 30%, #ff8866, var(--red-deep));
@@ -145,15 +154,20 @@ button.act {
   padding: 9px 10px; margin-bottom: 8px; text-align: left;
 }
 button.act .bicon {
-  width: 30px; height: 30px; border-radius: var(--radius-sm); flex-shrink: 0;
-  background: rgba(0, 0, 0, .35); border: 1px solid rgba(255, 255, 255, .1);
+  width: 30px; height: 30px; border-radius: 4px; flex-shrink: 0;
+  background: var(--lcd-bg); border: 1px solid rgba(255, 255, 255, .06);
+  border-left: 3px solid var(--ink-600); /* 種別インジケータ(既定=遷移) */
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, .9), 0 1px 0 rgba(255, 255, 255, .06);
   display: flex; align-items: center; justify-content: center; font-size: 16px;
+  color: var(--sand-200);
 }
 button.act .lbl { flex: 1; line-height: 1.2; }
 button.act .lbl small { display: block; color: var(--sub); font-size: 10px; }
 button.act .price {
-  color: var(--gold); font-size: 12px; font-weight: bold;
-  background: rgba(0, 0, 0, .4); padding: 3px 8px; border-radius: var(--radius-pill);
+  font-family: var(--font-retro); /* 計器窓=レトロの魂(§5.2) */
+  color: var(--lcd-text); font-size: 12px;
+  background: var(--lcd-bg); border: 1px solid var(--lcd-border);
+  padding: 3px 8px; border-radius: 3px;
   white-space: nowrap;
 }
 
@@ -279,20 +293,34 @@ button.act .price {
 .fd-targets { font-size: 11px; color: var(--sub); margin-left: 2px; }
 .fd-targets b { color: var(--sub); }
 .fd-controls { display: flex; align-items: center; gap: 6px; }
+/* トグル=ランプ+ロッカースイッチ(§5.2確定) */
 .fd-switch {
   display: inline-flex; align-items: center; gap: 5px;
-  font-size: 11px; padding: 3px 8px 3px 4px; border-radius: var(--radius-pill);
-  background: var(--ink-900); border: 1px solid var(--border); border-bottom-width: 1px;
+  font-size: 11px; padding: 3px 8px 3px 6px; border-radius: 4px;
+  background: var(--grad-console); border: 1px solid #554020; border-bottom: 2px solid #171008;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
 }
-.fd-sw-knob {
-  width: 14px; height: 14px; border-radius: 50%;
-  background: var(--ink-600); border: 1px solid var(--border);
-  transition: background var(--dur-base) var(--ease-out), box-shadow var(--dur-base);
+.fd-switch::before { /* ランプ */
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ink-600); box-shadow: inset 0 1px 1px rgba(0, 0, 0, .6);
+  transition: background var(--dur-base), box-shadow var(--dur-base);
+}
+.fd-sw-knob { /* ロッカー窓 */
+  width: 26px; height: 12px; border-radius: 2px; position: relative;
+  background: var(--lcd-bg); box-shadow: inset 0 1px 3px rgba(0, 0, 0, .9);
+  transition: background var(--dur-base) var(--ease-out);
+}
+.fd-sw-knob::after { /* ロッカー片 */
+  content: ""; position: absolute; top: 2px; left: 2px; width: 11px; height: 8px; border-radius: 1.5px;
+  background: linear-gradient(#6d5636, #4a3818);
+  transition: left var(--dur-base) var(--ease-pop), background var(--dur-base);
 }
 .fd-switch.on { border-color: var(--life-600); color: var(--life-400); }
-.fd-switch.on .fd-sw-knob { background: var(--life-500); box-shadow: 0 0 8px var(--life-glow); }
+.fd-switch.on::before { background: var(--life-400); box-shadow: 0 0 6px var(--life-glow); }
+.fd-switch.on .fd-sw-knob::after { left: 13px; background: linear-gradient(#8fdc9a, #3e9e49); }
 .fd-switch.gold { border-color: var(--amber-600); color: var(--amber-400); }
-.fd-switch.gold .fd-sw-knob { background: var(--amber-500); box-shadow: 0 0 8px var(--amber-glow-soft); }
+.fd-switch.gold::before { background: var(--amber-400); box-shadow: 0 0 6px var(--amber-glow-soft); }
+.fd-switch.gold .fd-sw-knob::after { left: 13px; background: linear-gradient(#ffe9a8, #c9a227); }
 /* Gold駆動中(補給ON・在庫が対象未満): 在庫数字を琥珀で明示 */
 #feeder-dial.gold-driven .fd-stock b { color: var(--amber-400); text-shadow: 0 0 8px var(--amber-glow-soft); }
 .fd-rate { display: inline-flex; background: var(--ink-900); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 2px; }
@@ -539,21 +567,26 @@ button.holding::after {
   font-size: 13px; margin-bottom: 10px; flex-wrap: wrap;
 }
 .nest-head b { color: var(--gold); }
-/* タブバー(§5.6): pill型セグメント。選択タブ=.primary(塗り)+僅かな浮き */
+/* タブバー(§5.6→操作卓化): 機器窓の中の押しボタン列。選択=真鍮プレート+琥珀インジケータ */
 .nest-tabs {
-  display: inline-flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap;
-  background: var(--ink-700); border: 1px solid var(--border);
-  border-radius: var(--radius-pill); padding: 3px;
+  display: inline-flex; gap: 3px; margin-bottom: 12px; flex-wrap: wrap;
+  background: var(--lcd-bg); border: 1px solid var(--lcd-border);
+  border-radius: 6px; padding: 3px;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, .8);
 }
 .nest-tabs button {
   font-size: 12px; padding: 6px 14px;
-  background: transparent; border: none; border-radius: var(--radius-pill);
+  background: transparent; border: none; border-radius: 4px;
+  border-bottom: 2px solid transparent;
+  color: var(--sub); box-shadow: none;
   transition: background var(--dur-base) var(--ease-out), transform var(--dur-fast) var(--ease-pop);
 }
-.nest-tabs button:hover { filter: brightness(1.15); box-shadow: none; }
+.nest-tabs button:hover { filter: brightness(1.2); box-shadow: none; }
 .nest-tabs button.primary {
-  background: var(--grad-btn-primary); color: var(--on-amber); font-weight: bold;
-  box-shadow: var(--elev-2); transform: translateY(-1px);
+  background: var(--grad-console); color: var(--amber-400); font-weight: bold;
+  border-bottom: 2px solid var(--amber-500);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), var(--elev-1);
+  transform: translateY(-1px);
 }
 
 /* V4.1: 巣ネットワーク(蜘蛛の巣・閲覧専用) */
