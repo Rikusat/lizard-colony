@@ -241,6 +241,14 @@ const UI = {
     // 襲撃タイマー+次ボス予告 (GameExpansion_v2 ①: 予告強化)
     const rt = this.els["raid-timer"];
     const nb = document.getElementById("next-boss");
+    // Brushup V2 §3.1: 危機状態(ボス級の戦闘中のみ)。終了で即解除=残り香ゼロ
+    const dread = !!(Game.raid && (Game.raid.tier || Game.raid.boss || Game.raid.elite));
+    document.body.classList.toggle("dread", dread);
+    if (dread && !this._dreadWas) { // 襲来の瞬間: ごく軽い震動(1回だけ)
+      const fr = document.getElementById("frame");
+      if (fr) Motion.play(fr, "quake");
+    }
+    this._dreadWas = dread;
     if (Game.raid) {
       const r = Game.raid;
       rt.textContent = "襲撃中!!";

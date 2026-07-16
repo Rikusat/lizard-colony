@@ -1112,8 +1112,31 @@ const Render = {
   },
 
   // ---------------- ボス共通ディスパッチ (GameExpansion_v2 ①②) ----------------
+  // ボス級の拡大率(Brushup V2 §3.2)。描画のみ・座標や当たり判定は不変
+  bossScale(raid) {
+    const big = raid.tier || raid.boss || raid.elite;
+    let k = big ? CFG.bossScaleBoss + (raid.tier || 0) * CFG.bossScaleTier : CFG.bossScaleSnake;
+    if (!raid.snake.arrived && !raid.type.flying) k *= CFG.bossApproach; // 迫り=より大きな影
+    if (raid.snake.arrived) {
+      k *= 1 + Math.sin(this.time * 2.1) * CFG.bossBreath;              // 呼吸
+      const lunge = Math.max(0, Math.sin(this.time * 0.9));             // 時折の威嚇(鎌首)
+      k *= 1 + Math.pow(lunge, 14) * 0.09;
+    }
+    return k;
+  },
+
   drawBoss(ctx, raid) {
     const e = raid.snake;
+    const k = this.bossScale(raid);
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.scale(k, k);
+    ctx.translate(-e.x, -e.y);
+    // 迫り(未到着): 大きな影/シルエットとして進入(§3.1)
+    if (!e.arrived && !raid.type.flying) {
+      ctx.filter = "brightness(0.32) saturate(0.5)";
+      ctx.globalAlpha = 0.9;
+    }
     // ティアオーラ (T3+)
     if (raid.tierDef && raid.tierDef.aura) {
       const g = ctx.createRadialGradient(e.x, e.y, 10, e.x, e.y, 130);
@@ -1145,6 +1168,7 @@ const Render = {
       ctx.lineWidth = 4;
       ctx.beginPath(); ctx.ellipse(e.x + (raid.typeId === "snake" ? 90 : 0), e.y, 105, 52, 0, 0, 7); ctx.stroke();
     }
+    ctx.restore(); // 変換ここまで(バー・ラベルは等倍で描く)
     // 蛇以外はここで共通HPバー・残り時間を描く(蛇は自前)
     if (raid.typeId !== "snake") {
       this.drawBossBar(ctx, raid, e.x, e.y - 70, raid.type.icon + " " + raid.type.name);

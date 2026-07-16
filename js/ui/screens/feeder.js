@@ -40,6 +40,13 @@ Object.assign(UI, {
         </div>
       </div>`;
     center.appendChild(el);
+    // 危機ヴィネット(Brushup V2 §3.1): 飼育槽の縁の内側だけを赤く。魂(Canvas描画)不変
+    const frame = document.getElementById("frame");
+    if (frame && !document.getElementById("dread-vign")) {
+      const dv = document.createElement("div");
+      dv.id = "dread-vign";
+      frame.appendChild(dv);
+    }
 
     const crank = el.querySelector("#fd-crank");
     crank.addEventListener("click", () => {

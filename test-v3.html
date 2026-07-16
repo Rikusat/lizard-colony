@@ -295,6 +295,20 @@ globalThis._noStart = true;
         + "</div>";
     });
   }
+  else if (h.startsWith("#boss-live") || h === "#boss-approach") {
+    if (h.endsWith("-strong")) document.documentElement.style.setProperty("--dread", "1"); // 中案比較用 // Phase3: ボス戦の見た目確認
+    Game.state.nextRaid = { typeId: "monitor", tier: 5, elite: true, boss: false };
+    Game.startRaid();
+    Hero.dismiss(true); // カットインは飛ばして戦闘状態を見る
+    Game.raid.snake.hp = Game.raid.snake.maxHp = 9e9; // 撮影用: 即撃破を防ぐ
+    Game.raid.timeLeft = 9999;
+    if (h.startsWith("#boss-live")) {
+      Game.raid.snake.arrived = true;
+      Game.raid.snake.x = 850; Game.raid.cutinT = 0; Game.raid.stunT = 0;
+    } else {
+      Game.raid.cutinT = 0; Game.raid.snake.x = 1150; Game.raid.stunT = 9999; // 進入途中で保持
+    }
+  }
   else if (h === "#btn-lab") { // Phase 2.1: ボタン造形3案の比較(選定用)
     const iv = (i) => `<svg class="icon"><use href="#i-${i}"/></svg>`;
     const col = (cls, name, desc) => `

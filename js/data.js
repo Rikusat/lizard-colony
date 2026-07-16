@@ -124,6 +124,12 @@ const CFG = {
   // V4: 繁殖予約(QoL §3.1.3)
   autoBreedInterval: 6,     // 自動繁殖の試行間隔(秒)
   dialRates: [10, 5, 2.5],  // 給餌ダイヤルのオート間隔(秒): 低/中/高(Brushup V2 Phase1)
+  // Brushup V2 Phase3: ボス脅威表現(描画のみ・戦闘ロジック不変)
+  bossScaleBoss: 1.45,      // ボス級(tier/boss/elite)の基本拡大率
+  bossScaleTier: 0.06,      // ティア1ごとの追加拡大
+  bossScaleSnake: 1.1,      // 序盤の通常蛇の控えめな拡大
+  bossBreath: 0.035,        // 呼吸(拡縮)の振幅
+  bossApproach: 1.3,        // 迫り(未到着シルエット)の追加拡大
   // Phase4: 終盤コンテンツ (GameExpansion_v2 ⑨)
   legendChance: 0.004,      // 繁殖時の伝説変異率(祭壇 +0.2%/Lv)
   merchantIntervalMin: 300, // 放浪商人の来訪間隔(秒)
