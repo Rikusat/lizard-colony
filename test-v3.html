@@ -30,7 +30,6 @@
       <button id="btn-buy10" class="act"><span class="bicon"></span><span class="lbl">コオロギ ×10<small>トカゲの餌</small></span><span class="price">100G</span></button>
       <button id="btn-buy100" class="act"><span class="bicon"></span><span class="lbl">コオロギ ×100<small>まとめ買い</small></span><span class="price">1,000G</span></button>
       <button id="btn-autosupply" class="act hidden"><span class="bicon"></span><span class="lbl">自動補給: OFF<small>R100で解禁</small></span></button>
-      <button id="btn-feedall" class="act primary"><span class="bicon"></span><span class="lbl">一括餌やり<small>全員に1匹ずつ</small></span></button>
       <button id="btn-breed" class="act"><span class="bicon"></span><span class="lbl">繁殖する<small>アダルト2匹で卵を作る</small></span></button>
       <button id="btn-fac" class="act"><span class="bicon"></span><span class="lbl">設備<small>コロニーを強化</small></span></button>
       <button id="btn-allies" class="act"><span class="bicon"></span><span class="lbl">味方<small>特別な仲間たち</small></span></button>
@@ -81,6 +80,7 @@ globalThis._noStart = true;
 <script src="js/ui/hero/rocket.js"></script>
 <script src="js/ui/hero/legend.js"></script>
 <script src="js/ui/screens/main.js"></script>
+<script src="js/ui/screens/feeder.js"></script>
 <script src="js/ui/screens/breeding.js"></script>
 <script src="js/ui/screens/equipment.js"></script>
 <script src="js/ui/screens/planet-map.js"></script>
@@ -148,6 +148,18 @@ globalThis._noStart = true;
           `<div style="padding:8px;background:var(--card2);border-radius:8px"><span style="font-size:26px;color:var(--gold)">${Icon.svg(id)}</span><div style="color:var(--sub);margin-top:4px">${id}</div></div>`).join("")
         + "</div>";
     });
+  }
+  else if (h === "#click-crank") { // Phase1回帰: クランク実クリックで給餌されるか
+    setTimeout(() => {
+      const before = { crickets: Game.state.crickets, xp: Game.state.lizards.reduce((a, l) => a + l.xp, 0) };
+      document.getElementById("fd-crank").click();
+      const after = { crickets: Game.state.crickets, xp: Game.state.lizards.reduce((a, l) => a + l.xp, 0) };
+      const d = document.createElement("div");
+      d.id = "diag-out";
+      d.style.cssText = "position:fixed;top:4px;left:4px;z-index:999;background:#043;color:#cfc;padding:6px 10px;font-size:13px";
+      d.textContent = `CRANK: crickets ${before.crickets}→${after.crickets} / totalXP ${before.xp}→${after.xp}`;
+      document.body.appendChild(d);
+    }, 800);
   }
   else if (h === "#click-nest-btn" || h === "#click-burrow") { // Phase0再現: 実イベント発火
     const errBox = document.createElement("div");

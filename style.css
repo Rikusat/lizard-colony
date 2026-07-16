@@ -244,6 +244,41 @@ button.act .price {
 }
 @keyframes banner-pulse { from { box-shadow: 0 0 18px rgba(255, 80, 40, .3); } to { box-shadow: 0 0 42px rgba(255, 80, 40, .65); } }
 
+/* ============ 給餌ダイヤル(§5.10・飼育槽の備え付け) ============ */
+#feeder-dial {
+  position: absolute; right: 22px; bottom: 20px; z-index: 3;
+  display: flex; align-items: center; gap: 8px;
+  background: linear-gradient(var(--ink-700), var(--ink-800));
+  border: 1px solid var(--amber-600); border-radius: var(--radius-md);
+  padding: 6px 10px 6px 6px; box-shadow: var(--elev-2);
+}
+#fd-crank {
+  width: 56px; height: 56px; padding: 2px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%, #4d3a20, var(--ink-800));
+  border: 1px solid var(--amber-600); border-bottom-width: 3px;
+}
+#fd-crank:hover { box-shadow: 0 0 12px var(--amber-glow-soft); }
+.fd-svg { width: 100%; height: 100%; display: block; }
+.fd-housing { fill: var(--ink-900); }
+.fd-rim { fill: none; stroke: var(--amber-600); stroke-width: 2.5; }
+.fd-plate { fill: var(--ink-700); }
+.fd-spokes { stroke: var(--amber-500); stroke-width: 2.5; stroke-linecap: round; fill: none; }
+.fd-hub { fill: var(--amber-400); }
+.fd-knob { fill: var(--amber-400); stroke: var(--amber-600); stroke-width: 1.5; }
+.fd-feet { stroke: var(--ink-600); stroke-width: 3; fill: none; stroke-linecap: round; }
+.fd-wheel { transform-origin: 32px 34px; }
+#fd-crank.spin .fd-wheel { animation: fd-spin 520ms var(--ease-pop); }
+@keyframes fd-spin { to { transform: rotate(360deg); } }
+#feeder-dial.fed { animation: res-gain var(--dur-slow) var(--ease-out); }
+#feeder-dial.empty { animation: fd-empty 300ms var(--ease-in-out); }
+@keyframes fd-empty { 30% { transform: translateX(-3px); } 70% { transform: translateX(3px); } }
+.fd-info { display: flex; flex-direction: column; gap: 3px; min-width: 96px; }
+.fd-title { font-family: var(--font-display); font-size: 11px; color: var(--gold); letter-spacing: 1px; }
+.fd-stock { display: flex; align-items: center; gap: 5px; font-size: 13px; }
+.fd-stock b { color: var(--gold); font-variant-numeric: tabular-nums; }
+.fd-targets { font-size: 11px; color: var(--sub); margin-left: 2px; }
+.fd-targets b { color: var(--sub); }
+
 /* ============ egg slots ============ */
 #egg-slots { display: flex; flex-direction: column; gap: 7px; }
 .egg-slot {

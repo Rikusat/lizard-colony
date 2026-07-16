@@ -50,11 +50,9 @@ const UI = {
     this.units = shopUnitsFor(Game.state.rank);
     on("btn-buy10", () => Game.buyCrickets(this.units[0]));
     on("btn-buy100", () => Game.buyCrickets(this.units[1]));
-    on("btn-feedall", () => Game.feedAll());
     on("btn-breed", () => this.openBreed());
     attachHold(document.getElementById("btn-buy10"), () => Game.buyCrickets(this.units[0], true));
     attachHold(document.getElementById("btn-buy100"), () => Game.buyCrickets(this.units[1], true));
-    attachHold(document.getElementById("btn-feedall"), () => Game.feedAll(true));
     // 繁殖ボタンの長押し=クイック繁殖の連続実行(短押しは選択画面)
     attachHold(document.getElementById("btn-breed"), () => Game.quickBreed(true));
     on("btn-autosupply", () => {
@@ -138,6 +136,7 @@ const UI = {
     });
 
     this.buildEggSlots();
+    this.initFeeder(); // 給餌ダイヤル(飼育槽右下・Brushup V2 Phase1)
     setInterval(() => this.rotateHint(), 12000);
     // #breed で繁殖画面を直接開く(動作確認・デバッグ用)
     if (location.hash === "#breed") setTimeout(() => this.openBreed(), 400);
@@ -291,6 +290,7 @@ const UI = {
     const claimable = MISSIONS.some((m) => !s.missionsClaimed[m.id] && m.check(s));
     this.els["mission-badge"].classList.toggle("hidden", !claimable);
 
+    this.updateFeeder();
     this.updateEggSlots();
     this.renderDetail(false);
   },

@@ -123,6 +123,7 @@ const CFG = {
   invasionRaidAccel: 0.002, // 1ptごとの襲撃間隔短縮率(最大0.2)
   // V4: 繁殖予約(QoL §3.1.3)
   autoBreedInterval: 6,     // 自動繁殖の試行間隔(秒)
+  dialRates: [10, 5, 2.5],  // 給餌ダイヤルのオート間隔(秒): 低/中/高(Brushup V2 Phase1)
   // Phase4: 終盤コンテンツ (GameExpansion_v2 ⑨)
   legendChance: 0.004,      // 繁殖時の伝説変異率(祭壇 +0.2%/Lv)
   merchantIntervalMin: 300, // 放浪商人の来訪間隔(秒)
