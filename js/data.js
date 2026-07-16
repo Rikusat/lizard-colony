@@ -255,8 +255,8 @@ const FACILITY_SYNERGIES = [
 const STAGES = [
   { id: 1, name: "乾燥地帯", rank: 1,  icon: "p-desert", mat: "乾いた砂",   nest: "地下巣穴",     sky: "#c9a86a", sky2: "#8f7440", ground: "#b28e5a", ground2: "#8a6b40", accent: "#6d5432", rock: "#8a7355", pebble: "#cbb083",
     env: {}, bosses: [], envText: "はじまりの地" },
-  { id: 2, name: "草原",     rank: 5,  icon: "p-grass", mat: "草の実",     nest: "草の根の巣",   sky: "#a8c47a", sky2: "#6f8f4a", ground: "#7da35a", ground2: "#5d7d40", accent: "#46602f", rock: "#7d7462", pebble: "#aa9c74",
-    env: {}, bosses: [], envText: "穏やかな草の海" },
+  { id: 2, name: "摩天楼スラム", rank: 5, icon: "p-city", mat: "廃材", nest: "排水管の巣", sky: "#2a3352", sky2: "#12162b", ground: "#3f3f4c", ground2: "#2a2a35", accent: "#1e1e2a", rock: "#4d4d5e", pebble: "#62627a",
+    env: {}, bosses: [], envText: "ネオンの光と、届かない光の街" },
   { id: 3, name: "森林",     rank: 10, icon: "p-forest", mat: "樹液",       nest: "巨木の樹上巣", sky: "#5f8a5a", sky2: "#39573a", ground: "#4c7040", ground2: "#37522e", accent: "#263a20", rock: "#63614f", pebble: "#8c866a",
     env: {}, bosses: [], envText: "木漏れ日の森" },
   { id: 4, name: "湿地",     rank: 18, icon: "p-swamp", mat: "泥炭",       nest: "湿地の巣",     sky: "#6a9a8a", sky2: "#40655c", ground: "#5a7a62", ground2: "#405a48", accent: "#2c4034", rock: "#5f6a5e", pebble: "#83907f",
@@ -278,7 +278,7 @@ const stageById = (id) => STAGES.find((s) => s.id === id);
 
 // V4 §3.2: Stage→惑星。各ステージに惑星名を付与(概念はV3のStageDataを継承)
 const PLANET_NAMES = {
-  1: "アリド", 2: "ヴェルデ", 3: "シルヴァ", 4: "パルス", 5: "イグニス",
+  1: "アリド", 2: "ネオヴェルデ", 3: "シルヴァ", 4: "パルス", 5: "イグニス",
   6: "ユンガ", 7: "メアリス", 8: "グラキス", 9: "カヴム", 10: "オリジン",
 };
 for (const st of STAGES) st.pname = `惑星${PLANET_NAMES[st.id]}`;

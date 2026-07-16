@@ -217,17 +217,68 @@ const Render = {
         this.cactus(ctx, x, y, 0.7 + rand() * 0.6);
       }
       for (let i = 0; i < 18; i++) this.tuft(ctx, rand() * W, groundY(), "#8a7040", rand);
-    } else if (st.id === 2) { // 草原: 草むら・花
-      for (let i = 0; i < 34; i++) this.tuft(ctx, rand() * W, groundY(), "#3f6428", rand);
-      for (let i = 0; i < 12; i++) {
-        const x = rand() * W, y = groundY();
-        ctx.fillStyle = ["#ffe9f0", "#fff7c8", "#e8d5ff"][Math.floor(rand() * 3)];
-        for (let p = 0; p < 5; p++) {
-          const a = p / 5 * Math.PI * 2;
-          ctx.beginPath(); ctx.arc(x + Math.cos(a) * 4, y + Math.sin(a) * 4, 2.6, 0, 7); ctx.fill();
+    } else if (st.id === 2) { // 摩天楼スラム: 夜のスカイライン・ネオン・経済格差
+      // 光害グロー: 高層側の空がネオンで滲む(シルエットを浮かせる下地)
+      const glow = ctx.createLinearGradient(0, HORIZON - 150, 0, HORIZON);
+      glow.addColorStop(0, "rgba(217,87,176,0)");
+      glow.addColorStop(0.7, "rgba(120,80,150,.10)");
+      glow.addColorStop(1, "rgba(255,170,120,.16)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, HORIZON - 150, W, 150);
+      // 左=高層(煌びやか) → 右=スラム(暗い)のグラデーションで格差を描く
+      let bx = -20;
+      let sign = 0;
+      while (bx < W) {
+        const highSide = bx < W * 0.55;
+        const bw = highSide ? 46 + rand() * 40 : 34 + rand() * 30;
+        const bh = highSide ? 90 + rand() * 130 : 24 + rand() * 46;
+        const top = HORIZON - bh;
+        ctx.fillStyle = highSide ? "#232c4a" : "#262530";
+        ctx.fillRect(bx, top, bw, bh);
+        ctx.fillStyle = highSide ? "rgba(159,208,255,.25)" : "rgba(216,195,165,.12)";
+        ctx.fillRect(bx, top, bw, 1.5); // 屋上の縁明かり
+        // 窓明かり: 高層=多く暖色/寒色、スラム=まばらで薄暗い
+        const litRate = highSide ? 0.5 : 0.12;
+        for (let wy = top + 6; wy < HORIZON - 6; wy += 9) {
+          for (let wx = bx + 4; wx < bx + bw - 4; wx += 7) {
+            if (rand() < litRate) {
+              ctx.fillStyle = highSide
+                ? (rand() < 0.5 ? "rgba(255,217,138,.85)" : "rgba(159,208,255,.8)")
+                : "rgba(201,162,94,.4)";
+              ctx.fillRect(wx, wy, 3, 4);
+            }
+          }
         }
-        ctx.fillStyle = "#e8b64c";
-        ctx.beginPath(); ctx.arc(x, y, 2.4, 0, 7); ctx.fill();
+        // 高層のみ: 屋上ネオン(惑星アクセントのネオンピンク+シアン・1本は明滅)
+        if (highSide && rand() < 0.6) {
+          const nx = bx + 4 + rand() * (bw - 12);
+          const neon = rand() < 0.5 ? "217,87,176" : "95,204,217";
+          const pulse = sign++ === 1 ? 0.55 + Math.sin(this.time * 2.2) * 0.3 : 0.8;
+          ctx.fillStyle = `rgba(${neon},${0.16 * pulse})`;
+          ctx.fillRect(nx - 4, top - 8, 14, 12); // ハロー
+          ctx.fillStyle = `rgba(${neon},${pulse})`;
+          ctx.fillRect(nx, top - 5, 6, 3);
+          ctx.fillRect(nx + 8, top - 4, 2, 2);
+        }
+        // スラムのみ: トタン屋根の段差
+        if (!highSide) {
+          ctx.fillStyle = "#22222c";
+          ctx.fillRect(bx - 3, top - 3, bw * 0.6, 4);
+        }
+        bx += bw + (highSide ? 6 : 3);
+      }
+      // 地面: 廃材・水たまりのネオン反射(軽め)
+      for (let i = 0; i < 8; i++) {
+        const x = rand() * W, y = groundY();
+        ctx.fillStyle = "#22222a";
+        ctx.fillRect(x, y - 3, 10 + rand() * 14, 5);
+      }
+      for (let i = 0; i < 3; i++) {
+        const x = W * 0.15 + rand() * W * 0.45, y = groundY();
+        ctx.fillStyle = "rgba(217,87,176,.10)";
+        ctx.beginPath(); ctx.ellipse(x, y, 26 + rand() * 18, 6, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = "rgba(159,208,255,.07)";
+        ctx.beginPath(); ctx.ellipse(x + 8, y + 2, 14, 3.5, 0, 0, 7); ctx.fill();
       }
     } else if (st.id === 3) { // 森林: 地平線の木・シダ
       for (let i = 0; i < 9; i++) {

@@ -360,6 +360,11 @@ globalThis._noStart = true;
       </div>`;
     });
   }
+  else if (h === "#stage2") { // 摩天楼スラム(ネオヴェルデ)へ移動した状態
+    Game.selectStage(2);
+    UI._crankSkinId = null;
+    UI.updateFeeder();
+  }
   else if (h === "#stage10") { // 遺跡惑星(オリジン)へ移動した状態
     Game.selectStage(10);
     UI._crankSkinId = null;

@@ -51,6 +51,7 @@
   --planet-snow: #7FC7DE;
   --planet-cave: #6FB8A0;
   --planet-ruins: #C9A227;
+  --planet-city: #D957B0;   /* 摩天楼スラムのネオン(2026-07-17追記) */
 
   /* ---------- [2] タイポグラフィ ----------
      Webフォントは font-display: swap で読込(読込前/失敗時はシステムfallback表示)。
