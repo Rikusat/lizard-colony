@@ -295,6 +295,18 @@ globalThis._noStart = true;
         + "</div>";
     });
   }
+  else if (h === "#boss-death") { // 撃破の死に様(決定的に中間フレームを構築)
+    Game.state.nextRaid = { typeId: "monitor", tier: 5, elite: true, boss: false };
+    Game.startRaid();
+    Hero.dismiss(true);
+    const r = Game.raid;
+    Game.raid = null;
+    r.snake.arrived = true; r.snake.x = 850; r.snake.hp = 0;
+    r.dyingT = 0.52; // 崩壊の中間
+    Game.corpse = r;
+    Game.tickCorpse = () => {}; // 撮影用に凍結
+    Game.rollNextRaid();
+  }
   else if (h.startsWith("#boss-live") || h === "#boss-approach" || h === "#boss-enrage") {
     if (h.endsWith("-strong")) document.documentElement.style.setProperty("--dread", "1"); // 中案比較用 // Phase3: ボス戦の見た目確認
     Game.state.nextRaid = { typeId: "monitor", tier: 5, elite: true, boss: false };

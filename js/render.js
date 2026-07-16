@@ -49,6 +49,7 @@ const Render = {
     const sorted = Game.state.lizards.filter((lz) => Game.isVisible(lz)).sort((a, b) => a.y - b.y);
     for (const lz of sorted) this.drawLizard(ctx, lz);
     if (Game.raid) this.drawBoss(ctx, Game.raid);
+    else if (Game.corpse) this.drawCorpse(ctx, Game.corpse);
     this.drawMerchant(ctx);
     this.drawPopups(ctx);
     this.drawVignette(ctx);
@@ -1123,6 +1124,46 @@ const Render = {
       k *= 1 + Math.pow(lunge, 14) * 0.09;
     }
     return k;
+  },
+
+  // 撃破の死に様(§3.3): のけぞり→崩壊→消滅。座標・ロジックには関与しない
+  drawCorpse(ctx, c) {
+    const e = c.snake;
+    const T = 1.15, p = clamp(1 - c.dyingT / T, 0, 1);
+    const big = c.tier || c.boss || c.elite;
+    const k = big ? CFG.bossScaleBoss + (c.tier || 0) * CFG.bossScaleTier : CFG.bossScaleSnake;
+    const rear = Math.sin(Math.min(p / 0.28, 1) * Math.PI) * -0.38;      // のけぞり
+    const collapse = clamp((p - 0.3) / 0.5, 0, 1);                       // 崩壊
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.rotate(rear + collapse * 0.22);
+    ctx.scale(k * (1 + collapse * 0.08), k * (1 - collapse * 0.85));
+    ctx.globalAlpha = 1 - clamp((p - 0.55) / 0.45, 0, 1);
+    ctx.filter = `saturate(${(1 - collapse * 0.7).toFixed(2)}) brightness(${(1 - collapse * 0.4).toFixed(2)})`;
+    ctx.translate(-e.x, -e.y);
+    switch (c.typeId) {
+      case "hawk": this.drawHawk(ctx, c); break;
+      case "crow": this.drawCrow(ctx, c); break;
+      case "monitor": this.drawMonitor(ctx, c); break;
+      case "scorpion": this.drawScorpion(ctx, c); break;
+      case "spider": this.drawSpider(ctx, c); break;
+      case "bugger": this.drawBugger(ctx, c); break;
+      default: this.drawSnake(ctx, c);
+    }
+    ctx.restore();
+    // 崩壊の土煙(簡素な粒・描画のみ)
+    if (collapse > 0 && collapse < 1) {
+      ctx.save();
+      ctx.globalAlpha = (1 - collapse) * 0.5;
+      ctx.fillStyle = "rgba(216, 195, 165, .5)";
+      for (let i = 0; i < 6; i++) {
+        const a = i * 1.05 + p * 3;
+        ctx.beginPath();
+        ctx.arc(e.x + Math.cos(a) * (30 + collapse * 70), e.y + 20 - Math.sin(a) * 10 * collapse, 5 + collapse * 6, 0, 7);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
   },
 
   drawBoss(ctx, raid) {

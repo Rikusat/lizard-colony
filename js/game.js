@@ -1602,6 +1602,8 @@ const Game = {
       else UI.toast(msg);
       this.popupBurst(r.snake.x, r.snake.y);
       this.slowmo = 0.6; // 撃破スローモーション
+      r.dyingT = 1.15; r.hitT = 0;
+      this.corpse = r; // 死に様の描画専用スナップショット(§3.3。ロジックはraid=nullで即終了)
     } else {
       if (reason === "egg") UI.toast("オオガラスに卵を奪われた…!", true);
       else if (reason === "grab") UI.toast("オオタカは仲間をさらって去った…(時間経過で戻ってくる)", true);
@@ -1732,6 +1734,7 @@ const Game = {
     if (this.flashT > 0) this.flashT = Math.max(0, this.flashT - dt);
 
     this.dialTick(dt); // 給餌ダイヤルのオート(Brushup V2)
+    this.tickCorpse(dt); // 撃破の死に様(描画専用タイマー)
     // V4.1: 巣ネットワークの自動解放チェック(操作ゼロ・毎秒)
     this._nestT = (this._nestT || 0) + dt;
     if (this._nestT >= 1) {
@@ -1812,6 +1815,13 @@ const Game = {
         }
       }
     }
+  },
+
+  // 死に様タイマー(描画専用)
+  tickCorpse(dt) {
+    if (!this.corpse) return;
+    this.corpse.dyingT -= dt;
+    if (this.corpse.dyingT <= 0) this.corpse = null;
   },
 
   popup(x, y, txt, color, big) {
