@@ -149,6 +149,24 @@ globalThis._noStart = true;
         + "</div>";
     });
   }
+  else if (h === "#click-nest-btn" || h === "#click-burrow") { // Phase0再現: 実イベント発火
+    const errBox = document.createElement("div");
+    errBox.style.cssText = "position:fixed;top:4px;left:4px;z-index:999;background:#800;color:#fff;padding:4px 8px;font-size:12px;max-width:600px";
+    window.addEventListener("error", (e) => { errBox.textContent = "JSエラー: " + e.message; document.body.appendChild(errBox); });
+    setTimeout(() => {
+      if (h === "#click-nest-btn") {
+        document.getElementById("btn-nest").click();
+      } else {
+        const cv = document.getElementById("game");
+        const r = cv.getBoundingClientRect();
+        cv.dispatchEvent(new PointerEvent("pointerdown", {
+          clientX: r.left + 480 * r.width / W,
+          clientY: r.top + 668 * r.height / H,
+          bubbles: true,
+        }));
+      }
+    }, 800);
+  }
   else if (h === "#detail") { // 個体詳細パネル(QA用)
     const lz = Game.state.lizards.find(l => l.stage === "adult");
     lz.injuredT = 30; lz.founder = true; // 全行を出す

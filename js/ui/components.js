@@ -8,7 +8,16 @@ Object.assign(UI, {
   openModal(title, buildBody) {
     this.els["modal-title"].innerHTML = title; // SVGアイコンを含むため(内部生成のみ)
     this.els["modal-body"].innerHTML = "";
-    buildBody(this.els["modal-body"]);
+    // Phase0(Brushup V2): 構築中の例外で「無反応」に見える事故を防ぐセーフティ。
+    // ライブ不具合(V4巣ページ)は buildBody 内の TypeError が握り潰され
+    // モーダルが hidden のまま=クリックしても何も起きない症状だった
+    try {
+      buildBody(this.els["modal-body"]);
+    } catch (err) {
+      console.error("モーダル構築エラー:", title, err);
+      this.toast(`画面の表示に失敗しました(${err.message})`, true);
+      return;
+    }
     // Phase 6(§4.3): 開いた瞬間の1回だけstagger入場。タブ切替等の再構築では発火しない
     Motion.stagger(this.els["modal-body"], ".list-row, .breed-card, .dex-cell, .stat-cell");
     this.els["modal"].classList.remove("hidden");

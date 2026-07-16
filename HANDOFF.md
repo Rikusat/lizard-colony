@@ -584,3 +584,31 @@ Phase 0ベースライン(scratchpad/p0/final-*)との対比: レイアウト骨
 - 期間: 2026-07-15〜16 / コミット42件(ベースライン+Phase 0〜9+SVG化)
 - UISkills.mdへの追記: §1.2/1.3/1.4(トークン5種)/§3.4(移行中継)/§5.9(ガラス面)/§6(濃さの原則)/§9(実装注記)
 - 残課題(任意): Webフォントのサブセット化(Phase 1提案・現状はCDN+swap)/レガシー橋渡しトークン[L]の段階撤去/screens/meta.jsの再分割検討
+
+---
+
+# HANDOFF — UI_Brushup_V2 (Handcraft & Dread) 実装記録
+
+- 基準文書: `docs/UI_Brushup_V2_Sprint.md` / デザインシステム: `docs/UISkills.md`
+- 確定事項: 給餌ダイヤル=クリック+レート設定のシンプル版(ドラッグ回転なし)/味方のシステム変更は別スプリント(今回は位置・造形のみ)
+
+## Phase 0 — 巣導線の修復(2026-07-16)✅
+
+### 再現と原因特定(推測でなく実測)
+
+1. **現行コードでは再現せず**: test-v3ハーネスに実イベント発火ハッシュ(#click-nest-btn=ボタンclick / #click-burrow=Canvas巣穴へのPointerEvent)を追加して検証 → 両経路とも巣ネットワークが正常に開く
+2. **ライブ(Vercel=V4版)の複製で再現**: 本番の index/style/js 一式をローカル複製し、実クリック+例外捕捉を注入 → **モーダルタイトルはセットされるが本体構築中に例外→modalがhiddenのまま=無反応** を確認(新規状態でもSTAGE 8/HQ73相当でも100%発生)
+3. **根本原因(live ui.js:847 buildNestTree)**:
+   `Object.entries(lg.cost).map(([k, v]) => stageById(+k).mat …)` — 伝説ノードのコスト表示が**V3形式(cost={stageId:素材数})の前提のまま**。V4資源化改修でdata.js側は `cost={science:120, energy:300}` に変わったため `stageById(+"science")=undefined` → **TypeError** → openModalのbuildBody()が中断し `classList.remove("hidden")` に到達しない。左ボタン/巣穴クリックは同じopenNestに合流するため両経路とも死ぬ
+   - 分類: **V4改修時の取りこぼし**(UI分割・Phase4巣再構成は無関係)。V4.1で探索ツリーごと全撤去済みのため現行コードは既に解消
+
+### 修正内容
+
+- **openModalに例外セーフティを追加**(js/ui/components.js): buildBody中の例外をcatchし、console.error+危機トースト「画面の表示に失敗しました(メッセージ)」を表示して閉じる。**同型の将来バグが「静かな無反応」にならない**ための恒久対策
+- 本番の解消は現行コードのデプロイで完了する(ローカル最終確認後に vercel --prod 予定)
+
+### 回帰確認
+
+- 左「巣ネットワーク」ボタン経路+フィールド内の巣クリック経路: 実イベント発火で両方とも開くことを撮影確認
+- 巻き込み確認: 新規起動/HQ/他モーダル正常・ロジック59項目 全PASS
+- 検証ハーネス(#click-nest-btn/#click-burrow)は回帰用に存置。ライブ複製(livecopy/)は削除済み
