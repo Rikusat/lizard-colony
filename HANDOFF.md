@@ -710,3 +710,9 @@ paper 11.26 / sand 7.91 / life-400 7.45〜7.81 / amber-400 7.45 / boss-400 5.20(
 - Phase 2: 操作卓モジュール言語(案B+立体)全展開+左列再設計
 - Phase 3: ボス脅威刷新(テレグラフ弱/大型化/映画的HUD/被弾/Enrage/死に様)
 - 副産物: ガラス縁バグ発見・復旧+教訓2点+CSS変数検査の恒久化(scratchpad/cssvar_check.py相当のチェックをQA手順に組込み)
+
+## 本番デプロイ(2026-07-16)
+
+- **https://lizardcolony.vercel.app へ本番反映**(dpl_4uQqJ5NxQNCbw6efd3xVP5zyeiMQ)。内容: V4.1(Idle Nest)+UI刷新スプリント(Neo-Terrarium Phase 0〜9+SVG化)+UI_Brushup_V2(Phase 0〜4)の全変更
+- ライブ検証: トップ200/新モジュール(js/ui/screens/nest.js)配信/tokens.cssにterra-glass・dread・grad-console定義/本番スクリーンショットで新UI表示を確認
+- **Phase 0の本番巣バグ(V4版の取り残しTypeError)はこのデプロイで解消**
