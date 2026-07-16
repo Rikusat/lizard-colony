@@ -9,6 +9,150 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700&family=M+PLUS+Rounded+1c:wght@700&family=DotGothic16&display=swap">
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="style.css">
+
+<style>
+/* ==== ボタン造形ラボ(選定用モック・本体未反映) ==== */
+#btn-lab-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+.blab-col h4 { font-family: var(--font-display); color: var(--gold); font-size: 14px; margin-bottom: 4px; }
+.blab-col p { font-size: 11px; color: var(--sub); line-height: 1.6; margin-bottom: 12px; min-height: 48px; }
+.blab-col .grp { font-size: 10px; color: var(--sub); letter-spacing: 2px; margin: 10px 0 4px; }
+.blab { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left;
+  padding: 10px 12px; margin-bottom: 8px; font-size: 14px; color: var(--text); cursor: pointer; }
+.blab .bic { width: 34px; height: 34px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.blab .bic .icon { width: 20px; height: 20px; }
+.blab .lb { flex: 1; line-height: 1.2; }
+.blab .lb small { display: block; font-size: 10px; color: var(--sub); }
+.blab .pr { font-size: 12px; font-weight: bold; color: var(--gold); white-space: nowrap; }
+
+/* ---- 案A: 彫り込みの据え物(立体・彫刻) ---- */
+.blab.a {
+  border-radius: 12px;
+  background:
+    linear-gradient(178deg, #5a4526, #3a2c16 45%, #2a1f10);
+  border: 1px solid #6d5636;
+  border-top-color: #8a7146;
+  border-bottom: 4px solid #171008;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22), inset 0 -6px 10px rgba(0,0,0,.35), var(--elev-2);
+}
+.blab.a .bic {
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 30%, #241a0e, #171008);
+  box-shadow: inset 0 2px 5px rgba(0,0,0,.9), inset 0 -1px 0 rgba(255,255,255,.14);
+  color: var(--amber-400);
+}
+.blab.a .lb { text-shadow: 0 1px 0 rgba(0,0,0,.8); }
+.blab.a .pr { background: rgba(0,0,0,.45); border-radius: 6px; padding: 3px 8px; box-shadow: inset 0 1px 3px rgba(0,0,0,.8); }
+.blab.a.cta {
+  background: linear-gradient(178deg, #74c47e, #3f9e4b 45%, #2c7a37);
+  border-color: #8fdc9a; border-top-color: #b9f0c0; border-bottom-color: #123a1a;
+  color: var(--on-life);
+}
+.blab.a.cta .bic { background: radial-gradient(circle at 38% 30%, #1d4a25, #10300f); color: var(--life-400); }
+.blab.a.cta .lb small { color: #0F2E14; opacity: .7; }
+.blab.a.shop {
+  background: linear-gradient(178deg, #d9b34a, #a8821e 45%, #7c5f12);
+  border-color: #f0d276; border-top-color: #ffe9a8; border-bottom-color: #3a2a05;
+  color: var(--on-amber);
+}
+.blab.a.shop .bic { background: radial-gradient(circle at 38% 30%, #4a3808, #2e2204); color: var(--amber-400); }
+.blab.a.shop .lb small { color: var(--on-amber); opacity: .65; }
+.blab.a.shop .pr { color: #ffe9a8; }
+.blab-sw.a {
+  display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 999px;
+  background: linear-gradient(178deg, #3a2c16, #241a0e); border: 1px solid #6d5636; border-bottom: 3px solid #171008;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.15); font-size: 12px; color: var(--sub); cursor: pointer;
+}
+.blab-sw.a .kn { width: 30px; height: 16px; border-radius: 999px; background: #171008;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.9); position: relative; }
+.blab-sw.a .kn::after { content: ""; position: absolute; top: 1px; left: 15px; width: 14px; height: 14px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #7bd986, #3e9e49); box-shadow: 0 0 8px var(--life-glow); }
+.blab-sw.a.on { color: var(--life-400); }
+
+/* ---- 案B: 操作卓モジュール(メカ・計器) ---- */
+.blab.b {
+  border-radius: 6px; position: relative;
+  background: linear-gradient(90deg, #241a0e 0, #241a0e 6px, transparent 6px), linear-gradient(#443216, #2c2010);
+  border: 1px solid #554020;
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,.12), inset -1px -1px 0 rgba(0,0,0,.5), var(--elev-1);
+}
+.blab.b::before, .blab.b::after {
+  content: ""; position: absolute; width: 5px; height: 5px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #a88d54, #4a3818); box-shadow: inset 0 -1px 1px rgba(0,0,0,.7);
+  right: 5px;
+}
+.blab.b::before { top: 5px; }
+.blab.b::after { bottom: 5px; }
+.blab.b .bic {
+  border-radius: 4px; background: #171008; color: var(--sub);
+  box-shadow: inset 0 1px 4px rgba(0,0,0,.9), 0 1px 0 rgba(255,255,255,.07);
+  border-left: 3px solid var(--ink-600);
+}
+.blab.b .pr { font-family: var(--font-retro); background: #10130a; border: 1px solid #2c3316; border-radius: 3px; padding: 3px 7px; color: #b9e06a; }
+.blab.b.cta { border-color: var(--life-600); box-shadow: inset 1px 1px 0 rgba(255,255,255,.12), inset -1px -1px 0 rgba(0,0,0,.5), 0 0 10px rgba(123,217,134,.12), var(--elev-1); }
+.blab.b.cta .bic { color: var(--life-400); border-left-color: var(--life-500); box-shadow: inset 0 1px 4px rgba(0,0,0,.9), 0 0 8px rgba(123,217,134,.25); }
+.blab.b.cta .lb b { color: var(--life-400); }
+.blab.b.shop .bic { color: var(--amber-400); border-left-color: var(--amber-500); }
+.blab.b.shop .lb b { color: var(--amber-400); }
+.blab-sw.b {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 4px;
+  background: linear-gradient(#2c2010, #201709); border: 1px solid #554020; font-size: 12px; color: var(--sub); cursor: pointer;
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,.1);
+}
+.blab-sw.b .kn { width: 34px; height: 14px; border-radius: 3px; background: #10130a; position: relative;
+  box-shadow: inset 0 1px 4px rgba(0,0,0,.9); }
+.blab-sw.b .kn::after { content: ""; position: absolute; top: 2px; left: 20px; width: 12px; height: 10px; border-radius: 2px;
+  background: linear-gradient(#8fdc9a, #3e9e49); box-shadow: 0 0 7px var(--life-glow); }
+.blab-sw.b .lamp { width: 6px; height: 6px; border-radius: 50%; background: var(--life-400); box-shadow: 0 0 6px var(--life-glow); }
+
+/* ---- 案C: 上質クラフト(革・手仕事) ---- */
+.blab.c {
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 90% at 30% 0%, rgba(255,255,255,.07), transparent 60%),
+    repeating-linear-gradient(115deg, rgba(0,0,0,.05) 0 3px, transparent 3px 6px),
+    linear-gradient(#4a3820, #33251190);
+  background-color: #3a2c16;
+  border: 2px solid #5d4930;
+  outline: 1px dashed rgba(216,195,165,.35);
+  outline-offset: -6px;
+  box-shadow: 0 3px 0 #1d150a, var(--elev-1);
+}
+.blab.c .bic {
+  border-radius: 12px; transform: rotate(-3deg);
+  background: linear-gradient(#5a4526, #3a2c16); border: 1px solid #7c6340;
+  box-shadow: 0 2px 0 #1d150a; color: var(--sand-200);
+}
+.blab.c .pr { background: #2a1f10; border: 1px dashed rgba(216,195,165,.4); border-radius: 999px; padding: 3px 9px; }
+.blab.c.cta {
+  background-color: #2f5a34;
+  background-image: radial-gradient(120% 90% at 30% 0%, rgba(255,255,255,.12), transparent 60%),
+    repeating-linear-gradient(115deg, rgba(0,0,0,.06) 0 3px, transparent 3px 6px),
+    linear-gradient(#57a862, #3c7d4590);
+  border-color: #7fd98a; outline-color: rgba(15,46,20,.5);
+  color: var(--on-life);
+}
+.blab.c.cta .bic { background: linear-gradient(#2c6a35, #1d4a25); border-color: #7fd98a; color: #d8f5dc; transform: rotate(3deg); }
+.blab.c.cta .lb small { color: var(--on-life); opacity: .7; }
+.blab.c.shop {
+  background-color: #8a6c1e;
+  background-image: radial-gradient(120% 90% at 30% 0%, rgba(255,255,255,.14), transparent 60%),
+    repeating-linear-gradient(115deg, rgba(0,0,0,.06) 0 3px, transparent 3px 6px),
+    linear-gradient(#d9b34a, #a8821e90);
+  border-color: #f0d276; outline-color: rgba(36,21,5,.45); color: var(--on-amber);
+}
+.blab.c.shop .bic { background: linear-gradient(#7c5f12, #4a3808); border-color: #f0d276; color: #ffe9a8; }
+.blab.c.shop .lb small { color: var(--on-amber); opacity: .65; }
+.blab.c.shop .pr { color: #ffe9a8; border-color: rgba(255,233,168,.5); }
+.blab-sw.c {
+  display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 999px;
+  background: linear-gradient(#4a3820, #332511); border: 2px solid #5d4930;
+  box-shadow: 0 2px 0 #1d150a; font-size: 12px; color: var(--sub); cursor: pointer;
+}
+.blab-sw.c .kn { width: 32px; height: 16px; border-radius: 999px; background: #241a0e; border: 1px dashed rgba(216,195,165,.35); position: relative; }
+.blab-sw.c .kn::after { content: ""; position: absolute; top: 0; left: 15px; width: 15px; height: 15px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe9a8, #c9a227); box-shadow: 0 1px 0 #1d150a; }
+</style>
+
 </head>
 <body>
 <!-- index.html と同じDOM構造をそのまま複製 -->
@@ -147,6 +291,28 @@ globalThis._noStart = true;
         + Object.keys(ICONS).map((id) =>
           `<div style="padding:8px;background:var(--card2);border-radius:8px"><span style="font-size:26px;color:var(--gold)">${Icon.svg(id)}</span><div style="color:var(--sub);margin-top:4px">${id}</div></div>`).join("")
         + "</div>";
+    });
+  }
+  else if (h === "#btn-lab") { // Phase 2.1: ボタン造形3案の比較(選定用)
+    const iv = (i) => `<svg class="icon"><use href="#i-${i}"/></svg>`;
+    const col = (cls, name, desc) => `
+      <div class="blab-col">
+        <h4>${name}</h4><p>${desc}</p>
+        <div class="grp">主行動(CTA)</div>
+        <button class="blab ${cls} cta"><span class="bic">${iv("breed")}</span><span class="lb"><b>繁殖する</b><small>アダルト2匹で卵を作る</small></span></button>
+        <div class="grp">ショップ</div>
+        <button class="blab ${cls} shop"><span class="bic">${iv("cricket")}</span><span class="lb"><b>コオロギ ×1,000</b><small>トカゲの餌</small></span><span class="pr">10.0KG</span></button>
+        <div class="grp">画面遷移</div>
+        <button class="blab ${cls}"><span class="bic">${iv("build")}</span><span class="lb"><b>設備</b><small>コロニーを強化</small></span></button>
+        <div class="grp">トグル</div>
+        <button class="blab-sw ${cls} on">${cls === "b" ? '<span class="lamp"></span>' : ""}オート<span class="kn"></span></button>
+      </div>`;
+    UI.openModal("ボタン造形ラボ — 3案比較(選定用モック)", (body) => {
+      body.innerHTML = `<div id="btn-lab-grid">
+        ${col("a", "案A: 彫り込みの据え物", "強い立体。上面ハイライト+深い底エッジ+彫り込んだ丸ソケットにアイコン。押すと沈む据え置き機構の趣")}
+        ${col("b", "案B: 操作卓モジュール", "真鍮ネジ+機械のエッジ+左端のインジケータ。価格はドット字の計器窓。テラリウム脇の飼育制御盤")}
+        ${col("c", "案C: 上質クラフト", "革・木の風合い+ステッチ(破線)+わずかに傾いだアイコンチップ。手仕事の温かさと厚み")}
+      </div>`;
     });
   }
   else if (h === "#dial-auto" || h === "#dial-gold") { // オート/Gold駆動状態の確認
