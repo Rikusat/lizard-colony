@@ -56,7 +56,7 @@
   --planet-city: #D957B0;   /* 摩天楼スラムのネオン(2026-07-17追記) */
 
   /* ---------- 給餌クランクのサイズ(全スキン共通・1値で調整) ---------- */
-  --fd-crank-size: 72px; /* 2026-07-17: 折りたたみ導入で圧迫解消済みのため64→72へ(見やすさ優先) */
+  --fd-crank-size: 80px; /* 2026-07-17 V5 Phase1: 72→80へ1段階拡大(全10スキン一律・1値調整) */
   --ab-spin-mult: 1.75;  /* ID7水中都市のオート回転の減速倍率(見た目のみ・給餌ペースはdialRates駆動で不変) */
 
   /* ---------- [2] タイポグラフィ ----------
@@ -65,10 +65,11 @@
   --font-body: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif;
   --font-display: "M PLUS Rounded 1c", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif;
   --font-retro: "DotGothic16", "MS Gothic", "Yu Gothic", monospace; /* 判子ラベル(STAGE名/称号/BOSS等)限定 */
-  --fs-caption: 13px;
-  --fs-body: 16px;
-  --fs-heading: 20px;
-  --fs-hero: 40px;
+  --fs-scale: 1.1;          /* V5 Phase2: 全UI文字の倍率(1=旧サイズ。1値で一律調整) */
+  --fs-caption: calc(13px * var(--fs-scale));
+  --fs-body: calc(16px * var(--fs-scale));
+  --fs-heading: calc(20px * var(--fs-scale));
+  --fs-hero: calc(40px * var(--fs-scale));
   --lh-body: 1.6;
 
   /* ---------- [3.1] スペーシング(4pxグリッド) ---------- */

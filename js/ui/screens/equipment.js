@@ -72,12 +72,12 @@ Object.assign(UI, {
     }
     // シナジー示唆 (効果は自然に重なるだけ・専用ルールなし)
     const syn = document.createElement("div");
-    let synHtml = `<h4 style="color:var(--gold);font-size:13px;margin:14px 0 8px">シナジーのヒント</h4>`;
+    let synHtml = `<h4 style="color:var(--gold);font-size:calc(13px * var(--fs-scale, 1));margin:14px 0 8px">シナジーのヒント</h4>`;
     for (const sy of FACILITY_SYNERGIES) {
       const have = sy.ids.filter((id) => Game.facLv(id) > 0).length;
       const names = sy.ids.map((id) => facilityById(id).name).join("+");
       synHtml += `<div class="list-row" style="padding:7px 10px">
-        <span class="fic" style="font-size:14px">${have === sy.ids.length ? Icon.svg("check") : have + "/" + sy.ids.length}</span>
+        <span class="fic" style="font-size:calc(14px * var(--fs-scale, 1))">${have === sy.ids.length ? Icon.svg("check") : have + "/" + sy.ids.length}</span>
         <div class="grow"><b>${sy.name}</b><div class="desc">${names} — ${sy.desc}</div></div></div>`;
     }
     syn.innerHTML = synHtml;

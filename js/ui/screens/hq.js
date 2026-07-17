@@ -19,7 +19,7 @@ Object.assign(UI, {
         <div class="inv-row"><span>${Icon.svg("erosion")} バガー侵食率</span>
           <div class="bar" style="flex:1"><div style="width:${ero}%;background:linear-gradient(90deg,#8a3a2a,#e05b41)"></div></div>
           <b>${ero}%</b></div>
-        <div style="font-size:12px;color:${eroStage ? "var(--red)" : "var(--sub)"}">
+        <div style="font-size:calc(12px * var(--fs-scale, 1));color:${eroStage ? "var(--red)" : "var(--sub)"}">
           ${eroStage === 0 ? "無害な水準。毎日ログインすれば低く保てる" :
             eroStage === 1 ? "影響発生中: 生産-5%・繁殖CD+15%・ボス強化。ログインやバガー撃破で下がる" :
             "侵食が濃い: 生産-10%・繁殖CD+30%。だが可逆——今日から取り戻せる"}</div>`;
@@ -37,7 +37,7 @@ Object.assign(UI, {
           <button id="cv-energy">${Icon.svg("energy")} エネルギー+${CFG.convertBatch} (${fmt(CFG.goldToEnergyRate * CFG.convertBatch)}G)</button>
           <button id="cv-science">${Icon.svg("science")} 研究力+${CFG.convertBatch} (${Icon.svg("bio")}${fmt(CFG.bioToScienceRate * CFG.convertBatch)})</button>
         </div>
-        <div class="rowline" style="font-size:12px;color:var(--sub)">
+        <div class="rowline" style="font-size:calc(12px * var(--fs-scale, 1));color:var(--sub)">
           所持: ${Icon.svg("bio")}${fmt(Game.res("bio"))} / ${Icon.svg("food")}${fmt(Game.res("food"))} / ${Icon.svg("energy")}${fmt(Game.res("energy"))} / ${Icon.svg("science")}${fmt(Game.res("science"))}</div>
 
         <h4 class="hq-h">${Icon.svg("build")} 惑星開発 — ${Icon.svg(cur.icon)}${cur.pname}(Lv${s.devLv || 0}/${CFG.devMaxLv})</h4>
@@ -64,7 +64,7 @@ Object.assign(UI, {
           <button id="hq-meteor" ${Game.ore("meteorite") < 1 ? "disabled" : ""}>${Icon.svg("meteorite")}隕石を割る(希少個体)</button>
           <button id="hq-amethyst" ${Game.ore("amethyst") < CFG.amethystLegendCost ? "disabled" : ""}>${Icon.svg("amethyst")}${CFG.amethystLegendCost}: 始祖の卵</button>
         </div>
-        <div class="rowline" style="font-size:12px;color:var(--sub)">
+        <div class="rowline" style="font-size:calc(12px * var(--fs-scale, 1));color:var(--sub)">
           鉱石: ${ORES.map((o) => `${Icon.svg(o.icon)}${o.name.slice(0, 4)}${fmt(Game.ore(o.id))}`).join(" / ")} — 巣ネットワークが自動で運んでくる</div>
 
         <h4 class="hq-h">${Icon.svg("titanium")} チタン鍛造 — 設備を化けさせる(Lv上限+1 / チタン鉱${CFG.forgeTitaniumCost})</h4>

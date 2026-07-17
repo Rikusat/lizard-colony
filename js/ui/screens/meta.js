@@ -7,7 +7,7 @@ Object.assign(UI, {
   // ---------------- 味方 (GameExpansion_v2 ⑩) ----------------
   openAllies() {
     this.openModal(`${Icon.svg("paw")} 味方 (繁殖不可の特別な仲間)`, (body) => {
-      body.innerHTML = `<p style="font-size:13px;color:var(--sub);margin-bottom:10px">
+      body.innerHTML = `<p style="font-size:calc(13px * var(--fs-scale, 1));color:var(--sub);margin-bottom:10px">
         各ボスの脅威を無力化する頼れる仲間。生態データでLvアップ。
         所持${Icon.svg("bio")}生態データ: <b style="color:var(--gold)">${fmt(Game.res("bio"))}</b></p>`;
       for (const a of ALLIES) {
@@ -41,7 +41,7 @@ Object.assign(UI, {
   // ---------------- 称号 (⑨-1) ----------------
   openTitles() {
     this.openModal(`${Icon.svg("medal")} 称号`, (body) => {
-      body.innerHTML = `<p style="font-size:13px;color:var(--sub);margin-bottom:10px">
+      body.innerHTML = `<p style="font-size:calc(13px * var(--fs-scale, 1));color:var(--sub);margin-bottom:10px">
         条件を達成すると自動で獲得。好きな称号をコロニーに掲げよう。</p>`;
       for (const t of TITLES) {
         const owned = Game.state.titles[t.id];
@@ -136,7 +136,7 @@ Object.assign(UI, {
         body.innerHTML = `<p>「もう売るものがないよ。また来るね」</p>`;
         return;
       }
-      body.innerHTML = `<p style="font-size:13px;color:var(--sub);margin-bottom:10px">
+      body.innerHTML = `<p style="font-size:calc(13px * var(--fs-scale, 1));color:var(--sub);margin-bottom:10px">
         「いいものあるよ。ジェムで払っておくれ」(滞在 残り${Math.ceil(Game.merchant.t)}秒 / 所持${Icon.svg("gem")}${fmt(Game.state.gems)})</p>`;
       Game.merchant.offers.forEach((o, i) => {
         const row = document.createElement("div");
@@ -167,7 +167,7 @@ Object.assign(UI, {
           m.reward.coins ? `${fmt(m.reward.coins)}G` : "",
         ].filter(Boolean).join(" ");
         row.innerHTML = `
-          <span style="font-size:20px">${Icon.svg(claimed ? "check" : done ? "gift" : "mission")}</span>
+          <span style="font-size:calc(20px * var(--fs-scale, 1))">${Icon.svg(claimed ? "check" : done ? "gift" : "mission")}</span>
           <div class="grow"><b>${m.name}</b><div class="desc">報酬: ${rewardTxt}</div></div>
           ${claimed ? `<span class="lv">達成済</span>` : done ? `<button>受取</button>` : `<span style="color:var(--sub)">未達成</span>`}`;
         if (!claimed && done) row.querySelector("button").addEventListener("click", (e) => {
@@ -195,7 +195,7 @@ Object.assign(UI, {
           <button id="set-rollback">復元</button></div>
         <div class="list-row"><div class="grow"><b>データ初期化</b><div class="desc">すべての進行状況を削除して最初から</div></div>
           <button id="set-reset" class="danger">初期化</button></div>
-        <div style="font-size:12px;color:var(--sub);line-height:1.7;margin-top:10px">
+        <div style="font-size:calc(12px * var(--fs-scale, 1));color:var(--sub);line-height:1.7;margin-top:10px">
           <b style="color:var(--gold)">${Icon.svg("lizard")} 遊び方</b><br>
           1. コオロギを買ってトカゲに餌やり → 成長・レベルアップ<br>
           2. アダルト2匹で繁殖 → 卵が孵化してコロニー拡大<br>

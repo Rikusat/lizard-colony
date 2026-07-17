@@ -43,7 +43,7 @@ Object.assign(UI, {
     const bonus = Game.dexCompBonus();
     box.innerHTML = `<div class="dex-summary">コンプ率: <b style="color:var(--gold)">${(got / total * 100).toFixed(1)}%</b> (${got}/${total})
       <div class="bar"><div style="width:${got / total * 100}%"></div></div>
-      <div style="font-size:12px;color:var(--sub);margin-top:5px">
+      <div style="font-size:calc(12px * var(--fs-scale, 1));color:var(--sub);margin-top:5px">
         ${Icon.svg("crown")} コンプ報酬(恒久): 現在 生産+${Math.round(bonus * 100)}% — 25%/50%/75%/100%で +2/4/6/10%</div></div>`;
     const stageId = Game.currentStage().id;
     // V4: 惑星別に区切って表示

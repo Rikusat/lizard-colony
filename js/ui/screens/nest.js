@@ -31,7 +31,7 @@ Object.assign(UI, {
         <span class="nest-legend">
           <i class="lg on"></i>解放済み <i class="lg near"></i>もうすぐ <i class="lg off"></i>未解放
         </span>
-        <span style="font-size:11px;color:var(--sub)">操作は不要。繁殖を続ければ勝手に育つ</span>
+        <span style="font-size:calc(11px * var(--fs-scale, 1));color:var(--sub)">操作は不要。繁殖を続ければ勝手に育つ</span>
       </div>
       <div id="nest-scroll"><div id="nest-web"></div></div>
       <div id="nest-tip" class="hidden"></div>`;

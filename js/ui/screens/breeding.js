@@ -32,13 +32,13 @@ Object.assign(UI, {
     }
     const readyAll = lizards.filter((lz) => Game.canBreed(lz)).length;
     body.innerHTML = `
-      <p style="font-size:13px;color:var(--sub);margin-bottom:10px">
+      <p style="font-size:calc(13px * var(--fs-scale, 1));color:var(--sub);margin-bottom:10px">
         系統を選んで2匹ペアを決めよう。突然変異で新モーフや上位種族が生まれることも…!
         (卵スロット ${Game.state.eggs.length}/${Game.eggSlotCap()})</p>
       <button id="quick-breed" class="cta">${Icon.svg("energy")} クイック繁殖 (最善の2匹を自動選抜・長押しで連続)</button>
       ${Game.facLv("breedfac") >= 5
         ? `<button id="auto-breed" class="${Game.state.autoBreed ? "primary" : ""}" style="width:100%;margin-bottom:10px">${Icon.svg("breedfac")} 繁殖予約: ${Game.state.autoBreed ? "ON(卵スロットが空くと自動繁殖)" : "OFF"}</button>`
-        : `<div style="font-size:12px;color:var(--sub);margin-bottom:10px">繁殖施設Lv5で「繁殖予約」(自動繁殖)が解禁</div>`}
+        : `<div style="font-size:calc(12px * var(--fs-scale, 1));color:var(--sub);margin-bottom:10px">繁殖施設Lv5で「繁殖予約」(自動繁殖)が解禁</div>`}
       <div id="breed-species"></div>`;
 
     const ab = body.querySelector("#auto-breed");
@@ -106,7 +106,7 @@ Object.assign(UI, {
       <div class="breed-head">
         <button id="breed-back">← 系統一覧</button>
         <b>${title}</b>
-        <span style="color:var(--sub);font-size:12px">2匹選択(卵 ${Game.state.eggs.length}/${Game.eggSlotCap()})</span>
+        <span style="color:var(--sub);font-size:calc(12px * var(--fs-scale, 1))">2匹選択(卵 ${Game.state.eggs.length}/${Game.eggSlotCap()})</span>
       </div>
       <div class="breed-filters">
         <button id="bf-ready" class="${v.onlyReady ? "primary" : ""}">繁殖可のみ</button>

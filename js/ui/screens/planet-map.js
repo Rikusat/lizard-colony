@@ -61,7 +61,7 @@ Object.assign(UI, {
     const picks = this.founderPicks;
     const founders = Game.state.lizards.filter((lz) => Game.canFound(lz, stageId));
     body.innerHTML = `
-      <p style="font-size:13px;color:var(--sub);margin-bottom:10px">
+      <p style="font-size:calc(13px * var(--fs-scale, 1));color:var(--sub);margin-bottom:10px">
         新しい土地の開拓には本部Lv${Game.hqLevel()}の支援(コオロギ・資金・水場/シェルター無償)が付く。<br>
         <b style="color:var(--gold)">創始者の卵</b>: 今のコロニーから血統を最大${max}匹まで連れて行ける(繁殖できるよう2匹推奨。個体自体は移動しない)。</p>
       <div class="breed-filters" style="margin-bottom:10px">
