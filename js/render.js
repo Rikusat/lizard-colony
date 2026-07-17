@@ -352,26 +352,71 @@ const Render = {
         ctx.fillStyle = "rgba(255,250,190,.05)";
         ctx.beginPath(); ctx.ellipse(x, y, 60 + rand() * 60, 20 + rand() * 15, 0, 0, 7); ctx.fill();
       }
-    } else if (st.id === 7) { // 大湿原: 立ち枯れ・水たまり・霧
-      for (let i = 0; i < 7; i++) { // 立ち枯れの木
-        const x = rand() * W, s2 = 0.5 + rand() * 0.7;
-        ctx.strokeStyle = "#3d4238"; ctx.lineWidth = 5 * s2;
-        ctx.beginPath(); ctx.moveTo(x, HORIZON + 4); ctx.lineTo(x + 4, HORIZON - 44 * s2);
-        ctx.moveTo(x + 2, HORIZON - 26 * s2); ctx.lineTo(x + 16 * s2, HORIZON - 38 * s2);
-        ctx.moveTo(x + 3, HORIZON - 32 * s2); ctx.lineTo(x - 12 * s2, HORIZON - 42 * s2);
+    } else if (st.id === 7) { // 水中都市: 水底に安らう静かな都(静寂・安寧=引き算の演出)
+      // やわらかな水中光のシャフト(ゆっくり明滅する呼吸)
+      for (const [sx, sw2, ph] of [[280, 90, 0], [640, 130, 2.1], [980, 70, 4.2]]) {
+        const breathe = 0.05 + Math.sin(this.time * 0.35 + ph) * 0.02;
+        const g2 = ctx.createLinearGradient(sx, 0, sx + 40, H * 0.8);
+        g2.addColorStop(0, `rgba(190,225,240,${breathe * 2})`);
+        g2.addColorStop(1, "rgba(190,225,240,0)");
+        ctx.fillStyle = g2;
+        ctx.beginPath();
+        ctx.moveTo(sx - sw2 * 0.3, 0); ctx.lineTo(sx + sw2 * 0.3, 0);
+        ctx.lineTo(sx + sw2, H * 0.82); ctx.lineTo(sx - sw2, H * 0.82);
+        ctx.closePath(); ctx.fill();
+      }
+      // 耐圧ドームの都(水底に静かに座る。窓の灯りは温かく安らぐ)
+      const domes = [[180, 74, 0], [340, 40, 1], [780, 52, 0], [1080, 88, 2], [935, 34, 1]];
+      for (const [dx, dr, kind] of domes) {
+        ctx.fillStyle = kind === 2 ? "#2c4a58" : "#274250";
+        ctx.beginPath(); ctx.arc(dx, HORIZON, dr, Math.PI, 0); ctx.fill();
+        ctx.strokeStyle = "rgba(160,210,230,.28)"; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.arc(dx, HORIZON, dr, Math.PI, 0); ctx.stroke();
+        ctx.strokeStyle = "rgba(160,210,230,.12)";
+        ctx.beginPath(); ctx.arc(dx, HORIZON, dr * 0.66, Math.PI, 0); ctx.stroke();
+        // 窓の灯り(温かい琥珀=眠る前の家の光)
+        ctx.fillStyle = "rgba(255,214,150,.55)";
+        const nw = Math.max(2, Math.floor(dr / 22));
+        for (let k = 0; k < nw; k++) {
+          const a = Math.PI + (Math.PI * (k + 1)) / (nw + 1);
+          ctx.fillRect(dx + Math.cos(a) * dr * 0.55 - 2, HORIZON + Math.sin(a) * dr * 0.55 - 2, 4, 3);
+        }
+      }
+      // ドームを結ぶ連絡通路(静かな都の生活動線)
+      ctx.strokeStyle = "#274250"; ctx.lineWidth = 7;
+      ctx.beginPath(); ctx.moveTo(252, HORIZON - 8); ctx.lineTo(302, HORIZON - 8); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(830, HORIZON - 10); ctx.lineTo(902, HORIZON - 10); ctx.stroke();
+      ctx.strokeStyle = "rgba(255,214,150,.30)"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(252, HORIZON - 8); ctx.lineTo(302, HORIZON - 8); ctx.stroke();
+      // 気泡がゆっくり昇る(せわしなくしない)
+      for (const [bx, sp, ph, r] of [[240, 9, 0, 2], [610, 7, 3, 1.6], [1010, 8, 5.4, 2.2], [450, 6, 8, 1.4]]) {
+        const cyc = 34; // ゆっくり
+        const t = ((this.time * sp / cyc + ph / cyc) % 1);
+        const by = HORIZON + 20 - t * (HORIZON + 40);
+        ctx.strokeStyle = `rgba(200,230,245,${0.35 * (1 - t)})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(bx + Math.sin(this.time * 0.8 + ph) * 6, by, r, 0, 7); ctx.stroke();
+      }
+      // 海藻がゆらぐ(やわらかい呼吸)
+      for (const [kx, kh, ph] of [[95, 46, 0], [520, 34, 2], [1180, 52, 4]]) {
+        const swy = Math.sin(this.time * 0.6 + ph) * 5;
+        ctx.strokeStyle = "rgba(90,150,130,.5)"; ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(kx, HORIZON + 6);
+        ctx.quadraticCurveTo(kx + swy * 0.5, HORIZON - kh * 0.5, kx + swy, HORIZON - kh);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(kx + 7, HORIZON + 6);
+        ctx.quadraticCurveTo(kx + 7 + swy * 0.4, HORIZON - kh * 0.35, kx + 7 + swy * 0.8, HORIZON - kh * 0.7);
         ctx.stroke();
       }
-      for (let i = 0; i < 8; i++) { // 水たまり
-        const x = 80 + rand() * (W - 160), y = groundY(), r = 24 + rand() * 40;
-        ctx.fillStyle = "rgba(90,120,130,.5)";
-        ctx.beginPath(); ctx.ellipse(x, y, r * 1.7, r * 0.4, 0, 0, 7); ctx.fill();
-        ctx.fillStyle = "rgba(170,200,205,.25)";
-        ctx.beginPath(); ctx.ellipse(x - r * 0.3, y - 2, r * 0.8, r * 0.18, 0, 0, 7); ctx.fill();
-      }
-      for (let i = 0; i < 6; i++) { // 漂う霧
-        const x = rand() * W, y = HORIZON + 30 + rand() * 320;
-        ctx.fillStyle = "rgba(215,225,220,.08)";
-        ctx.beginPath(); ctx.ellipse(x, y, 130 + rand() * 120, 18 + rand() * 12, 0, 0, 7); ctx.fill();
+      // 水底: 真珠色の貝と丸石(静かな床)
+      for (let i = 0; i < 7; i++) {
+        const x = rand() * W, y = groundY();
+        ctx.fillStyle = "rgba(220,230,235,.5)";
+        ctx.beginPath(); ctx.ellipse(x, y, 5 + rand() * 4, 3, 0, Math.PI, 0); ctx.fill();
+        ctx.strokeStyle = "rgba(120,150,160,.4)"; ctx.lineWidth = .8;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 2, y - 3.4); ctx.moveTo(x, y); ctx.lineTo(x + 2.6, y - 3); ctx.stroke();
       }
     } else if (st.id === 8) { // 氷の前線: 雪原の上に「与えられた」軍事技術の痕跡(気配まで・説明しない)
       const BLACK = "#14161a", BLACK2 = "#1d2026", RED = "224,64,64";

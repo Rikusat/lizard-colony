@@ -372,6 +372,11 @@ globalThis._noStart = true;
     else Game.ensureDial().auto = true;
     UI.updateFeeder();
   }
+  else if (h === "#stage7") { // 水中都市(メアリス)へ移動した状態
+    Game.selectStage(7);
+    UI._crankSkinId = null;
+    UI.updateFeeder();
+  }
   else if (h === "#stage8") { // 氷の前線(グラキス)へ移動した状態
     Game.selectStage(8);
     UI._crankSkinId = null;
