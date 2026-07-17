@@ -561,7 +561,39 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 }
 #feeder-dial.skin-neon .fd-notch { background: #2a2e44; }
 #feeder-dial.skin-neon .fd-notch.n2 { background: #5fccd9; }
-#feeder-dial.skin-neon .fd-sw { background: linear-gradient(#171923, #0d0e15); border-color: #2a2e44; }
+#feeder-dial.skin-neon .fd-sw { background: linear-gradient(#171923, #0d0e15); border-color: #2a2e44; overflow: hidden; }
+
+/* トグルも同じ電子機構(crank.md §3.4トグル追記・ID2限定スコープ) */
+/* 押した瞬間: 映像ずれ(ON/OFF両方向)。輪郭・ランプ位置は崩さない */
+#feeder-dial.skin-neon .fd-sw:active { animation: e-sw-press .18s steps(2, end); }
+@keyframes e-sw-press {
+  0% { transform: translate(1px, 0); border-color: rgba(95, 204, 217, .8); }
+  50% { transform: translate(-1px, .5px); border-color: rgba(217, 87, 176, .6); }
+  100% { transform: none; }
+}
+/* ONに入った瞬間: 信号ロック(ちらつき→点灯へ収束)。ランプの地色(緑/金)は不変 */
+#feeder-dial.skin-neon .fd-sw.on { animation: e-sw-lock .3s steps(3, end); }
+@keyframes e-sw-lock {
+  0% { opacity: .45; transform: translateX(1px); }
+  40% { opacity: 1; transform: translateX(-1px); }
+  70% { opacity: .65; transform: none; }
+  100% { opacity: 1; }
+}
+/* ランプの発光がRGBに割れて収束(currentColorで緑=オート/金=Goldを自動継承・地色死守) */
+#feeder-dial.skin-neon .fd-sw.on .fd-lamp { animation: e-lamp-lock .3s steps(3, end); }
+@keyframes e-lamp-lock {
+  0% { box-shadow: -2px 0 4px rgba(95, 204, 217, .9), 2px 0 4px rgba(217, 87, 176, .9); }
+  60% { box-shadow: -1px 0 3px rgba(95, 204, 217, .6), 1px 0 3px rgba(217, 87, 176, .6); }
+  100% { box-shadow: 0 0 6px currentColor; }
+}
+/* ON中の待機: 細い走査線がトグル面をよぎるのみ(盤面の走査線と同じ文法・fx0で停止) */
+#feeder-dial.skin-neon .fd-sw.on::after {
+  content: ""; position: absolute; left: 0; right: 0; top: -2px; height: 1px;
+  background: rgba(159, 208, 255, .28); pointer-events: none;
+  animation: e-sw-scan 5.2s linear infinite;
+}
+@keyframes e-sw-scan { 0% { transform: translateY(0); } 55%, 100% { transform: translateY(31px); } }
+#feeder-dial.skin-neon.fx0 .fd-sw.on::after { animation: none; opacity: 0; }
 
 /* セグメント(格差: hi=明るく安定 / lo=薄暗い / dead=死に / flick=不規則明滅) */
 .e-seg.hi { fill: rgba(95, 204, 217, .85); }

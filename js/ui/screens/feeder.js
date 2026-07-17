@@ -127,7 +127,9 @@ Object.assign(UI, {
     this._crankSkinId = skin.id;
     crank.innerHTML = skin.face();
     const dial = document.getElementById("feeder-dial");
-    dial.className = dial.className.replace(/\bskin-[\w-]+\b/g, "").trim() + " " + skin.dialClass;
+    // fx0=dialレベルの演出抑制クラス(スキンCSSがトグル等の待機演出をこれで止める)
+    const fx = CFG.crankFxLevel > 0 ? "" : " fx0";
+    dial.className = dial.className.replace(/\bskin-[\w-]+\b|\bfx0\b/g, "").trim() + " " + skin.dialClass + fx;
   },
 
   // オート中タップのばね応答: 一瞬ぐんっと加速して戻る(reduced-motionでは何もしない)

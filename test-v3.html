@@ -390,11 +390,17 @@ globalThis._noStart = true;
     UI._crankSkinId = null;
     const d = Game.ensureDial();
     if (h.includes("auto")) d.auto = true;
+    if (h.includes("gold")) d.supply = true;
     if (h.includes("min")) d.min = true;
     UI.updateFeeder();
     if (h.includes("zoom")) {
       const st = document.createElement("style");
       st.textContent = "#feeder-dial{transform:scale(3.4);transform-origin:100% 100%;}";
+      document.head.appendChild(st);
+    }
+    if (h.includes("glitch")) { // 切替瞬間のグリッチを中間フレームで凍結(静止画検証用)
+      const st = document.createElement("style");
+      st.textContent = "#feeder-dial .fd-sw.on, #feeder-dial .fd-sw.on .fd-lamp { animation-play-state: paused !important; animation-delay: -0.05s !important; }";
       document.head.appendChild(st);
     }
     if (h.includes("hold")) document.getElementById("fd-crank").classList.add("holding");
