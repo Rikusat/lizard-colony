@@ -372,7 +372,66 @@ const Render = {
         ctx.fillStyle = "rgba(215,225,220,.08)";
         ctx.beginPath(); ctx.ellipse(x, y, 130 + rand() * 120, 18 + rand() * 12, 0, 0, 7); ctx.fill();
       }
-    } else if (st.id === 8) { // 雪原: オーロラ・雪・吹き溜まり
+    } else if (st.id === 8) { // 氷の前線: 雪原の上に「与えられた」軍事技術の痕跡(気配まで・説明しない)
+      const BLACK = "#14161a", BLACK2 = "#1d2026", RED = "224,64,64";
+      // 監視柱(センサーパイロン): 完璧な直立・非トカゲ的な精度。赤い単眼
+      for (const [px, ph] of [[210, 96], [860, 78]]) {
+        ctx.fillStyle = BLACK;
+        ctx.fillRect(px - 3.5, HORIZON - ph, 7, ph);
+        ctx.fillStyle = BLACK2;
+        ctx.fillRect(px - 6, HORIZON - ph - 8, 12, 9);
+        const eye = ctx.createRadialGradient(px, HORIZON - ph - 3.5, 1, px, HORIZON - ph - 3.5, 8);
+        eye.addColorStop(0, `rgba(${RED},.9)`); eye.addColorStop(1, `rgba(${RED},0)`);
+        ctx.fillStyle = eye;
+        ctx.fillRect(px - 8, HORIZON - ph - 12, 16, 16);
+        ctx.fillStyle = `rgb(${RED})`;
+        ctx.beginPath(); ctx.arc(px, HORIZON - ph - 3.5, 1.8, 0, 7); ctx.fill();
+      }
+      // 浮遊する黒いモノリス(接地していない=出所不明のオーバーテクノロジー)
+      {
+        const mx = 560, my = HORIZON - 70;
+        ctx.fillStyle = "rgba(0,0,0,.18)"; // 真下の影(浮いている証拠)
+        ctx.beginPath(); ctx.ellipse(mx, HORIZON - 4, 26, 5, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = BLACK;
+        ctx.fillRect(mx - 11, my - 46, 22, 46);
+        ctx.fillStyle = "rgba(255,255,255,.08)";
+        ctx.fillRect(mx - 11, my - 46, 3, 46);
+        ctx.fillStyle = `rgba(${RED},.5)`; // 側面に走る細い線(何の記号かは描かない)
+        ctx.fillRect(mx + 4, my - 38, 1.2, 26);
+      }
+      // 六角の黒い台座が雪に埋まる(幾何学が精確すぎる)
+      {
+        const hx = 1050, hy = HORIZON + 68, r = 26;
+        ctx.fillStyle = BLACK2;
+        ctx.beginPath();
+        for (let k = 0; k < 6; k++) {
+          const a = k / 6 * Math.PI * 2 + 0.26;
+          const x = hx + Math.cos(a) * r, y = hy + Math.sin(a) * r * 0.38;
+          k === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,.25)"; ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.fillStyle = `rgba(${RED},.45)`;
+        ctx.beginPath(); ctx.arc(hx, hy, 2.2, 0, 7); ctx.fill();
+        ctx.fillStyle = "rgba(221,232,242,.85)"; // 縁に吹き溜まった雪
+        ctx.beginPath(); ctx.ellipse(hx - r * 0.7, hy + 4, 12, 4, 0, 0, 7); ctx.fill();
+      }
+      // 半分雪に埋もれた巡回機の残骸(単眼は消えかけ)
+      {
+        const wx = 330, wy = HORIZON + 116;
+        ctx.save(); ctx.translate(wx, wy); ctx.rotate(-0.18);
+        ctx.fillStyle = BLACK;
+        ctx.fillRect(-20, -12, 40, 14);
+        ctx.fillStyle = BLACK2;
+        ctx.fillRect(12, -20, 9, 10);
+        ctx.fillStyle = `rgba(${RED},.35)`;
+        ctx.beginPath(); ctx.arc(16.5, -15, 1.6, 0, 7); ctx.fill();
+        ctx.restore();
+        ctx.fillStyle = "rgba(221,232,242,.95)"; // 残骸に積もる雪
+        ctx.beginPath(); ctx.ellipse(wx - 6, wy - 12, 16, 5, -0.18, 0, 7); ctx.fill();
+      }
+      // ---- 以下は元の雪原(オーロラ・雪・吹き溜まり) ----
       for (let i = 0; i < 3; i++) { // オーロラ
         const x0 = rand() * W;
         const grad = ctx.createLinearGradient(x0, 0, x0 + 200, HORIZON);
