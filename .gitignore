@@ -1,3 +1,25 @@
 node_modules/
 *.log
 .vercel/
+
+# ローカル環境専用(個人パス入りの権限設定など)
+.claude/
+
+# 秘密情報(現状ファイルは無いが予防)
+.env
+.env.*
+*.pem
+*.key
+
+# スクショ・一時ファイル(通常はscratchpad側だが、リポジトリ内に置かれた場合の予防)
+chrome-headless-profile/
+screenshot*.png
+*.tmp
+
+# セーブデータのエクスポート(セーブはlocalStorageだが、書き出した場合の予防)
+save-*.json
+*.save.json
+
+# Windowsノイズ
+Thumbs.db
+desktop.ini

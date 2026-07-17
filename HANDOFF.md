@@ -832,3 +832,10 @@ paper 11.26 / sand 7.91 / life-400 7.45〜7.81 / amber-400 7.45 / boss-400 5.20(
 - 実証: ①#wheel-diag3=合成animationendで5スキン全て除去成功 ②spinproof.js(puppeteer-core実時間)=タップ+オート中タップ後、5スキン全てΔ90〜118°/500ms・class=""で回転継続 ③59項目PASS
 - **教訓(重要)**: `--virtual-time-budget`のヘッドレスは**animationendを発火せず、getComputedStyleのアニメ値も進まない**(スクショのレンダリングだけは進む)。アニメイベント依存の検証はpuppeteer-core(スクラッチパッドspinproof.js)の実時間駆動で行う。診断で「発火ゼロ」を確認してから結論すること(今回diag2の凍結表示は環境起因の偽陽性だった)
 - **再発防止(crank.md §6追記)**: スキン完成の必須チェック=「タップを挟んでもオート回転が継続」。#wheel-diag2(実機)/#spin-proof-N+spinproof.js(回帰)を毎回使う
+
+### 恒久の運用メモ: ヘッドレスChromeのスクショ採取(2026-07-17)
+
+- **採取後は必ずヘッドレスChromeを終了させる**。ただし一律 `Stop-Process chrome` はユーザーの通常ブラウザを巻き込むため禁止。**コマンドラインに `--headless` を含むプロセスのみ**を対象にする:
+  `Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" | Where-Object { $_.CommandLine -match '--headless' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }`
+- **`--user-data-dir=<scratchpad>\chrome-headless-profile` を必ず付ける**。既定プロファイル共有のまま強制終了すると「Chromeは正しく終了しませんでした」通知がユーザーの実ブラウザに出る(2026-07-17に指摘・原因特定)。専用プロファイルなら通知も競合も起きない
+- puppeteer-core(spinproof.js)は自前の一時プロファイル+browser.close()で自己完結するのでこの問題なし
