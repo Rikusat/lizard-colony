@@ -546,6 +546,80 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 #feeder-dial.skin-compass #fd-crank.holding ~ * .cp-band circle,
 #feeder-dial.skin-compass #fd-crank.holding .cp-band circle { stroke: var(--amber-glow); }
 
+/* ---- 使い捨て高効率機構スキン(ID9 ヴォルタ・crank.md §3.4/§4.5: 雑な寄せ集め×キビキビ高性能) ---- */
+#feeder-dial.skin-junk {
+  background: #565c61; /* 安いプラ=フラット塗り(上質トーンを意図的に破る) */
+  border-color: #41474c;
+}
+#feeder-dial.skin-junk #fd-crank { background: #4a5055; border-color: #41474c; }
+#feeder-dial.skin-junk .fd-track { background: #33383d; border-color: #41474c; }
+#feeder-dial.skin-junk .fd-lknob {
+  background: #c0392b; border-color: #7d241a; /* メーカー違いの赤いプラつまみ */
+}
+#feeder-dial.skin-junk .fd-notch { background: #41474c; }
+#feeder-dial.skin-junk .fd-notch.n2 { background: #b8bec4; }
+#feeder-dial.skin-junk .fd-sw { background: #4a5055; border-color: #41474c; border-radius: 3px; }
+/* Gold=応急処置の黄テープの意匠(補給トグルに雑に貼られたテープ+骨格共通の金ランプ) */
+#feeder-dial.skin-junk .fd-sw.ghost {
+  background: linear-gradient(168deg, transparent 30%, rgba(217, 179, 74, .5) 30%, rgba(217, 179, 74, .5) 62%, transparent 62%);
+}
+
+/* 安物の5mm LED: 通常=死んだプラ / オート=緑点灯(チープなLEDの文法・直感アンカー) */
+#feeder-dial.skin-junk .jk-led { fill: #4a5045; stroke: #41474c; stroke-width: .8; transition: fill var(--dur-base); }
+#feeder-dial.skin-junk.auto-on .jk-led {
+  fill: var(--life-400);
+  filter: drop-shadow(0 0 4px rgba(123, 217, 134, 1));
+}
+
+/* 物理①: タップ=0.32秒・全スキン最速の一回転(出だしガチャッ→噛み合うと一切ブレずピタッ) */
+#feeder-dial.skin-junk #fd-crank.spin .fd-wheel {
+  animation: jk-snap-turn .32s linear;
+}
+@keyframes jk-snap-turn {
+  0% { transform: rotate(0); }
+  7% { transform: rotate(-4deg); }
+  14% { transform: rotate(6deg); }
+  20% { transform: rotate(2deg); }
+  46% { transform: rotate(120deg); }
+  74% { transform: rotate(248deg); }
+  100% { transform: rotate(360deg); }
+}
+/* 物理②: オート=等速で正確(レート同期)だが軸がちゃちく微かな偏心ブレを伴う */
+#feeder-dial.skin-junk.auto-on .fd-wheel {
+  animation: jk-idle-spin var(--fd-spin, 1.6s) linear infinite;
+}
+@keyframes jk-idle-spin {
+  0% { transform: rotate(0) translate(0, 0); }
+  25% { transform: rotate(90deg) translate(.4px, -.2px); }
+  50% { transform: rotate(180deg) translate(0, .4px); }
+  75% { transform: rotate(270deg) translate(-.4px, 0); }
+  100% { transform: rotate(360deg) translate(0, 0); }
+}
+/* 物理③: オート中タップ=筐体ガタガタッ(crank側=§6保守則。回転は一切乱れない) */
+#feeder-dial.skin-junk #fd-crank.boing { animation: jk-rattle .25s linear; }
+@keyframes jk-rattle {
+  0% { transform: translate(1.4px, 0) rotate(1.2deg); }
+  25% { transform: translate(-1.2px, .8px) rotate(-1deg); }
+  50% { transform: translate(1px, -.6px) rotate(.8deg); }
+  75% { transform: translate(-.8px, .4px) rotate(-.6deg); }
+  100% { transform: none; }
+}
+/* 長押し=フル稼働の微振動(安物の唸り) */
+#feeder-dial.skin-junk #fd-crank.holding { animation: jk-hum .13s linear infinite; }
+@keyframes jk-hum {
+  0%, 100% { transform: translate(.5px, 0); }
+  50% { transform: translate(-.5px, .3px); }
+}
+/* 待機微動: 浮いたネジがときどきプルッ(cheapLevel=1のみ描画・fx0/reducedで停止) */
+#feeder-dial.skin-junk .jk-loose { animation: jk-screw-tremble 4.7s linear infinite; transform-origin: 32px 59px; }
+@keyframes jk-screw-tremble {
+  0%, 90%, 100% { transform: rotate(14deg); }
+  92% { transform: rotate(19deg); }
+  94% { transform: rotate(10deg); }
+  96% { transform: rotate(16deg); }
+}
+#feeder-dial.skin-junk.fx0 .jk-loose { animation: none; }
+
 /* ---- 溶鉱炉スキン(ID5 イグニス・crank.md §3.4/§4.5: 炎/溶鉄の機構=粘る手触り) ---- */
 #feeder-dial.skin-forge {
   background: linear-gradient(#3a2018, #1c0e0a);

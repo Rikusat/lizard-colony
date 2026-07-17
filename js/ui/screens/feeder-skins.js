@@ -16,7 +16,7 @@ const CrankSkins = {
   // 1=乾燥地帯(アリド)=始まりの地・教科書(不変) / 10=古代遺跡(オリジン)=羅針盤(確定)
   byPlanet: {
     1: "default", 2: "neon", 3: "clock", 4: "default", 5: "forge",
-    6: "default", 7: "default", 8: "default", 9: "default",
+    6: "default", 7: "default", 8: "default", 9: "junk",
     10: "compass",
   },
 
@@ -342,6 +342,84 @@ const CrankSkins = {
             <path d="M32 27.6c1.8 1.6 2.4 3 1.6 4.8-.5 1.2-1.9 1.9-3.2 1.4-1.9-.7-2.3-2.6-1.2-4.4.7-1.1 1.6-1.6 2.8-1.8z" class="fl-core"/>
             <!-- 鋳型の刻印(静) -->
             <path d="M25 53.4h14M28 55.6h8" stroke="#160c08" stroke-width="1" opacity=".8"/>
+          </svg>`;
+      },
+    },
+    // 使い捨て高効率機構(ID9 ヴォルタ=廃原子炉)。crank.md §3.4/§4.5:
+    // あからさまに雑な寄せ集め×キビキビ高性能。チープさはCFG.crankCheapLevelで調整
+    junk: {
+      id: "junk",
+      dialClass: "skin-junk",
+      face() {
+        const cheap = CFG.crankCheapLevel > 0;
+        // ジャンクファン: 色バラバラの7枚ブレード(1枚は明らかに別規格)
+        const bladeCols = ["#8a9096", "#7a8288", "#9aa0a6", "#6d7378", "#c9a86a", "#848a90", "#5f6a72"];
+        let blades = "";
+        for (let i = 0; i < 7; i++) {
+          const odd = i === 4; // 異物ブレード: 大きく色も違う
+          const len = odd ? 17.5 : 15, w = odd ? 6.2 : 4.8;
+          blades += `<rect x="${32 - w / 2}" y="${31 - len - 6}" width="${w}" height="${len}" rx="2.2" fill="${bladeCols[i]}" transform="rotate(${i * 51.4 + (odd ? 4 : 0)} 32 32)"/>`;
+        }
+        // 規格違いのネジ(プラス/マイナス/六角/欠落穴/浮き)
+        const screws = `
+          <g stroke="#41474c" stroke-width="1">
+            <circle cx="11" cy="14" r="2.4" fill="#9aa0a6"/><path d="M9.6 14h2.8M11 12.6v2.8"/>
+            <circle cx="53" cy="12" r="2.4" fill="#b8bec4"/><path d="M51.4 12.6l3.2-1.2"/>
+            <path d="M52.9 50.2l2.1 1.2v2.4l-2.1 1.2-2.1-1.2v-2.4z" fill="#8a9096"/>
+          </g>
+          <circle cx="11.5" cy="50" r="2.1" fill="#22262a"/>
+          ${cheap ? `<g class="jk-loose" transform="rotate(14 32 59)"><circle cx="32" cy="59" r="2.3" fill="#c8b48a" stroke="#6b5d42" stroke-width="1"/><path d="M30.6 59h2.8" stroke="#6b5d42" stroke-width="1"/></g>` : ""}`;
+        // 剥き出し配線(チープ時は3本)
+        const wires = `
+          <path d="M6 24c6-4 10 4 16-1" fill="none" stroke="#c0392b" stroke-width="1.6"/>
+          <path d="M8 43c6 4 10-3 15 3" fill="none" stroke="#3d7ac0" stroke-width="1.4"/>
+          ${cheap ? `<path d="M42 55c5 2 9-2 13 1" fill="none" stroke="#d9b34a" stroke-width="1.4"/>` : ""}`;
+        // 応急処置テープ(黄=警告柄・銀ダクト。貼り方が雑)
+        const tapes = cheap ? `
+          <g transform="rotate(20 48 9)">
+            <rect x="39" y="6" width="19" height="5.4" fill="#d9b34a"/>
+            <path d="M42 6l-2.6 5.4M47 6l-2.6 5.4M52 6l-2.6 5.4M57 6l-2.6 5.4" stroke="#26221a" stroke-width="2"/>
+          </g>
+          <g class="jk-tape" transform="rotate(-13 14 57)">
+            <rect x="7" y="54.5" width="15" height="5" fill="#a8adb2" opacity=".92"/>
+            <path d="M7 54.5l2 5M22 54.5l-2.4 5" stroke="#8a9096" stroke-width=".8"/>
+          </g>` : "";
+        // 型番シール(傾いてる)
+        const sticker = `
+          <g transform="rotate(-8 20 53)">
+            <rect x="13.5" y="50" width="13" height="5.6" rx="1" fill="#d9dde0"/>
+            <path d="M15.5 52h9M15.5 54h6.5" stroke="#7d8489" stroke-width=".9"/>
+          </g>`;
+        return `
+          <svg viewBox="0 0 64 64" class="fd-svg" aria-hidden="true">
+            <!-- 筐体: 継ぎ目のずれた色違いプラ板2枚(グラデ無し=安いフラット) -->
+            <path d="M29.5 5a27 27 0 0 0-2.5 53.9L29.5 59z" fill="#8f959b"/>
+            <path d="M29.5 5a27 27 0 0 1 2.5 54l-4.5-.1z" fill="#7d8489"/>
+            <path d="M29.5 5L27 58.9" stroke="#565c61" stroke-width="1.2"/>
+            <circle cx="32" cy="32" r="27" fill="none" stroke="#41474c" stroke-width="1.6"/>
+            <!-- 通気スリット(安物の打ち抜き) -->
+            <path d="M20 47.5h7M19 44.5h8M20 41.5h7" stroke="#565c61" stroke-width="1.6"/>
+            <!-- ファンの奥板 -->
+            <circle cx="32" cy="32" r="21" fill="#33383d"/>
+            <circle cx="32" cy="32" r="21" fill="none" stroke="#41474c" stroke-width="1"/>
+            <!-- 回る主体: ジャンクファン(.fd-wheel) -->
+            <g class="fd-wheel">
+              ${blades}
+              <circle cx="32" cy="32" r="6.6" fill="#c8cdd2" stroke="#7d8489" stroke-width="1"/>
+              <circle cx="33.1" cy="31.2" r="2" fill="#6d7378"/>
+              <path d="M32.1 30.2l2 2M34.1 30.2l-2 2" stroke="#41474c" stroke-width=".8"/>
+            </g>
+            <!-- 保護グリル(1本曲がってる) -->
+            <path d="M13 25h38M13 39h38M25 12.6v38.8M39 12.6v38.8" stroke="rgba(180,186,192,.35)" stroke-width="1.2"/>
+            ${cheap ? `<path d="M13 32h16q4 3 22 .5" fill="none" stroke="rgba(180,186,192,.45)" stroke-width="1.3"/>` : `<path d="M13 32h38" stroke="rgba(180,186,192,.35)" stroke-width="1.2"/>`}
+            ${screws}
+            ${wires}
+            ${tapes}
+            ${sticker}
+            <!-- 安物の5mm LED(配線で外付け・オート=緑点灯の直感アンカー) -->
+            <path d="M42 8q3-4 6-1" fill="none" stroke="#41474c" stroke-width="1"/>
+            <rect x="46.6" y="8" width="4" height="2.6" fill="#565c61"/>
+            <circle cx="48.6" cy="6.6" r="2.7" class="jk-led"/>
           </svg>`;
       },
     },
