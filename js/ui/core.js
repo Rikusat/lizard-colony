@@ -131,6 +131,7 @@ const UI = {
       this.buildEggSlots();
     }
     this.initFeeder(); // 給餌ダイヤル(飼育槽右下・Brushup V2 Phase1)
+    this.initRoulette(); // 遺伝子ルーレット(左メニュー下部・roulette.md §7)
     this.initBossHud(); // ボスHPバー(上部中央・Brushup V2 Phase3)
     setInterval(() => this.rotateHint(), 12000);
     // #breed で繁殖画面を直接開く(動作確認・デバッグ用)
@@ -152,8 +153,10 @@ const UI = {
         const gdt = Game.slowmo > 0 ? real * 0.25 : real;
         if (Game.slowmo > 0) Game.slowmo = Math.max(0, Game.slowmo - real);
         Game.tick(gdt);
+        if (typeof Roulette !== "undefined") Roulette.advance(gdt); // ルーレット物理(固定ステップ)
       }
       Render.draw();
+      if (this.drawRoulette) this.drawRoulette();
       this.acc += real;
       if (this.acc >= 0.2) { this.acc = 0; this.update(); }
       requestAnimationFrame(loop);

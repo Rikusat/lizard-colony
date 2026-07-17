@@ -917,6 +917,8 @@ const Game = {
     }
     this.state.coins -= CFG.feedGoldCost; // V5.1: 給餌=Gold直接消費
     this.state.stats.fed++;
+    // 遺伝子ルーレット: 給餌1回=遺伝子球1個を放出(ルール層・Roulette無ければ無害)
+    if (typeof Roulette !== "undefined" && Roulette.emit) Roulette.emit({ hue: lz.hue, sat: lz.sat, light: lz.light, speciesId: lz.speciesId, morphId: lz.morphId });
     this.addRes("bio", CFG.resBioPerFeed); // V4: 育成から生態データが生まれる
     let xp = CFG.feedXp * (1 + this.facLv("heat") * 0.06);
     if (this.event && this.event.def.xpMult) xp *= this.event.def.xpMult;

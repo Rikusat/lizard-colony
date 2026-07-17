@@ -38,6 +38,24 @@ const CFG = {
   offlineRate: 0.5,         // オフライン収益倍率(ブラウザを閉じていた時間・ロード時一括精算)
   awayStageIncomeRate: 1.0, // V5: 留守コロニーの常時生産倍率(1=フル。インフレ調整は支出側で)
   feedGoldCost: 10,         // V5.1: 給餌1回のGoldコスト(旧: コオロギ1匹=10Gと等価)
+
+  // ---- 遺伝子ルーレット(roulette.md §7・全パラメータCFG化。反復で追い込む初期値) ----
+  roulDt: 0.0083,           // 固定タイムステップ(秒・約120Hz)。決定論の要
+  roulW: 120,               // シム空間の幅(単位)
+  roulH: 210,               // シム空間の高さ(単位)
+  roulGravity: 340,         // 重力(単位/秒^2)
+  roulRestitution: 0.5,     // 壁の反発係数(0=無反発/1=完全弾性)
+  roulWallDamp: 0.96,       // 壁反射時の接線減衰
+  roulEmitX: 0.08,          // 放出位置X(幅比・左下)
+  roulEmitY: 0.94,          // 放出位置Y(高さ比・左下)
+  roulEmitSpeed: 165,       // 放出初速(単位/秒)
+  roulEmitSpeedVar: 0.28,   // 初速のばらつき(±比)
+  roulEmitAngle: -63,       // 放出角(度・右上向き。0=右/-90=上)
+  roulEmitAngleVar: 22,     // 放出角のばらつき(±度)
+  roulBallR: 4.2,           // 球半径(単位)
+  roulMaxBalls: 64,         // 同時球数上限(性能・カオス上限)
+  roulBallTtl: 7,           // 球の寿命(秒・着地しない球の掃除)
+
   xpPopupAutoHighEvery: 10, // V5 3.5: オート高のXPポップ間引き(N回に1回だけ表示)
   xpPopupAutoHighSmall: true, // V5 3.5: オート高のXPポップを小さく表示
   // 長押しオートリピート (GameExpansion_v2 ④)
