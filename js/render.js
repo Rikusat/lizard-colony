@@ -1711,7 +1711,7 @@ const Render = {
       sw.lockT -= dt;
       const pos = this._swPos(sw.target);
       const f = Math.max(0, sw.lockT / CFG.bugSweepLockSec);
-      const r = 6 + 10 * f;
+      const r = (6 + 10 * f) * (CFG.bugSweepScale || 1);
       ctx.strokeStyle = `rgba(224,64,64,${0.9 - f * 0.35})`;
       ctx.lineWidth = 1.4;
       ctx.beginPath(); ctx.arc(pos.x, pos.y, r, 0, 7); ctx.stroke();
@@ -1756,6 +1756,7 @@ const Render = {
     ctx.save();
     ctx.translate(pos.x, pos.y);
     ctx.rotate(pos.a + (b.v < 0 ? Math.PI : 0));
+    ctx.scale(CFG.bugSweepScale || 1, CFG.bugSweepScale || 1);
     ctx.globalAlpha = 0.72; // ガラス越しの減光
     ctx.strokeStyle = "#1b221d"; ctx.lineWidth = 1;
     for (let i = 0; i < 3; i++) { // 脚(張り付いてカサカサ)

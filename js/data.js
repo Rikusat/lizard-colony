@@ -133,6 +133,7 @@ const CFG = {
   bugSweepBeamSec: 0.12,    // レーザー照射時間(秒)
   bugSweepEverySec: 24,     // 一掃までの溜め時間(秒。熱暴走ゲージと同じ緊張構造)
   bugSweepMinPurge: 4,      // 一掃を開始する最低の溜まり数
+  bugSweepScale: 1.35,      // 小バガーの表示スケール(1=旧サイズ。気配が主張に変わらない範囲で調整)
   // Brushup V2 Phase3: ボス脅威表現(描画のみ・戦闘ロジック不変)
   bossScaleBoss: 1.45,      // ボス級(tier/boss/elite)の基本拡大率
   bossScaleTier: 0.06,      // ティア1ごとの追加拡大
