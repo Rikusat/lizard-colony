@@ -3,13 +3,14 @@
 // トカゲコロニー: マスターデータ / バランス定数
 // ============================================================
 
-const SAVE_VERSION = 4; // V4.1: Idle Nest & HQ Rework(探索全廃→巣ネットワーク/鉱石/侵食率)
+const SAVE_VERSION = 5; // V5: コオロギ共通化+合算収入モデル(Phase3)
 
 const CFG = {
   saveKey: "lizardColonySaveV1",
   saveBackupKey: "lizardColonyV1Backup",   // V2以前→V3移行前のバックアップ
   saveBackupKeyV3: "lizardColonyV3Backup", // V3→V4移行前のバックアップ
   saveBackupKeyV4: "lizardColonyV4Backup", // V4→V4.1移行前のバックアップ(ロールバック用)
+  saveBackupKeyV5: "lizardColonyV5Backup", // V4.1→V5移行前のバックアップ(コオロギ共通化)
   startCoins: 500,
   startCrickets: 20,
   startGems: 3,
@@ -33,7 +34,8 @@ const CFG = {
   mutationSpeciesChance: 0.05, // 上位種族への突然変異率
   mutationMorphChance: 0.08,   // モーフ突然変異率
   offlineCapHours: 24,      // オフライン進行の上限(V3 §3.4。研究で延長)
-  offlineRate: 0.5,         // オフライン収益倍率
+  offlineRate: 0.5,         // オフライン収益倍率(ブラウザを閉じていた時間・ロード時一括精算)
+  awayStageIncomeRate: 1.0, // V5: 留守コロニーの常時生産倍率(1=フル。インフレ調整は支出側で)
   // 長押しオートリピート (GameExpansion_v2 ④)
   holdDelay: 0.4,           // 連続実行が始まるまでの秒数
   holdStart: 0.15,          // 初期実行間隔(秒)

@@ -592,6 +592,23 @@ const Game = {
     const stageMult = lz.stage === "adult" ? 1 : 0.5;
     return Math.floor(sp.sell * mo.mult * stageMult * (1 + (lz.level - 1) * 0.1));
   },
+  // V5 Phase3: 留守ステージの生産/秒(書き戻し時にStageData.incomeRateへキャッシュ)
+  stageIncomeRate(st) {
+    if (!st || !st.lizards || !st.lizards.length) return 0;
+    return st.lizards.reduce((a, lz) => lz.stage === "adult"
+      ? a + speciesById(lz.speciesId).income * morphById(lz.morphId).mult * (1 + (lz.level - 1) * CFG.levelIncomeMult)
+      : a, 0) * (1 + ((st.facilities && st.facilities.water) || 0) * 0.07);
+  },
+  // 留守コロニー合算の生産/秒(解放済みステージ数に応じて増える=V5の合算収入)
+  awayIncomePerSec() {
+    if (!this.world || !this.world.stages) return 0;
+    const cur = this.currentStage().id;
+    let t = 0;
+    for (const st of this.world.stages) if (st.stageId !== cur) t += st.incomeRate || 0;
+    return t * CFG.awayStageIncomeRate;
+  },
+  totalIncomePerSec() { return this.incomePerSec() + this.awayIncomePerSec(); },
+
   incomePerSec() {
     const env = this.currentStage().env;
     let t = 0;
@@ -705,7 +722,7 @@ const Game = {
     this.world.currentStageId = id;
     s.stageSel = id;
     s.lizards = tgt.lizards; s.eggs = tgt.eggs; s.facilities = tgt.facilities;
-    s.crickets = tgt.resources.crickets;
+    // V5: コオロギは共通在庫(入れ替えない)
     s.raidTimer = tgt.boss.raidTimer; s.nextRaid = tgt.boss.nextRaid;
     s.stageWins = tgt.boss.wins || 0;
     s.nest = tgt.nest || { lv: 1, pins: [] };
@@ -720,7 +737,8 @@ const Game = {
       if (founded > 0) UI.toast(`創始者の卵を${founded}匹ぶん持ち込んだ! 新天地で血統が続く…`);
       if (starters > 0) UI.toast(`この惑星には現地のトカゲ${starters}匹が暮らしていた! 共存の始まりだ`);
     }
-    if (report) this.toastOfflineReport(target, report);
+    // V5: 到着時の留守精算トーストは廃止(収入は常時合算・違和感の根治)
+    void report;
     this.save();
     return true;
   },
@@ -755,7 +773,7 @@ const Game = {
   // 開拓ボーナス (§9.2): 本部Lvが高いほど厚い支給
   applyStarterPack(tgt) {
     const lvl = this.hqLevel();
-    tgt.resources.crickets = CFG.pioneerCrickets + lvl * 20;
+    this.state.crickets += CFG.pioneerCrickets + lvl * 20; // V5: 共通在庫へ支給
     tgt.facilities.water = Math.max(tgt.facilities.water || 0, 1);
     tgt.facilities.shelter = Math.max(tgt.facilities.shelter || 0, 1);
     this.state.coins += CFG.pioneerCoins + lvl * 2000;
@@ -767,16 +785,12 @@ const Game = {
     const dtSec = Math.min(Math.max(0, (now - (st.lastTickAt || now)) / 1000), this.offlineCapSec());
     st.lastTickAt = now;
     if (dtSec < 60) return null;
-    const report = { hours: dtSec / 3600, coins: 0, wins: 0 };
+    // V5 Phase3: 生産コインの到着時/ロード時の個別精算は廃止——収入は常時のtotalIncomePerSecと
+    // ロード時の全コロニー一括精算(load内)へ移行。ここでは卵・回復・撃退カウントだけを進める
+    const report = { hours: dtSec / 3600, wins: 0 };
 
     if (st.lizards.length > 0) {
-      // 生産: アダルト×収益×時間(FSMは回さない・丸め計算)
-      const inc = st.lizards.reduce((a, lz) => lz.stage === "adult"
-        ? a + speciesById(lz.speciesId).income * morphById(lz.morphId).mult * (1 + (lz.level - 1) * CFG.levelIncomeMult)
-        : a, 0) * (1 + (st.facilities.water || 0) * 0.07);
-      report.coins = Math.floor(inc * dtSec * CFG.offlineRate);
-      this.state.coins += report.coins;
-      // ボス: 迎撃力vs推定HPで丸め判定
+      // ボス: 迎撃力vs推定HPで丸め判定(勝敗カウントのみ・報酬コインは廃止)
       const raids = Math.min(10, Math.floor(dtSec / CFG.raidInterval));
       if (raids > 0) {
         const atk = st.lizards.reduce((a, lz) => lz.stage === "adult"
@@ -785,9 +799,6 @@ const Game = {
         const estHp = 25 + this.state.rank * 12 + atk * 7;
         if (atk * 30 >= estHp) { // 30秒以内に削り切れるなら撃退成功
           report.wins = raids;
-          const raidCoins = Math.floor(estHp * 2 * raids * 0.5);
-          report.coins += raidCoins;
-          this.state.coins += raidCoins;
           st.boss.wins = (st.boss.wins || 0) + raids;
           this.state.stats.raidsWon += raids;
         }
@@ -828,7 +839,7 @@ const Game = {
       if (lz.hiddenT > 0) lz.hiddenT = Math.max(0, lz.hiddenT - sec);
     }
     // 生産(離席中もフルレートで稼働。上限は offlineCapSec)
-    s.coins += this.incomePerSec() * sec;
+    s.coins += this.totalIncomePerSec() * sec; // V5: 合算収入で離席分を精算
     // コオロギの自然湧き(餌場+環境)
     const spawn = this.facLv("feeder") * 0.5 + (env.crickets || 0);
     if (spawn > 0) s.crickets += spawn * sec;
@@ -863,7 +874,8 @@ const Game = {
     const elapsed = (Date.now() - (st.lastTickAt || Date.now())) / 1000;
     if (st.eggs && st.eggs.some((e) => e.t - elapsed <= 0)) b.push(Icon.svg("egg"));
     if (st.boss && st.lizards.length > 0 && elapsed > (st.boss.raidTimer || CFG.raidInterval)) b.push(Icon.svg("snake"));
-    if (st.lizards.length > 0 && (st.resources.crickets | 0) <= 0) b.push(Icon.svg("warn"));
+    // V5: コオロギは共通在庫。切れ警告は現在地タブにのみ出す
+    if (st.lizards.length > 0 && st.stageId === (this.world ? this.world.currentStageId : 0) && Math.floor(this.state.crickets) <= 0) b.push(Icon.svg("warn"));
     return b;
   },
   // V3 Phase5: 繁殖/変異プール = 基本種(Stage1〜5・ランク解放済み)+現Stageの固有種
@@ -1630,7 +1642,7 @@ const Game = {
   tick(dt) {
     const s = this.state;
     // 収益
-    s.coins += this.incomePerSec() * dt;
+    s.coins += this.totalIncomePerSec() * dt; // V5: 現在地+留守コロニー合算
 
     // 自動補給 (R100・毎秒、通常購入と同コスト)
     if (s.autoSupply && s.rank >= CFG.autoSupplyRank) {
@@ -2025,7 +2037,8 @@ const Game = {
     return {
       stageId: this.currentStage().id, unlocked: true, lastTickAt: Date.now(),
       pioneered: true,
-      resources: { crickets: s.crickets },
+      resources: { crickets: 0 }, // V5: コオロギは共通在庫(wallet)へ
+      incomeRate: this.stageIncomeRate({ lizards: s.lizards, facilities: s.facilities }),
       lizards: s.lizards, eggs: s.eggs,
       facilities: s.facilities,
       boss: { wins: s.stageWins || 0, raidTimer: s.raidTimer, nextRaid: s.nextRaid },
@@ -2053,7 +2066,7 @@ const Game = {
       version: SAVE_VERSION,
       savedAt: Date.now(),
       idSeq: this._idSeq,
-      wallet: { coins: s.coins, gems: s.gems },
+      wallet: { coins: s.coins, gems: s.gems, crickets: s.crickets }, // V5: コオロギも共通ウォレット
       headquarters: { rank: s.rank, rankXp: s.rankXp, research: s.research || {}, rocket: s.rocket || { stage: 0, invested: 0, done: false } },
       collection: {
         dex: s.dex, stats: s.stats, missionsClaimed: s.missionsClaimed,
@@ -2078,6 +2091,24 @@ const Game = {
   },
 
   // WorldData → ランタイムstate(従来形状)
+  // V5 Phase3: コオロギをステージ別在庫→共通ウォレットへ統合(全ステージ合計=資産厳密保存)。
+  // バージョンゲートで冪等。各ステージのincomeRateもここでキャッシュ
+  migrateV4to5(w) {
+    if ((w.version || 0) >= 5) return w;
+    const stages = w.planets || w.stages || [];
+    let sum = 0;
+    for (const st of stages) {
+      sum += (st.resources && st.resources.crickets) || 0;
+      if (st.resources) st.resources.crickets = 0;
+      st.incomeRate = this.stageIncomeRate(st);
+    }
+    w.wallet = w.wallet || { coins: 0, gems: 0 };
+    w.wallet.crickets = sum;
+    w.planets = stages; w.stages = stages; // エイリアス統一(手編集等で両配列が分裂したセーブへの保険)
+    w.version = 5;
+    return w;
+  },
+
   applyWorld(w) {
     if (w.planets && !w.stages) w.stages = w.planets; // V4改名の互換
     if (w.stages && !w.planets) w.planets = w.stages;
@@ -2091,7 +2122,7 @@ const Game = {
       research: w.headquarters.research || {},
       lizards: active.lizards, eggs: active.eggs,
       facilities: active.facilities,
-      crickets: active.resources.crickets,
+      crickets: (w.wallet.crickets != null ? w.wallet.crickets : active.resources.crickets), // V5共通在庫(旧形式フォールバック)
       res: w.res || { bio: 0, food: 0, energy: 0, science: 0 },
       nestWeb: w.nestWeb || { nodes: {}, surprises: 0 },
       dial: w.dial || { auto: false, rate: 1, supply: false },
@@ -2216,7 +2247,7 @@ const Game = {
     w.stages = planets;
     w.lore = w.lore || { intro: true };
     w.autoBreed = false;
-    w.version = SAVE_VERSION;
+    w.version = 3; // 到達版数を明示(V5共通ゲートmigrateV4to5を必ず通すため。旧: SAVE_VERSION)
     w._refund = { refundG, bio: res.bio, science: res.science }; // 通知用(保存はされない値として許容)
     return w;
   },
@@ -2248,7 +2279,7 @@ const Game = {
     w.erosion = Math.min(100, maxInv); // 惑星別侵略圧の最大値を引き継ぐ
     w.forged = {};
     w.headquarters.rocket = { stage: 0, invested: 0, done: false };
-    w.version = SAVE_VERSION;
+    w.version = 4; // 到達版数を明示(V5共通ゲートを必ず通す。旧: SAVE_VERSION)
     w._refund41 = refund;
     return w;
   },
@@ -2269,8 +2300,13 @@ const Game = {
     try {
       const data = JSON.parse(raw);
       let world;
-      if (data.version >= 4) {
+      if (data.version >= 5) {
         world = data;
+      } else if (data.version === 4) {
+        // V4.1セーブ → V5移行(コオロギ共通化・バックアップしてから)
+        try { localStorage.setItem(CFG.saveBackupKeyV5, raw); } catch (e) { /* noop */ }
+        world = data; // 実移行は下の共通ゲートで(冪等)
+        setTimeout(() => UI.toast("V5アップデート! コオロギは全コロニー共通の在庫になりました(旧データはバックアップ済み)"), 900);
       } else if (data.version === 3) {
         // V4セーブ → V4.1移行(バックアップしてから)
         try { localStorage.setItem(CFG.saveBackupKeyV4, raw); } catch (e) { /* noop */ }
@@ -2300,6 +2336,7 @@ const Game = {
         world = this.migrateV3to4(this.migrateV2to3(this.migrateV1(data)));
         setTimeout(() => UI.toast("セーブを最新形式へ移行しました。旧データはバックアップ済み"), 900);
       }
+      world = this.migrateV4to5(world); // V5共通ゲート(全チェーンの最終段・冪等)
       this.applyWorld(world);
       // V4.1: 留守中の侵食上昇(全体で1回だけ)と巣の一括解放
       const awaySec = Math.min(Math.max(0, (Date.now() - (world.savedAt || Date.now())) / 1000), this.offlineCapSec());
@@ -2308,14 +2345,17 @@ const Game = {
       if (openedOffline.length > 0) {
         setTimeout(() => UI.toast(`留守中に巣ノードが${openedOffline.length}個 開いていた!(巣画面で確認)`), 700);
       }
-      // 全惑星のオフライン進行(旧惑星も生き続ける)
-      const reports = [];
-      for (const st of world.stages) {
-        const r = this.simulateOffline(st);
-        if (r && (r.coins > 0 || r.wins > 0)) reports.push([stageById(st.stageId), r]);
-      }
-      if (reports.length) {
-        setTimeout(() => { for (const [stg, r] of reports) this.toastOfflineReport(stg, r); }, 500);
+      // 全惑星のオフライン進行(卵・回復・撃退カウントのみ。生産はV5で下の一括精算)
+      for (const st of world.stages) this.simulateOffline(st);
+      // V5 Phase3: 閉じていた間の生産を全コロニー合算×offlineRateで一括精算(「おかえり」に一本化)
+      if (awaySec > 60) {
+        const cur = this.currentStage().id;
+        const away = this.world.stages.reduce((a, st) => st.stageId === cur ? a : a + (st.incomeRate || 0), 0);
+        const gain = Math.floor((this.incomePerSec() + away) * CFG.offlineRate * awaySec);
+        if (gain > 0) {
+          this.state.coins += gain;
+          setTimeout(() => UI.toast(`おかえり! 留守中(${fmtDur(awaySec)})も全コロニー稼働 — 生産+${fmt(gain)}G`), 600);
+        }
       }
       return true;
     } catch (e) {

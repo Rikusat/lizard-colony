@@ -211,8 +211,8 @@ const UI = {
   update() {
     const s = Game.state;
     // 資源ピル(§5.1): 平常の自動収入は静かに回し、まとまった増減だけ弾ませる
-    this.resPill("ui-coins", s.coins, Game.incomePerSec() * 0.5);
-    this.els["ui-cps"].textContent = "+" + Game.incomePerSec().toFixed(1) + "/秒";
+    this.resPill("ui-coins", s.coins, Game.totalIncomePerSec() * 0.5);
+    this.els["ui-cps"].textContent = "+" + Game.totalIncomePerSec().toFixed(1) + "/秒"; // V5: 全コロニー合算
     this.resPill("ui-crickets", s.crickets, 0);
     this.resPill("ui-gems", s.gems, 0);
     Motion.countUp(this.els["ui-rank"], s.rank, (v) => Math.round(v));
