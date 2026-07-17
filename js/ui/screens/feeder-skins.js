@@ -15,7 +15,7 @@ const CrankSkins = {
   // 惑星ID→スキンID(crank.md §3.1の確定表と1:1。フォールバックに頼らず全惑星を明示)
   // 1=乾燥地帯(アリド)=始まりの地・教科書(不変) / 10=古代遺跡(オリジン)=羅針盤(確定)
   byPlanet: {
-    1: "default", 2: "neon", 3: "default", 4: "default", 5: "default",
+    1: "default", 2: "neon", 3: "clock", 4: "default", 5: "default",
     6: "default", 7: "default", 8: "default", 9: "default",
     10: "compass",
   },
@@ -210,6 +210,68 @@ const CrankSkins = {
             <g class="e-scan${fx}"><rect x="8" y="0" width="48" height="1.4" fill="rgba(159,208,255,.14)"/></g>
             <!-- ガラスの照り(静) -->
             <path d="M14 21a20 20 0 0 1 21-9.5" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="3" stroke-linecap="round"/>
+          </svg>`;
+      },
+    },
+
+    // 木製からくり時計(ID3 シルヴァ)。crank.md §3.4/§4.5: 木の機構=等時性の拍
+    // 輪列(主輪+逆回転の小歯車1:3)と振り子。脱進機のラチェット送りが手触りの核
+    clock: {
+      id: "clock",
+      dialClass: "skin-clock",
+      face() {
+        // 主輪の歯16枚(木の歯・角丸)
+        let teeth = "";
+        for (let i = 0; i < 16; i++) {
+          teeth += `<rect x="30.8" y="8.2" width="2.4" height="4.4" rx="1.1" transform="rotate(${i * 22.5} 32 32)" fill="#8a6a42" stroke="#3e2c17" stroke-width=".8"/>`;
+        }
+        // 彫り抜きスポーク4穴
+        let holes = "";
+        for (let i = 0; i < 4; i++) {
+          holes += `<circle cx="32" cy="17.5" r="4.6" transform="rotate(${45 + i * 90} 32 32)" fill="#4a3520"/>`;
+        }
+        // 小歯車の歯10枚(中心0,0・半径6)
+        let t2 = "";
+        for (let i = 0; i < 10; i++) {
+          t2 += `<rect x="-1" y="-7.6" width="2" height="2.6" rx=".9" transform="rotate(${i * 36})" fill="#7a5c38"/>`;
+        }
+        return `
+          <svg viewBox="0 0 64 64" class="fd-svg" aria-hidden="true">
+            <defs>
+              <radialGradient id="cw-wood" cx=".4" cy=".32" r="1">
+                <stop offset="0" style="stop-color:#9a7648"/>
+                <stop offset="1" style="stop-color:#5c4226"/>
+              </radialGradient>
+            </defs>
+            <!-- 木の台座(静)+ほぞ組の継ぎ目 -->
+            <circle cx="32" cy="32" r="27" fill="url(#cw-wood)"/>
+            <circle cx="32" cy="32" r="27" fill="none" stroke="#3e2c17" stroke-width="1.6"/>
+            <path d="M32 5v3.4M32 55.6V59M5 32h3.4M55.6 32H59" stroke="#3e2c17" stroke-width="1.4"/>
+            <!-- 年輪・木目(静) -->
+            <path d="M13 25a20 20 0 0 1 10-9M50 42a20 20 0 0 1-9 8" fill="none" stroke="rgba(62,44,23,.5)" stroke-width="1"/>
+            <path d="M17 40a17 17 0 0 0 7 6" fill="none" stroke="rgba(154,118,72,.55)" stroke-width=".8"/>
+            <!-- 回る主体: 木歯車の主輪(.fd-wheel=骨格が回転を適用) -->
+            <g class="fd-wheel">
+              ${teeth}
+              <circle cx="32" cy="32" r="21.5" fill="url(#cw-wood)" stroke="#3e2c17" stroke-width="1.4"/>
+              <path d="M20 24a14 14 0 0 1 9-6M44 41a14 14 0 0 1-8 6" fill="none" stroke="rgba(62,44,23,.45)" stroke-width=".9"/>
+              ${holes}
+              <circle cx="32" cy="32" r="8.2" fill="#6b4e2e" stroke="#3e2c17" stroke-width="1.2"/>
+            </g>
+            <!-- 振り子(前面・待機の拍・fx0/reducedで停止) -->
+            <g transform="translate(32 34)"><g class="cw-pend">
+              <path d="M0 0V15" stroke="#3e2c17" stroke-width="1.6"/>
+              <circle cx="0" cy="17" r="3.4" fill="#8a6a42" stroke="#3e2c17" stroke-width="1.2"/>
+            </g></g>
+            <!-- 小歯車(逆回転・1:3連動) -->
+            <g transform="translate(49 15)"><g class="cw-g2">
+              ${t2}
+              <circle r="6" fill="#8a6a42" stroke="#3e2c17" stroke-width="1.1"/>
+              <circle r="1.6" fill="#c9a86a"/>
+            </g></g>
+            <!-- 軸受け: 真鍮の芯+翡翠の軸受け石(オート=緑・直感アンカー) -->
+            <circle cx="32" cy="32" r="4.6" fill="#c9a86a" stroke="#7a5c38" stroke-width="1"/>
+            <circle cx="32" cy="32" r="2.4" class="cw-jewel"/>
           </svg>`;
       },
     },

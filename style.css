@@ -546,6 +546,82 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 #feeder-dial.skin-compass #fd-crank.holding ~ * .cp-band circle,
 #feeder-dial.skin-compass #fd-crank.holding .cp-band circle { stroke: var(--amber-glow); }
 
+/* ---- 木製からくり時計スキン(ID3 シルヴァ・crank.md §3.4/§4.5: 木の機構=等時性の拍) ---- */
+#feeder-dial.skin-clock {
+  background: linear-gradient(#4a3824, #332514);
+  border-color: #6b4e2e;
+}
+#feeder-dial.skin-clock #fd-crank {
+  background: radial-gradient(circle at 35% 28%, #5c4226, #2c1f10);
+  border-color: #6b4e2e;
+}
+#feeder-dial.skin-clock .fd-track { background: #2c1f10; border-color: #6b4e2e; }
+#feeder-dial.skin-clock .fd-lknob {
+  background: linear-gradient(#a8845a, #6b4e2e); border-color: #3e2c17;
+}
+#feeder-dial.skin-clock .fd-notch { background: #6b4e2e; }
+#feeder-dial.skin-clock .fd-notch.n2 { background: #c9a86a; }
+#feeder-dial.skin-clock .fd-sw { background: linear-gradient(#4a3824, #332514); border-color: #6b4e2e; }
+
+/* 翡翠の軸受け石: 通常=くすみ / オート=緑に灯る(宝石軸受けの文法・直感アンカー) */
+#feeder-dial.skin-clock .cw-jewel { fill: #3e4a3a; transition: fill var(--dur-base); }
+#feeder-dial.skin-clock.auto-on .cw-jewel {
+  fill: var(--life-400);
+  filter: drop-shadow(0 0 3px rgba(123, 217, 134, .8));
+}
+
+/* 木の物理①: タップ=脱進機のラチェット送り(6拍・各拍は+4°行き過ぎてカチッと戻る) */
+#feeder-dial.skin-clock #fd-crank.spin .fd-wheel {
+  animation: cw-tick-turn .9s linear;
+}
+@keyframes cw-tick-turn {
+  0% { transform: rotate(0); }
+  8% { transform: rotate(64deg); } 12% { transform: rotate(58deg); } 16.6% { transform: rotate(60deg); }
+  24.6% { transform: rotate(124deg); } 28.6% { transform: rotate(118deg); } 33.3% { transform: rotate(120deg); }
+  41.3% { transform: rotate(184deg); } 45.3% { transform: rotate(178deg); } 50% { transform: rotate(180deg); }
+  58% { transform: rotate(244deg); } 62% { transform: rotate(238deg); } 66.6% { transform: rotate(240deg); }
+  74.6% { transform: rotate(304deg); } 78.6% { transform: rotate(298deg); } 83.3% { transform: rotate(300deg); }
+  91.3% { transform: rotate(364deg); } 95.3% { transform: rotate(358deg); } 100% { transform: rotate(360deg); }
+}
+/* 木の物理②: オート=12拍/回転の均等な刻み(等時性。平均速度=レート同期を厳密維持) */
+#feeder-dial.skin-clock.auto-on .fd-wheel {
+  animation: cw-idle-tick var(--fd-spin, 1.6s) linear infinite;
+}
+@keyframes cw-idle-tick {
+  0% { transform: rotate(0); }
+  3.3% { transform: rotate(30deg); } 8.3% { transform: rotate(30deg); }
+  11.6% { transform: rotate(60deg); } 16.6% { transform: rotate(60deg); }
+  19.9% { transform: rotate(90deg); } 25% { transform: rotate(90deg); }
+  28.3% { transform: rotate(120deg); } 33.3% { transform: rotate(120deg); }
+  36.6% { transform: rotate(150deg); } 41.6% { transform: rotate(150deg); }
+  44.9% { transform: rotate(180deg); } 50% { transform: rotate(180deg); }
+  53.3% { transform: rotate(210deg); } 58.3% { transform: rotate(210deg); }
+  61.6% { transform: rotate(240deg); } 66.6% { transform: rotate(240deg); }
+  69.9% { transform: rotate(270deg); } 75% { transform: rotate(270deg); }
+  78.3% { transform: rotate(300deg); } 83.3% { transform: rotate(300deg); }
+  86.6% { transform: rotate(330deg); } 91.6% { transform: rotate(330deg); }
+  94.9% { transform: rotate(360deg); } 100% { transform: rotate(360deg); }
+}
+/* 小歯車: 逆回転・1:3連動(タップ=3回転逆送り / オート=周期1/3で逆回転) */
+#feeder-dial.skin-clock #fd-crank.spin .cw-g2 { animation: cw-g2-tap .9s linear; }
+@keyframes cw-g2-tap { to { transform: rotate(-1080deg); } }
+#feeder-dial.skin-clock.auto-on .cw-g2 {
+  animation: cw-g2-rev calc(var(--fd-spin, 1.6s) / 3) linear infinite;
+}
+@keyframes cw-g2-rev { to { transform: rotate(-360deg); } }
+/* 木の物理③: オート中タップ=はずみ車がコトッと空転するノック(ばね/身震い/グリッチにしない) */
+#feeder-dial.skin-clock #fd-crank.boing { animation: cw-knock .3s ease-out; }
+@keyframes cw-knock {
+  0% { transform: rotate(6deg) translateY(.5px); }
+  55% { transform: rotate(-2deg); }
+  100% { transform: none; }
+}
+/* 振り子: 常に時を刻む待機の拍(1.6s)。長押し=速い拍(0.5s)。fx0/reducedで停止 */
+#feeder-dial.skin-clock .cw-pend { transform-origin: 0 0; animation: cw-swing 1.6s ease-in-out infinite alternate; }
+@keyframes cw-swing { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
+#feeder-dial.skin-clock #fd-crank.holding .cw-pend { animation-duration: .5s; }
+#feeder-dial.skin-clock.fx0 .cw-pend { animation: none; }
+
 /* ---- ネオン操作盤スキン(ID2 摩天楼スラム・crank.md §3.4/§4.5: 電子の機構) ---- */
 #feeder-dial.skin-neon {
   background: linear-gradient(#171923, #0d0e15);
