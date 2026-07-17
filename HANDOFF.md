@@ -800,3 +800,12 @@ paper 11.26 / sand 7.91 / life-400 7.45〜7.81 / amber-400 7.45 / boss-400 5.20(
 - 待機微動: 走査線5.5秒降下+明滅ムラ。fx0(crankFxLevel=0)とreduced-motionで全停止
 - ハーネス: #skin-neon(-auto/-min/-hold/-zoom組合せ、selectStage(2)=実割り当て経由)。59項目PASS/cssvar/絵文字ゼロ/script blocks OK
 - 判定待ち: 実機の手触り「電子の別機構だと動かした瞬間に分かるか」
+
+### ネオン盤トグルのグリッチ統一(2026-07-17)✅
+
+- ID2割り当ては確定(序盤狙い成立を実測報告: rank5=アクティブ5分24秒/ゆるプレイ8分45秒、惑星1→2間に挟まりなし)
+- トグルDOMは骨格共通だが見た目は `#feeder-dial.skin-neon .fd-sw` スコープで分離済み(compass行の前例と同構造)→ ID2限定が成立、default/羅針盤へ波及なし(新規セレクタ全数がskin-neonスコープ配下であることをdiff grepで機械確認)
+- 押した瞬間=`:active` 0.18s steps(2)の映像ずれ / ON突入=`.on`付与で0.3s steps(3)の信号ロック(ちらつき→点灯収束) / ランプ発光はRGB割れ→currentColor収束(緑/金の地色は不変=アンカー死守) / ON中待機=細い走査線5.2s周期のみ(放置ゲーム原則)
+- fx0はdialレベルのクラスに昇格(applyCrankSkinがCFG.crankFxLevelで付与、skin-*と一緒に張り替え)。reduced-motionはtokens.cssの全体則で自動停止
+- ハーネス: #skin-neonにgold(補給ON)とglitch(切替アニメを-0.05sで凍結=静止画検証)を追加
+- 教訓: 骨格共通DOMへのスキン演出は「JSでクラス分岐」でなく「dialのskin-*クラス配下のCSSスコープ」で足す(構造上波及ゼロを機械検証できる)
