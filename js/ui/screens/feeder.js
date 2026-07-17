@@ -79,6 +79,15 @@ Object.assign(UI, {
       feedOnce(); // タップ=1掴み(オート中でも手動で回せる)
       if (Game.ensureDial().auto) this.crankBoing(); // オート中タップ: ばねで応える(§1.3)
     }, true);
+    // spin/boingはMotion.playが付けるだけで残留し、スキンのタップルール(ID2つ)が
+    // オート回転(ID1つ)を恒久上書きしてしまう。主動作(crank自身か.fd-wheel)の終了時に必ず外す。
+    // オート回転は無限ループでanimationendを発火しないため誤除去は起きない
+    crank.addEventListener("animationend", (e) => {
+      const t = e.target;
+      if (t === crank || (t.classList && t.classList.contains("fd-wheel"))) {
+        crank.classList.remove("spin", "boing");
+      }
+    });
 
     // 折りたたみ: 最終的に「クランクが回っているのみ」の表示へ
     el.querySelector("#fd-fold").addEventListener("click", () => {

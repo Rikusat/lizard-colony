@@ -613,8 +613,9 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
   76% { transform: rotate(308deg); }
   100% { transform: rotate(360deg); }
 }
-/* 炎の物理③: オート中タップ=ふいごの吹き上がり(炉全体が一瞬明るく。弾み/身震い/グリッチにしない) */
-#feeder-dial.skin-forge #fd-crank.boing .fd-wheel { animation: fl-heat-surge .35s ease-out; }
+/* 炎の物理③: オート中タップ=ふいごの吹き上がり(炉全体が一瞬明るく。弾み/身震い/グリッチにしない)
+   ※crank側に掛ける: .fd-wheelのanimationチャンネルを奪うとオート回転が止まる(wheel-diag2の教訓) */
+#feeder-dial.skin-forge #fd-crank.boing { animation: fl-heat-surge .35s ease-out; }
 @keyframes fl-heat-surge {
   0% { filter: brightness(1.55) saturate(1.3); }
   100% { filter: none; }
