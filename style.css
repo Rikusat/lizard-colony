@@ -546,6 +546,92 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 #feeder-dial.skin-compass #fd-crank.holding ~ * .cp-band circle,
 #feeder-dial.skin-compass #fd-crank.holding .cp-band circle { stroke: var(--amber-glow); }
 
+/* ---- 軍用サーボスキン(ID8 グラキス・crank.md §3.4/§4.5: 黒金属=冷たく正確・借り物の力) ---- */
+#feeder-dial.skin-servo {
+  background: linear-gradient(#1a1e24, #101318);
+  border-color: #2c323a;
+}
+#feeder-dial.skin-servo #fd-crank {
+  background: radial-gradient(circle at 35% 28%, #232830, #0b0d10);
+  border-color: #2c323a;
+}
+#feeder-dial.skin-servo .fd-track { background: #0b0d10; border-color: #2c323a; }
+#feeder-dial.skin-servo .fd-lknob {
+  background: linear-gradient(#3a4048, #1a1e24); border-color: #0b0d10;
+}
+#feeder-dial.skin-servo .fd-notch { background: #2c323a; }
+#feeder-dial.skin-servo .fd-notch.n2 { background: #e04040; }
+#feeder-dial.skin-servo .fd-sw { background: linear-gradient(#1a1e24, #101318); border-color: #2c323a; border-radius: 4px; }
+
+/* 赤い単眼: 常時赤。オート中タップ(再標的)で一瞬明るく */
+#feeder-dial.skin-servo .sv-eye { fill: #e04040; filter: drop-shadow(0 0 2.5px rgba(224, 64, 64, .7)); }
+#feeder-dial.skin-servo #fd-crank.boing .sv-eye { animation: sv-eye-flash .2s ease-out; }
+@keyframes sv-eye-flash {
+  0% { fill: #ff8a7a; filter: drop-shadow(0 0 6px rgba(224, 64, 64, 1)); }
+  100% { fill: #e04040; }
+}
+/* ステータスLED列: 通常=消灯 / オート=緑点灯(機械の目が起動・直感アンカー) */
+#feeder-dial.skin-servo .sv-led { fill: #232830; transition: fill var(--dur-base); }
+#feeder-dial.skin-servo.auto-on .sv-led {
+  fill: var(--life-400);
+  filter: drop-shadow(0 0 3px rgba(123, 217, 134, .9));
+}
+
+/* サーボ物理①: タップ=0.55秒の1スルー(トルク立ち上がり→等速→目標角直前で減速→ピタッ。全行程連続) */
+#feeder-dial.skin-servo #fd-crank.spin .fd-wheel {
+  animation: sv-slew-turn .55s linear;
+}
+@keyframes sv-slew-turn {
+  0% { transform: rotate(0); }
+  14% { transform: rotate(14deg); }
+  82% { transform: rotate(346deg); }
+  94% { transform: rotate(358deg); }
+  100% { transform: rotate(360deg); }
+}
+/* サーボ物理②: オート=90°ずつのスルー&ホールド(位置の不連続。各移動は連続・平均速度=レート同期) */
+#feeder-dial.skin-servo.auto-on .fd-wheel {
+  animation: sv-idle-slew var(--fd-spin, 1.6s) linear infinite;
+}
+@keyframes sv-idle-slew {
+  0% { transform: rotate(0); }
+  3% { transform: rotate(6deg); }
+  15% { transform: rotate(84deg); }
+  17.5% { transform: rotate(90deg); }
+  25% { transform: rotate(90deg); }
+  28% { transform: rotate(96deg); }
+  40% { transform: rotate(174deg); }
+  42.5% { transform: rotate(180deg); }
+  50% { transform: rotate(180deg); }
+  53% { transform: rotate(186deg); }
+  65% { transform: rotate(264deg); }
+  67.5% { transform: rotate(270deg); }
+  75% { transform: rotate(270deg); }
+  78% { transform: rotate(276deg); }
+  90% { transform: rotate(354deg); }
+  92.5% { transform: rotate(360deg); }
+  100% { transform: rotate(360deg); }
+}
+/* サーボ物理③: オート中タップ=制御された単発リコイル(crank側=§6保守則。ガタつかない) */
+#feeder-dial.skin-servo #fd-crank.boing { animation: sv-recoil .2s ease-out; }
+@keyframes sv-recoil {
+  0% { transform: translateY(1.4px); }
+  60% { transform: translateY(-.2px); }
+  100% { transform: none; }
+}
+/* 待機: 単眼をスキャンラインが約6秒周期でゆっくり横切る(監視の気配)。長押し=高速追尾 */
+#feeder-dial.skin-servo .sv-scan {
+  fill: rgba(255, 120, 110, .75); opacity: 0;
+  animation: sv-scan-sweep 6.2s linear infinite;
+}
+@keyframes sv-scan-sweep {
+  0%, 86% { transform: translateX(0); opacity: 0; }
+  88% { transform: translateX(1px); opacity: .9; }
+  97% { transform: translateX(9px); opacity: .9; }
+  98%, 100% { transform: translateX(10px); opacity: 0; }
+}
+#feeder-dial.skin-servo #fd-crank.holding .sv-scan { animation-duration: .8s; }
+#feeder-dial.skin-servo.fx0 .sv-scan { animation: none; opacity: 0; }
+
 /* ---- 使い捨て高効率機構スキン(ID9 ヴォルタ・crank.md §3.4/§4.5: 雑な寄せ集め×キビキビ高性能) ---- */
 #feeder-dial.skin-junk {
   background: #565c61; /* 安いプラ=フラット塗り(上質トーンを意図的に破る) */

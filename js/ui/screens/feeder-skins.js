@@ -16,7 +16,7 @@ const CrankSkins = {
   // 1=乾燥地帯(アリド)=始まりの地・教科書(不変) / 10=古代遺跡(オリジン)=羅針盤(確定)
   byPlanet: {
     1: "default", 2: "neon", 3: "clock", 4: "default", 5: "forge",
-    6: "default", 7: "default", 8: "default", 9: "junk",
+    6: "default", 7: "default", 8: "servo", 9: "junk",
     10: "compass",
   },
 
@@ -430,6 +430,61 @@ const CrankSkins = {
             <path d="M42 8q3-4 6-1" fill="none" stroke="#41474c" stroke-width="1"/>
             <rect x="46.6" y="8" width="4" height="2.6" fill="#565c61"/>
             <circle cx="48.6" cy="6.6" r="2.7" class="jk-led"/>
+          </svg>`;
+      },
+    },
+    // 軍用サーボ(ID8 グラキス=氷の前線)。crank.md §3.4/§4.5:
+    // 冷たく正確・軍用グレード・無機質=「借り物の力」。位置の不連続(スルー&ホールド)
+    servo: {
+      id: "servo",
+      dialClass: "skin-servo",
+      face() {
+        return `
+          <svg viewBox="0 0 64 64" class="fd-svg" aria-hidden="true">
+            <!-- 黒装甲プレート: 角張り・非対称に切り落とされた角・精確なパネルライン -->
+            <path d="M14 8h30l12 12v22l-8 14H16L6 44V16z" fill="#1a1e24" stroke="#0b0d10" stroke-width="1.6"/>
+            <path d="M44 8l12 12-7 .2z" fill="#12151a"/>
+            <path d="M14 8L6 16h9zM16 56l-10-12 8-.4z" fill="#232830"/>
+            <path d="M9 30h6M49 42h7M18 11h12" stroke="#0b0d10" stroke-width="1"/>
+            <!-- 精確な六角ボルト(ジャンクの規格違いと正反対=全て同一規格) -->
+            <g fill="#2c323a" stroke="#0b0d10" stroke-width=".7">
+              <path d="M11.2 12.5l1.8 1v2l-1.8 1-1.8-1v-2z"/>
+              <path d="M52.8 12.5l1.8 1v2l-1.8 1-1.8-1v-2z"/>
+              <path d="M54.8 47.5l1.8 1v2l-1.8 1-1.8-1v-2z"/>
+              <path d="M11.2 47.5l1.8 1v2l-1.8 1-1.8-1v-2z"/>
+            </g>
+            <!-- ケーブル束(片側のみ=非対称) -->
+            <path d="M56 26c-2 3-2 8 0 12" fill="none" stroke="#0b0d10" stroke-width="3"/>
+            <path d="M56 26c-2 3-2 8 0 12" fill="none" stroke="#3a2226" stroke-width="1.4"/>
+            <!-- ベアリング座 -->
+            <circle cx="32" cy="32" r="21.5" fill="#101318"/>
+            <circle cx="32" cy="32" r="21.5" fill="none" stroke="#2c323a" stroke-width="1"/>
+            <circle cx="32" cy="32" r="19.5" fill="none" stroke="#0b0d10" stroke-width="1.2" stroke-dasharray="2.4 1.6"/>
+            <!-- 回る主体: 剥き出しの非対称ローター(.fd-wheel) -->
+            <g class="fd-wheel">
+              <circle cx="32" cy="32" r="17" fill="none" stroke="#232830" stroke-width="4.6"/>
+              <circle cx="32" cy="32" r="17" fill="none" stroke="#3a4048" stroke-width="1" stroke-dasharray="6 4"/>
+              <!-- 太いアーマチュア+カウンターウェイト(非対称の異質さ) -->
+              <path d="M29 30.5h-13a2.4 2.4 0 0 0 0 3h13z" fill="#2c323a" stroke="#0b0d10" stroke-width=".8"/>
+              <rect x="12.5" y="27.5" width="6.5" height="9" rx="1" fill="#232830" stroke="#0b0d10" stroke-width=".9"/>
+              <!-- 細いスポーク2本(120°/230°) -->
+              <path d="M33.4 29.6l8.6-11.4 1.7 1.2-8 12z" fill="#232830" stroke="#0b0d10" stroke-width=".7"/>
+              <path d="M33.8 33.6l11 7.4-1 1.6-11.3-6.8z" fill="#232830" stroke="#0b0d10" stroke-width=".7"/>
+              <!-- 標的指示のインデックス(回転が読める白マーク) -->
+              <rect x="31.1" y="13.6" width="1.8" height="4" fill="#c8cdd2"/>
+            </g>
+            <!-- 赤い単眼(常時赤・識別はLED列に譲る) -->
+            <circle cx="32" cy="32" r="7.6" fill="#0b0d10" stroke="#2c323a" stroke-width="1.2"/>
+            <circle cx="32" cy="32" r="5.4" fill="#26090b"/>
+            <circle cx="32" cy="32" r="3.1" class="sv-eye"/>
+            <circle cx="30.9" cy="30.9" r="1" fill="rgba(255,255,255,.55)"/>
+            <!-- 単眼のスキャンライン(待機の監視・fx0/reducedで停止) -->
+            <g class="sv-scan-clip"><rect x="24" y="31.4" width="6" height="1.2" class="sv-scan"/></g>
+            <!-- ステータスLED列(角ブラケット・オート=緑点灯=機械の目が起動・直感アンカー) -->
+            <path d="M14 18.6v10h4v-10z" fill="#12151a" stroke="#0b0d10" stroke-width=".8"/>
+            <rect x="15" y="19.8" width="2" height="2" class="sv-led"/>
+            <rect x="15" y="23" width="2" height="2" class="sv-led"/>
+            <rect x="15" y="26.2" width="2" height="2" class="sv-led"/>
           </svg>`;
       },
     },

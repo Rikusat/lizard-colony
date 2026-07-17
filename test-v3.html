@@ -538,6 +538,20 @@ globalThis._noStart = true;
       ro.textContent = `惑星${pid}\n` + hist.slice(-5).join("\n");
     }, 250);
   }
+  else if (h.startsWith("#skin-servo")) { // 軍用サーボ(ID8実割り当て)の確認
+    Game.selectStage(8);
+    UI._crankSkinId = null;
+    const d = Game.ensureDial();
+    if (h.includes("auto")) d.auto = true;
+    if (h.includes("min")) d.min = true;
+    UI.updateFeeder();
+    if (h.includes("zoom")) {
+      const st = document.createElement("style");
+      st.textContent = "#feeder-dial{transform:scale(3.4);transform-origin:100% 100%;}";
+      document.head.appendChild(st);
+    }
+    if (h.includes("hold")) document.getElementById("fd-crank").classList.add("holding");
+  }
   else if (h.startsWith("#skin-junk")) { // 使い捨て高効率機構(ID9実割り当て)の確認
     Game.selectStage(9);
     UI._crankSkinId = null;
