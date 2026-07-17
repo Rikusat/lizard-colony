@@ -416,6 +416,16 @@ const CrankSkins = {
             ${wires}
             ${tapes}
             ${sticker}
+            <!-- 熱暴走/瞬間冷却: 雑に斜めに貼られた温度ストリップ(crank.md §3.4・3つ目の矛盾) -->
+            <g transform="rotate(3 56 32)">
+              <rect x="53.4" y="17.5" width="6.4" height="29.5" rx="1.2" fill="#d9dde0"/>
+              <rect x="54.8" y="19" width="3.6" height="26" fill="#22262a"/>
+              <rect x="54.8" y="19" width="3.6" height="3.4" fill="rgba(214,69,28,.4)"/>
+              <rect x="54.8" y="19" width="3.6" height="26" class="jk-heat"/>
+              <rect x="54.8" y="19" width="3.6" height="26" class="jk-cool"/>
+              <path d="M58.6 25h1.2M58.6 31h1.2M58.6 37h1.2M58.6 43h1.2" stroke="#7d8489" stroke-width=".8"/>
+            </g>
+            <circle cx="32" cy="32" r="21" class="jk-coolflash"/>
             <!-- 安物の5mm LED(配線で外付け・オート=緑点灯の直感アンカー) -->
             <path d="M42 8q3-4 6-1" fill="none" stroke="#41474c" stroke-width="1"/>
             <rect x="46.6" y="8" width="4" height="2.6" fill="#565c61"/>

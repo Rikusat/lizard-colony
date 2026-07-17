@@ -348,7 +348,7 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 }
 .fd-main { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 #fd-crank {
-  width: 64px; height: 64px; padding: 2px; border-radius: 50%;
+  width: var(--fd-crank-size, 64px); height: var(--fd-crank-size, 64px); padding: 2px; border-radius: 50%;
   background: radial-gradient(circle at 35% 28%, #4d3a20, var(--ink-800));
   border: 1px solid var(--amber-600); border-bottom-width: 3px;
 }
@@ -619,6 +619,53 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
   96% { transform: rotate(16deg); }
 }
 #feeder-dial.skin-junk.fx0 .jk-loose { animation: none; }
+/* 熱暴走ゲージ: 約7.7秒メラメラ段々上昇(ゆらぎ付き)→危険域→冷却が0.14秒で覆い尽くし瞬時ゼロ */
+#feeder-dial.skin-junk .jk-heat {
+  fill: #e05a2a;
+  transform-box: fill-box; transform-origin: 50% 100%;
+  animation: jk-heat-rise 9s linear infinite;
+}
+@keyframes jk-heat-rise {
+  0% { transform: scaleY(.06); fill: #e08a2a; }
+  8% { transform: scaleY(.17); } 11% { transform: scaleY(.13); }
+  20% { transform: scaleY(.32); } 24% { transform: scaleY(.27); }
+  34% { transform: scaleY(.47); fill: #e05a2a; } 38% { transform: scaleY(.42); }
+  50% { transform: scaleY(.64); } 54% { transform: scaleY(.59); }
+  66% { transform: scaleY(.80); } 70% { transform: scaleY(.76); }
+  80% { transform: scaleY(.93); fill: #d6451c; }
+  86.4% { transform: scaleY(.97); fill: #d6451c; }
+  88% { transform: scaleY(.02); fill: #e08a2a; }
+  100% { transform: scaleY(.06); fill: #e08a2a; }
+}
+/* 冷却: 9秒中の1.5%=0.14秒で全体を覆う(時間の非対称が命) */
+#feeder-dial.skin-junk .jk-cool {
+  fill: #5ab4e6; opacity: 0;
+  transform-box: fill-box; transform-origin: 50% 0%;
+  transform: scaleY(0);
+  animation: jk-cool-sweep 9s linear infinite;
+}
+@keyframes jk-cool-sweep {
+  0%, 86.4% { transform: scaleY(0); opacity: 0; }
+  87.9% { transform: scaleY(1); opacity: .95; }
+  90.5% { transform: scaleY(1); opacity: .75; }
+  93% { transform: scaleY(1); opacity: 0; }
+  100% { transform: scaleY(0); opacity: 0; }
+}
+/* 冷却の瞬間、盤全体に薄青のフラッシュ */
+#feeder-dial.skin-junk .jk-coolflash {
+  fill: rgba(90, 180, 230, .45); opacity: 0;
+  animation: jk-coolflash 9s linear infinite;
+}
+@keyframes jk-coolflash {
+  0%, 86.8% { opacity: 0; }
+  88.3% { opacity: .8; }
+  92% { opacity: 0; }
+  100% { opacity: 0; }
+}
+/* fx0/reduced: 上昇アニメ停止=静的な低熱表示のみ(冷却・フラッシュも停止) */
+#feeder-dial.skin-junk.fx0 .jk-heat { animation: none; transform: scaleY(.12); }
+#feeder-dial.skin-junk.fx0 .jk-cool,
+#feeder-dial.skin-junk.fx0 .jk-coolflash { animation: none; opacity: 0; }
 
 /* ---- 溶鉱炉スキン(ID5 イグニス・crank.md §3.4/§4.5: 炎/溶鉄の機構=粘る手触り) ---- */
 #feeder-dial.skin-forge {

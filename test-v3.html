@@ -365,6 +365,13 @@ globalThis._noStart = true;
     UI._crankSkinId = null;
     UI.updateFeeder();
   }
+  else if (h === "#stage1" || h === "#stage1-min") { // 始まりの地(default真鍮)へ移動した状態
+    Game.selectStage(1);
+    UI._crankSkinId = null;
+    if (h === "#stage1-min") Game.ensureDial().min = true;
+    else Game.ensureDial().auto = true;
+    UI.updateFeeder();
+  }
   else if (h === "#stage9") { // 廃原子炉(ヴォルタ)へ移動した状態
     Game.selectStage(9);
     UI._crankSkinId = null;
@@ -533,6 +540,12 @@ globalThis._noStart = true;
     if (h.includes("auto")) d.auto = true;
     if (h.includes("min")) d.min = true;
     UI.updateFeeder();
+    if (h.includes("cool") || h.includes("heat")) { // ゲージ検証: 冷却瞬間/上昇途中を凍結
+      const st = document.createElement("style");
+      const t = h.includes("cool") ? "-7.92s" : "-6.3s";
+      st.textContent = `.jk-heat,.jk-cool,.jk-coolflash{animation-play-state:paused !important;animation-delay:${t} !important;}`;
+      document.head.appendChild(st);
+    }
     if (h.includes("zoom")) {
       const st = document.createElement("style");
       st.textContent = "#feeder-dial{transform:scale(3.4);transform-origin:100% 100%;}";
