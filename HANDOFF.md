@@ -824,3 +824,11 @@ paper 11.26 / sand 7.91 / life-400 7.45〜7.81 / amber-400 7.45 / boss-400 5.20(
 - 炎の物理(粘性): タップ=fl-pour-turn 1.3s(始動遅→流出→跳ね返らずぬるり停止=石の弾性と対置) / 残光=fl-trail-cool 1.9s(回転1.3sより長く尾を引いて冷める。オート中は常時.4) / ふいご=spin/boingでfl-bellows(炉床が吹き上がる) / オート=fl-idle-churn(滑らかに波打つ攪拌・平均速度維持) / boing=fl-heat-surge(brightness1.55の燃え上がり) / 長押し=fl-roar(炉床の速い明滅)
 - 緑の宿し方=炉心の炎の「炎色反応」(銅塩の文法): 通常は橙の炎、auto-onでvar(--life-400)+green glow。reduced-motionでも色は静的に保持(スクショ確認)
 - 検証: 全チェック一発クリア(59PASS/ハーネスOK/セレクタ全数skin-forgeスコープ/#dial-autoでdefault不変)。ハーネス#skin-forge(-auto/-min/-hold/-zoom)追加
+
+### オート回転凍結バグの根治(案A・2026-07-17)✅
+
+- 症状: 溶鉱炉でオート回転が止まる(報告)。実測で全カスタムスキン共通の潜在バグと判明——`Motion.play`はクラスを外さないため`.spin`/`.boing`が永久残留し、スキンのタップルール(`#feeder-dial.skin-X #fd-crank.spin .fd-wheel`=ID2つ)がオートルール(ID1つ)を恒久上書き。defaultだけbase同士の同点+ソース順で無事
+- 根治: feeder.jsのcrankにanimationendリスナー——終了アニメの対象がcrank自身か`.fd-wheel`のときspin/boingを除去(churnは無限ループで非発火=誤除去なし)。操作ロジック非接触。溶鉱炉のboing(fl-heat-surge)もwheel→crank側へ移し「boingはwheelのanimationチャンネルを奪わない」で全スキン統一
+- 実証: ①#wheel-diag3=合成animationendで5スキン全て除去成功 ②spinproof.js(puppeteer-core実時間)=タップ+オート中タップ後、5スキン全てΔ90〜118°/500ms・class=""で回転継続 ③59項目PASS
+- **教訓(重要)**: `--virtual-time-budget`のヘッドレスは**animationendを発火せず、getComputedStyleのアニメ値も進まない**(スクショのレンダリングだけは進む)。アニメイベント依存の検証はpuppeteer-core(スクラッチパッドspinproof.js)の実時間駆動で行う。診断で「発火ゼロ」を確認してから結論すること(今回diag2の凍結表示は環境起因の偽陽性だった)
+- **再発防止(crank.md §6追記)**: スキン完成の必須チェック=「タップを挟んでもオート回転が継続」。#wheel-diag2(実機)/#spin-proof-N+spinproof.js(回帰)を毎回使う
