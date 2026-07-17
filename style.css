@@ -546,6 +546,91 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 #feeder-dial.skin-compass #fd-crank.holding ~ * .cp-band circle,
 #feeder-dial.skin-compass #fd-crank.holding .cp-band circle { stroke: var(--amber-glow); }
 
+/* ---- 金鈴の残響スキン(ID4 パルス・crank.md §3.4/§4.5: 金=静止後の余韻が主役・全10素材の掉尾) ---- */
+#feeder-dial.skin-tomb {
+  background: linear-gradient(#443f33, #2c2820);
+  border-color: #8a7440;
+}
+#feeder-dial.skin-tomb #fd-crank {
+  background: radial-gradient(circle at 35% 28%, #4e4837, #1f1c14);
+  border-color: #8a7440;
+}
+#feeder-dial.skin-tomb .fd-track { background: #1f1c14; border-color: #6b5a34; }
+#feeder-dial.skin-tomb .fd-lknob {
+  background: linear-gradient(#b89c62, #8a7440); border-color: #4e4022;
+}
+#feeder-dial.skin-tomb .fd-notch { background: #6b5a34; }
+#feeder-dial.skin-tomb .fd-notch.n2 { background: #b89c62; }
+#feeder-dial.skin-tomb .fd-sw { background: linear-gradient(#443f33, #2c2820); border-color: #6b5a34; }
+
+/* 玄室の燐火: 通常=消えている / オート=緑の鬼火が灯る(背景の燐火と同色--life-400・直感アンカー) */
+#feeder-dial.skin-tomb .tb-wisp { fill: #2a2620; transition: fill var(--dur-slow); }
+#feeder-dial.skin-tomb.auto-on .tb-wisp {
+  fill: var(--life-400);
+  filter: drop-shadow(0 0 5px rgba(123, 217, 134, .75));
+  animation: tb-wisp-flicker 3.2s ease-in-out infinite alternate;
+}
+@keyframes tb-wisp-flicker { from { opacity: .78; } to { opacity: 1; } }
+#feeder-dial.skin-tomb.fx0.auto-on .tb-wisp { animation: none; }
+
+/* 金の物理①: タップ=荘厳に淀みなく回り(前半0.9秒で静止)、その後は保持——鈴の残響時間を確保
+   (§6保守則: wheelのanimationendで.spinが外れるため、鈴が鳴り終わる2.4秒までアニメを引き延ばす) */
+#feeder-dial.skin-tomb #fd-crank.spin .fd-wheel {
+  animation: tb-solemn-turn 2.4s linear;
+}
+@keyframes tb-solemn-turn {
+  0% { transform: rotate(0); }
+  6% { transform: rotate(26deg); }
+  30% { transform: rotate(336deg); }
+  37% { transform: rotate(360deg); }
+  100% { transform: rotate(360deg); }
+}
+/* 静止した瞬間(37%=0.9秒)から金鈴がしゃらん…と減衰振動——「動きが終わってからが本番」 */
+#feeder-dial.skin-tomb #fd-crank.spin .tb-bell { animation: tb-bell-ring 2.4s linear; }
+@keyframes tb-bell-ring {
+  0%, 20% { transform: rotate(0); }
+  31% { transform: rotate(-9deg); }
+  40% { transform: rotate(16deg); }
+  49% { transform: rotate(-13deg); }
+  58% { transform: rotate(9deg); }
+  67% { transform: rotate(-6deg); }
+  76% { transform: rotate(3.6deg); }
+  85% { transform: rotate(-1.8deg); }
+  93% { transform: rotate(.8deg); }
+  100% { transform: rotate(0); }
+}
+/* 金の物理②: オート=葬列の歩み(1回転1周期のごく浅い緩急。水の2呼吸より遥かに控えめ・荘厳) */
+#feeder-dial.skin-tomb.auto-on .fd-wheel {
+  animation: tb-idle-glide var(--fd-spin, 1.6s) linear infinite;
+}
+@keyframes tb-idle-glide {
+  0% { transform: rotate(0); }
+  12% { transform: rotate(36deg); }
+  88% { transform: rotate(326deg); }
+  100% { transform: rotate(360deg); }
+}
+/* 金の物理③: オート中タップ=鈴が一振り(本体は動じない=荘厳。crank側の子要素のみ・.fd-wheel非接触)
+   ※crank本体には無動作アニメを与える: 骨格のクラス掃除(animationend)を発火させるため(§6保守則) */
+#feeder-dial.skin-tomb #fd-crank.boing { animation: tb-still 1.6s linear; }
+@keyframes tb-still { from { transform: none; } to { transform: none; } }
+#feeder-dial.skin-tomb #fd-crank.boing .tb-bell { animation: tb-bell-once 1.6s linear; }
+@keyframes tb-bell-once {
+  0% { transform: rotate(0); }
+  12% { transform: rotate(-10deg); }
+  28% { transform: rotate(7.5deg); }
+  44% { transform: rotate(-5deg); }
+  60% { transform: rotate(3deg); }
+  76% { transform: rotate(-1.4deg); }
+  100% { transform: rotate(0); }
+}
+/* 長押し=連鈴(読経のように静かに鳴り続ける) */
+#feeder-dial.skin-tomb #fd-crank.holding .tb-bell { animation: tb-bell-once 1.4s linear infinite; }
+/* 待機: 金鈴のごく微かな揺れのみ(fx0/reducedで停止) */
+#feeder-dial.skin-tomb .tb-bell { transform-origin: 0 0; animation: tb-bell-sway 4.5s ease-in-out infinite alternate; }
+#feeder-dial.skin-tomb .tb-bell.b2 { animation-delay: -2.2s; }
+@keyframes tb-bell-sway { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
+#feeder-dial.skin-tomb.fx0 .tb-bell { animation: none; }
+
 /* ---- 神器の舞スキン(ID6 ユンガ・crank.md §3.4/§4.5: 木彫+布=神聖な祭祀の躍動×神器の荘厳) ---- */
 #feeder-dial.skin-shrine {
   background: linear-gradient(#3a2c1a, #241a0e);

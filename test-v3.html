@@ -565,6 +565,26 @@ globalThis._noStart = true;
     if (h.includes("lock")) { CFG.bugSweepLockSec = 9999; Render._sw.target = bugs[0]; Render._sw.lockT = 8000; }
     if (h.includes("beam")) { CFG.bugSweepBeamSec = 9999; Render._sw.target = bugs[1]; Render._sw.beamT = 9000; }
   }
+  else if (h.startsWith("#skin-tomb")) { // 金鈴の残響(ID4実割り当て)の確認
+    Game.selectStage(4);
+    UI._crankSkinId = null;
+    const d = Game.ensureDial();
+    if (h.includes("auto")) d.auto = true;
+    if (h.includes("min")) d.min = true;
+    UI.updateFeeder();
+    if (h.includes("zoom")) {
+      const st = document.createElement("style");
+      st.textContent = "#feeder-dial{transform:scale(3.4);transform-origin:100% 100%;}";
+      document.head.appendChild(st);
+    }
+    if (h.includes("ring")) { // 残響の中間フレームを凍結(静止画検証: 車輪は静止済み・鈴が振れている瞬間)
+      const st = document.createElement("style");
+      st.textContent = "#fd-crank .fd-wheel, #fd-crank .tb-bell { animation-play-state: paused !important; animation-delay: -1.18s !important; }";
+      document.head.appendChild(st);
+      document.getElementById("fd-crank").classList.add("spin");
+    }
+    if (h.includes("hold")) document.getElementById("fd-crank").classList.add("holding");
+  }
   else if (h.startsWith("#skin-shrine")) { // 神器の舞(ID6実割り当て)の確認
     Game.selectStage(6);
     UI._crankSkinId = null;

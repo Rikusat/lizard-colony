@@ -15,7 +15,7 @@ const CrankSkins = {
   // 惑星ID→スキンID(crank.md §3.1の確定表と1:1。フォールバックに頼らず全惑星を明示)
   // 1=乾燥地帯(アリド)=始まりの地・教科書(不変) / 10=古代遺跡(オリジン)=羅針盤(確定)
   byPlanet: {
-    1: "default", 2: "neon", 3: "clock", 4: "default", 5: "forge",
+    1: "default", 2: "neon", 3: "clock", 4: "tomb", 5: "forge",
     6: "shrine", 7: "abyss", 8: "servo", 9: "junk",
     10: "compass",
   },
@@ -595,6 +595,54 @@ const CrankSkins = {
               <path d="M-6.5 -5l-2 -2.6M6.5 -5l2 -2.6" stroke="#c9a86a" stroke-width="1.4"/>
               <g class="sh-jaw"><path d="M-4.5 2.6Q0 5.6 4.5 2.6L3.5 5.4Q0 7.4 -3.5 5.4z" fill="#8a3a26" stroke="#241a0e" stroke-width=".9"/></g>
             </g>
+          </svg>`;
+      },
+    },
+    // 金鈴の残響(ID4 パルス=古代古墳)。crank.md §3.4/§4.5・全10素材の掉尾:
+    // 主役は回転中でなく静止後の余韻(石ID10=回転の重さ、との時間軸分離)。古金+緑青
+    tomb: {
+      id: "tomb",
+      dialClass: "skin-tomb",
+      face() {
+        // 宝輪の飾りスポーク6本(雫形の先飾り)
+        let spokes = "";
+        for (let i = 0; i < 6; i++) {
+          spokes += `<g transform="rotate(${i * 60} 32 32)">
+            <path d="M32 27.5V19.5" stroke="#8a7440" stroke-width="2.2"/>
+            <path d="M32 15.6c1.6 1.6 1.6 3.4 0 4.6-1.6-1.2-1.6-3 0-4.6z" fill="#a8905a"/>
+          </g>`;
+        }
+        return `
+          <svg viewBox="0 0 64 64" class="fd-svg" aria-hidden="true">
+            <!-- 石の外枠(玄室の石組み)+古金の象嵌環 -->
+            <circle cx="32" cy="32" r="27" fill="#443f33"/>
+            <circle cx="32" cy="32" r="27" fill="none" stroke="#28241b" stroke-width="1.8"/>
+            <circle cx="32" cy="32" r="24" fill="none" stroke="#8a7440" stroke-width="1.6"/>
+            <circle cx="32" cy="32" r="24" fill="none" stroke="rgba(111,184,160,.35)" stroke-width="1.6" stroke-dasharray="4 15"/>
+            <path d="M12 15l4 5M50 47l-3.4-4.4" stroke="rgba(111,184,160,.4)" stroke-width="2"/>
+            <!-- 回る主体: 古金の宝輪(くすんだ金+緑青の斑=長い時を経た王の金) -->
+            <g class="fd-wheel">
+              <circle cx="32" cy="32" r="16.5" fill="none" stroke="#a8905a" stroke-width="3.2"/>
+              <circle cx="32" cy="32" r="16.5" fill="none" stroke="#6b5a34" stroke-width="1" stroke-dasharray="2.6 2"/>
+              ${spokes}
+              <path d="M44.5 24a14.5 14.5 0 0 1 2.6 5" fill="none" stroke="rgba(111,184,160,.55)" stroke-width="3"/>
+              <path d="M20 42.8a14.5 14.5 0 0 1-2.2-3.4" fill="none" stroke="rgba(111,184,160,.45)" stroke-width="2.6"/>
+              <circle cx="32" cy="15.5" r="1.3" fill="#d8c894"/>
+            </g>
+            <!-- 玄室の窓(中心・オート=燐火が灯る・直感アンカー) -->
+            <circle cx="32" cy="32" r="6.2" fill="#171410" stroke="#8a7440" stroke-width="1.4"/>
+            <path d="M32 29.4c1.5 1.5 1.9 2.9 1 4.3-.6 1-2 1.4-3 .8-1.4-.8-1.5-2.5-.4-4 .6-.8 1.4-1.1 2.4-1.1z" class="tb-wisp"/>
+            <!-- 金鈴(左右・紐で垂れる。静止後の残響の主役) -->
+            <g transform="translate(13.5 44.5)"><g class="tb-bell b1">
+              <path d="M0 0v3.6" stroke="#6b5a34" stroke-width="1"/>
+              <path d="M-3.2 8.2q0-4.6 3.2-4.6t3.2 4.6l1 1.8h-8.4z" fill="#b89c62" stroke="#6b5a34" stroke-width=".9"/>
+              <circle cx="0" cy="10.8" r="1" fill="#8a7440"/>
+            </g></g>
+            <g transform="translate(50.5 44.5)"><g class="tb-bell b2">
+              <path d="M0 0v3.6" stroke="#6b5a34" stroke-width="1"/>
+              <path d="M-3.2 8.2q0-4.6 3.2-4.6t3.2 4.6l1 1.8h-8.4z" fill="#b89c62" stroke="#6b5a34" stroke-width=".9"/>
+              <circle cx="0" cy="10.8" r="1" fill="#8a7440"/>
+            </g></g>
           </svg>`;
       },
     },
