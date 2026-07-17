@@ -538,6 +538,17 @@ globalThis._noStart = true;
       ro.textContent = `惑星${pid}\n` + hist.slice(-5).join("\n");
     }, 250);
   }
+  else if (h.startsWith("#sweep-")) { // ID8バガー掃討演出の各段階を決定的に表示
+    Game.selectStage(8);
+    UI._crankSkinId = null;
+    Game.ensureDial().auto = !h.includes("walk"); // walk=オートOFF(掃討しない状態)
+    UI.updateFeeder();
+    const mk = (x, y) => ({ x, y, vx: 12, vy: 0, ph: 2 });
+    const bugs = [mk(430, 400), mk(700, 330), mk(950, 470)];
+    Render._sw = { bugs, spawnT: 999, cool: 999, target: null, lockT: 0, beamT: 0, ashes: [], t: Render.time };
+    if (h.includes("lock")) { CFG.bugSweepLockSec = 9999; Render._sw.target = bugs[0]; Render._sw.lockT = 8000; }
+    if (h.includes("beam")) { CFG.bugSweepBeamSec = 9999; Render._sw.target = bugs[0]; Render._sw.beamT = 9000; }
+  }
   else if (h.startsWith("#skin-servo")) { // 軍用サーボ(ID8実割り当て)の確認
     Game.selectStage(8);
     UI._crankSkinId = null;
