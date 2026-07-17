@@ -3,7 +3,7 @@
 // トカゲコロニー: マスターデータ / バランス定数
 // ============================================================
 
-const SAVE_VERSION = 5; // V5: コオロギ共通化+合算収入モデル(Phase3)
+const SAVE_VERSION = 6; // V5.1: コオロギ廃止→Gold消費給餌(在庫は全額Gold払い戻し)
 
 const CFG = {
   saveKey: "lizardColonySaveV1",
@@ -11,6 +11,7 @@ const CFG = {
   saveBackupKeyV3: "lizardColonyV3Backup", // V3→V4移行前のバックアップ
   saveBackupKeyV4: "lizardColonyV4Backup", // V4→V4.1移行前のバックアップ(ロールバック用)
   saveBackupKeyV5: "lizardColonyV5Backup", // V4.1→V5移行前のバックアップ(コオロギ共通化)
+  saveBackupKeyV6: "lizardColonyV6Backup", // V5→V6移行前のバックアップ(コオロギ→Gold払い戻し)
   startCoins: 500,
   startCrickets: 20,
   startGems: 3,
@@ -36,6 +37,7 @@ const CFG = {
   offlineCapHours: 24,      // オフライン進行の上限(V3 §3.4。研究で延長)
   offlineRate: 0.5,         // オフライン収益倍率(ブラウザを閉じていた時間・ロード時一括精算)
   awayStageIncomeRate: 1.0, // V5: 留守コロニーの常時生産倍率(1=フル。インフレ調整は支出側で)
+  feedGoldCost: 10,         // V5.1: 給餌1回のGoldコスト(旧: コオロギ1匹=10Gと等価)
   // 長押しオートリピート (GameExpansion_v2 ④)
   holdDelay: 0.4,           // 連続実行が始まるまでの秒数
   holdStart: 0.15,          // 初期実行間隔(秒)

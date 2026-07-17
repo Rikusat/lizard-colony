@@ -57,7 +57,7 @@ Object.assign(UI, {
         Motion.play(crank, "spin");
       } else if (!held) {
         Motion.play(el, "empty");
-        UI.toast(Game.state.crickets < 1 ? "コオロギが足りない! 購入か自動補給(コイン印)を" : "餌をあげられるトカゲがいない…", true);
+        UI.toast(Game.state.coins < CFG.feedGoldCost ? "Goldが足りない!" : "餌をあげられるトカゲがいない…", true);
       }
       this.updateFeeder();
       return ok;
@@ -156,7 +156,8 @@ Object.assign(UI, {
   updateFeeder() {
     const c = document.getElementById("fd-crickets");
     if (!c) return;
-    Motion.countUp(c, Math.floor(Game.state.crickets), (v) => fmt(Math.floor(v)));
+    // V5.1: 在庫表示は廃止(3.6でUI再設計)。ここでは空にしておく
+    c.textContent = "";
     this.applyCrankSkin(); // 惑星移動でスキンが切り替わる(同一IDなら何もしない)
     const d = Game.ensureDial();
     const dial = document.getElementById("feeder-dial");
@@ -166,7 +167,7 @@ Object.assign(UI, {
     const fold = document.getElementById("fd-fold");
     fold.setAttribute("aria-expanded", !d.min);
     fold.title = d.min ? "ひらく" : "たたむ";
-    dial.classList.toggle("gold-driven", d.supply && d.auto && Math.floor(Game.state.crickets) < targets);
+    dial.classList.toggle("gold-driven", false); // V5.1: Gold駆動の概念は消滅(givesは常にGold)
     // オートの回転速度=レートに同期(CFG.dialSpinSec)
     dial.style.setProperty("--fd-spin", (CFG.dialSpinSec[d.rate] || CFG.dialSpinSec[1]) + "s");
     // レバー位置がレートを示す(文字なし)
