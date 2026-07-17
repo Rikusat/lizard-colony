@@ -365,6 +365,11 @@ globalThis._noStart = true;
     UI._crankSkinId = null;
     UI.updateFeeder();
   }
+  else if (h === "#stage9") { // 廃原子炉(ヴォルタ)へ移動した状態
+    Game.selectStage(9);
+    UI._crankSkinId = null;
+    UI.updateFeeder();
+  }
   else if (h === "#stage10") { // 遺跡惑星(オリジン)へ移動した状態
     Game.selectStage(10);
     UI._crankSkinId = null;

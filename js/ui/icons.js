@@ -31,6 +31,7 @@ const ICONS = {
   "p-marsh": '<path d="M12 20v-8M12 12C7 12 5 9 5 5c4 0 7 3 7 7zM12 12c5 0 7-3 7-7-4 0-7 3-7 7z" fill="none"/><path d="M4 20h16" fill="none"/>',
   "p-snow": '<path d="M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9M12 3l-2.5 2.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5" fill="none"/>',
   "p-cave": '<path d="M3 20V9a9 7 0 0 1 18 0v11M8 9v5M12 9v8M16 9v4" fill="none"/>',
+  "p-reactor": '<path d="M4 20c2-4 2-9 .8-13h6.4C10 11 10 16 12 20z" fill="none"/><circle cx="17.5" cy="15.5" r="3.5" fill="none"/><path d="M17.5 12v-2M2 20h20" fill="none"/>',
   "p-city": '<path d="M3 20V11h4v9M9 20V5h5v15M16 20V9h5v11" fill="none"/><path d="M11 8h1M11 11h1M11 14h1M18 12h1M18 15h1M4.5 14h1" fill="none"/><path d="M2 20h20" fill="none"/>',
   "p-ruins": '<path d="M5 20h14M6 17h12M8 17V8M12 17V8M16 17V8M6 8h12l-1-3H7z" fill="none"/>',
   planet: '<circle cx="12" cy="12" r="5.5" fill="none"/><path d="M3.5 9.5c5-2 12-2 17 1.5M3.2 13.5c5.5 3.5 13 3 17.6.3" fill="none" stroke-opacity=".7"/>',

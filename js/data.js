@@ -269,8 +269,8 @@ const STAGES = [
     env: { poisonMult: 0.7, incomeMult: 1.05 }, bosses: ["scorpion", "crow"], envText: "水気が満ち、毒が早く抜け(-30%)生産+5%" },
   { id: 8, name: "雪原",     rank: 70, icon: "p-snow", mat: "氷晶",       nest: "氷穴",         sky: "#a8c4e0", sky2: "#5f7fa5", ground: "#dde8f2", ground2: "#aebfd2", accent: "#8fa5bf", rock: "#8a95a5", pebble: "#c3ccd9",
     env: { recoveryMult: 0.5, heatBoost: 2 }, bosses: ["hawk", "monitor"], envText: "低温で負傷回復が半減。保温設備の効果2倍" },
-  { id: 9, name: "洞窟",     rank: 80, icon: "p-cave", mat: "燐光石",     nest: "深淵洞",       sky: "#2a2438", sky2: "#161221", ground: "#3a3348", ground2: "#262032", accent: "#4f4568", rock: "#55496e", pebble: "#6e5f8a",
-    env: { capMult: 0.92, morphBonus: 0.03 }, bosses: ["spider", "scorpion"], envText: "薄暗く頭数上限-8%。モーフ変異率+3%" },
+  { id: 9, name: "廃原子炉", rank: 80, icon: "p-reactor", mat: "予備部品", nest: "冷却管の巣", sky: "#333c46", sky2: "#181e24", ground: "#3c4146", ground2: "#282c30", accent: "#20242a", rock: "#4e565e", pebble: "#69727c",
+    env: { capMult: 0.92, morphBonus: 0.03 }, bosses: ["spider", "scorpion"], envText: "文明がもがいた廃炉の静寂。立入制限で収容-8%、残留放射線で変異率+3%" },
   { id: 10, name: "古代遺跡", rank: 90, icon: "p-ruins", mat: "遺物片",    nest: "遺跡地下墓所", sky: "#c9924f", sky2: "#7a4f33", ground: "#8a7355", ground2: "#5f4c38", accent: "#46362a", rock: "#7d7468", pebble: "#a89a83",
     env: { relic: true }, bosses: ["snake", "hawk", "crow", "monitor", "scorpion", "spider"], envText: "遺物ボーナス: 撃退数×0.1%の生産増(最大+20%)" },
 ];
@@ -279,7 +279,7 @@ const stageById = (id) => STAGES.find((s) => s.id === id);
 // V4 §3.2: Stage→惑星。各ステージに惑星名を付与(概念はV3のStageDataを継承)
 const PLANET_NAMES = {
   1: "アリド", 2: "ネオヴェルデ", 3: "シルヴァ", 4: "パルス", 5: "イグニス",
-  6: "ユンガ", 7: "メアリス", 8: "グラキス", 9: "カヴム", 10: "オリジン",
+  6: "ユンガ", 7: "メアリス", 8: "グラキス", 9: "ヴォルタ", 10: "オリジン",
 };
 for (const st of STAGES) st.pname = `惑星${PLANET_NAMES[st.id]}`;
 

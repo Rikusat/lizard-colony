@@ -175,7 +175,7 @@ const UI = {
   // 惑星アクセント(§1.5 / Phase 8): 縁・リング・ドットの差し色のみ。土壌と魂は不変
   planetAccents: {
     1: "desert", 2: "city", 3: "jungle", 4: "swamp", 5: "volcano",
-    6: "jungle", 7: "swamp", 8: "snow", 9: "cave", 10: "ruins",
+    6: "jungle", 7: "swamp", 8: "snow", 9: "reactor", 10: "ruins",
   },
   planetAccent(id) { return `var(--planet-${this.planetAccents[id] || "desert"})`; },
   applyPlanetAccent() {

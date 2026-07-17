@@ -124,9 +124,12 @@ const Render = {
     g.addColorStop(0, st.sky); g.addColorStop(1, st.sky2);
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, HORIZON);
 
-    // 太陽 / 火山の赤い光 (洞窟は光源なし)
+    // 太陽 / 火山の赤い光 (廃原子炉は粉塵で霞んだ弱い太陽)
     if (st.id === 9) {
-      // 洞窟: 淡い燐光だけ
+      const haze = ctx.createRadialGradient(1080, 70, 6, 1080, 70, 70);
+      haze.addColorStop(0, "rgba(220,228,235,.30)");
+      haze.addColorStop(1, "rgba(220,228,235,0)");
+      ctx.fillStyle = haze; ctx.fillRect(1000, 0, 200, 150);
     } else if (st.id !== 5) {
       const glow = ctx.createRadialGradient(1080, 70, 8, 1080, 70, 90);
       glow.addColorStop(0, "rgba(255,245,200,.95)");
@@ -393,25 +396,87 @@ const Render = {
         ctx.fillStyle = "rgba(255,255,255,.5)";
         ctx.beginPath(); ctx.ellipse(x, y, 50 + rand() * 60, 10 + rand() * 8, 0, 0, 7); ctx.fill();
       }
-    } else if (st.id === 9) { // 洞窟: 鍾乳石・燐光キノコ
-      ctx.fillStyle = st.accent;
-      for (let i = 0; i < 12; i++) { // 鍾乳石
-        const x = rand() * W, w2 = 14 + rand() * 22, h2 = 40 + rand() * 70;
+    } else if (st.id === 9) { // 廃原子炉: 形の異なる原子炉モデル群(文明がもがいた試行錯誤の痕跡)
+      const CHER = "111,184,160"; // チェレンコフ光
+      const body = "#454e56", body2 = "#3d454d", edge = "rgba(255,255,255,.10)", rust = "rgba(150,90,55,.35)";
+      // a) 冷却塔(双曲面・ひび割れ) — 左
+      {
+        const x = 120, y = HORIZON, h2 = 120, wTop = 34, wMid = 22, wBot = 40;
+        ctx.fillStyle = body;
         ctx.beginPath();
-        ctx.moveTo(x - w2 / 2, 0); ctx.lineTo(x + w2 / 2, 0); ctx.lineTo(x, h2);
+        ctx.moveTo(x - wBot, y);
+        ctx.bezierCurveTo(x - wMid, y - h2 * 0.55, x - wMid, y - h2 * 0.6, x - wTop, y - h2);
+        ctx.lineTo(x + wTop, y - h2);
+        ctx.bezierCurveTo(x + wMid, y - h2 * 0.6, x + wMid, y - h2 * 0.55, x + wBot, y);
         ctx.closePath(); ctx.fill();
+        ctx.fillStyle = edge; ctx.fillRect(x - wTop, y - h2, wTop * 2, 3);
+        ctx.strokeStyle = rust; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x - 8, y - h2 + 4); ctx.lineTo(x - 12, y - 30); ctx.stroke();
+        ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(x + 14, y - 20); ctx.lineTo(x + 6, y - 58); ctx.lineTo(x + 16, y - 74); ctx.stroke(); // ひび
       }
-      for (let i = 0; i < 16; i++) { // 燐光キノコ
+      // b) 格納容器ドーム(円筒+ドーム・扉から冷却光が漏れる) — 中央左
+      {
+        const x = 400, y = HORIZON, w2 = 46, h2 = 52;
+        ctx.fillStyle = body2; ctx.fillRect(x - w2 / 2, y - h2, w2, h2);
+        ctx.beginPath(); ctx.arc(x, y - h2, w2 / 2, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = edge; ctx.beginPath(); ctx.arc(x, y - h2, w2 / 2, Math.PI, Math.PI * 1.5); ctx.lineTo(x, y - h2); ctx.fill();
+        const gl = ctx.createRadialGradient(x, y - 10, 2, x, y - 10, 26);
+        gl.addColorStop(0, `rgba(${CHER},.55)`); gl.addColorStop(1, `rgba(${CHER},0)`);
+        ctx.fillStyle = gl; ctx.fillRect(x - 26, y - 36, 52, 40);
+        ctx.fillStyle = `rgba(${CHER},.75)`; ctx.fillRect(x - 5, y - 18, 10, 18); // 開いた扉
+      }
+      // c) 角型炉(排気筒2本・警告ストライプ・傾いて廃棄) — 中央右
+      {
+        const x = 700, y = HORIZON;
+        ctx.save(); ctx.translate(x, y); ctx.rotate(-0.05);
+        ctx.fillStyle = body; ctx.fillRect(-52, -64, 104, 64);
+        ctx.fillStyle = body2; ctx.fillRect(-38, -96, 12, 32); ctx.fillRect(12, -88, 12, 24);
+        ctx.fillStyle = edge; ctx.fillRect(-52, -64, 104, 3);
+        for (let k = 0; k < 5; k++) { // 剥げかけ警告ストライプ
+          ctx.fillStyle = k % 2 ? "rgba(201,162,39,.5)" : "rgba(30,30,30,.5)";
+          ctx.fillRect(-52 + k * 21, -12, 18, 12);
+        }
+        ctx.fillStyle = `rgba(${CHER},.5)`;
+        ctx.fillRect(-30, -46, 7, 5); ctx.fillRect(6, -40, 7, 5); // 窓の冷却光
+        ctx.restore();
+      }
+      // d) 球形炉(架台の球・半分だけ光る) — 右
+      {
+        const x = 980, y = HORIZON, r = 30;
+        ctx.strokeStyle = body2; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.moveTo(x - 20, y); ctx.lineTo(x - 8, y - 34); ctx.moveTo(x + 20, y); ctx.lineTo(x + 8, y - 34); ctx.stroke();
+        ctx.fillStyle = body;
+        ctx.beginPath(); ctx.arc(x, y - 56, r, 0, 7); ctx.fill();
+        ctx.fillStyle = edge;
+        ctx.beginPath(); ctx.arc(x - 8, y - 64, r * 0.5, 0, 7); ctx.fill();
+        ctx.fillStyle = `rgba(${CHER},.35)`;
+        ctx.beginPath(); ctx.arc(x, y - 56, r, Math.PI * 0.25, Math.PI * 0.75); ctx.lineTo(x, y - 56); ctx.fill();
+      }
+      // e) 小型モジュール炉の列(量産型=使い捨て文明の気配) — 右端
+      for (let k = 0; k < 3; k++) {
+        const x = 1130 + k * 42, y = HORIZON;
+        ctx.fillStyle = k === 1 ? body2 : body;
+        ctx.fillRect(x, y - 30, 30, 30);
+        ctx.beginPath(); ctx.arc(x + 15, y - 30, 15, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = `rgba(${CHER},${k === 1 ? .15 : .55})`; // 1基は死んでいる
+        ctx.fillRect(x + 11, y - 14, 8, 6);
+      }
+      // 地面: 廃棄ドラム缶+冷却水たまりの反射
+      for (let i = 0; i < 6; i++) {
         const x = rand() * W, y = groundY();
-        const glow = ctx.createRadialGradient(x, y - 6, 1, x, y - 6, 22);
-        glow.addColorStop(0, "rgba(110,240,220,.5)");
-        glow.addColorStop(1, "rgba(110,240,220,0)");
-        ctx.fillStyle = glow;
-        ctx.beginPath(); ctx.arc(x, y - 6, 22, 0, 7); ctx.fill();
-        ctx.fillStyle = "#6ef0dc";
-        ctx.beginPath(); ctx.ellipse(x, y - 6, 5, 3.5, 0, Math.PI, 0); ctx.fill();
-        ctx.fillStyle = "#4aa898";
-        ctx.fillRect(x - 1.2, y - 6, 2.4, 6);
+        ctx.fillStyle = i % 2 ? "#4e565e" : "#5a4a3a";
+        ctx.fillRect(x, y - 9, 8, 9);
+        ctx.fillStyle = edge; ctx.fillRect(x, y - 9, 8, 2);
+      }
+      for (let i = 0; i < 4; i++) {
+        const x = rand() * W, y = groundY();
+        const gl = ctx.createRadialGradient(x, y, 2, x, y, 30);
+        gl.addColorStop(0, `rgba(${CHER},.22)`); gl.addColorStop(1, `rgba(${CHER},0)`);
+        ctx.fillStyle = gl;
+        ctx.beginPath(); ctx.ellipse(x, y, 30, 8, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = `rgba(${CHER},.30)`;
+        ctx.beginPath(); ctx.ellipse(x, y, 14, 3.5, 0, 0, 7); ctx.fill();
       }
     } else if (st.id === 10) { // 古代遺跡: 石柱・遺物・苔
       for (let i = 0; i < 7; i++) { // 崩れた石柱
