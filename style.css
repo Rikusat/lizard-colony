@@ -449,7 +449,9 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 /* 畳んだ後: パネルの層だけ消し、丸クランクを残す。
    V5 Phase1: レイアウトは保持(visibility)して展開⇄折りたたみでクランクの中心を固定。
    不可視領域はpointer-events透過でフィールドのクリックを妨げない */
-#feeder-dial.min {
+/* .min.minの二重指定=詳細度(1,2,0): 後方の全スキン背景ルール(1,1,0)にソース順で負けない。
+   スキンを増やしてもこの打ち消しが常に勝つ(2026-07-18 折りたたみ残留バグの構造的修正) */
+#feeder-dial.min.min {
   background: none; border-color: transparent; box-shadow: none;
   pointer-events: none;
 }
