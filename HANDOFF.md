@@ -926,6 +926,15 @@ paper 11.26 / sand 7.91 / life-400 7.45〜7.81 / amber-400 7.45 / boss-400 5.20(
 - デプロイ検証: ビルドログにエラー/警告なし(44ms・Ready) / 本番URL新規セーブ=rank1/stage1/default真鍮/給餌動作 / **consoleエラーゼロ・4xxリソースゼロ**
 - 修正1件(軽微): 本番consoleにfavicon.icoの404 → データURIのSVG favicon(トカゲ+life緑・外部ファイルなし)をindex/test-v3へ追加して解消
 
+## V5編(惑星固有化・純血設計)開始 — GameExpansion_V5.md
+
+### Phase 1+2: クランク拡大+折りたたみ中心固定+字サイズ倍率化(2026-07-17)提示中
+
+- Phase1: `--fd-crank-size` 72→**80px**(トークン1値・全10スキン一律)。**折りたたみ中心固定**——minのdisplay:noneをやめ、visibility:hidden+pointer-events透過で**レイアウトを保持したまま不可視化**(パネル層はborder-color:transparentで枠だけ消す)。展開⇄折畳のクランク中心が全10惑星で(982,537)一致を実測。不可視領域はpointer-events:noneでフィールドクリックを妨げない(crank/foldのみauto)
+- Phase2: **--fs-scale(現在1.1)**を新設し、font-size直書き**96箇所**(style.css 80+JSテンプレ16)を`calc(Npx * var(--fs-scale,1))`へ機械変換(二重calcゼロ確認)。--fs-*トークンも倍率連動。**canvas内テキスト(ctx.font)は対象外**(別途)。UISkills §3に「px直書き禁止・必ずこの形式」の規則を追記
+- 検証: 59PASS/全JS構文OK/#spin-proof全10惑星回転継続/主要画面(メイン・ステージ一覧・ミッション)でレイアウト破綻なし/before-after撮影済み
+- **Ric確定待ち**: クランク80pxと--fs-scale 1.1の大きさ判定(どちらもトークン1値で即調整可)。確定後Phase3(通貨共通化)の影響調査へ——**Phase3以降のセーブ影響変更は影響調査→承認まで実装しない**
+
 ## TODO: 惑星背景の本格実装(クランク全惑星完成後の宿題・未着手)
 
 **経緯**: クランクは§4.5の機構再設計で本作り込みだが、世界観差し替えの背景は全て「軽め」で仮実装してきた。この非対称を、クランク7惑星完成後に背景の本番クオリティ化で解消する。**今は着手しない。**
