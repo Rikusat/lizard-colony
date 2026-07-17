@@ -77,12 +77,19 @@ const Roulette = {
     this._t += dt;
     const W = CFG.roulW, H = CFG.roulH, e = CFG.roulRestitution, damp = CFG.roulWallDamp;
     const balls = this.balls;
-    for (let i = balls.length - 1; i >= 0; i--) {
-      const b = balls[i];
+    // 積分(重力)
+    for (let k = 0; k < balls.length; k++) {
+      const b = balls[k];
       b.age += dt;
-      b.vy += CFG.roulGravity * dt;      // 重力
+      b.vy += CFG.roulGravity * dt;
       b.x += b.vx * dt;
       b.y += b.vy * dt;
+    }
+    // 球同士の衝突(カオスの源・決定論=配列順で反復・RNG非使用)。roulette.md §7.3
+    this._collideBalls();
+    // 壁反射・床回収(後方から削除安全)
+    for (let i = balls.length - 1; i >= 0; i--) {
+      const b = balls[i];
       // 壁反射(左右・上)
       if (b.x - b.r < 0) { b.x = b.r; b.vx = -b.vx * e; b.vy *= damp; }
       else if (b.x + b.r > W) { b.x = W - b.r; b.vx = -b.vx * e; b.vy *= damp; }
@@ -98,11 +105,46 @@ const Roulette = {
     }
   },
 
-  // 床到達=レーン2到達。一定確率(シードRNG=決定論)で卵生成。ボールは消費済み
+  // 球同士の弾性衝突(等質量)。決定論: i<jを配列順に処理・乱数なし
+  _collideBalls() {
+    const balls = this.balls, e = CFG.roulBallRestitution, n = balls.length;
+    for (let i = 0; i < n; i++) {
+      const a = balls[i];
+      for (let j = i + 1; j < n; j++) {
+        const b = balls[j];
+        let dx = b.x - a.x, dy = b.y - a.y;
+        const rr = a.r + b.r;
+        let d2 = dx * dx + dy * dy;
+        if (d2 >= rr * rr || d2 === 0) continue;
+        const d = Math.sqrt(d2);
+        const nx = dx / d, ny = dy / d;
+        const overlap = rr - d;
+        // 位置補正(重なり解消・半分ずつ)
+        a.x -= nx * overlap * 0.5; a.y -= ny * overlap * 0.5;
+        b.x += nx * overlap * 0.5; b.y += ny * overlap * 0.5;
+        // 法線方向の相対速度(接近中のみ反発)
+        const vn = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+        if (vn < 0) {
+          const jimp = -(1 + e) * vn * 0.5;
+          a.vx -= jimp * nx; a.vy -= jimp * ny;
+          b.vx += jimp * nx; b.vy += jimp * ny;
+        }
+      }
+    }
+  },
+
+  // 床到達=レーン2到達。ボールは消費済み。
+  // レインボー帯(far-left・自然には落ちない位置=衝突で弾かれた球のみ到達)に落ちたら確定新種。
+  // それ以外は一定確率で通常卵。レインボー率は物理の創発(§7.3・式で作らない)
   _collect(b) {
-    const egg = this._rng() < CFG.roulEggChance;
-    const outcome = { gene: b.gene, rainbow: false, x: b.x, egg };
-    this.events.push({ type: "BallLanded", x: b.x, egg, rainbow: false });
+    const W = CFG.roulW;
+    const inRainbow = b.x >= CFG.roulRainbowX0 * W && b.x <= CFG.roulRainbowX1 * W;
+    let egg, rainbow;
+    if (inRainbow) { rainbow = true; egg = true; }
+    else { rainbow = false; egg = this._rng() < CFG.roulEggChance; }
+    const outcome = { gene: b.gene, rainbow, x: b.x, egg };
+    this.events.push({ type: "BallLanded", x: b.x, egg, rainbow });
+    if (rainbow) this.events.push({ type: "BallEnteredRainbow", x: b.x });
     if (egg && this.onEgg) this.onEgg(outcome);
   },
 
