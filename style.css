@@ -583,7 +583,8 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 }
 /* 水の物理②: オート=1回転に2呼吸の規則正しい脈動(平均速度=レート同期を厳密維持) */
 #feeder-dial.skin-abyss.auto-on .fd-wheel {
-  animation: ab-idle-breath var(--fd-spin, 1.6s) linear infinite;
+  /* 減速は見た目のみ(給餌ペースはCFG.dialRates駆動で不変)。低/中/高の比率は一律乗算で維持 */
+  animation: ab-idle-breath calc(var(--fd-spin, 1.6s) * var(--ab-spin-mult, 1)) linear infinite;
 }
 @keyframes ab-idle-breath {
   0% { transform: rotate(0); }
