@@ -546,6 +546,92 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 #feeder-dial.skin-compass #fd-crank.holding ~ * .cp-band circle,
 #feeder-dial.skin-compass #fd-crank.holding .cp-band circle { stroke: var(--amber-glow); }
 
+/* ---- 溶鉱炉スキン(ID5 イグニス・crank.md §3.4/§4.5: 炎/溶鉄の機構=粘る手触り) ---- */
+#feeder-dial.skin-forge {
+  background: linear-gradient(#3a2018, #1c0e0a);
+  border-color: #5c3d2e;
+}
+#feeder-dial.skin-forge #fd-crank {
+  background: radial-gradient(circle at 35% 28%, #4a3228, #160c08);
+  border-color: #5c3d2e;
+}
+#feeder-dial.skin-forge .fd-track { background: #160c08; border-color: #5c3d2e; }
+#feeder-dial.skin-forge .fd-lknob {
+  background: linear-gradient(#d6451c, #7a2a12); border-color: #3a1508;
+}
+#feeder-dial.skin-forge .fd-notch { background: #5c3d2e; }
+#feeder-dial.skin-forge .fd-notch.n2 { background: #ff9a3c; }
+#feeder-dial.skin-forge .fd-sw { background: linear-gradient(#3a2018, #1c0e0a); border-color: #5c3d2e; }
+
+/* 炉心の炎: 通常=橙 / オート=緑の炎色反応(銅塩の文法・直感アンカー) */
+#feeder-dial.skin-forge .fl-core { fill: #ffce6b; transition: fill var(--dur-base), filter var(--dur-base); }
+#feeder-dial.skin-forge.auto-on .fl-core {
+  fill: var(--life-400);
+  filter: drop-shadow(0 0 3.5px rgba(123, 217, 134, .9));
+}
+
+/* 炎の物理①: タップ=粘る一回転(始動が遅く→流れ出し→跳ね返らずぬるりと止まる) */
+#feeder-dial.skin-forge #fd-crank.spin .fd-wheel {
+  animation: fl-pour-turn 1.3s linear;
+}
+@keyframes fl-pour-turn {
+  0% { transform: rotate(0); }
+  14% { transform: rotate(16deg); }
+  32% { transform: rotate(96deg); }
+  56% { transform: rotate(268deg); }
+  78% { transform: rotate(340deg); }
+  92% { transform: rotate(356deg); }
+  100% { transform: rotate(360deg); }
+}
+/* 赤熱の残光: 回転で灯り、回転が終わってもゆっくり冷めて消える(尾を引く) */
+#feeder-dial.skin-forge .fl-trail { opacity: 0; }
+#feeder-dial.skin-forge #fd-crank.spin .fl-trail { animation: fl-trail-cool 1.9s ease-out; }
+@keyframes fl-trail-cool {
+  0% { opacity: 0; }
+  18% { opacity: .95; }
+  55% { opacity: .5; }
+  100% { opacity: 0; }
+}
+#feeder-dial.skin-forge.auto-on .fl-trail { opacity: .4; }
+/* ふいご: タップ/オート中タップで炉床が吹き上がる(明るく燃え上がり、落ち着く) */
+#feeder-dial.skin-forge #fd-crank.spin .fl-hearth,
+#feeder-dial.skin-forge #fd-crank.boing .fl-hearth { animation: fl-bellows .6s ease-out; }
+@keyframes fl-bellows {
+  0% { opacity: .55; }
+  22% { opacity: 1; }
+  100% { opacity: .6; }
+}
+/* 炎の物理②: オート=溶湯の攪拌(速い/遅いが滑らかに波打つ。平均速度=レート同期を厳密維持) */
+#feeder-dial.skin-forge.auto-on .fd-wheel {
+  animation: fl-idle-churn var(--fd-spin, 1.6s) linear infinite;
+}
+@keyframes fl-idle-churn {
+  0% { transform: rotate(0); }
+  18% { transform: rotate(44deg); }
+  38% { transform: rotate(148deg); }
+  55% { transform: rotate(202deg); }
+  76% { transform: rotate(308deg); }
+  100% { transform: rotate(360deg); }
+}
+/* 炎の物理③: オート中タップ=ふいごの吹き上がり(炉全体が一瞬明るく。弾み/身震い/グリッチにしない) */
+#feeder-dial.skin-forge #fd-crank.boing .fd-wheel { animation: fl-heat-surge .35s ease-out; }
+@keyframes fl-heat-surge {
+  0% { filter: brightness(1.55) saturate(1.3); }
+  100% { filter: none; }
+}
+/* 長押し=炉が唸る(炉床の明滅が速く強く) */
+#feeder-dial.skin-forge #fd-crank.holding .fl-hearth { animation: fl-roar .8s ease-in-out infinite alternate; }
+@keyframes fl-roar { from { opacity: .6; } to { opacity: 1; } }
+/* 待機微動: 熾火と火の粉のゆっくりした明滅のみ(fx0/reducedで停止) */
+#feeder-dial.skin-forge .fl-hearth { opacity: .55; animation: fl-embers 5.2s ease-in-out infinite alternate; }
+@keyframes fl-embers { from { opacity: .42; } to { opacity: .68; } }
+#feeder-dial.skin-forge .fl-ember { animation: fl-spark 4.3s ease-in-out infinite alternate; }
+@keyframes fl-spark { from { opacity: .25; } to { opacity: .85; } }
+#feeder-dial.skin-forge .fl-ember:nth-of-type(2n) { animation-delay: -2.1s; }
+#feeder-dial.skin-forge .fl-ember:nth-of-type(3n) { animation-delay: -3.4s; }
+#feeder-dial.skin-forge.fx0 .fl-hearth,
+#feeder-dial.skin-forge.fx0 .fl-ember { animation: none; }
+
 /* ---- 木製からくり時計スキン(ID3 シルヴァ・crank.md §3.4/§4.5: 木の機構=等時性の拍) ---- */
 #feeder-dial.skin-clock {
   background: linear-gradient(#4a3824, #332514);

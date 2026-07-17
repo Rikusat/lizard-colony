@@ -15,7 +15,7 @@ const CrankSkins = {
   // 惑星ID→スキンID(crank.md §3.1の確定表と1:1。フォールバックに頼らず全惑星を明示)
   // 1=乾燥地帯(アリド)=始まりの地・教科書(不変) / 10=古代遺跡(オリジン)=羅針盤(確定)
   byPlanet: {
-    1: "default", 2: "neon", 3: "clock", 4: "default", 5: "default",
+    1: "default", 2: "neon", 3: "clock", 4: "default", 5: "forge",
     6: "default", 7: "default", 8: "default", 9: "default",
     10: "compass",
   },
@@ -272,6 +272,76 @@ const CrankSkins = {
             <!-- 軸受け: 真鍮の芯+翡翠の軸受け石(オート=緑・直感アンカー) -->
             <circle cx="32" cy="32" r="4.6" fill="#c9a86a" stroke="#7a5c38" stroke-width="1"/>
             <circle cx="32" cy="32" r="2.4" class="cw-jewel"/>
+          </svg>`;
+      },
+    },
+    // 溶鉱炉(ID5 イグニス)。crank.md §3.4/§4.5: 炎/溶鉄の機構=粘る手触り
+    // 坩堝リング(溶滴+スラグ)と炉床の熾火。緑=炉心の炎色反応
+    forge: {
+      id: "forge",
+      dialClass: "skin-forge",
+      face() {
+        // 坩堝リングの溶滴(明るい玉)とスラグ(黒い塊)。回転が見える浮遊物
+        let drops = "";
+        const dropSpec = [
+          [0, 2.0, "#ffd27a"], [55, 1.5, "#ff9a3c"], [95, 1.8, "#ffce6b"],
+          [150, 1.4, "#ff8a2a"], [205, 2.1, "#ffd98f"], [260, 1.5, "#ffa94d"], [310, 1.7, "#ffc766"],
+        ];
+        for (const [deg, r, c] of dropSpec) {
+          drops += `<circle cx="32" cy="15" r="${r}" fill="${c}" transform="rotate(${deg} 32 32)"/>`;
+        }
+        let slag = "";
+        for (const deg of [30, 128, 232, 292]) {
+          slag += `<path d="M30.6 13.6l2.8-.8 1 2.4-2.6 1.2z" fill="#3a2018" transform="rotate(${deg} 32 32)"/>`;
+        }
+        // 火の粉(静止位置・明滅は熾火と同期)
+        let sparks = "";
+        for (const [x, y, r] of [[14, 20, .9], [50, 24, .8], [20, 47, .8], [46, 45, .9], [32, 8.5, .7]]) {
+          sparks += `<circle cx="${x}" cy="${y}" r="${r}" fill="#ffce6b" class="fl-ember"/>`;
+        }
+        return `
+          <svg viewBox="0 0 64 64" class="fd-svg" aria-hidden="true">
+            <defs>
+              <radialGradient id="fl-iron" cx=".4" cy=".3" r="1">
+                <stop offset="0" style="stop-color:#4a3228"/>
+                <stop offset="1" style="stop-color:#241310"/>
+              </radialGradient>
+              <radialGradient id="fl-heat" cx=".5" cy=".62" r=".65">
+                <stop offset="0" style="stop-color:rgba(255,154,60,.55)"/>
+                <stop offset=".6" style="stop-color:rgba(214,69,28,.28)"/>
+                <stop offset="1" style="stop-color:rgba(214,69,28,0)"/>
+              </radialGradient>
+            </defs>
+            <!-- 鋳鉄の炉体(静)+リベット -->
+            <circle cx="32" cy="32" r="27" fill="url(#fl-iron)"/>
+            <circle cx="32" cy="32" r="27" fill="none" stroke="#160c08" stroke-width="1.8"/>
+            <circle cx="32" cy="32" r="23.6" fill="none" stroke="#5c3d2e" stroke-width=".9"/>
+            <g fill="#6b4635">
+              <circle cx="32" cy="6.8" r="1.2"/><circle cx="57.2" cy="32" r="1.2"/>
+              <circle cx="32" cy="57.2" r="1.2"/><circle cx="6.8" cy="32" r="1.2"/>
+              <circle cx="14.2" cy="14.2" r="1.1"/><circle cx="49.8" cy="14.2" r="1.1"/>
+              <circle cx="14.2" cy="49.8" r="1.1"/><circle cx="49.8" cy="49.8" r="1.1"/>
+            </g>
+            <!-- 炉床の熾火(待機=ゆっくり明滅 / 操作=ふいごで吹き上がる) -->
+            <circle cx="32" cy="32" r="24" fill="url(#fl-heat)" class="fl-hearth"/>
+            ${sparks}
+            <!-- 回る主体: 坩堝リング(.fd-wheel) -->
+            <g class="fd-wheel">
+              <circle cx="32" cy="32" r="17" fill="none" stroke="#2a1510" stroke-width="6.4"/>
+              <circle cx="32" cy="32" r="17" fill="none" stroke="#d6451c" stroke-width="4.6"/>
+              <circle cx="32" cy="32" r="17" fill="none" stroke="#ff9a3c" stroke-width="2.4" stroke-dasharray="14 7 22 5 17 9 25 8"/>
+              ${drops}
+              ${slag}
+              <!-- 赤熱の残光アーク(尾)。通常は消灯・回転で灯りゆっくり冷める -->
+              <path d="M32 12.4A19.6 19.6 0 0 0 12.4 32" fill="none" stroke="#ffce6b" stroke-width="3.4" stroke-linecap="round" class="fl-trail"/>
+            </g>
+            <!-- 炉心: 溶湯だまり+炎(オート=緑の炎色反応・直感アンカー) -->
+            <circle cx="32" cy="32" r="8.6" fill="#1c0e0a" stroke="#5c3d2e" stroke-width="1"/>
+            <circle cx="32" cy="32" r="6.4" fill="#d6451c"/>
+            <circle cx="31" cy="31" r="4.2" fill="#ff9a3c"/>
+            <path d="M32 27.6c1.8 1.6 2.4 3 1.6 4.8-.5 1.2-1.9 1.9-3.2 1.4-1.9-.7-2.3-2.6-1.2-4.4.7-1.1 1.6-1.6 2.8-1.8z" class="fl-core"/>
+            <!-- 鋳型の刻印(静) -->
+            <path d="M25 53.4h14M28 55.6h8" stroke="#160c08" stroke-width="1" opacity=".8"/>
           </svg>`;
       },
     },
