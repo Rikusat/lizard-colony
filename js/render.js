@@ -326,7 +326,91 @@ const Render = {
         ctx.fillStyle = "rgba(255,255,255,.06)";
         ctx.beginPath(); ctx.arc(x - r * 0.3, y - r * 0.35, r * 0.5, 0, 7); ctx.fill();
       }
-    } else if (st.id === 6) { // 密林: 蔦と大きなシダ・木漏れ日
+    } else if (st.id === 6) { // 密林: 祭祀文明の森(蔦・シダは残し、食料神を祀る気配を載せる)
+      // ドクロ調のトーテムポール(古代民族の死生観=神への畏敬)
+      for (const [tx, th, tilt] of [[150, 92, -0.03], [1105, 78, 0.04]]) {
+        ctx.save(); ctx.translate(tx, HORIZON + 8); ctx.rotate(tilt);
+        ctx.fillStyle = "#4a3a26";
+        ctx.fillRect(-9, -th, 18, th);
+        ctx.strokeStyle = "#2c2114"; ctx.lineWidth = 1.4;
+        ctx.strokeRect(-9, -th, 18, th);
+        // 段ごとの彫り顔(最上段=ドクロ)
+        for (let k = 0; k < 3; k++) {
+          const sy = -th + 10 + k * 26;
+          if (k === 0) { // ドクロ
+            ctx.fillStyle = "#d8cfb8";
+            ctx.beginPath(); ctx.arc(0, sy + 4, 7.5, 0, 7); ctx.fill();
+            ctx.fillStyle = "#2c2114";
+            ctx.beginPath(); ctx.arc(-3, sy + 3, 2, 0, 7); ctx.arc(3, sy + 3, 2, 0, 7); ctx.fill();
+            ctx.fillRect(-3.5, sy + 8, 7, 2);
+          } else {
+            ctx.strokeStyle = "#2c2114"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(-3.5, sy + 3, 2.2, 0, 7); ctx.moveTo(6, sy + 3); ctx.arc(3.5, sy + 3, 2.2, 0, 7); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-5, sy + 10); ctx.lineTo(5, sy + 10); ctx.stroke();
+          }
+        }
+        // 羽飾り
+        ctx.strokeStyle = "#b8563a"; ctx.lineWidth = 2.4;
+        ctx.beginPath(); ctx.moveTo(-9, -th + 2); ctx.lineTo(-16, -th - 10); ctx.moveTo(9, -th + 2); ctx.lineTo(16, -th - 10); ctx.stroke();
+        ctx.restore();
+      }
+      // 祭祀の篝火(ゆれる炎・奉納の灯)
+      for (const [fx2, ph] of [[420, 0], [860, 2.4]]) {
+        const fy = HORIZON + 26;
+        ctx.fillStyle = "#4a3a26";
+        ctx.fillRect(fx2 - 7, fy - 12, 14, 12);
+        ctx.strokeStyle = "#2c2114"; ctx.lineWidth = 1.2;
+        ctx.strokeRect(fx2 - 7, fy - 12, 14, 12);
+        const fl = Math.sin(this.time * 5 + ph) * 2.5;
+        const glow = ctx.createRadialGradient(fx2, fy - 20, 2, fx2, fy - 20, 26);
+        glow.addColorStop(0, "rgba(255,180,90,.35)"); glow.addColorStop(1, "rgba(255,180,90,0)");
+        ctx.fillStyle = glow; ctx.fillRect(fx2 - 26, fy - 46, 52, 52);
+        ctx.fillStyle = "#e8853a";
+        ctx.beginPath();
+        ctx.moveTo(fx2 - 5, fy - 12);
+        ctx.quadraticCurveTo(fx2 - 4 + fl, fy - 24, fx2 + fl * 0.6, fy - 30);
+        ctx.quadraticCurveTo(fx2 + 5 + fl, fy - 22, fx2 + 5, fy - 12);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#ffce6b";
+        ctx.beginPath();
+        ctx.moveTo(fx2 - 2.5, fy - 12);
+        ctx.quadraticCurveTo(fx2 + fl * 0.5, fy - 19, fx2 + fl * 0.4, fy - 22);
+        ctx.quadraticCurveTo(fx2 + 2.5 + fl * 0.4, fy - 17, fx2 + 2.5, fy - 12);
+        ctx.closePath(); ctx.fill();
+      }
+      // 食料神を祀る祭壇(中央): 小さな車輪型の御神体+供物(崇拝対象=クランクを絵で示す)
+      {
+        const ax = 640, ay = HORIZON + 14;
+        ctx.fillStyle = "#6a6152";
+        ctx.fillRect(ax - 26, ay - 8, 52, 8);
+        ctx.fillStyle = "#7d745f";
+        ctx.fillRect(ax - 20, ay - 15, 40, 7);
+        ctx.strokeStyle = "#3a3428"; ctx.lineWidth = 1.2;
+        ctx.strokeRect(ax - 26, ay - 8, 52, 8); ctx.strokeRect(ax - 20, ay - 15, 40, 7);
+        // 御神体=車輪(小さなクランクの似姿・翡翠の宝玉を中心に)
+        ctx.strokeStyle = "#c9a86a"; ctx.lineWidth = 2.4;
+        ctx.beginPath(); ctx.arc(ax, ay - 27, 10, 0, 7); ctx.stroke();
+        ctx.lineWidth = 1.6;
+        for (let k = 0; k < 4; k++) {
+          const a = k * Math.PI / 2 + Math.PI / 4;
+          ctx.beginPath(); ctx.moveTo(ax, ay - 27); ctx.lineTo(ax + Math.cos(a) * 10, ay - 27 + Math.sin(a) * 10); ctx.stroke();
+        }
+        const jd = 0.75 + Math.sin(this.time * 1.2) * 0.25;
+        ctx.fillStyle = `rgba(47,169,138,${jd})`; // 翡翠の宝玉(静かに脈打つ)
+        ctx.beginPath(); ctx.arc(ax, ay - 27, 3.2, 0, 7); ctx.fill();
+        // 供物(果実と虫かご=食料神への捧げ物)
+        ctx.fillStyle = "#c9563a";
+        ctx.beginPath(); ctx.arc(ax - 13, ay - 18, 3, 0, 7); ctx.fill();
+        ctx.fillStyle = "#d9a13a";
+        ctx.beginPath(); ctx.arc(ax - 7, ay - 17, 2.6, 0, 7); ctx.fill();
+        ctx.strokeStyle = "#4a3a26"; ctx.lineWidth = 1;
+        ctx.strokeRect(ax + 7, ay - 21, 8, 6);
+        ctx.beginPath(); ctx.moveTo(ax + 9, ay - 21); ctx.lineTo(ax + 9, ay - 15); ctx.moveTo(ax + 12, ay - 21); ctx.lineTo(ax + 12, ay - 15); ctx.stroke();
+        // 祭壇の前の敷布
+        ctx.fillStyle = "rgba(184,86,58,.35)";
+        ctx.fillRect(ax - 18, ay, 36, 5);
+      }
+
       for (let i = 0; i < 10; i++) { // 上から垂れる蔦
         const x = rand() * W;
         ctx.strokeStyle = "#2a4222"; ctx.lineWidth = 3;
