@@ -16,7 +16,7 @@ const CrankSkins = {
   // 1=乾燥地帯(アリド)=始まりの地・教科書(不変) / 10=古代遺跡(オリジン)=羅針盤(確定)
   byPlanet: {
     1: "default", 2: "neon", 3: "clock", 4: "default", 5: "forge",
-    6: "default", 7: "default", 8: "servo", 9: "junk",
+    6: "default", 7: "abyss", 8: "servo", 9: "junk",
     10: "compass",
   },
 
@@ -485,6 +485,58 @@ const CrankSkins = {
             <rect x="15" y="19.8" width="2" height="2" class="sv-led"/>
             <rect x="15" y="23" width="2" height="2" class="sv-led"/>
             <rect x="15" y="26.2" width="2" height="2" class="sv-led"/>
+          </svg>`;
+      },
+    },
+    // 静寂の水圧呼吸(ID7 メアリス=水中都市)。crank.md §3.4/§4.5:
+    // 穏やかで満ちた水の機構。引き算が品位(ゲージ・力み・派手さを足さない)
+    abyss: {
+      id: "abyss",
+      dialClass: "skin-abyss",
+      face() {
+        return `
+          <svg viewBox="0 0 64 64" class="fd-svg" aria-hidden="true">
+            <defs>
+              <radialGradient id="ab-water" cx=".42" cy=".3" r="1">
+                <stop offset="0" style="stop-color:#2c5468"/>
+                <stop offset="1" style="stop-color:#12293a"/>
+              </radialGradient>
+            </defs>
+            <!-- 耐圧舷窓の枠(静・穏やかなリベット) -->
+            <circle cx="32" cy="32" r="27" fill="#2c4a58"/>
+            <circle cx="32" cy="32" r="27" fill="none" stroke="#16303c" stroke-width="1.6"/>
+            <g fill="#4a6a76">
+              <circle cx="32" cy="7.6" r="1.1"/><circle cx="49.3" cy="14.7" r="1.1"/>
+              <circle cx="56.4" cy="32" r="1.1"/><circle cx="49.3" cy="49.3" r="1.1"/>
+              <circle cx="32" cy="56.4" r="1.1"/><circle cx="14.7" cy="49.3" r="1.1"/>
+              <circle cx="7.6" cy="32" r="1.1"/><circle cx="14.7" cy="14.7" r="1.1"/>
+            </g>
+            <!-- 窓の中の水 -->
+            <circle cx="32" cy="32" r="21.5" fill="url(#ab-water)"/>
+            <circle cx="32" cy="32" r="21.5" fill="none" stroke="#16303c" stroke-width="1.2"/>
+            <!-- 水中光のコースティクス(やわらかい明滅・fx0/reducedで停止) -->
+            <ellipse cx="26" cy="24" rx="12" ry="7" fill="rgba(170,220,235,.22)" class="ab-caustic"/>
+            <ellipse cx="40" cy="40" rx="9" ry="5.5" fill="rgba(170,220,235,.14)" class="ab-caustic c2"/>
+            <!-- 回る主体: 4枚羽のハッチホイール(.fd-wheel) -->
+            <g class="fd-wheel">
+              <circle cx="32" cy="32" r="15" fill="none" stroke="#52707a" stroke-width="2.6"/>
+              <path d="M32 30.6c-4-1.8-8.4-1.4-12.6 1.4 4.2 2.8 8.6 3.2 12.6 1.4z" fill="#5f7e88" opacity=".9"/>
+              <path d="M33.4 32c1.8-4 1.4-8.4-1.4-12.6-2.8 4.2-3.2 8.6-1.4 12.6z" fill="#5f7e88" opacity=".9"/>
+              <path d="M32 33.4c4 1.8 8.4 1.4 12.6-1.4-4.2-2.8-8.6-3.2-12.6-1.4z" fill="#5f7e88" opacity=".9"/>
+              <path d="M30.6 32c-1.8 4-1.4 8.4 1.4 12.6 2.8-4.2 3.2-8.6 1.4-12.6z" fill="#5f7e88" opacity=".9"/>
+              <circle cx="32" cy="32" r="4.6" fill="#c9d6da" stroke="#52707a" stroke-width="1"/>
+              <circle cx="32" cy="18.4" r="1.4" fill="#e8f0f2"/>
+            </g>
+            <!-- 気泡がゆっくり昇る(8秒/粒・fx0/reducedで停止) -->
+            <circle cx="24" cy="46" r="1.6" fill="none" stroke="rgba(200,230,245,.55)" stroke-width=".9" class="ab-bub"/>
+            <circle cx="38" cy="48" r="1.1" fill="none" stroke="rgba(200,230,245,.45)" stroke-width=".8" class="ab-bub b2"/>
+            <circle cx="31" cy="50" r="1.3" fill="none" stroke="rgba(200,230,245,.5)" stroke-width=".8" class="ab-bub b3"/>
+            <!-- ガラスの照り(静) -->
+            <path d="M18 20a18 18 0 0 1 15-7" fill="none" stroke="rgba(230,245,250,.16)" stroke-width="2.6" stroke-linecap="round"/>
+            <!-- 水中照明(縁の小さな灯・オート=やわらかな緑・直感アンカー) -->
+            <path d="M46.5 10.5l5 3.4" stroke="#16303c" stroke-width="2.6"/>
+            <circle cx="49" cy="12.2" r="3" fill="#24404c" stroke="#16303c" stroke-width="1"/>
+            <circle cx="49" cy="12.2" r="1.7" class="ab-lamp"/>
           </svg>`;
       },
     },

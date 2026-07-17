@@ -546,6 +546,78 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 #feeder-dial.skin-compass #fd-crank.holding ~ * .cp-band circle,
 #feeder-dial.skin-compass #fd-crank.holding .cp-band circle { stroke: var(--amber-glow); }
 
+/* ---- 静寂の水圧呼吸スキン(ID7 メアリス・crank.md §3.4/§4.5: 水=穏やかで満ちた手触り) ---- */
+#feeder-dial.skin-abyss {
+  background: linear-gradient(#2a4450, #1c333c);
+  border-color: #4a6a76;
+}
+#feeder-dial.skin-abyss #fd-crank {
+  background: radial-gradient(circle at 35% 28%, #2c4a58, #12293a);
+  border-color: #4a6a76;
+}
+#feeder-dial.skin-abyss .fd-track { background: #12293a; border-color: #4a6a76; }
+#feeder-dial.skin-abyss .fd-lknob {
+  background: linear-gradient(#c9d6da, #7e9aa4); border-color: #4a6a76;
+}
+#feeder-dial.skin-abyss .fd-notch { background: #4a6a76; }
+#feeder-dial.skin-abyss .fd-notch.n2 { background: #a8d4e6; }
+#feeder-dial.skin-abyss .fd-sw { background: linear-gradient(#2a4450, #1c333c); border-color: #4a6a76; }
+
+/* 水中照明: 通常=消灯 / オート=やわらかな緑ににじむ(鋭くしない・直感アンカー) */
+#feeder-dial.skin-abyss .ab-lamp { fill: #3c5a52; transition: fill var(--dur-slow); }
+#feeder-dial.skin-abyss.auto-on .ab-lamp {
+  fill: var(--life-400);
+  filter: drop-shadow(0 0 6px rgba(123, 217, 134, .65));
+}
+
+/* 水の物理①: タップ=1.5秒・全スキン最遅の一回転(正弦の脈動。跳ねも詰まりもなく静かに止まる) */
+#feeder-dial.skin-abyss #fd-crank.spin .fd-wheel {
+  animation: ab-breath-turn 1.5s linear;
+}
+@keyframes ab-breath-turn {
+  0% { transform: rotate(0); }
+  25% { transform: rotate(104deg); }
+  50% { transform: rotate(180deg); }
+  75% { transform: rotate(284deg); }
+  100% { transform: rotate(360deg); }
+}
+/* 水の物理②: オート=1回転に2呼吸の規則正しい脈動(平均速度=レート同期を厳密維持) */
+#feeder-dial.skin-abyss.auto-on .fd-wheel {
+  animation: ab-idle-breath var(--fd-spin, 1.6s) linear infinite;
+}
+@keyframes ab-idle-breath {
+  0% { transform: rotate(0); }
+  25% { transform: rotate(104deg); }
+  50% { transform: rotate(180deg); }
+  75% { transform: rotate(284deg); }
+  100% { transform: rotate(360deg); }
+}
+/* 水の物理③: オート中タップ=水にたゆたう揺らぎ(crank側=§6保守則。1°未満のゆったりした首振り) */
+#feeder-dial.skin-abyss #fd-crank.boing { animation: ab-sway .6s ease-in-out; }
+@keyframes ab-sway {
+  0% { transform: rotate(0); }
+  35% { transform: rotate(.9deg); }
+  70% { transform: rotate(-.45deg); }
+  100% { transform: rotate(0); }
+}
+/* 待機: コースティクスのやわらかい明滅(5.6s)と気泡の上昇(8s)のみ。長押し=呼吸が少し深く */
+#feeder-dial.skin-abyss .ab-caustic { animation: ab-caustic-breathe 5.6s ease-in-out infinite alternate; }
+#feeder-dial.skin-abyss .ab-caustic.c2 { animation-delay: -2.8s; }
+@keyframes ab-caustic-breathe { from { opacity: .55; } to { opacity: 1; } }
+#feeder-dial.skin-abyss #fd-crank.holding .ab-caustic { animation-duration: 2.6s; }
+#feeder-dial.skin-abyss .ab-bub { animation: ab-rise 8s linear infinite; }
+#feeder-dial.skin-abyss .ab-bub.b2 { animation-delay: -2.7s; }
+#feeder-dial.skin-abyss .ab-bub.b3 { animation-delay: -5.3s; }
+@keyframes ab-rise {
+  0% { transform: translateY(0); opacity: 0; }
+  12% { opacity: .8; }
+  82% { opacity: .8; }
+  96% { transform: translateY(-30px); opacity: 0; }
+  100% { transform: translateY(-30px); opacity: 0; }
+}
+#feeder-dial.skin-abyss.fx0 .ab-caustic,
+#feeder-dial.skin-abyss.fx0 .ab-bub { animation: none; }
+
 /* ---- 軍用サーボスキン(ID8 グラキス・crank.md §3.4/§4.5: 黒金属=冷たく正確・借り物の力) ---- */
 #feeder-dial.skin-servo {
   background: linear-gradient(#1a1e24, #101318);
