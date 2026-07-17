@@ -546,6 +546,86 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 #feeder-dial.skin-compass #fd-crank.holding ~ * .cp-band circle,
 #feeder-dial.skin-compass #fd-crank.holding .cp-band circle { stroke: var(--amber-glow); }
 
+/* ---- 神器の舞スキン(ID6 ユンガ・crank.md §3.4/§4.5: 木彫+布=神聖な祭祀の躍動×神器の荘厳) ---- */
+#feeder-dial.skin-shrine {
+  background: linear-gradient(#3a2c1a, #241a0e);
+  border-color: #6a4a2c;
+}
+#feeder-dial.skin-shrine #fd-crank {
+  background: radial-gradient(circle at 35% 28%, #4a3820, #1c1408);
+  border-color: #6a4a2c;
+}
+#feeder-dial.skin-shrine .fd-track { background: #1c1408; border-color: #6a4a2c; }
+#feeder-dial.skin-shrine .fd-lknob {
+  background: linear-gradient(#b8563a, #7d3422); border-color: #4a1f12;
+}
+#feeder-dial.skin-shrine .fd-notch { background: #6a4a2c; }
+#feeder-dial.skin-shrine .fd-notch.n2 { background: #c9a86a; }
+#feeder-dial.skin-shrine .fd-sw { background: linear-gradient(#3a2c1a, #241a0e); border-color: #6a4a2c; }
+
+/* 御神体の翡翠: 通常=眠る深翡翠 / オート=祭壇の宝玉と同色に灯る(三重の重なり・直感アンカー) */
+#feeder-dial.skin-shrine .sh-jewel { fill: #1e4038; transition: fill var(--dur-base); }
+#feeder-dial.skin-shrine.auto-on .sh-jewel {
+  fill: #2FA98A;
+  filter: drop-shadow(0 0 4px rgba(47, 169, 138, .95));
+}
+
+/* 踊りの物理①: タップ=タメ→跳躍→着地(0.85秒。逆へ沈む溜め=有機的なアンティシペーション) */
+#feeder-dial.skin-shrine #fd-crank.spin .fd-wheel {
+  animation: sh-dance-turn .85s linear;
+}
+@keyframes sh-dance-turn {
+  0% { transform: rotate(0); }
+  14% { transform: rotate(-14deg); }
+  18% { transform: rotate(-14deg); }
+  55% { transform: rotate(330deg); }
+  70% { transform: rotate(372deg); }
+  82% { transform: rotate(354deg); }
+  92% { transform: rotate(362deg); }
+  100% { transform: rotate(360deg); }
+}
+/* 踊りの物理②: オート=1回転に2度の跳躍と鎮座(非対称の呼吸=舞。平均速度=レート同期を厳密維持) */
+#feeder-dial.skin-shrine.auto-on .fd-wheel {
+  animation: sh-idle-dance var(--fd-spin, 1.6s) linear infinite;
+}
+@keyframes sh-idle-dance {
+  0% { transform: rotate(0); }
+  18% { transform: rotate(22deg); }
+  30% { transform: rotate(140deg); }
+  46% { transform: rotate(172deg); }
+  58% { transform: rotate(300deg); }
+  76% { transform: rotate(334deg); }
+  90% { transform: rotate(354deg); }
+  100% { transform: rotate(360deg); }
+}
+/* 踊りの物理③: オート中タップ=神器の頷き(crank側=§6保守則。柔らかく威厳のあるお辞儀) */
+#feeder-dial.skin-shrine #fd-crank.boing { animation: sh-bow .4s ease-in-out; }
+@keyframes sh-bow {
+  0% { transform: translateY(0); }
+  35% { transform: translateY(1.6px) rotate(.6deg); }
+  100% { transform: translateY(0); }
+}
+/* 獅子仮面の顎: タップ/オート中タップでカッと開閉 */
+#feeder-dial.skin-shrine .sh-jaw { transform-origin: 0 2.6px; }
+#feeder-dial.skin-shrine #fd-crank.spin .sh-jaw,
+#feeder-dial.skin-shrine #fd-crank.boing .sh-jaw { animation: sh-jaw-snap .5s ease-out; }
+@keyframes sh-jaw-snap {
+  0% { transform: rotate(0); }
+  25% { transform: rotate(14deg); }
+  45% { transform: rotate(2deg); }
+  65% { transform: rotate(9deg); }
+  100% { transform: rotate(0); }
+}
+/* 待機: 奉納の布と房のゆったりした揺れのみ。長押し=祭りの最高潮(揺れが速まり顎が鳴る) */
+#feeder-dial.skin-shrine .sh-tassel { transform-origin: 0 0; animation: sh-sway 3.5s ease-in-out infinite alternate; }
+#feeder-dial.skin-shrine .sh-tassel.t1 { animation-delay: -1.2s; }
+#feeder-dial.skin-shrine .sh-tassel.t2 { animation-delay: -2.4s; }
+#feeder-dial.skin-shrine .sh-tassel.t3 { animation-delay: -0.6s; }
+@keyframes sh-sway { from { transform: rotate(-7deg); } to { transform: rotate(7deg); } }
+#feeder-dial.skin-shrine #fd-crank.holding .sh-tassel { animation-duration: .9s; }
+#feeder-dial.skin-shrine #fd-crank.holding .sh-jaw { animation: sh-jaw-snap .6s ease-out infinite; }
+#feeder-dial.skin-shrine.fx0 .sh-tassel { animation: none; }
+
 /* ---- 静寂の水圧呼吸スキン(ID7 メアリス・crank.md §3.4/§4.5: 水=穏やかで満ちた手触り) ---- */
 #feeder-dial.skin-abyss {
   background: linear-gradient(#2a4450, #1c333c);

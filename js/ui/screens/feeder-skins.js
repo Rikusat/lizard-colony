@@ -16,7 +16,7 @@ const CrankSkins = {
   // 1=乾燥地帯(アリド)=始まりの地・教科書(不変) / 10=古代遺跡(オリジン)=羅針盤(確定)
   byPlanet: {
     1: "default", 2: "neon", 3: "clock", 4: "default", 5: "forge",
-    6: "default", 7: "abyss", 8: "servo", 9: "junk",
+    6: "shrine", 7: "abyss", 8: "servo", 9: "junk",
     10: "compass",
   },
 
@@ -537,6 +537,64 @@ const CrankSkins = {
             <path d="M46.5 10.5l5 3.4" stroke="#16303c" stroke-width="2.6"/>
             <circle cx="49" cy="12.2" r="3" fill="#24404c" stroke="#16303c" stroke-width="1"/>
             <circle cx="49" cy="12.2" r="1.7" class="ab-lamp"/>
+          </svg>`;
+      },
+    },
+    // 神器の舞(ID6 ユンガ=祭祀の密林)。crank.md §3.4/§4.5:
+    // クランク=食料をもたらす神。背景の祭壇の御神体と同じ意匠の車輪が実際に回る
+    shrine: {
+      id: "shrine",
+      dialClass: "skin-shrine",
+      face() {
+        // 奉納の布(房): 輪の縁から4枚垂れ、回転とともに巡る(各房は揺れの入れ子)
+        let tassels = "";
+        for (let i = 0; i < 4; i++) {
+          const deg = 45 + i * 90;
+          tassels += `<g transform="rotate(${deg} 32 32) translate(32 13.5)"><g class="sh-tassel t${i}">
+            <path d="M-2 0l.6 7.5q1.4 1.5 2.8 0L2 0z" fill="#b8563a"/>
+            <path d="M-2 0h4" stroke="#8a3a26" stroke-width="1"/>
+          </g></g>`;
+        }
+        return `
+          <svg viewBox="0 0 64 64" class="fd-svg" aria-hidden="true">
+            <!-- 祠の台座(濃い木・彫りの環) -->
+            <circle cx="32" cy="32" r="27" fill="#3a2c1a"/>
+            <circle cx="32" cy="32" r="27" fill="none" stroke="#241a0e" stroke-width="1.8"/>
+            <circle cx="32" cy="32" r="24.2" fill="none" stroke="#5a4526" stroke-width="1.2" stroke-dasharray="3.4 2.6"/>
+            <!-- 朱の飾り紐(左右) -->
+            <path d="M8.5 24c-2 5-2 11 0 16" fill="none" stroke="#b8563a" stroke-width="2.2"/>
+            <path d="M55.5 24c2 5 2 11 0 16" fill="none" stroke="#b8563a" stroke-width="2.2"/>
+            <!-- ドクロの護符(下・小さく=畏敬) -->
+            <g transform="translate(32 56)">
+              <circle r="3.4" fill="#d8cfb8"/>
+              <circle cx="-1.3" cy="-.4" r=".9" fill="#241a0e"/>
+              <circle cx="1.3" cy="-.4" r=".9" fill="#241a0e"/>
+              <path d="M-1.6 1.8h3.2" stroke="#241a0e" stroke-width=".9"/>
+            </g>
+            <!-- 回る主体: 御神体の車輪(祭壇と同じ意匠=金環+4本スポーク) -->
+            <g class="fd-wheel">
+              <circle cx="32" cy="32" r="16.5" fill="none" stroke="#c9a86a" stroke-width="3"/>
+              <circle cx="32" cy="32" r="16.5" fill="none" stroke="#8a6f3e" stroke-width=".9" stroke-dasharray="2 2.4"/>
+              <g stroke="#6a4a2c" stroke-width="3.4" stroke-linecap="round">
+                <path d="M32 32L43 21M32 32L21 21M32 32L21 43M32 32L43 43"/>
+              </g>
+              <g fill="#c9a86a">
+                <circle cx="43.6" cy="20.4" r="1.7"/><circle cx="20.4" cy="20.4" r="1.7"/>
+                <circle cx="20.4" cy="43.6" r="1.7"/><circle cx="43.6" cy="43.6" r="1.7"/>
+              </g>
+              ${tassels}
+            </g>
+            <!-- 御神体の翡翠(中心・オート=祭壇と同じ色に灯る・直感アンカー) -->
+            <circle cx="32" cy="32" r="5.4" fill="#241a0e" stroke="#c9a86a" stroke-width="1.6"/>
+            <circle cx="32" cy="32" r="3" class="sh-jewel"/>
+            <!-- 獅子仮面(頂き・タップで顎がカッと開く) -->
+            <g transform="translate(32 7)">
+              <path d="M-7.5 1.5Q-8.5 -4.5 -3.5 -5.5L3.5 -5.5Q8.5 -4.5 7.5 1.5Q4.5 3.5 0 3.5Q-4.5 3.5 -7.5 1.5z" fill="#b8563a" stroke="#241a0e" stroke-width="1.1"/>
+              <circle cx="-3" cy="-1.4" r="1.2" fill="#ffd27a"/>
+              <circle cx="3" cy="-1.4" r="1.2" fill="#ffd27a"/>
+              <path d="M-6.5 -5l-2 -2.6M6.5 -5l2 -2.6" stroke="#c9a86a" stroke-width="1.4"/>
+              <g class="sh-jaw"><path d="M-4.5 2.6Q0 5.6 4.5 2.6L3.5 5.4Q0 7.4 -3.5 5.4z" fill="#8a3a26" stroke="#241a0e" stroke-width=".9"/></g>
+            </g>
           </svg>`;
       },
     },
