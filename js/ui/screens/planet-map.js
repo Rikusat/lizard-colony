@@ -200,7 +200,7 @@ Object.assign(UI, {
     for (const t of tabs) {
       const el = document.createElement("button");
       el.className = "stage-tab" + (t.st.id === cur.id ? " active" : "") + (t.unlocked ? "" : " locked");
-      el.title = t.unlocked ? t.st.envText : `R${t.st.rank}で解放`;
+      el.title = t.unlocked ? `${t.st.pname} — ${t.st.envText}` : `${t.st.name}: R${t.st.rank}で解放`;
       el.innerHTML = t.unlocked
         ? `<span class="si">${Icon.svg(t.st.icon)}</span><span class="sn">${PLANET_NAMES[t.st.id]}</span><span class="sp">${t.pop}</span><span class="sb">${t.badges}</span>`
         : `<span class="si">${Icon.svg("lock")}</span><span class="sn">${t.st.name}</span><span class="sp">R${t.st.rank}</span>`;
