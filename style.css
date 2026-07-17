@@ -139,10 +139,10 @@ button.danger { color: var(--boss-400); }
 /* ============ layout ============ */
 main {
   display: grid;
-  grid-template-columns: clamp(220px, 17vw, 264px) minmax(0, 1fr) clamp(236px, 18vw, 280px);
+  grid-template-columns: clamp(210px, 15.5vw, 248px) minmax(0, 1fr) clamp(196px, 14vw, 232px); /* V5 3.8: 右縮小=水槽拡大 */
   gap: clamp(8px, 1vw, 14px);
   padding: clamp(6px, 1vh, 12px) clamp(10px, 1.1vw, 16px);
-  max-width: 1750px; margin: 0 auto;
+  max-width: 1860px; margin: 0 auto; /* V5 3.8: フルHDの余白を水槽へ回すため上限拡大(1750→1860) */
   align-items: start;
 }
 #left, #right { display: flex; flex-direction: column; gap: clamp(6px, 1vh, 12px); }
@@ -421,6 +421,17 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 .fd-lever[data-rate="2"] .fd-lknob { top: 5px; }
 .fd-lever[data-rate="1"] .fd-lknob { top: 26px; }
 .fd-lever[data-rate="0"] .fd-lknob { top: 47px; }
+
+/* V5 3.8: 遺伝子ルーレットの枠(左メニュー下部・実装はroulette task)。器だけ先に確保 */
+#roulette-card { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+#roulette-wrap {
+  position: relative; flex: 1 1 auto; min-height: 140px;
+  border-radius: var(--radius-md);
+  background: radial-gradient(120% 90% at 50% 0%, rgba(20,26,18,.6), rgba(10,12,8,.85));
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+#roulette-canvas { display: block; width: 100%; height: 100%; }
 
 /* V5 3.6: クランク独立表示 — パネルの層を常時撤去(2連IDで全スキンのパネル背景に勝つ) */
 #feeder-dial#feeder-dial {
@@ -1969,7 +1980,8 @@ button.holding::after {
 .hidden { display: none !important; }
 
 @media (min-width: 1600px) {
-  main { max-width: 1880px; grid-template-columns: 288px minmax(0, 1fr) 304px; gap: 18px; }
+  /* V5 3.8: フルHDで水槽拡大最優先 — 左右カラムを絞り max-width を上げ、余白を中央へ回す */
+  main { max-width: 1900px; grid-template-columns: 248px minmax(0, 1fr) 236px; gap: 18px; }
 }
 @media (max-width: 1180px) {
   main { grid-template-columns: 1fr; }

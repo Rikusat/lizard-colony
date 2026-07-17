@@ -49,6 +49,7 @@ Object.assign(UI, {
   // ---------------- 卵スロット ----------------
   buildEggSlots() {
     const box = this.els["egg-slots"];
+    if (!box) return; // V5 3.8: 卵スロットパネル撤廃時はno-op
     box.innerHTML = "";
     for (let i = 0; i < Game.eggSlotCap(); i++) {
       const div = document.createElement("div");
@@ -59,6 +60,7 @@ Object.assign(UI, {
   },
 
   updateEggSlots() {
+    if (!this.els["egg-slots"]) return; // V5 3.8: 卵スロットパネル撤廃時はno-op
     // 孵化室でスロット数が変わったら作り直す
     if (this.els["egg-slots"].children.length !== Game.eggSlotCap()) this.buildEggSlots();
     const slots = this.els["egg-slots"].children;

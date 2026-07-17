@@ -122,12 +122,14 @@ const UI = {
 
     // 動的パネルは pointerdown 委譲(再描画でclickが失われないように)
     this.els["detail"].addEventListener("pointerdown", (e) => this.onDetailAction(e));
-    this.els["egg-slots"].addEventListener("pointerdown", (e) => {
-      const btn = e.target.closest("[data-egg]");
-      if (btn) Game.instantHatch(+btn.dataset.egg);
-    });
-
-    this.buildEggSlots();
+    // V5 3.8: 卵スロットパネルは撤廃(卵ロジックは不変・ルーレットが卵生成を担う)
+    if (this.els["egg-slots"]) {
+      this.els["egg-slots"].addEventListener("pointerdown", (e) => {
+        const btn = e.target.closest("[data-egg]");
+        if (btn) Game.instantHatch(+btn.dataset.egg);
+      });
+      this.buildEggSlots();
+    }
     this.initFeeder(); // 給餌ダイヤル(飼育槽右下・Brushup V2 Phase1)
     this.initBossHud(); // ボスHPバー(上部中央・Brushup V2 Phase3)
     setInterval(() => this.rotateHint(), 12000);
