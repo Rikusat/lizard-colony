@@ -42,10 +42,20 @@ Object.assign(UI, {
     ctx.translate(ox, oy);
     ctx.scale(scale, scale);
 
-    // 器の枠(レーン1)
-    ctx.fillStyle = "rgba(12,16,10,.7)";
-    ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = "rgba(160,200,150,.35)";
+    // 2レーン: 上部=レーン1(放出)/下部=レーン2(結果)。床=レーン2最奥部(回収)
+    const y1 = H * CFG.roulLane1Ratio;
+    ctx.fillStyle = "rgba(14,20,12,.72)";
+    ctx.fillRect(0, 0, W, y1);
+    ctx.fillStyle = "rgba(10,14,18,.78)";
+    ctx.fillRect(0, y1, W, H - y1);
+    ctx.strokeStyle = "rgba(120,160,120,.22)";
+    ctx.lineWidth = 1 / scale;
+    ctx.beginPath(); ctx.moveTo(0, y1); ctx.lineTo(W, y1); ctx.stroke(); // レーン境界
+    // 床(レーン2最奥部)=回収ライン
+    ctx.strokeStyle = "rgba(180,210,160,.4)";
+    ctx.lineWidth = 1.6 / scale;
+    ctx.beginPath(); ctx.moveTo(0, H - 1); ctx.lineTo(W, H - 1); ctx.stroke();
+    ctx.strokeStyle = "rgba(160,200,150,.3)";
     ctx.lineWidth = 1.4 / scale;
     ctx.strokeRect(0.7, 0.7, W - 1.4, H - 1.4);
 

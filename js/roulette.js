@@ -9,7 +9,8 @@
 
 const Roulette = {
   balls: [],
-  events: [],      // 表現層がdrainするイベントキュー(BallEmitted等)
+  events: [],      // 表現層がdrainするイベントキュー(BallEmitted/BallLanded等)
+  onEgg: null,     // 卵生成の注入コールバック(ルール純度保持・boot時にGameが設定)
   _seed: 0,
   _rng: null,
   _acc: 0,         // 固定ステップのアキュムレータ
@@ -82,14 +83,27 @@ const Roulette = {
       b.vy += CFG.roulGravity * dt;      // 重力
       b.x += b.vx * dt;
       b.y += b.vy * dt;
-      // 壁反射(左右・上・床)。床は後続でレーン2/穴に置換
+      // 壁反射(左右・上)
       if (b.x - b.r < 0) { b.x = b.r; b.vx = -b.vx * e; b.vy *= damp; }
       else if (b.x + b.r > W) { b.x = W - b.r; b.vx = -b.vx * e; b.vy *= damp; }
       if (b.y - b.r < 0) { b.y = b.r; b.vy = -b.vy * e; b.vx *= damp; }
-      else if (b.y + b.r > H) { b.y = H - b.r; b.vy = -b.vy * e; b.vx *= damp; }
-      // 寿命切れは掃除(着地システムは後続段階)
+      // 床=レーン2最奥部への到達=回収(consume)。段階3で穴/レインボー帯を追加
+      if (b.y + b.r >= H) {
+        this._collect(b);
+        balls.splice(i, 1);
+        continue;
+      }
+      // 寿命切れは掃除
       if (b.age >= CFG.roulBallTtl) { balls.splice(i, 1); }
     }
+  },
+
+  // 床到達=レーン2到達。一定確率(シードRNG=決定論)で卵生成。ボールは消費済み
+  _collect(b) {
+    const egg = this._rng() < CFG.roulEggChance;
+    const outcome = { gene: b.gene, rainbow: false, x: b.x, egg };
+    this.events.push({ type: "BallLanded", x: b.x, egg, rainbow: false });
+    if (egg && this.onEgg) this.onEgg(outcome);
   },
 
   // 表現層がイベントを取り出す(drain)

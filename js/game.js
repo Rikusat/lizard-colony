@@ -1098,6 +1098,28 @@ const Game = {
     };
   },
 
+  // 遺伝子ルーレット: 床到達(回収)で1個の卵を生成。単一遺伝子からの子は
+  // inherit(自己ペア)で再利用し、変異/モーフ/色ゆらぎロジックの二重化を避ける(fable0)
+  spawnRouletteEgg(outcome) {
+    if (this.state.eggs.length >= this.eggSlotCap()) return false; // 満杯は静かに廃棄
+    const g = (outcome && outcome.gene) || {};
+    const fallbackSp = (this.state.lizards[0] && this.state.lizards[0].speciesId)
+      || (this.unlockedSpecies()[0] && this.unlockedSpecies()[0].id) || "kanahebi";
+    const base = {
+      speciesId: g.speciesId || fallbackSp,
+      morphId: g.morphId || "normal",
+      hue: g.hue != null ? g.hue : 90, sat: g.sat != null ? g.sat : 60, light: g.light != null ? g.light : 55,
+      pattern: g.pattern || "none",
+    };
+    const genes = this.inherit(base, base);
+    if (outcome && outcome.rainbow && outcome.speciesId) genes.speciesId = outcome.speciesId; // レインボー=指定新種(段階4)
+    const sp = speciesById(genes.speciesId);
+    const hatchMult = Math.max(0.2, (1 - this.facLv("heat") * 0.025) * (1 - (((this.state.nest && this.state.nest.lv) || 1) - 1) * 0.03) * (1 - this.researchBonus("hatch")));
+    const total = CFG.hatchBasePerStar * sp.stars * hatchMult;
+    this.state.eggs.push({ ...genes, t: total, total, fromRoulette: true, rainbow: !!(outcome && outcome.rainbow) });
+    return true;
+  },
+
   instantHatch(idx) {
     const egg = this.state.eggs[idx];
     if (!egg) return;

@@ -55,6 +55,8 @@ const CFG = {
   roulBallR: 4.2,           // 球半径(単位)
   roulMaxBalls: 64,         // 同時球数上限(性能・カオス上限)
   roulBallTtl: 7,           // 球の寿命(秒・着地しない球の掃除)
+  roulEggChance: 0.12,      // 床到達(回収)1球あたりの卵生成確率(シードRNG・反復で調整)
+  roulLane1Ratio: 0.42,     // レーン1(上部)の高さ比(残りがレーン2)
 
   xpPopupAutoHighEvery: 10, // V5 3.5: オート高のXPポップ間引き(N回に1回だけ表示)
   xpPopupAutoHighSmall: true, // V5 3.5: オート高のXPポップを小さく表示
