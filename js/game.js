@@ -922,7 +922,12 @@ const Game = {
     if (this.event && this.event.def.xpMult) xp *= this.event.def.xpMult;
     lz.xp += xp;
     this.addRankXp(2);
-    this.popup(lz.x, lz.y - 20, "+" + Math.round(xp) + "xp", "#9fe07a");
+    // V5 3.5: オート高では表示が洪水になるためN回に1回だけ・小さく(高限定)
+    const autoHigh = this.state.dial && this.state.dial.auto && this.state.dial.rate === 2;
+    this._xpPopN = (this._xpPopN || 0) + 1;
+    if (!autoHigh || this._xpPopN % CFG.xpPopupAutoHighEvery === 0) {
+      this.popup(lz.x, lz.y - 20, "+" + Math.round(xp) + "xp", "#9fe07a", false, autoHigh && CFG.xpPopupAutoHighSmall);
+    }
     // 成長処理
     if (lz.stage === "baby" && lz.xp >= CFG.babyXpToAdult) {
       lz.stage = "adult"; lz.xp = 0; lz.level = 1;
@@ -1802,8 +1807,8 @@ const Game = {
     if (this.corpse.dyingT <= 0) this.corpse = null;
   },
 
-  popup(x, y, txt, color, big) {
-    this.popups.push({ x, y, txt, color, big, ttl: 1.2 });
+  popup(x, y, txt, color, big, small) {
+    this.popups.push({ x, y, txt, color, big, small, ttl: small ? 0.8 : 1.2 }); // V5 3.5: small=控えめ表示
   },
 
   // ---------------- Phase4: 終盤コンテンツ (GameExpansion_v2 ⑨) ----------------

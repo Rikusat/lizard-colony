@@ -2269,7 +2269,7 @@ const Render = {
         // 重いダメージ数値(Brushup V2 §3.3): 大きく出て弾んで着地
         const age = 1.2 - p.ttl;
         const pop = 1 + Math.max(0, 0.5 - age) * 0.9;
-        ctx.font = `bold ${Math.round(26 * pop)}px sans-serif`;
+        ctx.font = p.small ? `10px sans-serif` : `bold ${Math.round(26 * pop)}px sans-serif`;
         ctx.fillStyle = "rgba(0,0,0,.75)"; ctx.fillText(p.txt, p.x + 2, p.y + 2);
       } else {
         ctx.font = "bold 17px sans-serif";

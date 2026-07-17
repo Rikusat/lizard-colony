@@ -38,6 +38,8 @@ const CFG = {
   offlineRate: 0.5,         // オフライン収益倍率(ブラウザを閉じていた時間・ロード時一括精算)
   awayStageIncomeRate: 1.0, // V5: 留守コロニーの常時生産倍率(1=フル。インフレ調整は支出側で)
   feedGoldCost: 10,         // V5.1: 給餌1回のGoldコスト(旧: コオロギ1匹=10Gと等価)
+  xpPopupAutoHighEvery: 10, // V5 3.5: オート高のXPポップ間引き(N回に1回だけ表示)
+  xpPopupAutoHighSmall: true, // V5 3.5: オート高のXPポップを小さく表示
   // 長押しオートリピート (GameExpansion_v2 ④)
   holdDelay: 0.4,           // 連続実行が始まるまでの秒数
   holdStart: 0.15,          // 初期実行間隔(秒)

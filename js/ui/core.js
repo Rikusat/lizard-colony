@@ -41,27 +41,19 @@ const UI = {
   hintIdx: 0,
 
   init() {
-    const ids = ["ui-coins", "ui-cps", "ui-crickets", "ui-gems", "ui-rank", "rank-bar",
+    const ids = ["ui-coins", "ui-cps", "ui-gems", "ui-rank", "rank-bar",
       "ui-pop", "ui-stage", "ui-wins", "raid-timer", "raid-banner", "egg-slots",
       "detail", "modal", "modal-title", "modal-body", "toasts", "mission-badge", "ui-hint"];
     for (const id of ids) this.els[id] = document.getElementById(id);
 
     // ボタン(購入・餌やりは長押しで加速連続実行 / GameExpansion_v2 ④)
-    this.units = shopUnitsFor(Game.state.rank);
-    on("btn-buy10", () => Game.buyCrickets(this.units[0]));
-    on("btn-buy100", () => Game.buyCrickets(this.units[1]));
+    // V5.1: 購入単位(ショップ)は撤去
+    // V5.1: コオロギ購入ボタンは撤去
     on("btn-breed", () => this.openBreed());
-    attachHold(document.getElementById("btn-buy10"), () => Game.buyCrickets(this.units[0], true));
-    attachHold(document.getElementById("btn-buy100"), () => Game.buyCrickets(this.units[1], true));
     // 繁殖ボタンの長押し=クイック繁殖の連続実行(短押しは選択画面)
     attachHold(document.getElementById("btn-breed"), () => Game.quickBreed(true));
-    on("btn-autosupply", () => {
-      Game.state.autoSupply = !Game.state.autoSupply;
-      this.toast(Game.state.autoSupply ? " 自動補給 ON: 在庫が減ると毎秒自動購入します" : "自動補給 OFF");
-      this.update();
-    });
+    // V5.1: 自動補給トグルは撤去(Gold直接消費給餌)
     on("btn-fac", () => this.openFacilities());
-    on("btn-allies", () => this.openAllies());
     on("btn-merchant", () => this.openMerchant());
     on("btn-stats", () => this.openStats());
     on("btn-hq", () => this.openHQ());
@@ -274,26 +266,7 @@ const UI = {
       }
     }
 
-    // ショップ進化: ランクに応じた購入単位の繰り上げ (GameExpansion_v2 ⑤)
-    const units = shopUnitsFor(s.rank);
-    if (units !== this._shownUnits) {
-      this._shownUnits = units;
-      this.units = units;
-      for (const [id, u] of [["btn-buy10", units[0]], ["btn-buy100", units[1]]]) {
-        const btn = document.getElementById(id);
-        btn.querySelector(".lbl").innerHTML = `コオロギ ×${fmt(u)}<small>${u === units[0] ? "トカゲの餌" : "まとめ買い"}</small>`;
-        btn.querySelector(".price").textContent = fmt(u * CFG.cricketCost) + "G";
-      }
-    }
-    // 自動補給トグル (R100解禁)
-    const asBtn = document.getElementById("btn-autosupply");
-    if (s.rank >= CFG.autoSupplyRank) {
-      asBtn.classList.remove("hidden");
-      asBtn.querySelector(".lbl").innerHTML = `自動補給: ${s.autoSupply ? "ON" : "OFF"}<small>在庫${fmt(CFG.autoSupplyThreshold)}未満で毎秒購入</small>`;
-      asBtn.classList.toggle("primary", s.autoSupply);
-    } else {
-      asBtn.classList.add("hidden");
-    }
+    // V5.1: ショップ(コオロギ購入単位)・自動補給トグルはUIごと撤去
 
     // ミッションバッジ
     const claimable = MISSIONS.some((m) => !s.missionsClaimed[m.id] && m.check(s));

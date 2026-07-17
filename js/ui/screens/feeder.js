@@ -18,7 +18,6 @@ Object.assign(UI, {
         <button id="fd-crank" title="タップ=1掴み給餌 / 長押し=連続給餌" aria-label="給餌クランク(タップで1掴み・長押しで連続給餌)">
           ${CrankSkins.current().face()}
         </button>
-        <div class="fd-stock" title="コオロギ在庫"><svg class="icon"><use href="#i-cricket"/></svg><b id="fd-crickets">0</b></div>
       </div>
       <div class="fd-lever" id="fd-lever" tabindex="0" role="slider"
         aria-label="オート給餌レート(上=高/下=低)" aria-valuemin="0" aria-valuemax="2" aria-valuenow="1"
@@ -27,15 +26,10 @@ Object.assign(UI, {
         <span class="fd-notch n2"></span><span class="fd-notch n1"></span><span class="fd-notch n0"></span>
         <span class="fd-lknob" id="fd-lknob"></span>
       </div>
-      <button id="fd-fold" title="たたむ/ひらく" aria-label="給餌クランクをたたむ" aria-expanded="true"><span class="fd-chev"></span></button>
       <div class="fd-side">
         <button id="fd-auto" class="fd-sw" role="switch" aria-checked="false"
           title="オート給餌(レバー位置のレートで自動給餌)" aria-label="オート給餌">
           <svg class="icon"><use href="#i-auto"/></svg><span class="fd-lamp"></span>
-        </button>
-        <button id="fd-supply" class="fd-sw ghost" role="switch" aria-checked="false"
-          title="コオロギ自動補給(不足分をGoldから自動購入・Goldがある限り永続)" aria-label="コオロギ自動補給">
-          <svg class="icon"><use href="#i-coin"/></svg><span class="fd-lamp"></span>
         </button>
       </div>`;
     center.appendChild(el);
@@ -89,12 +83,7 @@ Object.assign(UI, {
       }
     });
 
-    // 折りたたみ: 最終的に「クランクが回っているのみ」の表示へ
-    el.querySelector("#fd-fold").addEventListener("click", () => {
-      const d = Game.ensureDial();
-      d.min = !d.min;
-      this.updateFeeder();
-    });
+    // V5 3.6: 折りたたみ(非表示モード)は撤廃。クランクは常時独立表示
 
     // ---- 縦レバー: クリック位置/キーボードでレート(0=低,1=中,2=高。上=高) ----
     const lever = el.querySelector("#fd-lever");
@@ -117,11 +106,6 @@ Object.assign(UI, {
     el.querySelector("#fd-auto").addEventListener("click", () => {
       const d = Game.ensureDial();
       d.auto = !d.auto;
-      this.updateFeeder();
-    });
-    el.querySelector("#fd-supply").addEventListener("click", () => {
-      const d = Game.ensureDial();
-      d.supply = !d.supply;
       this.updateFeeder();
     });
     this.updateFeeder();
@@ -154,20 +138,12 @@ Object.assign(UI, {
 
   // 毎秒更新(UI.updateから)。数値・クラスの書き換えのみ=平常は静か
   updateFeeder() {
-    const c = document.getElementById("fd-crickets");
-    if (!c) return;
-    // V5.1: 在庫表示は廃止(3.6でUI再設計)。ここでは空にしておく
-    c.textContent = "";
+    if (!document.getElementById("fd-crank")) return;
     this.applyCrankSkin(); // 惑星移動でスキンが切り替わる(同一IDなら何もしない)
     const d = Game.ensureDial();
     const dial = document.getElementById("feeder-dial");
-    const targets = Game.state.lizards.filter((l) => l.injuredT <= 0 && !Game.isAway(l)).length;
     dial.classList.toggle("auto-on", d.auto);
-    dial.classList.toggle("min", !!d.min); // 折りたたみ(クランクのみ表示)
-    const fold = document.getElementById("fd-fold");
-    fold.setAttribute("aria-expanded", !d.min);
-    fold.title = d.min ? "ひらく" : "たたむ";
-    dial.classList.toggle("gold-driven", false); // V5.1: Gold駆動の概念は消滅(givesは常にGold)
+    // V5 3.6: 折りたたみ撤廃(min状態は無視)・Gold駆動概念は消滅
     // オートの回転速度=レートに同期(CFG.dialSpinSec)
     dial.style.setProperty("--fd-spin", (CFG.dialSpinSec[d.rate] || CFG.dialSpinSec[1]) + "s");
     // レバー位置がレートを示す(文字なし)
@@ -178,8 +154,5 @@ Object.assign(UI, {
     const sw = document.getElementById("fd-auto");
     sw.classList.toggle("on", d.auto);
     sw.setAttribute("aria-checked", d.auto);
-    const sup = document.getElementById("fd-supply");
-    sup.classList.toggle("on", d.supply);
-    sup.setAttribute("aria-checked", d.supply);
   },
 });

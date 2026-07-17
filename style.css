@@ -422,6 +422,19 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 .fd-lever[data-rate="1"] .fd-lknob { top: 26px; }
 .fd-lever[data-rate="0"] .fd-lknob { top: 47px; }
 
+/* V5 3.6: クランク独立表示 — パネルの層を常時撤去(2連IDで全スキンのパネル背景に勝つ) */
+#feeder-dial#feeder-dial {
+  background: none; border: none; box-shadow: none;
+  padding: 0; gap: 8px;
+}
+/* オートボタン拡大(3.6): 唯一のトグルとして主役級に。緑ランプのアンカーは不変 */
+#feeder-dial .fd-sw#fd-auto {
+  width: var(--fd-auto-size, 44px); height: var(--fd-auto-size, 44px);
+  border-radius: 10px;
+}
+#feeder-dial .fd-sw#fd-auto .icon { width: 22px; height: 22px; }
+#feeder-dial .fd-sw#fd-auto .fd-lamp { width: 7px; height: 7px; top: 4px; right: 4px; }
+
 /* 縦2段トグル(オート/補給)。補給はghostで控えめ */
 .fd-side { display: flex; flex-direction: column; gap: 6px; }
 .fd-sw {
