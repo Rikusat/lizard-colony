@@ -1650,112 +1650,131 @@ const Render = {
     ctx.restore();
   },
 
-  // ---- ID8氷の前線: バガー自動掃討(crank.md §3.4・純演出) ----
-  // 小バガーはRender内部だけで完結し、侵食率・ボス・生産・セーブに一切影響しない。
-  // オート中のみクランク(自動掃討兵器)が捕捉→ロック→レーザーで淡々と処理する
+  // ---- ID8氷の前線: 槽外バガー自動掃討(crank.md §3.4・純演出・メタ構図) ----
+  // 小バガーは飼育槽の"外側"=ガラス面の外周に張り付いて這う(標的は槽の中でなく、その先)。
+  // Render内部だけで完結し、侵食率・ボス・生産・セーブに一切影響しない。説明テキストは出さない
+  _swPerim() { return 2 * ((W - 56) + (H - 56)); },
+  _swPos(b) {
+    const x0 = 28, y0 = 28, w = W - 56, h = H - 56;
+    let p = ((b.p % this._swPerim()) + this._swPerim()) % this._swPerim();
+    if (p < w) return { x: x0 + p, y: y0, a: 0 };
+    p -= w;
+    if (p < h) return { x: x0 + w, y: y0 + p, a: Math.PI / 2 };
+    p -= h;
+    if (p < w) return { x: x0 + w - p, y: y0 + h, a: Math.PI };
+    p -= w;
+    return { x: x0, y: y0 + h - p, a: -Math.PI / 2 };
+  },
+  _swSpawnP() {
+    // クランク(右下)付近は避けて外周のどこかに湧く
+    for (let i = 0; i < 10; i++) {
+      const p = Math.random() * this._swPerim();
+      const pos = this._swPos({ p });
+      if (!(pos.x > W - 320 && pos.y > H - 240)) return p;
+    }
+    return 0;
+  },
   drawBugSweep(ctx) {
     if ((window.Motion && Motion.reduced) || CFG.crankFxLevel === 0) { this._sw = null; return; } // 演出全停止
-    const sw = this._sw || (this._sw = { bugs: [], spawnT: 4, cool: 3, target: null, lockT: 0, beamT: 0, ashes: [], t: this.time });
+    const sw = this._sw || (this._sw = { bugs: [], spawnT: 3, purgeT: CFG.bugSweepEverySec, purging: false, target: null, lockT: 0, beamT: 0, ashes: [], t: this.time });
     const dt = Math.min(0.1, Math.max(0, this.time - sw.t));
     sw.t = this.time;
-    // 出現(控えめ・ゆらぎ付き)
+    // 出現: 絶え間なく近づき、外周に徐々に溜まる
     sw.spawnT -= dt;
     if (sw.spawnT <= 0 && sw.bugs.length < CFG.bugSweepMax) {
-      const fromLeft = Math.random() < 0.5;
-      sw.bugs.push({
-        x: fromLeft ? -8 : W + 8,
-        y: HORIZON + 60 + Math.random() * (H - HORIZON - 140),
-        vx: (fromLeft ? 1 : -1) * (14 + Math.random() * 10),
-        vy: 0, ph: Math.random() * 7,
-      });
+      sw.bugs.push({ p: this._swSpawnP(), v: (Math.random() < 0.5 ? -1 : 1) * (7 + Math.random() * 9), ph: Math.random() * 7, pause: 0 });
       sw.spawnT = CFG.bugSweepSpawnSec * (0.5 + Math.random());
     }
-    // 徘徊(カサカサとした進路変更)+描画
+    // ガラス面を這う(フチ沿いにゆっくり・時々立ち止まる)
     for (const b of sw.bugs) {
       b.ph += dt * 3;
-      if (Math.random() < dt * 0.7) { b.vx += rnd(-18, 18); b.vy += rnd(-12, 12); }
-      b.vx = Math.max(-26, Math.min(26, b.vx)); b.vy = Math.max(-16, Math.min(16, b.vy));
-      b.x += b.vx * dt; b.y += b.vy * dt;
-      if (b.y < HORIZON + 50) { b.y = HORIZON + 50; b.vy = Math.abs(b.vy); }
-      if (b.y > H - 70) { b.y = H - 70; b.vy = -Math.abs(b.vy); }
-      this.drawMiniBugger(ctx, b);
+      if (b.pause > 0) b.pause -= dt;
+      else {
+        b.p += b.v * dt;
+        if (Math.random() < dt * 0.25) b.pause = 0.6 + Math.random() * 1.8;
+      }
+      this.drawGlassBugger(ctx, b);
     }
-    // 場外へ出た個体は消す(標的中は除く)
-    sw.bugs = sw.bugs.filter((b) => b === sw.target || (b.x > -20 && b.x < W + 20));
-    // 掃討はオートの副次機能(オートOFF=しない・ロック中にOFFなら解除)
+    // 掃討=オートの副次機能。溜まった頃に一掃(順次高速ロック→レーザー)
     const auto = Game.state.dial && Game.state.dial.auto;
-    if (!auto) { sw.target = null; sw.beamT = 0; }
+    if (!auto) { sw.target = null; sw.beamT = 0; sw.purging = false; }
     else if (!sw.target) {
-      sw.cool -= dt;
-      if (sw.cool <= 0 && sw.bugs.length) {
-        sw.target = sw.bugs[0];
-        sw.lockT = CFG.bugSweepLockSec;
+      if (sw.purging) {
+        if (sw.bugs.length) { sw.target = sw.bugs[0]; sw.lockT = CFG.bugSweepLockSec; }
+        else { sw.purging = false; sw.purgeT = CFG.bugSweepEverySec; } // 一掃完了→安心の静けさ
+      } else {
+        sw.purgeT -= dt;
+        if (sw.purgeT <= 0 && sw.bugs.length >= CFG.bugSweepMinPurge) sw.purging = true;
       }
     } else if (sw.lockT > 0) {
-      // 照準ロック: 赤リングが収束(軍用の淡々とした精度)
+      // 照準ロック(高速・軍用の淡々とした精度)
       sw.lockT -= dt;
+      const pos = this._swPos(sw.target);
       const f = Math.max(0, sw.lockT / CFG.bugSweepLockSec);
-      const r = 6 + 12 * f;
-      ctx.strokeStyle = `rgba(224,64,64,${0.85 - f * 0.35})`;
+      const r = 6 + 10 * f;
+      ctx.strokeStyle = `rgba(224,64,64,${0.9 - f * 0.35})`;
       ctx.lineWidth = 1.4;
-      ctx.beginPath(); ctx.arc(sw.target.x, sw.target.y, r, 0, 7); ctx.stroke();
-      for (let k = 0; k < 4; k++) { // 照準ティック
+      ctx.beginPath(); ctx.arc(pos.x, pos.y, r, 0, 7); ctx.stroke();
+      for (let k = 0; k < 4; k++) {
         const a = k * Math.PI / 2 + f * 1.2;
         ctx.beginPath();
-        ctx.moveTo(sw.target.x + Math.cos(a) * (r + 1), sw.target.y + Math.sin(a) * (r + 1));
-        ctx.lineTo(sw.target.x + Math.cos(a) * (r + 4), sw.target.y + Math.sin(a) * (r + 4));
+        ctx.moveTo(pos.x + Math.cos(a) * (r + 1), pos.y + Math.sin(a) * (r + 1));
+        ctx.lineTo(pos.x + Math.cos(a) * (r + 4), pos.y + Math.sin(a) * (r + 4));
         ctx.stroke();
       }
       if (sw.lockT <= 0) sw.beamT = CFG.bugSweepBeamSec;
     } else if (sw.beamT > 0) {
-      // レーザー射出(クランク実位置から・細く正確・派手にしない)
+      // レーザー射出: クランクから"外側の脅威"へ(細く正確・派手にしない)
       sw.beamT -= dt;
+      const pos = this._swPos(sw.target);
       const ox = W - 104, oy = H - 78;
       ctx.strokeStyle = "rgba(224,64,64,.28)"; ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(sw.target.x, sw.target.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(pos.x, pos.y); ctx.stroke();
       ctx.strokeStyle = "rgba(255,150,140,.95)"; ctx.lineWidth = 1.4;
-      ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(sw.target.x, sw.target.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(pos.x, pos.y); ctx.stroke();
       ctx.fillStyle = "rgba(255,190,180,.9)";
-      ctx.beginPath(); ctx.arc(sw.target.x, sw.target.y, 3.2, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(pos.x, pos.y, 3, 0, 7); ctx.fill();
       if (sw.beamT <= 0) {
-        sw.ashes.push({ x: sw.target.x, y: sw.target.y, t: 0.4 });
+        sw.ashes.push({ x: pos.x, y: pos.y, t: 0.4 });
         sw.bugs = sw.bugs.filter((b) => b !== sw.target);
-        sw.target = null;
-        sw.cool = CFG.bugSweepEverySec;
+        sw.target = null; // purging継続なら次の標的へ間髪入れず移る
       }
     }
-    // 消去の残滓(小さな紫の霧が淡々と消える)
+    // 消去の残滓(ガラスに残る紫の霧が淡々と消える)
     for (const a of sw.ashes) {
       a.t -= dt;
       const f = Math.max(0, a.t / 0.4);
       ctx.fillStyle = `rgba(180,90,220,${0.35 * f})`;
-      ctx.beginPath(); ctx.arc(a.x, a.y - (1 - f) * 6, 4 * (1.4 - f * 0.4), 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(a.x, a.y, 4 * (1.4 - f * 0.4), 0, 7); ctx.fill();
     }
     sw.ashes = sw.ashes.filter((a) => a.t > 0);
   },
 
-  // 小バガー(既存バガーボスと同じ視覚言語の縮小版・純装飾)
-  drawMiniBugger(ctx, b) {
+  // ガラスの向こうに張り付く小バガー(減光+反射の照りで"外側"を絵で示す・説明しない)
+  drawGlassBugger(ctx, b) {
+    const pos = this._swPos(b);
     ctx.save();
-    ctx.translate(b.x, b.y);
-    if (b.vx < 0) ctx.scale(-1, 1);
-    ctx.fillStyle = "rgba(0,0,0,.22)";
-    ctx.beginPath(); ctx.ellipse(0.5, 3.4, 6, 1.8, 0, 0, 7); ctx.fill();
-    ctx.strokeStyle = "#222c18"; ctx.lineWidth = 1;
-    for (let i = 0; i < 3; i++) { // 脚(カサカサ)
-      const lx = -2.5 + i * 2.5, step = Math.sin(b.ph * 4 + i * 2) * 1.4;
+    ctx.translate(pos.x, pos.y);
+    ctx.rotate(pos.a + (b.v < 0 ? Math.PI : 0));
+    ctx.globalAlpha = 0.72; // ガラス越しの減光
+    ctx.strokeStyle = "#1b221d"; ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) { // 脚(張り付いてカサカサ)
+      const lx = -2.5 + i * 2.5, step = (b.pause > 0 ? 0.3 : 1) * Math.sin(b.ph * 4 + i * 2) * 1.4;
       ctx.beginPath(); ctx.moveTo(lx, 1); ctx.lineTo(lx + step, 4.2); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(lx, -1); ctx.lineTo(lx - step, -1.8); ctx.stroke();
     }
-    ctx.fillStyle = "#222c18";
+    ctx.fillStyle = "#1b221d";
     ctx.beginPath(); ctx.ellipse(0, 0, 5.2, 2.9, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = "#3a4a2c";
+    ctx.fillStyle = "#31402e";
     ctx.beginPath(); ctx.ellipse(0.8, -0.4, 3.8, 2, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = `rgba(180,90,220,${0.5 + Math.sin(b.ph * 2) * 0.25})`;
+    ctx.fillStyle = `rgba(180,90,220,${0.4 + Math.sin(b.ph * 2) * 0.2})`;
     ctx.beginPath(); ctx.arc(1.2, -0.6, 1, 0, 7); ctx.fill();
-    ctx.fillStyle = "#222c18";
+    ctx.fillStyle = "#1b221d";
     ctx.beginPath(); ctx.arc(-5.4, 0, 1.7, 0, 7); ctx.fill();
     ctx.restore();
+    // ガラス面の反射(バガーの手前に走る照り=向こう側にいる証拠)
+    ctx.strokeStyle = "rgba(210,225,245,.18)"; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(pos.x - 6, pos.y - 5); ctx.lineTo(pos.x + 4, pos.y + 4); ctx.stroke();
   },
 
   // V4 §3.5.3: バガー(惑星を侵食する実験生命体・甲虫型)

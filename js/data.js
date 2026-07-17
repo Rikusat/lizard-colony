@@ -127,11 +127,12 @@ const CFG = {
   dialSpinSec: [5, 1.6, 0.4], // オート回転の1周秒数(視覚)。レートに同期(v2.1 §1.4)
   crankFxLevel: 1,          // 機構スキンのエフェクト量(0=最小/1=標準。Crank_Deepening)
   crankCheapLevel: 1,       // ID9ジャンク機構のチープさ(0=控えめ/1=あからさま。crank.md §3.4)
-  bugSweepSpawnSec: 11,     // ID8小バガーの出現間隔(平均秒・±50%ゆらぎ。純演出)
-  bugSweepMax: 3,           // ID8小バガーの同時最大数
-  bugSweepLockSec: 0.7,     // 照準ロックの収束時間(秒)
-  bugSweepBeamSec: 0.18,    // レーザー照射時間(秒)
-  bugSweepEverySec: 6,      // 掃討間隔(オート中に次の標的を捕捉するまでの秒)
+  bugSweepSpawnSec: 4.5,    // ID8小バガーの出現間隔(平均秒・±50%ゆらぎ。純演出・絶え間なく)
+  bugSweepMax: 7,           // ID8小バガーの同時最大数(溜まる不安の上限)
+  bugSweepLockSec: 0.3,     // 一掃中の照準ロック(秒・高速)
+  bugSweepBeamSec: 0.12,    // レーザー照射時間(秒)
+  bugSweepEverySec: 24,     // 一掃までの溜め時間(秒。熱暴走ゲージと同じ緊張構造)
+  bugSweepMinPurge: 4,      // 一掃を開始する最低の溜まり数
   // Brushup V2 Phase3: ボス脅威表現(描画のみ・戦闘ロジック不変)
   bossScaleBoss: 1.45,      // ボス級(tier/boss/elite)の基本拡大率
   bossScaleTier: 0.06,      // ティア1ごとの追加拡大

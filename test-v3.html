@@ -543,11 +543,12 @@ globalThis._noStart = true;
     UI._crankSkinId = null;
     Game.ensureDial().auto = !h.includes("walk"); // walk=オートOFF(掃討しない状態)
     UI.updateFeeder();
-    const mk = (x, y) => ({ x, y, vx: 12, vy: 0, ph: 2 });
-    const bugs = [mk(430, 400), mk(700, 330), mk(950, 470)];
-    Render._sw = { bugs, spawnT: 999, cool: 999, target: null, lockT: 0, beamT: 0, ashes: [], t: Render.time };
+    const mk = (p) => ({ p, v: 8, ph: 2, pause: 0 });
+    const P = Render._swPerim();
+    const bugs = [0.06, 0.2, 0.38, 0.52, 0.68, 0.86].map((f) => mk(P * f)); // 外周に6匹(溜まった状態)
+    Render._sw = { bugs, spawnT: 999, purgeT: 999, purging: false, target: null, lockT: 0, beamT: 0, ashes: [], t: Render.time };
     if (h.includes("lock")) { CFG.bugSweepLockSec = 9999; Render._sw.target = bugs[0]; Render._sw.lockT = 8000; }
-    if (h.includes("beam")) { CFG.bugSweepBeamSec = 9999; Render._sw.target = bugs[0]; Render._sw.beamT = 9000; }
+    if (h.includes("beam")) { CFG.bugSweepBeamSec = 9999; Render._sw.target = bugs[1]; Render._sw.beamT = 9000; }
   }
   else if (h.startsWith("#skin-servo")) { // 軍用サーボ(ID8実割り当て)の確認
     Game.selectStage(8);
