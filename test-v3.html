@@ -372,6 +372,11 @@ globalThis._noStart = true;
     else Game.ensureDial().auto = true;
     UI.updateFeeder();
   }
+  else if (h === "#stage4") { // 古代古墳(パルス)へ移動した状態
+    Game.selectStage(4);
+    UI._crankSkinId = null;
+    UI.updateFeeder();
+  }
   else if (h === "#stage6") { // 祭祀の密林(ユンガ)へ移動した状態
     Game.selectStage(6);
     UI._crankSkinId = null;

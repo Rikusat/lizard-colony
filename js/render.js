@@ -294,7 +294,58 @@ const Render = {
         ctx.beginPath(); ctx.arc(x - 10 * s, HORIZON - 44 * s, 16 * s, 0, 7); ctx.arc(x + 10 * s, HORIZON - 46 * s, 15 * s, 0, 7); ctx.fill();
       }
       for (let i = 0; i < 22; i++) this.tuft(ctx, rand() * W, groundY(), "#2c4a22", rand);
-    } else if (st.id === 4) { // 湿地: 水たまり・葦
+    } else if (st.id === 4) { // 古代古墳: 湿地の水鏡に王墓が浮かぶ(悼みの地・水たまり・葦は残す)
+      // 周濠(王墓を巡る水の帯)と、その水鏡に映る墳丘
+      {
+        const kx = 640, base = HORIZON;
+        ctx.fillStyle = "rgba(120,160,170,.35)"; // 周濠の水
+        ctx.beginPath(); ctx.ellipse(kx, base + 4, 230, 12, 0, 0, 7); ctx.fill();
+        // 墳丘(二段・苔むした緑) — かつて王とされたトカゲの眠る場所
+        ctx.fillStyle = "#46604a";
+        ctx.beginPath(); ctx.ellipse(kx, base, 170, 46, 0, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = "#527056";
+        ctx.beginPath(); ctx.ellipse(kx, base - 26, 110, 32, 0, Math.PI, 0); ctx.fill();
+        ctx.strokeStyle = "rgba(30,45,32,.5)"; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.ellipse(kx, base, 170, 46, 0, Math.PI, 0); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(kx, base - 26, 110, 32, 0, Math.PI, 0); ctx.stroke();
+        // 玄室の入口(石組み)と、副葬の金の微かな輝き
+        ctx.fillStyle = "#3a3428";
+        ctx.fillRect(kx - 13, base - 22, 26, 22);
+        ctx.strokeStyle = "#241f14"; ctx.lineWidth = 1.6;
+        ctx.strokeRect(kx - 13, base - 22, 26, 22);
+        ctx.fillStyle = "#1c1810";
+        ctx.fillRect(kx - 8, base - 16, 16, 16);
+        const gl = 0.35 + Math.sin(this.time * 0.9) * 0.15;
+        ctx.fillStyle = `rgba(201,168,106,${gl})`; // 奥に眠る副葬の金
+        ctx.fillRect(kx - 3, base - 7, 6, 4);
+        // 玄室の燐火(緑の鬼火・ひとつだけ静かに漂う=クランクの緑の先触れ)
+        const wx = kx + 34 + Math.sin(this.time * 0.5) * 8, wy = base - 34 + Math.sin(this.time * 0.8) * 5;
+        const wisp = ctx.createRadialGradient(wx, wy, 1, wx, wy, 10);
+        wisp.addColorStop(0, "rgba(123,217,134,.5)"); wisp.addColorStop(1, "rgba(123,217,134,0)");
+        ctx.fillStyle = wisp; ctx.fillRect(wx - 10, wy - 10, 20, 20);
+        ctx.fillStyle = "rgba(180,240,190,.8)";
+        ctx.beginPath(); ctx.arc(wx, wy, 1.6, 0, 7); ctx.fill();
+        // 水鏡の反映(墳丘がぼんやり映る)
+        ctx.save(); ctx.globalAlpha = 0.16; ctx.scale(1, -0.32); ctx.translate(0, -base * 2 / 0.32 * 0.32 - base * 2);
+        ctx.fillStyle = "#46604a";
+        ctx.beginPath(); ctx.ellipse(kx, -base * 2, 170, 46, 0, Math.PI, 0); ctx.fill();
+        ctx.restore();
+        ctx.fillStyle = "rgba(140,175,180,.18)"; // 反映の上の水面のゆらぎ
+        ctx.beginPath(); ctx.ellipse(kx, base + 10, 150, 6, 0, 0, 7); ctx.fill();
+      }
+      // 埴輪の列(副葬の気配・うつろな目=悼み)
+      for (const [hx2, hs] of [[330, 1], [432, 0.85], [878, 0.9], [975, 1]]) {
+        const hy = HORIZON + 30;
+        ctx.fillStyle = "#a89070";
+        ctx.fillRect(hx2 - 6 * hs, hy - 22 * hs, 12 * hs, 22 * hs);
+        ctx.beginPath(); ctx.arc(hx2, hy - 24 * hs, 6 * hs, 0, 7); ctx.fill();
+        ctx.strokeStyle = "#5f5140"; ctx.lineWidth = 1;
+        ctx.strokeRect(hx2 - 6 * hs, hy - 22 * hs, 12 * hs, 22 * hs);
+        ctx.fillStyle = "#2c261c"; // うつろな目と口
+        ctx.beginPath(); ctx.arc(hx2 - 2.2 * hs, hy - 25 * hs, 1.3 * hs, 0, 7); ctx.arc(hx2 + 2.2 * hs, hy - 25 * hs, 1.3 * hs, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(hx2, hy - 21.5 * hs, 1.4 * hs, 1.8 * hs, 0, 0, 7); ctx.fill();
+      }
+
       for (let i = 0; i < 6; i++) {
         const x = 80 + rand() * (W - 160), y = groundY(), r = 26 + rand() * 44;
         ctx.fillStyle = "rgba(70,110,125,.65)";
