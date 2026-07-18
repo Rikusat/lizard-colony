@@ -1019,7 +1019,7 @@ const Game = {
       canvasExists: !!cv, canvasSize: cv ? [cv.width, cv.height] : null,
       crickets: Math.floor(this.state.crickets || 0), coins: Math.floor(this.state.coins),
       feedableLizards: feedable, canFeedNow: this.canFeedNow(), ballsBefore: before, emitOk: emitted, ballsAfter: after,
-      verdict: (after > before) ? "✅ emitは動作(=描画側を疑う)" : (feedable === 0 ? "⚠ 給餌可能なトカゲが0(球が出ないのは正常)" : "❌ emit未到達(=配線/コード版を疑う)") };
+      verdict: (after > before) ? "[OK] emitは動作(=描画側を疑う)" : (feedable === 0 ? "[WARN] 給餌可能なトカゲが0(球が出ないのは正常)" : "[NG] emit未到達(=配線/コード版を疑う)") };
     if (typeof console !== "undefined") console.log("[roulDiag]", JSON.stringify(r, null, 1));
     return r;
   },
