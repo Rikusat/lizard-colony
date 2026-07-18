@@ -986,12 +986,30 @@ const Game = {
       const d = this.ensureDial();
       UI.toast(stopped ? (d.stopOnEmpty ? "コオロギ切れ(自動停止中)" : "Goldが足りない!") : "餌をあげられるトカゲがいない…", true);
     }
-    // v2ルーレット: 給餌1回(クランク1動作)=球1発。代表個体の遺伝を乗せる(§7.1)
-    if (fed > 0 && typeof Roulette !== "undefined" && Roulette.emit) {
-      const g = repGene || this.state.lizards[0];
-      Roulette.emit(g ? { hue: g.hue, sat: g.sat, light: g.light, speciesId: g.speciesId, morphId: g.morphId } : null);
-    }
+    // v3.1: 球の射出は feedAll から切り離す(給餌1回=球1発ではない)。単発=クランクclick / オート=間隔発射
     return fed > 0;
+  },
+
+  // v3.1ルーレット: 球に乗せる代表個体の遺伝(卵の内容)。アダルト優先→先頭→null
+  rouletteRepGene() {
+    const s = this.state;
+    let g = s.lizards.find((l) => l.stage === "adult" && !this.isAway(l)) || s.lizards[0];
+    return g ? { hue: g.hue, sat: g.sat, light: g.light, speciesId: g.speciesId, morphId: g.morphId } : null;
+  },
+  // 今この瞬間に給餌が成立するか(発射トリガーのゲート)。餌(コオロギ or 切れ時Gold)と対象個体
+  canFeedNow() {
+    const s = this.state;
+    const d = this.ensureDial();
+    const hasTarget = s.lizards.some((l) => l.injuredT <= 0 && !this.isAway(l));
+    const hasFood = (s.crickets || 0) >= 1 || (!d.stopOnEmpty && s.coins >= CFG.feedGoldCost);
+    return hasTarget && hasFood;
+  },
+  // 単発発射(自動OFF時のクランク1クリック=1発・#6)。給餌が成立する時のみ
+  rouletteEmitOne() {
+    if (typeof Roulette === "undefined" || !Roulette.emit) return false;
+    if (!this.canFeedNow()) return false;
+    Roulette.emit(this.rouletteRepGene());
+    return true;
   },
 
   // 実機での発射不具合切り分け用の恒久診断(consoleで Game.roulDiag() を叩くと配線状態が一目で判る)。
@@ -999,14 +1017,14 @@ const Game = {
   roulDiag() {
     const before = (typeof Roulette !== "undefined") ? Roulette.balls.length : "N/A";
     const feedable = this.state.lizards.filter((l) => l.injuredT <= 0 && !this.isAway(l)).length;
-    const emitted = this.feedAll(true);
+    const emitted = this.rouletteEmitOne(); // v3.1: 単発発射経路で検証
     const after = (typeof Roulette !== "undefined") ? Roulette.balls.length : "N/A";
     const cv = (typeof document !== "undefined") && document.getElementById("roulette-canvas");
     const r = { RouletteDefined: typeof Roulette, drawRoulette: typeof (UI && UI.drawRoulette),
       canvasExists: !!cv, canvasSize: cv ? [cv.width, cv.height] : null,
       crickets: Math.floor(this.state.crickets || 0), coins: Math.floor(this.state.coins),
-      feedableLizards: feedable, ballsBefore: before, feedAllEmitted: emitted, ballsAfter: after,
-      verdict: (after > before) ? "✅ emitは動作(=描画側を疑う)" : (feedable === 0 ? "⚠ 給餌可能なトカゲが0(=球が出ないのは正常。餌/在庫/巣を確認)" : "❌ emit未到達(=配線/コード版を疑う)") };
+      feedableLizards: feedable, canFeedNow: this.canFeedNow(), ballsBefore: before, emitOk: emitted, ballsAfter: after,
+      verdict: (after > before) ? "✅ emitは動作(=描画側を疑う)" : (feedable === 0 ? "⚠ 給餌可能なトカゲが0(球が出ないのは正常)" : "❌ emit未到達(=配線/コード版を疑う)") };
     if (typeof console !== "undefined") console.log("[roulDiag]", JSON.stringify(r, null, 1));
     return r;
   },
