@@ -145,7 +145,7 @@ main {
   max-width: 1860px; margin: 0 auto; /* V5 3.8: フルHDの余白を水槽へ回すため上限拡大(1750→1860) */
   align-items: start;
 }
-#left, #right { display: flex; flex-direction: column; gap: clamp(6px, 1vh, 12px); }
+#left, #right { display: flex; flex-direction: column; gap: clamp(6px, 1vh, 12px); align-self: stretch; min-height: 0; } /* V5 ルーレット: 枠を縦に伸ばす */
 
 .card {
   background: var(--grad-card);

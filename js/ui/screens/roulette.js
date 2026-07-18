@@ -77,9 +77,11 @@ Object.assign(UI, {
       ctx.fillStyle = "rgba(255,255,255,.5)";
       ctx.fill();
     }
+    // reduced-motion: 装飾fx(脈動/バースト/フラッシュ)を抑制。球描画と卵生成(ルール層)は維持=結果保証(§4)
+    const calm = typeof Motion !== "undefined" && Motion.reduced;
     // レインボー帯の可視化(far-left・七色の脈動グロー=ここが当たり)。常時明滅で誘目
     const rbx0 = CFG.roulRainbowX0 * W, rbx1 = CFG.roulRainbowX1 * W, rbw = rbx1 - rbx0;
-    const pulse = 0.5 + 0.5 * Math.sin(Render.time * 3);
+    const pulse = calm ? 0.6 : 0.5 + 0.5 * Math.sin(Render.time * 3);
     const tp = (Render.time * 90) % 360;
     const rg = ctx.createLinearGradient(rbx0, H, rbx0, H - 40);
     rg.addColorStop(0, `hsla(${tp},95%,62%,${0.4 + pulse * 0.3})`);
@@ -126,9 +128,9 @@ Object.assign(UI, {
     }
     ctx.restore();
 
-    // イベント購読(fable1: イベント駆動のジュース)
+    // イベント購読(fable1: イベント駆動のジュース)。reduced-motionではバースト演出を出さない(結果は保証)
     for (const ev of Roulette.drainEvents()) {
-      if (ev.type === "BallEnteredRainbow") {
+      if (ev.type === "BallEnteredRainbow" && !calm) {
         this._roulFx = this._roulFx || [];
         this._roulFx.push({ x: ev.x, t: 1.1, ttl: 1.1 });
       }
