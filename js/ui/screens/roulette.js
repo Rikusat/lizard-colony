@@ -12,21 +12,20 @@ Object.assign(UI, {
     this._roulCv = cv;
     this._roulCtx = cv.getContext("2d");
     if (typeof Roulette !== "undefined") Roulette.reset();
-    this._resizeRoulette();
-    if (!this._roulResizeHooked) {
-      window.addEventListener("resize", () => this._resizeRoulette());
-      this._roulResizeHooked = true;
-    }
+    // サイズ合わせは drawRoulette が毎フレーム自己修復する(init前レイアウト/flex伸長/dpr変化を吸収)。
+    // ※旧: init時1回だけresizeを実行→レイアウト確定前だと0サイズで固定され描画ゼロになるバグ(2026-07-18修正)
   },
 
-  _resizeRoulette() {
+  // canvas内部解像度を現レイアウトサイズへ同期。未配置(0サイズ)ならfalse=このframeは描かない
+  _syncRoulSize() {
     const cv = this._roulCv;
-    if (!cv) return;
+    if (!cv) return false;
     const rect = cv.getBoundingClientRect();
+    if (rect.width < 1 || rect.height < 1) return false; // まだ配置されていない→次フレームで復帰
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    cv.width = Math.max(1, Math.round(rect.width * dpr));
-    cv.height = Math.max(1, Math.round(rect.height * dpr));
-    this._roulDpr = dpr;
+    const wantW = Math.round(rect.width * dpr), wantH = Math.round(rect.height * dpr);
+    if (cv.width !== wantW || cv.height !== wantH) { cv.width = wantW; cv.height = wantH; this._roulDpr = dpr; }
+    return true;
   },
 
   // 進行度 b.p(0→1) → 軌道パス座標(sim単位)。ルールは座標を持たず表現がここで写像
@@ -63,6 +62,7 @@ Object.assign(UI, {
   drawRoulette() {
     const ctx = this._roulCtx, cv = this._roulCv;
     if (!ctx || !cv || typeof Roulette === "undefined") return;
+    if (!this._syncRoulSize()) return; // 自己修復: レイアウト未確定/0サイズなら今フレームは描かない
     const cw = cv.width, ch = cv.height;
     const W = CFG.roulW, H = CFG.roulH;
     const scale = Math.min(cw / W, ch / H);
