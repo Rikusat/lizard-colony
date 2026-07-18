@@ -375,16 +375,9 @@ const Game = {
   geneAnalyze() {
     if (this.ore("amber") < CFG.geneAmberCost) { UI.toast(`琥珀が${CFG.geneAmberCost}個必要`, true); return false; }
     if (this.state.eggs.length >= this.eggSlotCap()) { UI.toast("卵スロットがいっぱい!", true); return false; }
-    const candidates = [];
-    for (const sp of this.unlockedSpecies()) {
-      for (const mo of MORPHS) {
-        if (mo.legendary) continue;
-        if (!this.state.dex[sp.id + ":" + mo.id]) candidates.push([sp, mo]);
-      }
-    }
-    if (!candidates.length) { UI.toast("解析できる未発見の遺伝子がない(図鑑が充実している!)", true); return false; }
+    const pick = this.pickUnownedDexEntry(null); // 未所持dexエントリ抽選を共通化(重複解消)
+    if (!pick) { UI.toast("解析できる未発見の遺伝子がない(図鑑が充実している!)", true); return false; }
     this.addOre("amber", -CFG.geneAmberCost);
-    const pick = candidates[Math.floor(Math.random() * candidates.length)];
     const sp = pick[0], mo = pick[1];
     this.state.eggs.push({
       speciesId: sp.id, morphId: mo.id,
