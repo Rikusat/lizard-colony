@@ -3,7 +3,7 @@
 // トカゲコロニー: マスターデータ / バランス定数
 // ============================================================
 
-const SAVE_VERSION = 7; // V5.2: コオロギ給餌の復活(v6の払戻Goldは据置＋在庫付与・資産プラスのみ)
+const SAVE_VERSION = 8; // V5.2 Phase3.11: ボス「今すぐ呼ぶ」1日3回カウンタ(bossCall)を保存
 
 const CFG = {
   saveKey: "lizardColonySaveV1",
@@ -13,6 +13,7 @@ const CFG = {
   saveBackupKeyV5: "lizardColonyV5Backup", // V4.1→V5移行前のバックアップ(コオロギ共通化)
   saveBackupKeyV6: "lizardColonyV6Backup", // V5→V6移行前のバックアップ(コオロギ→Gold払い戻し)
   saveBackupKeyV7: "lizardColonyV7Backup", // V6→V7移行前のバックアップ(コオロギ給餌の復活)
+  saveBackupKeyV8: "lizardColonyV8Backup", // V7→V8移行前のバックアップ(ボス見届け化・今すぐ呼ぶ1日制限)
   startCoins: 500,
   startCrickets: 20,
   startGems: 3,
@@ -33,6 +34,8 @@ const CFG = {
   biteIntervalBase: 8,      // 蛇の噛みつき間隔(秒)
   injuryTime: 60,           // 負傷回復までの秒数
   bossEvery: 5,             // n回撃退ごとにボス
+  bossCallPerDay: 3,        // 3.11.3: 「今すぐ呼ぶ」の1日あたり回数(端末ローカル日付で回復)
+  bossHpMult: 1.0,          // 3.11.5: ボスHPの一時調整枠(味方削除の難化はまず等倍で。きつければ下げる)
   mutationSpeciesChance: 0.05, // 上位種族への突然変異率
   mutationMorphChance: 0.08,   // モーフ突然変異率
   offlineCapHours: 24,      // オフライン進行の上限(V3 §3.4。研究で延長)

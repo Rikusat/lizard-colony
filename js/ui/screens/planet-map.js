@@ -100,6 +100,7 @@ Object.assign(UI, {
 
   // ---------------- V4 §4-1: 惑星マップ+宇宙船トランジション ----------------
   openMap() {
+    if (Game.raid) { this.toast("ボス襲来中は惑星を移動できない! 討伐してから", true); return; } // 3.11.3
     this.openModal(`${Icon.svg("planet")} 惑星マップ — Planet Reptile`, (body) => {
       const s = Game.state;
       const cur = Game.currentStage();

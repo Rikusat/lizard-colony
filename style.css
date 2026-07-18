@@ -84,6 +84,9 @@ main { flex: 1 1 auto; min-height: 0; width: 100%; }
 .ricon.gem { background: radial-gradient(circle at 35% 30%, #b7e6ff, #4f9fd9 60%, #2a5f96); }
 
 #topbar nav { margin-left: auto; display: flex; gap: 10px; }
+/* 3.11.3: ボス襲来中の暗転(マップ移動禁止・今すぐ呼ぶ不可)。給餌クランクも操作不可に */
+button.locked, #topbar nav button:disabled { opacity: .38; filter: grayscale(.5); cursor: not-allowed; pointer-events: none; }
+#feeder-dial.raid-lock { opacity: .45; filter: grayscale(.4); pointer-events: none; transition: opacity var(--dur-base); }
 
 /* ============ buttons ============ */
 /* 操作卓モジュール(§5.2確定: 案B+Aの立体の手触り)。種別=左端インジケータ+計器窓 */

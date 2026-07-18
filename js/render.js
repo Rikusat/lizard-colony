@@ -43,7 +43,7 @@ const Render = {
     this.drawNest(ctx);
     this.drawFacilities(ctx);
     this.drawSmallFacilities(ctx);
-    this.drawAllies(ctx);
+    // 3.11.5: 汎用味方の描画は撤去(Phase 6で惑星固有味方を新設)
     this.drawBurrow(ctx);
     // y座標順に描画(奥行き)。さらわれ中・休憩中の個体は描かない
     const sorted = Game.state.lizards.filter((lz) => Game.isVisible(lz)).sort((a, b) => a.y - b.y);
@@ -1983,102 +1983,9 @@ const Render = {
     ctx.restore();
   },
 
-  // ---------------- 味方 (GameExpansion_v2 ⑩) ----------------
-  drawAllies(ctx) {
-    const s = Game.state;
-    const lv = (id) => Game.allyLv(id);
-    if (lv("eagle")) { // 上空を旋回
-      const x = W / 2 + Math.cos(this.time * 0.45) * 430;
-      const y = 58 + Math.sin(this.time * 0.9) * 16;
-      this.drawBird(ctx, x, y, 0.9, "#5d4a2c", "#463620", "#e8c46a", Math.cos(this.time * 0.45) > 0);
-      this.pill(ctx, x - 26, y + 22, "ワシ Lv" + lv("eagle"));
-    }
-    if (lv("owl")) { // 保温ライトのポールに止まる
-      const x = FAC_POS.light.x, y = FAC_POS.light.y - 62;
-      ctx.fillStyle = "#6d5a40";
-      ctx.beginPath(); ctx.ellipse(x, y, 11, 14, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = "#8a7355";
-      ctx.beginPath(); ctx.ellipse(x, y + 4, 7, 8, 0, 0, 7); ctx.fill();
-      // 耳羽と大きな目
-      ctx.fillStyle = "#6d5a40";
-      ctx.beginPath();
-      ctx.moveTo(x - 8, y - 10); ctx.lineTo(x - 4, y - 17); ctx.lineTo(x - 1, y - 10);
-      ctx.moveTo(x + 8, y - 10); ctx.lineTo(x + 4, y - 17); ctx.lineTo(x + 1, y - 10);
-      ctx.fill();
-      for (const side of [-1, 1]) {
-        ctx.fillStyle = "#ffcc44";
-        ctx.beginPath(); ctx.arc(x + side * 4, y - 6, 3.2, 0, 7); ctx.fill();
-        ctx.fillStyle = "#000";
-        ctx.beginPath(); ctx.arc(x + side * 4, y - 6, 1.5, 0, 7); ctx.fill();
-      }
-      this.pill(ctx, x - 34, y - 36, "フクロウ Lv" + lv("owl"));
-    }
-    if (lv("meerkat")) { // 二本足で見張り
-      const x = 985, y = 285;
-      const sway = Math.sin(this.time * 2) * 2;
-      ctx.fillStyle = "rgba(0,0,0,.25)";
-      ctx.beginPath(); ctx.ellipse(x, y + 20, 12, 4, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = "#b39468";
-      rr(ctx, x - 6, y - 18, 12, 36, 6); ctx.fill();
-      ctx.fillStyle = "#8a6f4a";
-      ctx.beginPath(); ctx.arc(x + sway * 0.4, y - 22, 7, 0, 7); ctx.fill();
-      ctx.fillStyle = "#241a10";
-      ctx.beginPath(); ctx.arc(x - 2 + sway * 0.4, y - 23, 1.4, 0, 7); ctx.arc(x + 3 + sway * 0.4, y - 23, 1.4, 0, 7); ctx.fill();
-      ctx.strokeStyle = "#8a6f4a"; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(x + 5, y + 8); ctx.quadraticCurveTo(x + 14, y + 12, x + 15, y + 20); ctx.stroke();
-      this.pill(ctx, x - 44, y + 26, "ミーアキャット Lv" + lv("meerkat"));
-    }
-    if (lv("turtle")) { // 中央寄りにどっしり
-      const x = 700, y = 585;
-      ctx.fillStyle = "rgba(0,0,0,.25)";
-      ctx.beginPath(); ctx.ellipse(x, y + 8, 26, 7, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = "#4a6236";
-      ctx.beginPath(); ctx.ellipse(x, y - 6, 24, 15, 0, Math.PI, 0); ctx.fill();
-      ctx.strokeStyle = "#33461f"; ctx.lineWidth = 1.6;
-      for (const [ox, oy, r2] of [[-8, -8, 6], [6, -10, 6], [0, -3, 6]]) {
-        ctx.beginPath(); ctx.arc(x + ox, y + oy, r2, 0, 7); ctx.stroke();
-      }
-      ctx.fillStyle = "#7d9456";
-      ctx.beginPath(); ctx.ellipse(x - 27, y - 2, 8, 6, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = "#241a10";
-      ctx.beginPath(); ctx.arc(x - 30, y - 4, 1.4, 0, 7); ctx.fill();
-      this.pill(ctx, x - 26, y + 14, "カメ Lv" + lv("turtle"));
-    }
-    if (lv("gecko")) { // 加温パネルの近く
-      const x = FAC_POS.heat.x - 90, y = FAC_POS.heat.y + 40;
-      ctx.fillStyle = "rgba(0,0,0,.22)";
-      ctx.beginPath(); ctx.ellipse(x, y + 5, 16, 4, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = "#c9a03c";
-      ctx.beginPath(); ctx.ellipse(x, y, 13, 5, 0, 0, 7); ctx.fill();
-      ctx.beginPath(); ctx.arc(x - 14, y - 1, 4.5, 0, 7); ctx.fill();
-      ctx.strokeStyle = "#c9a03c"; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(x + 11, y); ctx.quadraticCurveTo(x + 22, y + Math.sin(this.time * 6) * 3, x + 27, y - 3); ctx.stroke();
-      ctx.fillStyle = "#241a10";
-      ctx.beginPath(); ctx.arc(x - 15, y - 2.5, 1.3, 0, 7); ctx.fill();
-      this.pill(ctx, x - 30, y + 10, "ヤモリ Lv" + lv("gecko"));
-    }
-    if (lv("ferret")) { // うろうろする回収屋
-      const x = 330 + Math.sin(this.time * 0.7) * 120;
-      const y = 560 + Math.cos(this.time * 1.1) * 30;
-      const dir = Math.cos(this.time * 0.7) > 0 ? 1 : -1;
-      ctx.save();
-      ctx.translate(x, y); ctx.scale(dir, 1);
-      ctx.fillStyle = "rgba(0,0,0,.22)";
-      ctx.beginPath(); ctx.ellipse(0, 7, 20, 4, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = "#8a7358";
-      ctx.beginPath(); ctx.ellipse(0, 0, 17, 6, 0, 0, 7); ctx.fill();
-      ctx.beginPath(); ctx.arc(-17, -2, 5, 0, 7); ctx.fill();
-      ctx.strokeStyle = "#6d5a44"; ctx.lineWidth = 4; ctx.lineCap = "round";
-      ctx.beginPath(); ctx.moveTo(15, -1); ctx.quadraticCurveTo(24, -6 + Math.sin(this.time * 8) * 2, 30, -2); ctx.stroke();
-      ctx.fillStyle = "#241a10";
-      ctx.beginPath(); ctx.arc(-19, -3.5, 1.3, 0, 7); ctx.fill();
-      // 泥棒マスク模様
-      ctx.fillStyle = "#4a3a2c";
-      ctx.beginPath(); ctx.ellipse(-17, -3, 4.5, 2, 0, 0, 7); ctx.fill();
-      ctx.restore();
-      this.pill(ctx, x - 36, y + 12, "フェレット Lv" + lv("ferret"));
-    }
-  },
+  // ---------------- 味方 (3.11.5で撤去) ----------------
+  // 汎用味方(ヤモリ/カメ/ミーアキャット/フクロウ/フェレット/ワシ)の描画は撤去。
+  // Phase 6で惑星固有味方を新設予定。state.alliesのLvは休眠保持(Game.allyLvRawで参照可・資産振替用)。
 
   // ---------------- 蛇(コロニーランクに同期した階級・背骨ベース描画) ----------------
   drawSnake(ctx, raid) {

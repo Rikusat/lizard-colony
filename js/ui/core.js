@@ -142,7 +142,10 @@ const UI = {
     if (location.hash === "#breed") setTimeout(() => this.openBreed(), 400);
 
     // 背景タブ化する直前にセーブ(リロード復帰時のオフライン精算の基点を新鮮に保つ)
-    document.addEventListener("visibilitychange", () => { if (document.hidden) Game.save(); });
+    // 3.11.3: フォアグラウンド判定(visibleのみボス到来/戦闘を進める)。hiddenで保存も行う
+    const syncForeground = () => { Game.foreground = document.visibilityState === "visible"; };
+    syncForeground();
+    document.addEventListener("visibilitychange", () => { syncForeground(); if (document.hidden) Game.save(); });
 
     // メインループ(撃破時はスローモーション演出)
     let last = performance.now();
@@ -274,6 +277,18 @@ const UI = {
         nb.classList.add("hidden");
       }
     }
+
+    // 3.11.3: 「今すぐ呼ぶ」は1日3回。残り回数を表示し、0回or襲撃中は不可。マップは襲撃中は暗転(移動禁止)
+    const rn = document.getElementById("btn-raid-now");
+    if (rn) {
+      const rem = Game.bossCallRemaining();
+      rn.innerHTML = `${Icon.svg("snake")} 今すぐ呼ぶ <small style="opacity:.85">(あと${rem})</small>`;
+      const lock = !!Game.raid || rem <= 0;
+      rn.toggleAttribute("disabled", lock);
+      rn.classList.toggle("locked", lock);
+    }
+    const mapBtn = document.getElementById("btn-map");
+    if (mapBtn) { mapBtn.toggleAttribute("disabled", !!Game.raid); mapBtn.classList.toggle("locked", !!Game.raid); }
 
     // V5.1: ショップ(コオロギ購入単位)・自動補給トグルはUIごと撤去
 

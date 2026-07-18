@@ -16,6 +16,7 @@ const Game = {
   slowmo: 0,             // 撃破スローモーション残り秒
   flashT: 0,             // 伝説誕生などの画面フラッシュ残り秒
   event: null,           // 進行中の定期イベント (セーブしない)
+  foreground: true,      // 3.11.3: 画面がフォアグラウンド(visible)か。falseでボス到来/戦闘を一時停止(セーブしない)
   _idSeq: 1,
 
   // ---------------- 初期化 ----------------
@@ -135,7 +136,10 @@ const Game = {
     return Math.floor((CFG.capacityBase + this.state.rank * CFG.capacityPerRank) * capMult);
   },
   facLv(id) { return this.state.facilities[id] || 0; },
-  allyLv(id) { return (this.state.allies[id] && this.state.allies[id].lv) || 0; },
+  // 3.11.5: 汎用味方は削除(Phase 6で惑星固有味方を新設)。効果・戦闘計算からは常に0で外す。
+  // ただし state.allies のLvデータは消さず休眠保持=Phase 6で資産として振替する(残骸ではない)
+  allyLv() { return 0; },
+  allyLvRaw(id) { return (this.state.allies[id] && this.state.allies[id].lv) || 0; }, // Phase6資産参照用
   isHidden(lz) { return lz.hiddenT > 0; }, // 鷹にさらわれて一時不在
   isAway(lz) { return lz.hiddenT > 0; }, // フィールド外(鷹にさらわれ一時不在)。V5.2: 探索(exploring)はV4.1で撤去済のため参照しない(残留フラグで個体が永久away=給餌/emit不能になるバグ根治)
   isVisible(lz) { return !this.isAway(lz) && !lz.resting; }, // フィールドに描画される個体
@@ -782,20 +786,9 @@ const Game = {
     const report = { hours: dtSec / 3600, wins: 0 };
 
     if (st.lizards.length > 0) {
-      // ボス: 迎撃力vs推定HPで丸め判定(勝敗カウントのみ・報酬コインは廃止)
-      const raids = Math.min(10, Math.floor(dtSec / CFG.raidInterval));
-      if (raids > 0) {
-        const atk = st.lizards.reduce((a, lz) => lz.stage === "adult"
-          ? a + speciesById(lz.speciesId).atk * morphById(lz.morphId).mult * (1 + (lz.level - 1) * CFG.levelAtkMult)
-          : a, 0);
-        const estHp = 25 + this.state.rank * 12 + atk * 7;
-        if (atk * 30 >= estHp) { // 30秒以内に削り切れるなら撃退成功
-          report.wins = raids;
-          st.boss.wins = (st.boss.wins || 0) + raids;
-          this.state.stats.raidsWon += raids;
-        }
-      }
-      // 状態異常は帰還時に全快(留守中の細かい管理は要求しない)
+      // 3.11.3: 留守中の襲撃自動撃退・撃退報酬・撃退数加算は撤廃(見届けた者のみ報酬)。
+      // ボスは画面を開いている時のみ到来・討伐される。留守中は襲撃が進行しない。
+      // 状態異常は帰還時に全快(留守中の細かい管理は要求しない・報酬ではないQoLなので存置)
       for (const lz of st.lizards) { lz.injuredT = 0; lz.poisonT = 0; lz.hiddenT = 0; }
     }
     // 卵の孵化進行
@@ -842,8 +835,8 @@ const Game = {
     // V5.1: 自動補給はGold消費給餌により不要(撤廃)
     // 卵の孵化タイマー(次の通常tickで孵化する)
     for (const egg of s.eggs) egg.t = Math.max(0, egg.t - sec);
-    // 襲撃タイマー: カウントは進めるが、実際の襲撃は復帰後(present時)に始まるよう最低3秒残す
-    s.raidTimer = Math.max(3, (s.raidTimer || CFG.raidInterval) - sec);
+    // 3.11.3: 留守中はボス到来タイマーを進めない(画面を開いている時のみ到来)。timerは据え置き
+    s.raidTimer = Math.max(3, s.raidTimer || CFG.raidInterval);
     s.savedAt = Date.now();
   },
 
@@ -965,6 +958,7 @@ const Game = {
   dialTick(dt) {
     const d = this.ensureDial();
     if (!d.auto) return;
+    if (this.raid) return; // 3.11.3: ボス襲来中は自動給餌を停止(討伐後にd.auto維持のまま再開)
     this._dialT = (this._dialT || 0) + dt;
     const interval = CFG.dialRates[d.rate] || CFG.dialRates[1];
     if (this._dialT < interval) return;
@@ -974,6 +968,7 @@ const Game = {
   },
 
   feedAll(silent) {
+    if (this.raid) { if (!silent) UI.toast("ボス襲来中は給餌できない! ボス戦に集中しろ", true); return false; } // 3.11.3
     let fed = 0, repGene = null, stopped = false;
     for (const lz of this.state.lizards) {
       if (lz.injuredT > 0 || this.isAway(lz)) continue;
@@ -997,6 +992,7 @@ const Game = {
   },
   // 今この瞬間に給餌が成立するか(発射トリガーのゲート)。餌(コオロギ or 切れ時Gold)と対象個体
   canFeedNow() {
+    if (this.raid) return false; // 3.11.3: ボス襲来中はクランク/給餌/ルーレットemitを停止(ボス戦に集中)
     const s = this.state;
     const d = this.ensureDial();
     const hasTarget = s.lizards.some((l) => l.injuredT <= 0 && !this.isAway(l));
@@ -1363,6 +1359,7 @@ const Game = {
     if (nr.typeId === "monitor") hp *= 1.6;       // タンク
     hp *= this.erosionBossMult();                 // V4.1: 侵食が高いとボスが強い
     if (type.flying) hp *= 0.8;                   // 飛行系は柔らかめ
+    hp *= CFG.bossHpMult;                         // 3.11.5: 味方削除の難化調整枠(既定1.0・CFGで即調整)
 
     this.raid = {
       typeId: nr.typeId, type, boss: nr.boss, elite: nr.elite,
@@ -1723,10 +1720,26 @@ const Game = {
     }
   },
 
+  // 3.11.3: 端末ローカル日付文字列(1日3回の日付境界)
+  localDateStr() { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; },
+  // 「今すぐ呼ぶ」カウンタ。日付が変わったら回復
+  ensureBossCall() {
+    const today = this.localDateStr();
+    if (!this.state.bossCall || this.state.bossCall.date !== today) this.state.bossCall = { date: today, used: 0 };
+    return this.state.bossCall;
+  },
+  bossCallRemaining() { return Math.max(0, CFG.bossCallPerDay - this.ensureBossCall().used); },
+
   raidNow() {
     if (this.raid) return;
+    const bc = this.ensureBossCall();
+    if (bc.used >= CFG.bossCallPerDay) {
+      UI.toast(`「今すぐ呼ぶ」は1日${CFG.bossCallPerDay}回まで。日付が変わると回復する`, true);
+      return;
+    }
+    bc.used++;
     this.state.raidTimer = Math.min(this.state.raidTimer, 2);
-    UI.toast("蛇を挑発した! すぐに来るぞ…");
+    UI.toast(`蛇を挑発した! すぐに来るぞ… (本日あと${this.bossCallRemaining()}回)`);
   },
 
   // ---------------- メインループ ----------------
@@ -1812,12 +1825,14 @@ const Game = {
       }
     }
 
-    // 襲撃タイマー
-    if (this.raid) {
-      this.updateRaid(dt);
-    } else {
-      s.raidTimer -= dt;
-      if (s.raidTimer <= 0) this.startRaid();
+    // 襲撃タイマー(3.11.3: フォアグラウンド時のみ進行/戦闘。離席=時間も戦闘も一時停止=見届けた者のみ)
+    if (this.foreground !== false) {
+      if (this.raid) {
+        this.updateRaid(dt);
+      } else {
+        s.raidTimer -= dt;
+        if (s.raidTimer <= 0) this.startRaid();
+      }
     }
 
     // Phase4: イベント・ラッキー卵・演出タイマー(放浪商人はPhase3.10で撤廃)
@@ -2084,6 +2099,7 @@ const Game = {
       collection: {
         dex: s.dex, stats: s.stats, missionsClaimed: s.missionsClaimed,
         titles: s.titles, titleSel: s.titleSel, daily: s.daily,
+        bossCall: s.bossCall || null, // 3.11.3: 「今すぐ呼ぶ」1日3回カウンタ
       },
       allies: s.allies,
       res: s.res || { bio: 0, food: 0, energy: 0, science: 0 }, // V4: 資源フロー
@@ -2150,6 +2166,16 @@ const Game = {
     return w;
   },
 
+  // 3.11.3: ボス見届け化。「今すぐ呼ぶ」1日カウンタ(bossCall)を追加。既存の保留ボス状態(nextRaid/raidTimer)は
+  // StageData側に保持されるので触らない。バージョンゲートで冪等
+  migrateV7to8(w) {
+    if ((w.version || 0) >= 8) return w;
+    w.collection = w.collection || {};
+    if (w.collection.bossCall === undefined) w.collection.bossCall = null; // ロード時にensureBossCallが当日値を生成
+    w.version = 8;
+    return w;
+  },
+
   applyWorld(w) {
     if (w.planets && !w.stages) w.stages = w.planets; // V4改名の互換
     if (w.stages && !w.planets) w.planets = w.stages;
@@ -2176,6 +2202,7 @@ const Game = {
       missionsClaimed: w.collection.missionsClaimed,
       titles: w.collection.titles || {}, titleSel: w.collection.titleSel || null,
       daily: w.collection.daily || { last: "", streak: 0 },
+      bossCall: w.collection.bossCall || null, // 3.11.3: 今すぐ呼ぶ1日カウンタ
       allies: w.allies || {},
       autoSupply: !!w.autoSupply,
       autoBreed: !!w.autoBreed,
@@ -2343,8 +2370,12 @@ const Game = {
     try {
       const data = JSON.parse(raw);
       let world;
-      if (data.version >= 7) {
+      if (data.version >= 8) {
         world = data;
+      } else if (data.version === 7) {
+        // V7セーブ → V8移行(ボス見届け化・1日3回カウンタ・バックアップしてから)
+        try { localStorage.setItem(CFG.saveBackupKeyV8, raw); } catch (e) { /* noop */ }
+        world = data; // 実移行は下の共通ゲートで(冪等)
       } else if (data.version === 6) {
         // V6セーブ → V7移行(コオロギ給餌の復活・バックアップしてから)
         try { localStorage.setItem(CFG.saveBackupKeyV7, raw); } catch (e) { /* noop */ }
@@ -2388,7 +2419,7 @@ const Game = {
         setTimeout(() => UI.toast("セーブを最新形式へ移行しました。旧データはバックアップ済み"), 900);
       }
       // V5/V6/V7共通ゲート(全チェーンの最終段・各段は冪等)。v6→v7で払戻Goldは据置＋在庫付与=資産プラスのみ
-      world = this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world)));
+      world = this.migrateV7to8(this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world))));
       if (world._reviveV7 && world._reviveV7.crickets > 0) {
         const r7 = world._reviveV7;
         setTimeout(() => UI.toast(`V5.2: コオロギ給餌が復活! 在庫コオロギ${fmt(r7.crickets)}匹を進呈(以前のGold払い戻しはそのまま)`), 900);
