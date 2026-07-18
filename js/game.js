@@ -1124,7 +1124,7 @@ const Game = {
           speciesId: sp.id, morphId: mo.id,
           hue: sp.hue + rnd(-10, 10), sat: sp.sat, light: sp.light,
           pattern: PATTERNS[Math.floor(Math.random() * 4)],
-          t: total, total, fromRoulette: true, rainbow: true,
+          t: total, total, // fable2: rainbow/fromRouletteは消費側(§4.3特別孵化)未実装のため保存に混入させない
         });
         UI.toast(`${Icon.svg("spark")} レインボー! 未発見の「${mo.name} ${sp.name}」の卵が生まれた!`);
         if (UI.rouletteRainbowFx) UI.rouletteRainbowFx(sp);
@@ -1144,7 +1144,7 @@ const Game = {
     const genes = this.inherit(base, base);
     const sp = speciesById(genes.speciesId);
     const total = CFG.hatchBasePerStar * sp.stars * hatchMult;
-    this.state.eggs.push({ ...genes, t: total, total, fromRoulette: true, rainbow: false });
+    this.state.eggs.push({ ...genes, t: total, total }); // fable2: 未使用の派生/来歴フラグは保存しない
     return true;
   },
 
