@@ -1098,10 +1098,47 @@ const Game = {
     };
   },
 
-  // 遺伝子ルーレット: 床到達(回収)で1個の卵を生成。単一遺伝子からの子は
-  // inherit(自己ペア)で再利用し、変異/モーフ/色ゆらぎロジックの二重化を避ける(fable0)
+  // 未所持の図鑑エントリ(種×モーフ)を1つ返す。ステージ種優先(§7.5)。全所持ならnull
+  pickUnownedDexEntry(preferStageId) {
+    const cands = [];
+    for (const sp of this.unlockedSpecies()) {
+      for (const mo of MORPHS) {
+        if (mo.legendary) continue;
+        if (!this.state.dex[sp.id + ":" + mo.id]) cands.push([sp, mo]);
+      }
+    }
+    if (!cands.length) return null;
+    if (preferStageId != null) {
+      const pref = cands.filter((c) => c[0].stage === preferStageId);
+      if (pref.length) return pref[Math.floor(Math.random() * pref.length)];
+    }
+    return cands[Math.floor(Math.random() * cands.length)];
+  },
+
+  // 遺伝子ルーレット: 床到達(回収)で1個の卵を生成。
+  // 通常=給餌した遺伝子の子(inherit自己ペア再利用で変異/モーフ/色ゆらぎ二重化回避・fable0)
+  // レインボー=未所持の新種(種族同一・§7.5)。図鑑コンプ済みなら通常卵へフォールバック
   spawnRouletteEgg(outcome) {
     if (this.state.eggs.length >= this.eggSlotCap()) return false; // 満杯は静かに廃棄
+    const rainbow = !!(outcome && outcome.rainbow);
+    const hatchMult = Math.max(0.2, (1 - this.facLv("heat") * 0.025) * (1 - (((this.state.nest && this.state.nest.lv) || 1) - 1) * 0.03) * (1 - this.researchBonus("hatch")));
+    if (rainbow) {
+      const pick = this.pickUnownedDexEntry(this.currentStage().id);
+      if (pick) {
+        const sp = pick[0], mo = pick[1];
+        const total = CFG.hatchBasePerStar * sp.stars * hatchMult;
+        this.state.eggs.push({
+          speciesId: sp.id, morphId: mo.id,
+          hue: sp.hue + rnd(-10, 10), sat: sp.sat, light: sp.light,
+          pattern: PATTERNS[Math.floor(Math.random() * 4)],
+          t: total, total, fromRoulette: true, rainbow: true,
+        });
+        UI.toast(`${Icon.svg("spark")} レインボー! 未発見の「${mo.name} ${sp.name}」の卵が生まれた!`);
+        if (UI.rouletteRainbowFx) UI.rouletteRainbowFx(sp);
+        return true;
+      }
+      // 全所持=フォールバックで通常卵扱い(下へ)
+    }
     const g = (outcome && outcome.gene) || {};
     const fallbackSp = (this.state.lizards[0] && this.state.lizards[0].speciesId)
       || (this.unlockedSpecies()[0] && this.unlockedSpecies()[0].id) || "kanahebi";
@@ -1112,11 +1149,9 @@ const Game = {
       pattern: g.pattern || "none",
     };
     const genes = this.inherit(base, base);
-    if (outcome && outcome.rainbow && outcome.speciesId) genes.speciesId = outcome.speciesId; // レインボー=指定新種(段階4)
     const sp = speciesById(genes.speciesId);
-    const hatchMult = Math.max(0.2, (1 - this.facLv("heat") * 0.025) * (1 - (((this.state.nest && this.state.nest.lv) || 1) - 1) * 0.03) * (1 - this.researchBonus("hatch")));
     const total = CFG.hatchBasePerStar * sp.stars * hatchMult;
-    this.state.eggs.push({ ...genes, t: total, total, fromRoulette: true, rainbow: !!(outcome && outcome.rainbow) });
+    this.state.eggs.push({ ...genes, t: total, total, fromRoulette: true, rainbow: false });
     return true;
   },
 

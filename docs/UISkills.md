@@ -301,3 +301,11 @@
 - CSSは `.icon`（1.1em角・ベースライン-0.18em）。色は親のcolor＝トークンに追従。
 - 例外として残す純テキスト記号: `→ ← ⇔ ▸ ★ ☆ ✦ ×`（タイポグラフィであり絵文字ではない。等幅・単色でレンダリングされる）。
 
+
+## §11 遺伝子ルーレット(V5・roulette.md準拠)
+
+- 設置=左メニュー下部 `#roulette-card` > `#roulette-wrap` > `#roulette-canvas`(専用Canvas・魂のメインCanvasとは別)。
+- 描画は表現層(js/ui/screens/roulette.js)がルール層(Roulette)のstateを毎フレーム描くだけ。数値/確率はルール層。
+- **レインボー演出**: レインボー帯は七色の淡いグロー(時間で色相回転・当たり位置の明示)。着弾時 `BallEnteredRainbow` イベントで七色バースト+リング(~0.9s減衰)。新種誕生時は枠に `roul-pop` の一瞬の発光。
+- モーション: `roul-pop` = ルーレット枠が0.4sで一度だけ発光する当たり演出(prefers-reduced-motionで停止)。
+- 色は生命緑/七色HSL。reduced-motionでバースト等を抑制、結果(卵)は保証。
