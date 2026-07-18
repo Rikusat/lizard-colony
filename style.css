@@ -261,6 +261,10 @@ button.act .price {
 #center { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
 #frame {
   position: relative;
+  /* 3.11 余白解消: 利用可能な高さ(100vh-上部chrome)から16:9の最大サイズを算出し、横幅(100%)でも制限。
+     +16pxはpadding分。これで飼育槽が拡大しきり、下余白ゼロ・右余白は最小化(残りは領域比の差) */
+  width: min(100%, calc((100vh - 112px) * 1280 / 720 + 16px));
+  box-sizing: border-box;
   padding: 8px; border-radius: 18px;
   background: linear-gradient(160deg, #6b5433, #3a2c18 40%, #241a0e);
   border: 1px solid var(--border-hi);
@@ -284,11 +288,13 @@ button.act .price {
     rgba(255, 255, 255, 0) 24%);
 }
 #game {
-  /* 3.10.3: 水槽最大化。ただし横幅と「ビューポート高さ-上部chrome」の両方で制約し、
-     16:9アスペクトを保ったまま1画面に必ず収める(縦あふれ防止・letterbox可) */
-  display: block; margin: 0 auto;
-  max-width: 100%; max-height: calc(100vh - 104px);
-  width: auto; height: auto;
+  /* 3.11: width:100%でframeいっぱいに拡大(width/height:autoは縮小のみで拡大しない問題の根治)。
+     aspect-ratioで要素を正確に16:9に保つ=バッファ1280x720が均一スケール(魂は歪まない)。
+     当たり判定は getBoundingClientRect().width にスケール追随(W/rect.width)で自動整合。 */
+  display: block;
+  width: 100%; height: auto;
+  aspect-ratio: 1280 / 720;
+  max-height: calc(100vh - 112px); /* 安全網(通常frame側の算出で到達しない) */
   border-radius: 12px;
   box-shadow: inset 0 0 40px rgba(0, 0, 0, .5);
 }
