@@ -114,11 +114,11 @@ Object.assign(UI, {
       ${lz.founder ? `<div style="color:var(--gold)">${Icon.svg("crown")} 創始者 — 旧コロニーの血統</div>` : ""}
             <div class="btns">
         <button data-act="feed">${Icon.svg("cricket")} 餌やり</button>
+        ${Game.canBreed(lz) ? `<button data-act="breed" class="cta">${Icon.svg("breed")} 繁殖相手を選ぶ</button>` : ""}
         ${lz.injuredT > 0 ? `<button data-act="heal">${Icon.svg("gem")}1 回復</button>` : ""}
         <button data-act="pin">${Icon.svg("pin")}${(Game.state.nest.pins || []).includes(lz.id) ? "解除" : "ピン"}</button>
         ${Game.stageSpecificSpecies().length && Game.res("bio") >= CFG.mutateBioCost && speciesById(lz.speciesId).stage !== Game.currentStage().id
           ? `<button data-act="mutate">${Icon.svg("bio")} 変異(${CFG.mutateBioCost})</button>` : ""}
-        <button data-act="sell">${Icon.svg("coin")} 売却 ${fmt(Game.lizardSellPrice(lz))}</button>
         <button data-act="close">閉じる</button>
       </div>`;
   },
@@ -139,11 +139,37 @@ Object.assign(UI, {
         else this.toast("ピン留めは5匹まで", true);
         break;
       }
-      case "sell":
-        if (confirm(`${Game.lizardName(lz)} を ${fmt(Game.lizardSellPrice(lz))}G で売却しますか?`)) Game.sell(lz);
-        break;
+      case "breed": this.openBreedPicker(lz); return; // 3.11.4: 相手選択ウィンドウへ
       case "close": Game.selectedId = null; break;
     }
     this.renderDetail(true);
+  },
+
+  // 3.11.4: トカゲクリック→この個体を親に、相手を選んで繁殖(ルーレットと併存する繁殖経路)
+  // trait_system.md の将来の特性表示を載せられるよう、相手を行リストで見せる構造(今は先回りしない=YAGNI)
+  openBreedPicker(lz) {
+    this.openModal(`${Icon.svg("breed")} 繁殖 — ${Game.lizardName(lz)} の相手を選ぶ`, (body) => {
+      const mates = Game.state.lizards.filter((o) => o.id !== lz.id && Game.canBreed(o));
+      if (!mates.length) {
+        body.innerHTML = `<p style="color:var(--sub)">繁殖できる相手がいません(アダルト・非負傷・クールダウン外・在槽の個体が必要)。</p>`;
+        return;
+      }
+      body.innerHTML = `<p style="font-size:calc(12px * var(--fs-scale,1));color:var(--sub);margin-bottom:8px">相手を選ぶと卵が生まれます(コスト ${Icon.svg("coin")}は種のレア度で変動)。</p>`;
+      for (const o of mates) {
+        const sp = speciesById(o.speciesId), mo = morphById(o.morphId), col = Render.lizardColor(o);
+        const cost = Game.breedCost(lz, o);
+        const row = document.createElement("div");
+        row.className = "list-row";
+        row.innerHTML =
+          `<span class="sw" style="display:inline-block;width:18px;height:12px;border-radius:6px;background:${col.css};border:1px solid #0006"></span>` +
+          `<div class="grow"><b>${Game.lizardName(o)}</b><div class="desc">${"★".repeat(sp.stars)} ${mo.name} / Lv${o.level || 1}</div></div>` +
+          `<button ${Game.state.coins < cost ? "disabled" : ""}>${Icon.svg("coin")}${fmt(cost)}</button>`;
+        row.querySelector("button").addEventListener("click", () => {
+          if (Game.breed(lz.id, o.id)) { this.closeModal(); }
+          else this.openBreedPicker(lz); // 失敗時は再描画(状態更新)
+        });
+        body.appendChild(row);
+      }
+    });
   },
 });

@@ -10,6 +10,45 @@ Object.assign(UI, {
     this.openModal(`${Icon.svg("build")} 設備`, (body) => this.buildFacilities(body));
   },
 
+  // 3.11.2: 飼育槽内の設備タップ判定。建設済み(lv>0)の設備の描画中心と半径で当たりを取る
+  facilityHitId(x, y) {
+    if (typeof FAC_POS === "undefined") return null;
+    const P = FAC_POS;
+    const hits = [
+      { id: "water", x: P.water.x, y: P.water.y, r: 78 },
+      { id: "shelter", x: P.shelter.x, y: P.shelter.y, r: 62 },
+      { id: "heat", x: P.light.x - 30, y: P.light.y, r: 62 },   // 保温設備=吊りランプ(P.light)
+      { id: "breedfac", x: P.rocks.x, y: P.rocks.y, r: 56 },
+      { id: "feeder", x: P.heat.x, y: P.heat.y, r: 64 },        // 餌場(P.heat)
+    ];
+    for (const h of hits) {
+      if (Game.facLv(h.id) > 0 && Math.hypot(x - h.x, y - h.y) < h.r) return h.id;
+    }
+    // フェンスは縦帯で判定(建設済みのみ)
+    if (Game.facLv("fence") > 0 && Math.abs(x - P.fenceX) < 26 && y > 230 && y < 700) return "fence";
+    return null;
+  },
+
+  // 3.11.2: 個別設備の強化メニュー(トカゲクリックのウィンドウと同等サイズ=openModal)
+  openFacilityMenu(id) {
+    const f = facilityById(id);
+    if (!f) return;
+    this.openModal(`${Icon.svg(f.icon)} ${f.name}`, (body) => {
+      const render = () => {
+        const lv = Game.facLv(f.id), fmax = Game.facMax(f), maxed = lv >= fmax, cost = Game.facilityCost(f.id);
+        body.innerHTML =
+          `<div class="list-row"><span class="fic">${Icon.svg(f.icon)}</span>` +
+          `<div class="grow"><b>${f.name}</b> <span class="lv">Lv${lv}/${fmax}</span>` +
+          `<div class="desc">${f.desc}</div></div></div>` +
+          `<button id="fm-up" style="width:100%;margin-top:10px" ${maxed ? "disabled" : ""}>${maxed ? "MAX" : Icon.svg("build") + " 強化 " + fmt(cost) + "G"}</button>` +
+          `<button id="fm-all" style="width:100%;margin-top:8px">${Icon.svg("build")} 設備一覧を開く</button>`;
+        if (!maxed) body.querySelector("#fm-up").addEventListener("click", () => { Game.buyFacility(f.id); render(); });
+        body.querySelector("#fm-all").addEventListener("click", () => this.openFacilities());
+      };
+      render();
+    });
+  },
+
   buildFacilities(body) {
     body.innerHTML = `
       <div class="nest-tabs">

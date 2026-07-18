@@ -22,11 +22,11 @@
   <div class="res" data-tip="コオロギ — 餌の在庫(全コロニー共通)。給餌で消費・左メニューで購入"><span class="ricon cricket"><svg class="icon"><use href="#i-cricket"/></svg></span><b id="ui-crickets-top">0</b></div>
   <div class="res" data-tip="ジェム — 即時孵化・即回復・レア卵に使う希少通貨"><span class="ricon gem"><svg class="icon"><use href="#i-gem"/></svg></span><b id="ui-gems">0</b></div>
   <nav>
+    <button id="btn-map"><svg class="icon"><use href="#i-planet"/></svg> マップ</button>
     <button id="btn-hq"><svg class="icon"><use href="#i-hq"/></svg> 本部</button>
     <button id="btn-dex"><svg class="icon"><use href="#i-dex"/></svg> 図鑑</button>
     <button id="btn-missions"><svg class="icon"><use href="#i-mission"/></svg> ミッション<span id="mission-badge" class="badge hidden">!</span></button>
     <button id="btn-stats"><svg class="icon"><use href="#i-stats"/></svg> 統計</button>
-    <button id="btn-map"><svg class="icon"><use href="#i-planet"/></svg> マップ</button>
     <button id="btn-settings"><svg class="icon"><use href="#i-settings"/></svg> 設定</button>
   </nav>
 </header>
@@ -41,9 +41,7 @@
   <aside id="left">
     <div class="card">
       <h3>操作卓</h3>
-      <div class="btn-grp">行動</div>
-      <button id="btn-breed" class="act cta"><span class="bicon"><svg class="icon"><use href="#i-breed"/></svg></span><span class="lbl">繁殖する<small>アダルト2匹で卵を作る</small></span></button>
-      <div class="btn-grp gap">施設・仲間へ</div>
+      <!-- 3.11.4: 「繁殖する」ボタンは撤廃(トカゲクリック→相手選択で繁殖)。左の余白はルーレット拡大へ -->
       <button id="btn-cricket" class="act"><span class="bicon"><svg class="icon"><use href="#i-cricket"/></svg></span><span class="lbl">コオロギ購入<small id="cricket-lot-lbl">まとめ買い</small></span></button>
       <button id="btn-fac" class="act"><span class="bicon"><svg class="icon"><use href="#i-build"/></svg></span><span class="lbl">設備<small>コロニーを強化</small></span></button>
     </div>
@@ -51,8 +49,7 @@
       <h3><svg class="icon"><use href="#i-egg"/></svg> 遺伝子ルーレット</h3>
       <div id="roulette-wrap"><canvas id="roulette-canvas"></canvas></div>
     </div>
-    <!-- 3.10.3: ヒントは左メニュー最下部へ(枠なし・控えめ) -->
-    <div id="hint-card"><div class="hint-text" id="ui-hint">トカゲをクリックすると詳細が見られます。餌をあげて育てよう!</div></div>
+    <!-- 3.11.1e: ヒントは撤去しルーレットを最大化(ヒントは初回のみトースト表示・下記core.js) -->
   </aside>
 
   <section id="center">

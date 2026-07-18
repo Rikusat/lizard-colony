@@ -32,8 +32,7 @@ main { flex: 1 1 auto; min-height: 0; width: 100%; }
   display: flex; align-items: center; gap: clamp(8px, 1.2vw, 16px);
   padding: clamp(5px, .8vh, 8px) clamp(12px, 1.8vw, 24px);
   background: var(--grad-topbar);
-  border-bottom: 2px solid var(--planet-accent, var(--border-hi));
-  transition: border-color .5s var(--ease-out);
+  border-bottom: 1px solid var(--border); /* 3.11.1: HQバー上の目立つ惑星色ラインを控えめな枠色へ */
   box-shadow: 0 4px 16px rgba(0, 0, 0, .55);
   flex-wrap: wrap;
   position: relative; z-index: 5;

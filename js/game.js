@@ -1028,14 +1028,7 @@ const Game = {
     return r;
   },
 
-  sell(lz) {
-    const price = this.lizardSellPrice(lz);
-    this.state.coins += price;
-    this.state.stats.sold++;
-    this.state.lizards = this.state.lizards.filter((x) => x.id !== lz.id);
-    if (this.selectedId === lz.id) this.selectedId = null;
-    UI.toast(`${this.lizardName(lz)} を ${fmt(price)}G で売却した`);
-  },
+  // 3.11.1: トカゲ売却は廃止(倫理観)。lizardSellPriceは価値評価としてのみ残す(捕食対象の選定等)
 
   healWithGem(lz) {
     if (this.state.gems < 1) return UI.toast("ジェムが足りない!", true);

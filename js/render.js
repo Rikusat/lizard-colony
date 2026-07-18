@@ -79,8 +79,8 @@ const Render = {
     }
     ctx.drawImage(this._bgCache, 0, 0);
     // ステージ名プレート(動的でないが軽いので直描き)
-    // 3.10.5: 惑星名を含む現在地表示(バー/右パネル撤廃の代替)。トカゲ数を下に併記(3.10.3)
-    this.pill(ctx, 20, 18, `${st.pname} ${st.name} STAGE ${st.id}`, "rgba(0,0,0,.45)", "rgba(255,255,255,.82)", 15);
+    // 3.11.1: 現在地表示(全惑星統一・STAGE後の数字は付けない)。トカゲ数を下に併記(3.10.3)
+    this.pill(ctx, 20, 18, `${st.pname} ${st.name} STAGE`, "rgba(0,0,0,.45)", "rgba(255,255,255,.82)", 15);
     this.pill(ctx, 20, 46, `${Game.state.lizards.length} / ${Game.capacity()} 匹`, "rgba(0,0,0,.36)", "rgba(210,230,200,.8)", 13);
   },
 
@@ -787,7 +787,6 @@ const Render = {
       ctx.ellipse(p.x - r * 0.3, p.y - 6, 9, 2, -0.2, 0, 7);
       ctx.ellipse(p.x + r * 0.25, p.y + 3, 6, 1.5, 0.15, 0, 7);
       ctx.fill();
-      this.pill(ctx, p.x - 44, p.y + r * 0.44 + 6, "水場 Lv" + lv("water"));
     }
 
     if (lv("shelter")) { // 岩の洞窟
@@ -813,7 +812,6 @@ const Render = {
       ctx.fillStyle = g;
       ctx.beginPath(); ctx.ellipse(p.x, p.y + 6, 27, 22, 0, Math.PI, 0); ctx.fill();
       ctx.fillRect(p.x - 27, p.y + 4, 54, 5);
-      this.pill(ctx, p.x - 58, p.y + 24, "シェルター Lv" + lv("shelter"));
     }
 
     if (lv("heat")) { // 吊りランプ(保温設備)
@@ -839,7 +837,6 @@ const Render = {
       ctx.beginPath(); ctx.moveTo(p.x - 58, p.y - 36); ctx.lineTo(p.x - 34, p.y - 36); ctx.lineTo(p.x - 40, p.y - 44); ctx.lineTo(p.x - 52, p.y - 44); ctx.closePath(); ctx.fill();
       ctx.fillStyle = "#ffedb0";
       ctx.beginPath(); ctx.arc(p.x - 46, p.y - 30, 8, 0, 7); ctx.fill();
-      this.pill(ctx, p.x - 50, p.y + 68, "保温設備 Lv" + lv("heat"));
     }
 
     if (lv("breedfac")) { // 繁殖施設(岩場と草の巣)
@@ -850,7 +847,6 @@ const Render = {
       this.boulder(ctx, rrand, p.x + 42, p.y + 10, 16, "#55483a");
       ctx.fillStyle = "rgba(0,0,0,.2)";
       ctx.beginPath(); ctx.ellipse(p.x + 20, p.y + 22, 8, 3, 0, 0, 7); ctx.ellipse(p.x - 12, p.y + 24, 6, 2.5, 0, 0, 7); ctx.fill();
-      this.pill(ctx, p.x - 44, p.y + 36, "繁殖施設 Lv" + lv("breedfac"));
     }
 
     if (lv("feeder")) { // 餌場(自動給餌トラフ)
@@ -870,7 +866,6 @@ const Render = {
         ctx.beginPath(); ctx.moveTo(p.x - 48, p.y + oy); ctx.lineTo(p.x + 48, p.y + oy); ctx.stroke();
       }
       ctx.shadowBlur = 0;
-      this.pill(ctx, p.x - 44, p.y + 26, "餌場 Lv" + lv("feeder"));
     }
 
     if (lv("fence")) { // 木製フェンス
@@ -891,7 +886,6 @@ const Render = {
         ctx.fillStyle = "rgba(255,255,255,.14)";
         rr(ctx, x - 3.5, y + 1.5, 3, 36, 2); ctx.fill();
       }
-      this.pill(ctx, x - 62, 206, "フェンス Lv" + lv("fence"));
     }
   },
 

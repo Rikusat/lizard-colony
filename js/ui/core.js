@@ -48,10 +48,7 @@ const UI = {
     // ボタン(購入・餌やりは長押しで加速連続実行 / GameExpansion_v2 ④)
     // V5.1: 購入単位(ショップ)は撤去
     // V5.1: コオロギ購入ボタンは撤去
-    on("btn-breed", () => this.openBreed());
-    // 繁殖ボタンの長押し=クイック繁殖の連続実行(短押しは選択画面)
-    attachHold(document.getElementById("btn-breed"), () => Game.quickBreed(true));
-    // V5.1: 自動補給トグルは撤去(Gold直接消費給餌)
+    // 3.11.4: 「繁殖する」ボタンは撤廃。繁殖はトカゲクリック→相手選択(renderDetail)から
     on("btn-fac", () => this.openFacilities());
     on("btn-stats", () => this.openStats());
     on("btn-hq", () => this.openHQ());
@@ -117,7 +114,13 @@ const UI = {
           if (d < bestD) { bestD = d; best = lz; }
         }
       }
-      Game.selectedId = best ? best.id : null;
+      if (best) { Game.selectedId = best.id; this.renderDetail(true); return; }
+      // 3.11.2: トカゲが無ければ設備タップ→個別強化メニュー(建設済みの設備のみ)
+      if (!raid && this.facilityHitId && this.openFacilityMenu) {
+        const fid = this.facilityHitId(x, y);
+        if (fid) { this.openFacilityMenu(fid); return; }
+      }
+      Game.selectedId = null;
       this.renderDetail(true);
     });
 
@@ -172,8 +175,10 @@ const UI = {
   },
 
   rotateHint() {
+    // 3.11.1e: 常設ヒント枠は撤去(ルーレット最大化)。要素があれば更新、無ければ何もしない
     this.hintIdx = (this.hintIdx + 1) % this.hints.length;
-    this.els["ui-hint"].textContent = this.hints[this.hintIdx];
+    const el = this.els["ui-hint"] || document.getElementById("ui-hint");
+    if (el) el.textContent = this.hints[this.hintIdx];
   },
 
   // 惑星アクセント(§1.5 / Phase 8): 縁・リング・ドットの差し色のみ。土壌と魂は不変
