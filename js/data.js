@@ -62,8 +62,11 @@ const CFG = {
   roulLaunchXJitf: 0.05,    // 発射xの左右ばらつき(W比)
   roulInitVy: 18,           // 初速(下向き・単位/秒)
   roulInitVxJit: 16,        // 初速の横ばらつき(±・単位/秒)
-  // レール区間(導入部): y<railEndで軌道が導き、以降フリーフォール
-  roulRailEndYf: 0.20,      // レール終端(H比)。ここまでは中央へ寄せつつ加速
+  // レール区間(導入部・roulette_rules.md §1): 可視の溝(ファネル状シュート)を球が沿って走る→解放点でフリーフォール
+  roulRailEndYf: 0.24,      // レール終端=解放点(H比)。ここまではシュート壁で反射しながら加速
+  roulChuteTopHalff: 0.30,  // シュート上端の半幅(W比・広い=発射を受け止める)
+  roulChuteBotHalff: 0.085, // シュート下端の半幅(W比・狭い=中央へ送り出す)
+  roulChuteRestitution: 0.4,// シュート壁の反発(球が壁沿いに走る手触り)
   // 釘(千鳥格子・控えめ/球が主役・#設計2)
   roulNailTopf: 0.30,       // 釘場の上端(H比)
   roulNailBotf: 0.78,       // 釘場の下端(H比)
@@ -77,6 +80,10 @@ const CFG = {
   roulRainbowHalfWf: 0.015, // 虹穴の半幅(W比・極細=入りにくい。中央±この幅=大当たり)。MC反復: 0.020→0.015で0.503%(1/199)
   roulPrizeOuterf: 0.115,   // 景品帯の外側|dx|(W比)。虹穴の外〜ここまで=卵、外側はハズレ。MC反復: 0.165→0.115で卵10.97%(1/9.1)
   roulSplitNailAbove: true, // 虹穴の真上に振り分け釘を1本置く(球を左右へ弾く=ニアミス多発)
+  // 受け皿(roulette_rules.md §2): 入賞球はコトンと収まる/ハズレは受け皿なし=流れて消える
+  roulCupDepthf: 0.055,     // 受け皿の深さ(H比・landYの下に描く器)
+  roulSettleT: 0.34,        // 入賞球が受け皿に収まって留まる秒数(コトンの間→onEgg発火)
+  roulSettleDamp: 0.6,      // 収まり時の速度減衰(跳ねを抑えて器へ沈める)
   // 発射リズム(v3.1: 給餌1回でなく一定間隔。自動OFFは1クリック1発)
   roulEmitInterval: 0.42,   // オート給餌中の球射出間隔(秒)
 

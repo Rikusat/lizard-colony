@@ -51,14 +51,25 @@ Object.assign(UI, {
     ctx.lineWidth = 1.4 / scale;
     ctx.strokeRect(0.7, 0.7, W - 1.4, H - 1.4);
 
-    // レール区間(導入部)の淡いガイド
+    // レール(発射→落下導入・roulette_rules.md §1): 球が沿って走る溝=ファネル状シュートの2軌条
     const railEndY = CFG.roulRailEndYf * H;
-    ctx.strokeStyle = "rgba(150,190,160,.12)";
-    ctx.lineWidth = 1.0 / scale;
-    ctx.beginPath(); ctx.moveTo(cx, 2); ctx.lineTo(cx, railEndY); ctx.stroke();
+    const chTop = CFG.roulChuteTopHalff * W, chBot = CFG.roulChuteBotHalff * W;
+    // 溝の内側の淡い塗り(レールに沿って落ちる帯を可視化)
+    ctx.fillStyle = "rgba(150,190,160,.06)";
+    ctx.beginPath();
+    ctx.moveTo(cx - chTop, 0); ctx.lineTo(cx - chBot, railEndY);
+    ctx.lineTo(cx + chBot, railEndY); ctx.lineTo(cx + chTop, 0); ctx.closePath(); ctx.fill();
+    // 左右の軌条(はっきり見える2本のレール)
+    ctx.strokeStyle = "rgba(170,205,175,.5)"; ctx.lineWidth = 1.6 / scale; ctx.lineCap = "round";
+    for (const s of [-1, 1]) {
+      ctx.beginPath(); ctx.moveTo(cx + s * chTop, 0); ctx.lineTo(cx + s * chBot, railEndY); ctx.stroke();
+    }
+    // 解放点(レール終端)の淡い印
+    ctx.strokeStyle = "rgba(170,205,175,.22)"; ctx.lineWidth = 0.8 / scale;
+    ctx.beginPath(); ctx.moveTo(cx - chBot, railEndY); ctx.lineTo(cx + chBot, railEndY); ctx.stroke();
     // 発射口
-    ctx.fillStyle = "rgba(180,200,170,.5)";
-    ctx.beginPath(); ctx.arc(CFG.roulLaunchXf * W, 3, 3.0, 0, 7); ctx.fill();
+    ctx.fillStyle = "rgba(180,200,170,.55)";
+    ctx.beginPath(); ctx.arc(CFG.roulLaunchXf * W, 3, 3.2, 0, 7); ctx.fill();
 
     // 釘(控えめ・低コントラスト=球が主役・#設計2)
     ctx.fillStyle = "rgba(150,170,150,.42)";
@@ -66,28 +77,41 @@ Object.assign(UI, {
       ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, 7); ctx.fill();
     }
 
-    // 着地の穴(中央=極細の虹穴、その左右を景品穴が挟む)
+    // 着地=受け皿(roulette_rules.md §2): 入賞球が「コトンと収まる」器。ハズレは器が無く流れて消える
     const tp = (Render.time * 90) % 360;
     const pulse = calm ? 0.6 : 0.5 + 0.5 * Math.sin(Render.time * 2.6);
-    const shelfY = landY, shelfH = H - landY;
-    // ハズレ床(暗い)
-    ctx.fillStyle = "rgba(30,36,30,.9)";
-    ctx.fillRect(0, shelfY, W, shelfH);
-    // 景品穴(左右の帯・琥珀)
-    ctx.fillStyle = "rgba(210,170,90,.5)";
-    ctx.fillRect(cx - pzOut, shelfY, pzOut - rbHalf, shelfH);
-    ctx.fillRect(cx + rbHalf, shelfY, pzOut - rbHalf, shelfH);
-    ctx.strokeStyle = "rgba(230,190,110,.7)"; ctx.lineWidth = 0.8 / scale;
-    ctx.strokeRect(cx - pzOut, shelfY, pzOut - rbHalf, shelfH);
-    ctx.strokeRect(cx + rbHalf, shelfY, pzOut - rbHalf, shelfH);
-    // 虹穴(中央・極細・七色脈動)
+    const cupDepth = CFG.roulCupDepthf * H;
+    const pzMid = (rbHalf + pzOut) / 2; // 景品受け皿の中心オフセット
+    // ハズレの床(暗い・受け皿の無い領域=球が滑り落ちて消える)
+    ctx.fillStyle = "rgba(26,32,26,.92)";
+    ctx.fillRect(0, landY, W, H - landY);
+    // 受け皿を1つ描くヘルパ(器=底が丸い窪み)
+    const drawCup = (ccx, halfW, fill, stroke) => {
+      ctx.beginPath();
+      ctx.moveTo(ccx - halfW, landY - 2);
+      ctx.lineTo(ccx - halfW, landY + cupDepth * 0.5);
+      ctx.quadraticCurveTo(ccx, landY + cupDepth, ccx + halfW, landY + cupDepth * 0.5);
+      ctx.lineTo(ccx + halfW, landY - 2);
+      ctx.closePath();
+      ctx.fillStyle = fill; ctx.fill();
+      ctx.strokeStyle = stroke; ctx.lineWidth = 1.0 / scale; ctx.stroke();
+    };
+    // 景品の受け皿(左右・琥珀)
+    const pzHalf = (pzOut - rbHalf) / 2;
+    drawCup(cx - pzMid, pzHalf, "rgba(210,170,90,.5)", "rgba(235,195,110,.8)");
+    drawCup(cx + pzMid, pzHalf, "rgba(210,170,90,.5)", "rgba(235,195,110,.8)");
+    // 虹の受け皿(中央・極細・七色脈動=最大の見せ場)
     const rg = ctx.createLinearGradient(cx - rbHalf, 0, cx + rbHalf, 0);
-    rg.addColorStop(0, `hsla(${tp},95%,62%,${0.6 + pulse * 0.35})`);
-    rg.addColorStop(1, `hsla(${(tp + 160) % 360},95%,62%,${0.6 + pulse * 0.35})`);
-    ctx.fillStyle = rg;
-    ctx.fillRect(cx - rbHalf, shelfY - 3, rbHalf * 2, shelfH + 3);
-    ctx.strokeStyle = `hsla(${(tp + 60) % 360},95%,72%,.9)`; ctx.lineWidth = 1.0 / scale;
-    ctx.strokeRect(cx - rbHalf, shelfY - 3, rbHalf * 2, shelfH + 3);
+    rg.addColorStop(0, `hsla(${tp},95%,62%,${0.65 + pulse * 0.35})`);
+    rg.addColorStop(1, `hsla(${(tp + 160) % 360},95%,62%,${0.65 + pulse * 0.35})`);
+    drawCup(cx, Math.max(rbHalf, 2.2), rg, `hsla(${(tp + 60) % 360},95%,74%,.95)`);
+    // 虹受け皿の誘目グロー
+    if (!calm) {
+      ctx.save(); ctx.globalAlpha = 0.4 + pulse * 0.3;
+      const gg = ctx.createRadialGradient(cx, landY, 1, cx, landY, 14);
+      gg.addColorStop(0, `hsla(${tp},95%,66%,.7)`); gg.addColorStop(1, `hsla(${tp},95%,66%,0)`);
+      ctx.fillStyle = gg; ctx.fillRect(cx - 14, landY - 12, 28, 24); ctx.restore();
+    }
 
     // 球(ルール層の実(x,y)を描く・しっかりした球体・#1)
     for (const b of Roulette.balls) {

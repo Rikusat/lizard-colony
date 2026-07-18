@@ -112,29 +112,55 @@ const Roulette = {
     while (this._acc >= fdt && guard < 240) { this._step(fdt); this._acc -= fdt; guard++; }
   },
 
+  // レールのシュート半幅(y位置で上端広→下端狭。ファネル・roulette_rules.md §1)
+  _chuteHalf(y) {
+    const H = CFG.roulH, W = CFG.roulW;
+    const u = Math.max(0, Math.min(1, y / (CFG.roulRailEndYf * H)));
+    return (CFG.roulChuteTopHalff + (CFG.roulChuteBotHalff - CFG.roulChuteTopHalff) * u) * W;
+  },
+
   _step(dt) {
     const W = CFG.roulW, H = CFG.roulH;
     const railEndY = CFG.roulRailEndYf * H, landY = CFG.roulLandYf * H;
+    const cx = CFG.roulHoleCenterf * W;
     const balls = this.balls, nails = this.nails;
     for (let i = balls.length - 1; i >= 0; i--) {
       const b = balls[i];
-      b.vy += CFG.roulGravity * dt; // 重力(自由落下は加速)
-      if (b.y < railEndY) {
-        // レール区間: 中央へ緩く寄せつつ加速(導入部)。釘には当たらない
-        b.phase = "rail";
-        const target = CFG.roulHoleCenterf * W;
-        b.vx += (target - b.x) * 2.2 * dt; // レールが導く
-        b.vx *= 0.96;                        // レール摩擦
-      } else {
-        b.phase = "fall"; // フリーフォール+釘
+      // 受け皿に収まる(コトン)→settleT後にonEgg発火・除去(§2)
+      if (b.phase === "settle") {
+        b.settleT -= dt;
+        b.vx *= CFG.roulSettleDamp; b.vy *= CFG.roulSettleDamp;
+        b.x += (b.cupX - b.x) * 10 * dt;            // 器の中心へ吸い込む
+        b.y += (b.cupY - b.y) * 10 * dt;            // 器の底へ沈む
+        if (b.settleT <= 0) {
+          this.events.push({ type: b.rainbow ? "BallRainbow" : "BallWin", x: b.cupX });
+          if (this.onEgg) this.onEgg({ gene: b.gene, rainbow: b.rainbow });
+          balls.splice(i, 1);
+        }
+        continue;
       }
-      b.x += b.vx * dt;
-      b.y += b.vy * dt;
-      // 左右壁
-      if (b.x < b.r) { b.x = b.r; b.vx = -b.vx * CFG.roulWallRestitution; }
-      else if (b.x > W - b.r) { b.x = W - b.r; b.vx = -b.vx * CFG.roulWallRestitution; }
-      // 釘衝突(フリーフォール中のみ)
-      if (b.phase === "fall") {
+      // ハズレ: 受け皿が無いので流れ落ちて消える(§2)
+      if (b.phase === "miss") {
+        b.vy += CFG.roulGravity * dt;
+        b.x += b.vx * dt; b.y += b.vy * dt;
+        if (b.y > H + b.r * 3) balls.splice(i, 1);
+        continue;
+      }
+      // 通常: 重力→積分→(レール壁 or 釘)
+      b.vy += CFG.roulGravity * dt;
+      b.x += b.vx * dt; b.y += b.vy * dt;
+      if (b.y < railEndY) {
+        b.phase = "rail";
+        // シュート壁で反射(ファネル=球が壁沿いに走り、中央へ送り出される)
+        const half = this._chuteHalf(b.y);
+        if (b.x < cx - half) { b.x = cx - half; b.vx = Math.abs(b.vx) * CFG.roulChuteRestitution; }
+        else if (b.x > cx + half) { b.x = cx + half; b.vx = -Math.abs(b.vx) * CFG.roulChuteRestitution; }
+      } else {
+        b.phase = "fall";
+        // 外壁
+        if (b.x < b.r) { b.x = b.r; b.vx = -b.vx * CFG.roulWallRestitution; }
+        else if (b.x > W - b.r) { b.x = W - b.r; b.vx = -b.vx * CFG.roulWallRestitution; }
+        // 釘衝突
         for (let k = 0; k < nails.length; k++) {
           const n = nails[k];
           const dx = b.x - n.x, dy = b.y - n.y;
@@ -142,36 +168,42 @@ const Roulette = {
           if (d2 < rr * rr) {
             const d = Math.sqrt(d2) || 0.0001;
             const nx = dx / d, ny = dy / d;
-            b.x = n.x + nx * rr; b.y = n.y + ny * rr; // 押し出し
+            b.x = n.x + nx * rr; b.y = n.y + ny * rr;
             const vn = b.vx * nx + b.vy * ny;
             if (vn < 0) {
               const e = CFG.roulRestitution;
               b.vx -= (1 + e) * vn * nx;
               b.vy -= (1 + e) * vn * ny;
-              // 接線方向へ微小ジッタ(カオスの源・単一シード)
-              const j = this._rand(-CFG.roulNailJit, CFG.roulNailJit);
+              const j = this._rand(-CFG.roulNailJit, CFG.roulNailJit); // 接線ジッタ(単一シード)
               b.vx += -ny * j; b.vy += nx * j;
             }
           }
         }
       }
-      // 着地判定
-      if (b.y >= landY) { this._resolveLanding(b); balls.splice(i, 1); }
+      // 着地=結果確定(§1.4)。入賞は受け皿へ収まるフェーズ、ハズレは流れて消えるフェーズへ
+      if (b.y >= landY) this._resolveLanding(b);
     }
   },
 
-  // 着地xで3分岐(§1.4)。入賞時のみ onEgg。ハズレは何もしない
+  // 着地xで3分岐(§1.4)。ここで結果確定(BallLanded)。入賞は settle、ハズレは miss へ
   _resolveLanding(b) {
-    const W = CFG.roulW;
-    const dx = Math.abs(b.x - CFG.roulHoleCenterf * W);
+    const W = CFG.roulW, H = CFG.roulH;
+    const cx = CFG.roulHoleCenterf * W, landY = CFG.roulLandYf * H;
+    const dx = Math.abs(b.x - cx);
+    const rbHalf = CFG.roulRainbowHalfWf * W, pzOut = CFG.roulPrizeOuterf * W;
     let rainbow = false, win = false;
-    if (dx <= CFG.roulRainbowHalfWf * W) { rainbow = true; win = true; }       // 中央極細=大当たり
-    else if (dx <= CFG.roulPrizeOuterf * W) { win = true; }                     // その外側の帯=景品(卵)
-    // それ以外=ハズレ(球は消える)
+    if (dx <= rbHalf) { rainbow = true; win = true; }        // 中央極細=大当たり
+    else if (dx <= pzOut) { win = true; }                    // その外側の帯=景品(卵)
     this.events.push({ type: "BallLanded", x: b.x, rainbow, win });
     if (win) {
-      this.events.push({ type: rainbow ? "BallRainbow" : "BallWin", x: b.x });
-      if (this.onEgg) this.onEgg({ gene: b.gene, rainbow });
+      // 受け皿へコトンと収まる。cupは虹=中央 / 景品=左右帯の中央
+      b.phase = "settle"; b.rainbow = rainbow;
+      b.cupX = rainbow ? cx : (b.x < cx ? cx - (rbHalf + pzOut) / 2 : cx + (rbHalf + pzOut) / 2);
+      b.cupY = landY + CFG.roulCupDepthf * H * 0.6;
+      b.settleT = CFG.roulSettleT;
+      b.vx *= 0.3; b.vy *= 0.3;
+    } else {
+      b.phase = "miss"; // 受け皿なし=流れて消える
     }
     return { win, rainbow };
   },
