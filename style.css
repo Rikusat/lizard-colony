@@ -509,16 +509,7 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 }
 @keyframes fd-warn-blink { 50% { opacity: .25; } }
 @media (prefers-reduced-motion: reduce) { #fd-empty.warn .fd-warn { animation: none; } }
-
-/* ドラッグハンドル(ボタン群を1つの塊として移動・2-4)。フレームレスな群の左上に小さく */
-#fd-grip {
-  position: absolute; top: -3px; left: -3px; width: 16px; height: 16px; cursor: grab;
-  display: flex; flex-direction: column; justify-content: center; gap: 2px;
-  padding: 3px 4px; border-radius: 5px; opacity: .35; touch-action: none;
-  background: var(--ink-800); transition: opacity var(--dur-base);
-}
-#fd-grip:hover, #fd-grip:active { opacity: .9; cursor: grabbing; }
-#fd-grip i { display: block; height: 2px; border-radius: 1px; background: var(--sub); }
+/* 3.12.1: クランクのドラッグハンドル(#fd-grip)は撤去。クランクは右下固定 */
 
 /* 折りたたみハンドル(右上・クランク本体から干渉しない側)+折りたたみ=丸クランクのみ */
 #fd-fold {

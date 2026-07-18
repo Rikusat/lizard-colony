@@ -114,15 +114,20 @@ const CFG = {
   allyLvCostPerLv: 3,       // 味方Lvアップの素材コスト = 現Lv×これ
   // 群衆対策(表示のみ・収益/戦闘は全個体が対象のまま)
   maxVisibleLizards: 70,    // フィールドに同時表示する上限。超過分は巣穴で休憩
-  restSwapPerSec: 3,        // 毎秒この匹数まで休憩⇔活動を入れ替え
+  restSwapPerSec: 3,        // 平常時に毎秒この匹数まで休憩⇔活動を入れ替え(漸進=ちらつき防止)
   crowdShrinkStart: 40,     // この表示数から縮小開始
   crowdShrinkPer: 0.005,    // 1匹ごとの縮小率
   crowdScaleFloor: 0.7,     // 縮小の下限
-  // V3: 巣収納 (GameExpansion_V3 §4)
-  nestOutBase: 8,           // 平時の外出枠(アダルト)
-  nestOutPerLv: 1,          // 巣Lvごとの外出枠+
-  nestOutMax: 15,           // 外出枠の上限
-  combatDrawCap: 60,        // 戦闘時の描画上限(計算は全数参加)
+  // 3.12.2: 飼育槽の"表示"を固定数に(表示のみの制限・ロジックは全個体に作用)
+  displayCap: 20,           // 飼育槽に同時表示する上限(平常/ボスとも。実機で多すぎればCFGで下げる)
+  restReevalSec: 3.5,       // 平常時の表示メンバー再選抜の間隔(秒・長めでちらつき防止)
+  displayHysteresis: 0.6,   // 交代のヒステリシス(攻撃力差がこれ未満なら交代しない=境界の揺れを無視)
+  emergeSwapPerSec: 4,      // ボス時に巣から這い出す速度(低め=次々に湧き出す時間差演出)
+  combatDrawCap: 20,        // 戦闘時の描画上限(3.12: 60→20。計算は全数参加)
+  // V3: 巣収納 (GameExpansion_V3 §4) — 旧nestOut枠はdisplayCapに集約(下記visibleAdultCap)
+  nestOutBase: 8,
+  nestOutPerLv: 1,
+  nestOutMax: 15,
   nestLvMax: 8,
   nestLvBaseCost: 5000,     // 巣Lvアップ費用 = これ × 3^(Lv-1)
   // V4.1: 巣ネットワーク (§3 完全放置・自動解放)

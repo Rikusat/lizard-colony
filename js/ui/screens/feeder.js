@@ -15,7 +15,6 @@ Object.assign(UI, {
     const el = document.createElement("div");
     el.id = "feeder-dial";
     el.innerHTML = `
-      <span id="fd-grip" title="ドラッグで移動" aria-label="給餌盤の移動ハンドル"><i></i><i></i><i></i></span>
       <div class="fd-main">
         <button id="fd-crank" title="タップ=1掴み給餌 / 長押し=連続給餌" aria-label="給餌クランク(タップで1掴み・長押しで連続給餌)">
           ${CrankSkins.current().face()}
@@ -40,7 +39,8 @@ Object.assign(UI, {
         </button>
       </div>`;
     center.appendChild(el);
-    this.restoreFeederPos(el); // 保存済みのドラッグ位置を復元
+    // 3.12.1: クランクは右下固定(ドラッグ移動+位置保存は撤去)。旧位置キーがあれば掃除
+    try { localStorage.removeItem("feederPos"); } catch (e) { /* noop */ }
     // 危機ヴィネット(Brushup V2 §3.1): 飼育槽の縁の内側だけを赤く。魂(Canvas描画)不変
     const frame = document.getElementById("frame");
     if (frame && !document.getElementById("dread-vign")) {
@@ -114,7 +114,6 @@ Object.assign(UI, {
       d.auto = !d.auto;
       this.updateFeeder();
     });
-    this.initFeederDrag(el); // ボタン群を1つの塊としてドラッグ移動(位置保存・2-4)
     // 切れ時トグル: ON=コオロギが尽きたら自動停止(安全) / OFF=Gold換算で補充して継続
     el.querySelector("#fd-empty").addEventListener("click", () => {
       const d = Game.ensureDial();
@@ -179,44 +178,5 @@ Object.assign(UI, {
     }
   },
 
-  // ---- ドラッグ移動(ボタン群を1つの塊として。位置はlocalStorageに保存・2-4) ----
-  initFeederDrag(el) {
-    const grip = el.querySelector("#fd-grip");
-    if (!grip) return;
-    let sx = 0, sy = 0, ox = 0, oy = 0, dragging = false;
-    const onMove = (e) => {
-      if (!dragging) return;
-      const nx = ox + (e.clientX - sx), ny = oy + (e.clientY - sy);
-      this.placeFeeder(el, nx, ny);
-    };
-    const onUp = () => {
-      if (!dragging) return;
-      dragging = false;
-      document.removeEventListener("pointermove", onMove);
-      document.removeEventListener("pointerup", onUp);
-      const r = el.getBoundingClientRect(); const pr = el.offsetParent.getBoundingClientRect();
-      try { localStorage.setItem("feederPos", JSON.stringify({ x: r.left - pr.left, y: r.top - pr.top })); } catch (err) { /* noop */ }
-    };
-    grip.addEventListener("pointerdown", (e) => {
-      e.preventDefault();
-      const r = el.getBoundingClientRect(), pr = el.offsetParent.getBoundingClientRect();
-      ox = r.left - pr.left; oy = r.top - pr.top; sx = e.clientX; sy = e.clientY; dragging = true;
-      document.addEventListener("pointermove", onMove);
-      document.addEventListener("pointerup", onUp);
-    });
-  },
-  // 親(#center)内の絶対座標へ。はみ出さないようクランプ
-  placeFeeder(el, x, y) {
-    const par = el.offsetParent; if (!par) return;
-    const maxX = par.clientWidth - el.offsetWidth, maxY = par.clientHeight - el.offsetHeight;
-    x = Math.max(0, Math.min(maxX, x)); y = Math.max(0, Math.min(maxY, y));
-    el.style.left = x + "px"; el.style.top = y + "px"; el.style.right = "auto"; el.style.bottom = "auto";
-  },
-  restoreFeederPos(el) {
-    let p = null;
-    try { p = JSON.parse(localStorage.getItem("feederPos")); } catch (e) { p = null; }
-    if (!p) return;
-    // レイアウト確定後に配置(offsetParentのサイズが必要)
-    requestAnimationFrame(() => this.placeFeeder(el, p.x, p.y));
-  },
+  // 3.12.1: ドラッグ移動(initFeederDrag/placeFeeder/restoreFeederPos)は撤去。クランクは右下固定
 });

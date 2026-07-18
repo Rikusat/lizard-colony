@@ -155,9 +155,8 @@ const Game = {
   // 平時: アダルトは原則巣の中。外出枠(巣Lvで拡張)だけがフィールドに出る。
   // ベビーは常に外・レア/伝説/ピン留めは外出優先。戦闘時は一斉出撃。
   visibleAdultCap() {
-    if (this.raid) return CFG.combatDrawCap;
-    const nestLv = (this.state.nest && this.state.nest.lv) || 1;
-    return Math.min(CFG.nestOutMax, CFG.nestOutBase + (nestLv - 1) * CFG.nestOutPerLv);
+    // 3.12.2: 表示上限を固定数に(平常/ボスとも displayCap)。"表示"のみの制限=ロジックは全個体に作用
+    return CFG.displayCap;
   },
 
   lizardPrio(l) {
@@ -169,47 +168,65 @@ const Game = {
       + speciesById(l.speciesId).stars * 2;
   },
 
+  // 3.12.2: 飼育槽に"表示"される優先度(高いほど表示)。ピン/選択中は最優先。
+  //   平常時=攻撃力の弱い個体を表示(強個体は巣に籠る) / ボス時=攻撃力の強い個体が這い出す
+  displayScore(l) {
+    const pins = (this.state.nest && this.state.nest.pins) || [];
+    if (l.id === this.selectedId) return 1e7;   // 選択中は必ず表示(プレイヤー意図優先)
+    if (pins.includes(l.id)) return 1e6;        // ピン留めも必ず表示
+    const atk = this.lizardAtk(l);
+    return this.raid ? atk : -atk;              // ボス=強い順 / 平常=弱い順
+  },
+
+  // 3.12.2: 表示メンバーを"即座に"確定(ロード/新規/惑星切替時)。大コロニーでも一瞬で表示20へ=fps安定。
+  // resting/restedAtは派生状態(保存しない)なので、現況(攻撃力・平常/ボス)から毎回再構築する
+  settleDisplay() {
+    const adults = this.state.lizards.filter((l) => l.stage === "adult");
+    const cap = this.visibleAdultCap();
+    const show = new Set(adults.slice().sort((a, b) => this.displayScore(b) - this.displayScore(a)).slice(0, cap).map((l) => l.id));
+    for (const l of this.state.lizards) {
+      if (l.stage !== "adult") { l.resting = false; continue; }
+      l.resting = !show.has(l.id);
+      if (l.resting) l.restedAt = Date.now();
+    }
+    this.refreshCrowdScale();
+  },
+
+  // 3.12.2: displayScore(平常=弱/ボス=強・ピン/選択優先)に基づき、表示メンバーを漸進的に選抜。
+  // ヒステリシス帯で境界の揺れを無視=成長で順位が僅差で変わってもちらつかない。ロジックは全個体不変。
   updateResting(dt) {
     const s = this.state;
     this._restT = (this._restT || 0) + dt;
-    if (this._restT < 1) return;
+    const interval = this.raid ? 0.4 : CFG.restReevalSec; // ボスは速く再選抜/平常はゆっくり(ちらつき防止)
+    if (this._restT < interval) return;
     this._restT = 0;
-    // ベビー/ヤングは常に外(成長の実感は外で見せる)
-    for (const l of s.lizards) if (l.stage !== "adult" && l.resting) l.resting = false;
-    const adults = s.lizards.filter((l) => l.stage === "adult"); // V5.2: exploring(V4.1撤去)は参照しない
+    for (const l of s.lizards) if (l.stage !== "adult" && l.resting) l.resting = false; // ベビーは常に外
+    const adults = s.lizards.filter((l) => l.stage === "adult");
     const cap = this.visibleAdultCap();
-    const excess = adults.length - cap;
-    if (excess <= 0) {
-      for (const l of adults) if (l.resting) l.resting = false;
+    if (adults.length <= cap) { // 総数<=上限: 全員表示(序盤2匹もそのまま・②)
+      for (const l of adults) if (l.resting) this.emergeFromNest(l);
       return;
     }
-    const restCount = adults.filter((l) => l.resting).length;
-    let need = excess - restCount; // >0: もっと巣へ / <0: 外へ
-    const swap = Math.abs(need) > 20 ? 12 : CFG.restSwapPerSec; // 戦闘後の帰還は速く
-    if (need > 0) {
-      const cands = adults.filter((l) => !l.resting).sort((a, b) => this.lizardPrio(a) - this.lizardPrio(b));
-      for (let i = 0; i < Math.min(swap, need, cands.length); i++) {
-        cands[i].resting = true;
-        cands[i].restedAt = Date.now();
-      }
-    } else if (need < 0) {
-      const cands = adults.filter((l) => l.resting).sort((a, b) => (a.restedAt || 0) - (b.restedAt || 0));
-      for (let i = 0; i < Math.min(swap, -need, cands.length); i++) {
-        this.emergeFromNest(cands[i]);
-      }
-    } else if (!this.raid) {
-      // 均衡時: 30〜90秒周期の入れ替え(全員に出番を回す)
-      this._rotT = (this._rotT || 0) + 1;
-      if (this._rotT >= 30 + Math.floor(Math.random() * 60)) {
-        this._rotT = 0;
-        const rested = adults.filter((l) => l.resting).sort((a, b) => (a.restedAt || 0) - (b.restedAt || 0))[0];
-        const actives = adults.filter((l) => !l.resting).sort((a, b) => this.lizardPrio(a) - this.lizardPrio(b));
-        const act = actives[Math.floor(Math.random() * Math.min(5, actives.length))];
-        if (rested && act && this.lizardPrio(act) < 40) {
-          this.emergeFromNest(rested);
-          act.resting = true;
-          act.restedAt = Date.now();
-        }
+    const active = adults.filter((l) => !l.resting);
+    const resting = adults.filter((l) => l.resting);
+    const swap = this.raid ? CFG.emergeSwapPerSec : CFG.restSwapPerSec;
+    if (active.length > cap) {
+      // 上限超過=ハード上限。表示スコアの低い順に巣へ(必ず20へ収束)。大超過は加速して即収束=fps安定
+      active.sort((a, b) => this.displayScore(a) - this.displayScore(b));
+      const rate = Math.max(swap, Math.ceil((active.length - cap) / 2));
+      for (let i = 0; i < Math.min(rate, active.length - cap); i++) { active[i].resting = true; active[i].restedAt = Date.now(); }
+    } else if (active.length < cap) {
+      // 空き=表示スコアの高い順に這い出す(漸進)
+      resting.sort((a, b) => this.displayScore(b) - this.displayScore(a));
+      for (let i = 0; i < Math.min(swap, cap - active.length); i++) this.emergeFromNest(resting[i]);
+    } else if (resting.length) {
+      // 均衡(==cap): 籠りの上位 vs 表示の下位を、攻撃力差がヒステリシス超のときだけ交代(ちらつき防止)
+      resting.sort((a, b) => this.displayScore(b) - this.displayScore(a)); // 高い順
+      active.sort((a, b) => this.displayScore(a) - this.displayScore(b));   // 低い順
+      for (let i = 0; i < Math.min(swap, resting.length, active.length); i++) {
+        if (this.displayScore(resting[i]) - this.displayScore(active[i]) < CFG.displayHysteresis) break; // ソート済=以降も差は縮む
+        this.emergeFromNest(resting[i]);
+        active[i].resting = true; active[i].restedAt = Date.now();
       }
     }
   },
@@ -221,24 +238,12 @@ const Game = {
     lz.restedAt = Date.now();
   },
 
-  // 戦闘時の一斉出撃 (§4.2): 巣口から時差で噴き出す
+  // 3.12.2: ボス襲来=強者が巣穴から「次々に湧き出す」(一斉でなく時間差)。
+  // 実際の入れ替えは updateResting がボス時レート(emergeSwapPerSec)で漸進実行=湧き出す演出。
+  // ここは即座に再選抜を促し、合図を出すだけ(戦闘計算は従来どおり全個体参加)。
   combatSurge() {
-    const s = this.state;
-    const fs = s.lizards
-      .filter((l) => l.stage === "adult" && l.injuredT <= 0 && !this.isHidden(l)) // V5.2: exploring(V4.1撤去)は参照しない
-      .sort((a, b) => this.lizardPrio(b) - this.lizardPrio(a));
-    fs.forEach((l, i) => {
-      if (i < CFG.combatDrawCap) {
-        if (l.resting) {
-          l.resting = false;
-          l.x = 480 + rnd(-25, 25); l.y = 660 + rnd(-10, 6);
-          l.wanderT = i * 0.05; // 0.05秒ずつ時差で噴出
-        }
-      } else {
-        l.resting = true; // 後衛: 巣口に集約(戦闘計算には全数参加)
-      }
-    });
-    this.popup(480, 630, "全軍出撃!!", "#ffd24c");
+    this._restT = 999; // 次tickで即 updateResting が走る
+    this.popup(480, 640, "強者、出撃!!", "#ffd24c");
   },
 
   nestLvUpCost() {
@@ -726,6 +731,7 @@ const Game = {
     for (const f of FACILITIES) if (s.facilities[f.id] === undefined) s.facilities[f.id] = 0;
     for (const lz of s.lizards) this.ensureRuntime(lz);
     if (!s.nextRaid) this.rollNextRaid();
+    this.settleDisplay(); // 3.12.2: 惑星切替で表示20を即確定(移動先が大コロニーでもfps安定)
 
     UI.toast(`${Icon.svg(target.icon)} コロニー「${target.name}」へ移動 — ${target.envText}`);
     if (pioneered) {
@@ -2219,6 +2225,7 @@ const Game = {
     // V5.2: 探索(V4.1撤去)の残留フラグを掃除。残るとisAway誤判定で個体が永久に給餌/emit不能になった(冪等)
     for (const lz of this.state.lizards) if ("exploring" in lz) delete lz.exploring;
     if (!this.state.nextRaid) this.rollNextRaid();
+    this.settleDisplay(); // 3.12.2: ロード直後に表示20を即確定(大コロニーでもfps安定・restingは派生なので再構築)
   },
 
   // 旧形式 {state, idSeq} → WorldData v2 (Migration)
@@ -2359,7 +2366,9 @@ const Game = {
       const w = this.toWorld();
       const out = Object.assign({}, w);
       delete out.stages; // 保存はplanetsのみ(エイリアスの二重書き込みを防ぐ)
-      localStorage.setItem(CFG.saveKey, JSON.stringify(out));
+      // 3.12.2③(fable2): resting/restedAtは派生状態(表示のみ)。保存に混入させない=セーブ形状不変。
+      // ロード後は updateResting が現況(平常/ボス・攻撃力)から再構築する
+      localStorage.setItem(CFG.saveKey, JSON.stringify(out, (k, v) => (k === "resting" || k === "restedAt") ? undefined : v));
     } catch (e) { /* 容量不足などは無視 */ }
   },
 
