@@ -1160,3 +1160,10 @@ paper 11.26 / sand 7.91 / life-400 7.45〜7.81 / amber-400 7.45 / boss-400 5.20(
 **■ 提案停止中(承認待ち・未実装)**:
 - 3.11.3 ボス戦再設計: フォアグラウンド判定(visibilityState推奨・モーダルは可視扱い)/離席=戦闘一時停止/1日3回カウンタ=state.bossCall(端末ローカル日付)=SAVE_VERSION 7→8+migrateV7to8/留守討伐報酬撤廃(生産収入Phase3は別系統で継続=据置)/ボス中クランク・給餌・emit停止+マップ暗転/保留ボス状態は保持移行。
 - 3.11.5 味方削除: state.alliesは消さず休眠保持(Phase6惑星固有味方へ資産振替)・効果参照(allyLv)と描画のみ削除/戦闘難化のため暫定でボス強度↓(CFG.bossHpMult)を提案。
+
+### Phase 3.11.3/5 ボス見届け化+汎用味方削除(承認実装)(2026-07-18・自律ラン)✅ [commit cd17808]
+
+- **3.11.3 ボス見届け化**: Game.foreground(visibilityState)でvisible時のみ到来タイマー進行+戦闘。hidden=時間も戦闘も停止(離席=一時停止・見届けた者のみ報酬)。留守討伐報酬撤廃(simulateOffline撃退加算+bulkAdvanceのraidTimer減算を削除。生産の留守収入は据置)。「今すぐ呼ぶ」1日3回=state.bossCall{date:端末ローカル日付,used}/CFG.bossCallPerDay=3/日付で回復。**SAVE_VERSION 7→8+migrateV7to8+saveBackupKeyV8(冪等)**。ボス中はクランク/給餌/emit停止+マップ暗転(canFeedNow/feedAll/dialTick/autoEmit/openMapをraid中無効)、討伐後d.auto維持で自動給餌resume。残り回数はHUDに「今すぐ呼ぶ(あとN)」表示・0/襲撃中は不可。
+- **3.11.5 汎用味方削除**: allyLv()=0で描画・戦闘計算から外す。drawAllies撤去。**state.alliesのLvは休眠保持=残骸ではなくPhase6の惑星固有味方への資産(Game.allyLvRawで参照可)**。bossHpMultは等倍(1.0・CFGで即調整可)=味方減の難化はまず実機判定。
+- 検証: node 109PASS / 実ブラウザ14項目PASS / #spin-proof全10惑星✅ / 魂不変。
+- **味方データの休眠保持(重要・Phase6引継ぎ)**: state.allies={id:{lv}}は削除せず保存され続ける。Phase6で惑星固有味方を新設する際、この旧Lvを「生態データ払い戻し」or「新味方への振替」で資産として活かすこと。allyLv()は0固定・allyLvRaw(id)で旧値参照。
