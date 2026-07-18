@@ -177,6 +177,7 @@ Object.assign(UI, {
   // ---------------- V3: Stage切替バー (§10.1) ----------------
   updateStageBar() {
     const bar = document.getElementById("stage-bar");
+    if (!bar) return; // 3.10.2: 惑星バー撤廃(マップボタンへ集約)。要素が無ければ何もしない
     const cur = Game.currentStage();
     let sig = "";
     const tabs = [];

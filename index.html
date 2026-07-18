@@ -26,11 +26,16 @@
     <button id="btn-dex"><svg class="icon"><use href="#i-dex"/></svg> 図鑑</button>
     <button id="btn-missions"><svg class="icon"><use href="#i-mission"/></svg> ミッション<span id="mission-badge" class="badge hidden">!</span></button>
     <button id="btn-stats"><svg class="icon"><use href="#i-stats"/></svg> 統計</button>
+    <button id="btn-map"><svg class="icon"><use href="#i-planet"/></svg> マップ</button>
     <button id="btn-settings"><svg class="icon"><use href="#i-settings"/></svg> 設定</button>
   </nav>
 </header>
 
-<div id="stage-bar"></div>
+<!-- 3.10.4: HQレベル=ヘッダー直下のプログレスバー(惑星アクセント色・太め・数値レス) -->
+<div id="hq-bar" title="HQレベル — 全惑星の成果で伸びる恒久バフ">
+  <div id="rank-bar"></div>
+  <span id="hq-bar-label"><svg class="icon"><use href="#i-hq"/></svg> HQ Lv<b id="ui-rank">1</b></span>
+</div>
 
 <main>
   <aside id="left">
@@ -46,42 +51,23 @@
       <h3><svg class="icon"><use href="#i-egg"/></svg> 遺伝子ルーレット</h3>
       <div id="roulette-wrap"><canvas id="roulette-canvas"></canvas></div>
     </div>
+    <!-- 3.10.3: ヒントは左メニュー最下部へ(枠なし・控えめ) -->
+    <div id="hint-card"><div class="hint-text" id="ui-hint">トカゲをクリックすると詳細が見られます。餌をあげて育てよう!</div></div>
   </aside>
 
   <section id="center">
-    <div id="frame"><canvas id="game" width="1280" height="720"></canvas></div>
+    <div id="frame">
+      <canvas id="game" width="1280" height="720"></canvas>
+      <!-- 3.10.3: 襲撃予告=飼育槽右上のコンパクト半透明HUD(生き物の動きを隠さない) -->
+      <div id="raid-hud">
+        <div class="rh-line"><svg class="icon"><use href="#i-snake"/></svg><span id="raid-timer">--:--</span></div>
+        <div id="next-boss" class="hidden"></div>
+        <button id="btn-raid-now" class="danger" title="今すぐ襲来（報酬狙いの前倒し）"><svg class="icon"><use href="#i-snake"/></svg> 今すぐ襲来</button>
+      </div>
+    </div>
     <div id="raid-banner" class="hidden"></div>
     <div id="detail" class="hidden"></div>
   </section>
-
-  <aside id="right">
-    <div class="card" id="raid-card">
-      <h3><svg class="icon"><use href="#i-snake"/></svg> 襲撃予告</h3>
-      <div id="raid-timer">--:--</div>
-      <div id="next-boss" class="hidden"></div>
-      <button id="btn-raid-now" class="danger"><svg class="icon"><use href="#i-snake"/></svg> 今すぐ襲来!</button>
-    </div>
-    <div class="card">
-      <h3><svg class="icon"><use href="#i-shelter"/></svg> コロニー</h3>
-      <div class="rowline"><span><svg class="icon"><use href="#i-hq"/></svg> HQ Lv</span> <b id="ui-rank">1</b></div>
-      <div class="bar"><div id="rank-bar"></div></div>
-      <div class="rowline">トカゲ数 <b id="ui-pop">0/10</b></div>
-      <div class="rowline clickable" id="row-stage" tabindex="0" role="button" title="タップで惑星マップ"><span><svg class="icon"><use href="#i-planet"/></svg> 惑星 <span class="planet-dot"></span></span> <b id="ui-stage">乾燥地帯</b> <span class="chev">▸</span></div>
-      <div class="rowline">撃退数 <b id="ui-wins">0</b></div>
-      <div class="sep"></div>
-      <div class="rowline" data-tip="餌の在庫(全コロニー共通) — 給餌で消費。左メニューで購入"><span><svg class="icon"><use href="#i-cricket"/></svg> コオロギ</span> <b id="ui-crickets">0</b></div>
-      <div class="rowline" data-tip="餌やり/孵化/繁殖で蓄積 — 味方Lvや研究の材料"><span><svg class="icon"><use href="#i-bio"/></svg> 生態データ</span> <b id="ui-res-bio">0</b></div>
-      <div class="rowline" data-tip="餌場が毎秒生産 — 自動給餌が消費"><span><svg class="icon"><use href="#i-food"/></svg> 食料供給</span> <b id="ui-res-food">0</b></div>
-      <div class="rowline" data-tip="惑星開発Lvが毎秒生産 — 研究の材料"><span><svg class="icon"><use href="#i-energy"/></svg> エネルギー</span> <b id="ui-res-energy">0</b></div>
-      <div class="rowline" data-tip="ボス撃破や生態データ変換で獲得 — HQ研究に使う"><span><svg class="icon"><use href="#i-science"/></svg> 研究力</span> <b id="ui-res-science">0</b></div>
-      <div class="sep"></div>
-      <div class="rowline" data-tip="バガーの侵食(全惑星共通) — 毎日ログインで-40"><span><svg class="icon"><use href="#i-erosion"/></svg> 侵食率</span> <b id="ui-invasion">0%</b></div>
-      <div class="rowline clickable" id="row-title" tabindex="0" role="button" title="タップで称号変更"><span><svg class="icon"><use href="#i-medal"/></svg> 称号</span> <b id="ui-title">-</b> <span class="chev">▸</span></div>
-    </div>
-    <div id="hint-card">
-      <div class="hint-text" id="ui-hint">トカゲをクリックすると詳細が見られます。餌をあげて育てよう!</div>
-    </div>
-  </aside>
 </main>
 
 <div id="modal" class="hidden">

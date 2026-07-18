@@ -41,7 +41,7 @@ const UI = {
 
   init() {
     const ids = ["ui-coins", "ui-cps", "ui-gems", "ui-rank", "rank-bar",
-      "ui-pop", "ui-stage", "ui-wins", "raid-timer", "raid-banner", "egg-slots",
+      "raid-timer", "raid-banner",
       "detail", "modal", "modal-title", "modal-body", "toasts", "mission-badge", "ui-hint"];
     for (const id of ids) this.els[id] = document.getElementById(id);
 
@@ -59,14 +59,7 @@ const UI = {
     on("btn-cricket", () => Game.buyCrickets());
     const cricketBtn = document.getElementById("btn-cricket");
     if (cricketBtn) attachHold(cricketBtn, () => Game.buyCrickets(undefined, true));
-    on("row-stage", () => this.openMap());
-    on("row-title", () => this.openTitles());
-    // キーボード操作(§7): role=buttonの行は Enter/Space でも発火
-    for (const id of ["row-stage", "row-title"]) {
-      document.getElementById(id).addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); }
-      });
-    }
+    on("btn-map", () => this.openMap()); // 3.10.2: 惑星バー撤廃→右上マップボタンから惑星マップ
     on("btn-dex", () => this.openDex());
     on("btn-missions", () => this.openMissions());
     on("btn-settings", () => this.openSettings());
@@ -196,10 +189,10 @@ const UI = {
     document.documentElement.style.setProperty("--planet-accent", this.planetAccent(id));
   },
 
-  // ランクアップ(§6: 軽)。右パネルのHQ Lv行がその場でリング発光+数値ロールアップ
+  // ランクアップ(§6: 軽)。3.10.4: HQバー(ヘッダー直下)が発光+数値ロールアップ
   rankUpFx() {
-    const el = this.els["ui-rank"];
-    if (el) Motion.play(el.closest(".rowline"), "rankup");
+    const bar = document.getElementById("hq-bar");
+    if (bar) Motion.play(bar, "rankup");
   },
 
   // 資源ピルのジュース(§5.1)。quietDelta以下の変動(毎秒の自動収入)は演出しない
@@ -226,25 +219,14 @@ const UI = {
     this.els["ui-cps"].textContent = "+" + Game.totalIncomePerSec().toFixed(1) + "/秒"; // V5: 全コロニー合算
     // V5.1: コオロギピル撤去(givesはGold直接消費)
     this.resPill("ui-gems", s.gems, 0);
-    Motion.countUp(this.els["ui-rank"], s.rank, (v) => Math.round(v));
-    this.els["rank-bar"].style.width = (s.rankXp / Game.rankXpNeed() * 100) + "%";
-    this.els["ui-pop"].textContent = s.lizards.length + "/" + Game.capacity();
-    this.els["ui-stage"].textContent = Game.currentStage().name;
-    this.applyPlanetAccent(); // 惑星が変わった時だけ差し色が切り替わる
-    Motion.countUp(this.els["ui-wins"], s.stats.raidsWon, (v) => Math.round(v));
-    // V4: 資源フロー表示
-    document.getElementById("ui-res-bio").textContent = fmt(Game.res("bio"));
-    document.getElementById("ui-res-food").textContent = fmt(Game.res("food"));
-    document.getElementById("ui-res-energy").textContent = fmt(Game.res("energy"));
-    document.getElementById("ui-res-science").textContent = fmt(Game.res("science"));
-    const curSt = Game.currentStage();
-    document.getElementById("ui-invasion").textContent = Math.round(s.erosion || 0) + "%";
-    this.updateStageBar();
-    // V5.2: コオロギ在庫と購入ロット表示(項目数は常に1・数値だけランクで変化=ルーレット位置安定)
-    // ヘッダーと右パネルは同一の state.crickets を参照(発射側 feed() と同じ在庫=参照ズレを構造的に排除)
+    // 3.10.4: HQはヘッダー直下のプログレスバー。数値はバー上の小ラベル。棒はrankXp進捗
+    if (this.els["ui-rank"]) Motion.countUp(this.els["ui-rank"], s.rank, (v) => Math.round(v));
+    if (this.els["rank-bar"]) this.els["rank-bar"].style.width = (s.rankXp / Game.rankXpNeed() * 100) + "%";
+    this.applyPlanetAccent(); // 惑星アクセント(HQバー色・差し色)を惑星変化時に切替
+    // 3.10.3: トカゲ数/惑星名/撃退数/res/侵食率/称号は右パネル撤廃で「Canvas左上」or「本部/統計モーダル」へ移動
+    // (res4種・侵食率=本部モーダル / 撃退数・称号=統計モーダル。ここでの毎秒更新は不要)
+    // V5.2: コオロギ在庫はヘッダーのみ(右パネル撤廃)。同一の state.crickets を参照
     const crkText = fmt(Math.floor(s.crickets || 0));
-    const crk = document.getElementById("ui-crickets");
-    if (crk) crk.textContent = crkText;
     const crkTop = document.getElementById("ui-crickets-top");
     if (crkTop) crkTop.textContent = crkText;
     const lotLbl = document.getElementById("cricket-lot-lbl");

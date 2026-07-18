@@ -20,11 +20,11 @@ body {
 html, body { height: 100%; }
 body { display: flex; flex-direction: column; overflow: hidden; }
 main { flex: 1 1 auto; min-height: 0; width: 100%; }
-#left, #right {
+#left {
   max-height: 100%; overflow-y: auto;
   scrollbar-width: none; /* 安全弁: スクロールは可能だがバーは見せない */
 }
-#left::-webkit-scrollbar, #right::-webkit-scrollbar { display: none; }
+#left::-webkit-scrollbar { display: none; }
 #center { min-height: 0; }
 
 /* ============ top bar ============ */
@@ -139,13 +139,13 @@ button.danger { color: var(--boss-400); }
 /* ============ layout ============ */
 main {
   display: grid;
-  grid-template-columns: clamp(210px, 15.5vw, 248px) minmax(0, 1fr) clamp(196px, 14vw, 232px); /* V5 3.8: 右縮小=水槽拡大 */
+  grid-template-columns: clamp(228px, 17vw, 300px) minmax(0, 1fr); /* 3.10.3: 右パネル撤廃=2カラム。左拡大+水槽最大化 */
   gap: clamp(8px, 1vw, 14px);
   padding: clamp(6px, 1vh, 12px) clamp(10px, 1.1vw, 16px);
-  max-width: 1860px; margin: 0 auto; /* V5 3.8: フルHDの余白を水槽へ回すため上限拡大(1750→1860) */
+  max-width: 1980px; margin: 0 auto; /* 右パネル撤廃ぶんを水槽へ回す */
   align-items: start;
 }
-#left, #right { display: flex; flex-direction: column; gap: clamp(6px, 1vh, 12px); align-self: stretch; min-height: 0; } /* V5 ルーレット: 枠を縦に伸ばす */
+#left { display: flex; flex-direction: column; gap: clamp(6px, 1vh, 12px); align-self: stretch; min-height: 0; } /* ルーレット枠を縦に伸ばす */
 
 .card {
   background: var(--grad-card);
@@ -213,16 +213,28 @@ button.act .price {
 @keyframes rankup-num { 40% { transform: scale(1.35); color: var(--amber-400); } }
 
 /* 襲撃タイマー */
-#raid-card { text-align: center; }
-#raid-timer {
-  font-size: var(--fs-hero); color: var(--gold); font-weight: bold;
-  font-variant-numeric: tabular-nums; letter-spacing: 2px;
-  text-shadow: 0 0 18px rgba(242, 198, 94, .35), 0 2px 4px rgba(0, 0, 0, .8);
-  margin: 2px 0 10px;
+/* 3.10.3: 襲撃予告=飼育槽右上のコンパクト半透明HUD(生き物の動きを隠さない・ボスHPバーは中央上で不干渉) */
+#raid-hud {
+  position: absolute; top: 12px; right: 12px; z-index: 4;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
+  max-width: 210px; pointer-events: none;
 }
-#raid-timer.soon { color: var(--red); animation: blink .55s var(--ease-in-out) infinite alternate; text-shadow: 0 0 22px rgba(224, 91, 65, .6); }
+#raid-hud > * { pointer-events: auto; }
+#raid-hud .rh-line {
+  display: flex; align-items: center; gap: 5px; padding: 3px 11px; border-radius: 999px;
+  background: rgba(18, 14, 10, .58); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  border: 1px solid rgba(255, 255, 255, .13);
+  color: var(--gold); font-weight: bold; font-variant-numeric: tabular-nums; letter-spacing: 1px;
+  font-size: calc(15px * var(--fs-scale, 1)); text-shadow: 0 1px 3px rgba(0, 0, 0, .8);
+}
+#raid-hud .rh-line .icon { width: 14px; height: 14px; }
+#raid-timer.soon { color: var(--red); animation: blink .55s var(--ease-in-out) infinite alternate; }
 @keyframes blink { from { opacity: 1; } to { opacity: .45; } }
-#btn-raid-now { width: 100%; }
+#btn-raid-now {
+  padding: 5px 12px; border-radius: 8px; font-size: calc(11px * var(--fs-scale, 1));
+  background: rgba(30, 18, 14, .66); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  border: 1px solid var(--boss-600);
+}
 
 .bar {
   background: #140d05; border-radius: var(--radius-pill); height: 12px; overflow: hidden;
@@ -244,7 +256,7 @@ button.act .price {
 #hint-card .hint-text { opacity: .8; }
 
 /* ============ canvas ============ */
-#center { position: relative; min-width: 0; }
+#center { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
 #frame {
   position: relative;
   padding: 8px; border-radius: 18px;
@@ -270,7 +282,11 @@ button.act .price {
     rgba(255, 255, 255, 0) 24%);
 }
 #game {
-  display: block; width: 100%; height: auto;
+  /* 3.10.3: 水槽最大化。ただし横幅と「ビューポート高さ-上部chrome」の両方で制約し、
+     16:9アスペクトを保ったまま1画面に必ず収める(縦あふれ防止・letterbox可) */
+  display: block; margin: 0 auto;
+  max-width: 100%; max-height: calc(100vh - 104px);
+  width: auto; height: auto;
   border-radius: 12px;
   box-shadow: inset 0 0 40px rgba(0, 0, 0, .5);
 }
@@ -1476,14 +1492,14 @@ button.holding::after {
 /* タップ判定の確保(モバイル44px) */
 #topbar nav button, #left button.act, #btn-raid-now { min-height: 44px; }
 
-/* 次ボス予告 (GameExpansion_v2 ①) */
+/* 次ボス予告 (GameExpansion_v2 ①) — 3.10.3で右上HUD内。コンパクト・右寄せ */
 #next-boss {
-  background: rgba(0, 0, 0, .35);
-  border: 1px solid var(--border); border-radius: 10px;
-  padding: 8px 10px; margin-bottom: 10px; font-size: calc(14px * var(--fs-scale, 1));
-  color: var(--text); line-height: 1.5;
+  background: rgba(40, 16, 16, .66); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  border: 1px solid var(--boss-600); border-radius: 8px;
+  padding: 5px 9px; font-size: calc(11.5px * var(--fs-scale, 1));
+  color: var(--text); line-height: 1.45; max-width: 210px; text-align: right;
 }
-#next-boss .nb-icon { font-size: calc(18px * var(--fs-scale, 1)); }
+#next-boss .nb-icon { font-size: calc(15px * var(--fs-scale, 1)); }
 #next-boss .nb-threat { color: var(--sub); font-size: calc(11px * var(--fs-scale, 1)); }
 .boss-badge, .elite-badge {
   font-family: var(--font-retro);
@@ -1524,13 +1540,28 @@ button.holding::after {
 .stat-cell .v { font-size: calc(16px * var(--fs-scale, 1)); color: var(--gold); font-weight: bold; margin-top: 2px; }
 
 /* ============ V3: Stage切替バー ============ */
-#stage-bar {
-  display: flex; gap: 6px; padding: clamp(3px, .5vh, 5px) 14px;
-  background: var(--grad-stagebar);
-  border-bottom: 1px solid var(--border);
-  overflow-x: auto; scrollbar-width: none; /* 安全弁: 極小幅のみスクロール(バー非表示) */
+/* 3.10.4: HQレベル=ヘッダー直下のプログレスバー(惑星アクセント色・太め・数値はバー上の小ラベル) */
+#hq-bar {
+  position: relative; height: clamp(15px, 1.8vh, 21px);
+  margin: 0 clamp(10px, 1.1vw, 16px); border-radius: 0 0 9px 9px;
+  background: var(--ink-800); border: 1px solid var(--border); border-top: none;
+  overflow: hidden; flex: 0 0 auto;
 }
-#stage-bar::-webkit-scrollbar { display: none; }
+#hq-bar #rank-bar {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
+  background: linear-gradient(180deg, rgba(255,255,255,.28), rgba(0,0,0,.18)), var(--planet-accent, var(--amber-500));
+  box-shadow: 0 0 10px var(--planet-accent, var(--amber-500));
+  transition: width .45s var(--ease-out);
+}
+#hq-bar-label {
+  position: absolute; inset: 0; display: flex; align-items: center; gap: 5px;
+  padding-left: 12px; font-size: calc(11px * var(--fs-scale, 1)); color: var(--ink);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .75); pointer-events: none; letter-spacing: .02em;
+}
+#hq-bar-label .icon { width: 13px; height: 13px; }
+#hq-bar-label b { color: #fff; margin-left: 2px; }
+#hq-bar.rankup { animation: hq-rankup .6s var(--ease-pop); }
+@keyframes hq-rankup { 0%, 100% { filter: brightness(1); } 40% { filter: brightness(1.7); } }
 .stage-tab {
   display: flex; align-items: center; gap: 5px;
   padding: clamp(3px, .5vh, 5px) 10px; font-size: calc(12px * var(--fs-scale, 1)); white-space: nowrap;
@@ -2007,11 +2038,11 @@ button.holding::after {
 .hidden { display: none !important; }
 
 @media (min-width: 1600px) {
-  /* V5 3.8: フルHDで水槽拡大最優先 — 左右カラムを絞り max-width を上げ、余白を中央へ回す */
-  main { max-width: 1900px; grid-template-columns: 248px minmax(0, 1fr) 236px; gap: 18px; }
+  /* フルHDで水槽拡大最優先 — 左カラムを固定幅、余白を中央(水槽)へ回す(2カラム・3.10.3) */
+  main { max-width: 2040px; grid-template-columns: 300px minmax(0, 1fr); gap: 18px; }
 }
 @media (max-width: 1180px) {
   main { grid-template-columns: 1fr; }
-  #left, #right { flex-direction: row; flex-wrap: wrap; }
-  #left .card, #right .card { flex: 1; min-width: 240px; }
+  #left { flex-direction: row; flex-wrap: wrap; }
+  #left .card { flex: 1; min-width: 240px; }
 }

@@ -91,8 +91,12 @@ Object.assign(UI, {
         <div class="stats-grid">
           ${rows.map(([k, v]) => `<div class="stat-cell"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("")}
         </div>
-        <button id="btn-export" style="width:100%;margin-top:12px">${Icon.svg("camera")} コロニー全景を画像で保存 (SNS共有用)</button>`;
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+          <button id="btn-titles" style="flex:1;min-width:150px">${Icon.svg("medal")} 称号を変更</button>
+          <button id="btn-export" style="flex:1;min-width:150px">${Icon.svg("camera")} 全景を画像で保存</button>
+        </div>`;
       body.querySelector("#btn-export").addEventListener("click", () => this.exportShot());
+      body.querySelector("#btn-titles").addEventListener("click", () => this.openTitles()); // 3.10.3: 称号は統計へ集約
     });
   },
 

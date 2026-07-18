@@ -79,7 +79,9 @@ const Render = {
     }
     ctx.drawImage(this._bgCache, 0, 0);
     // ステージ名プレート(動的でないが軽いので直描き)
-    this.pill(ctx, 20, 18, `STAGE ${st.id} ${st.name}`, "rgba(0,0,0,.4)", "rgba(255,255,255,.75)", 15);
+    // 3.10.5: 惑星名を含む現在地表示(バー/右パネル撤廃の代替)。トカゲ数を下に併記(3.10.3)
+    this.pill(ctx, 20, 18, `${st.pname} ${st.name} STAGE ${st.id}`, "rgba(0,0,0,.45)", "rgba(255,255,255,.82)", 15);
+    this.pill(ctx, 20, 46, `${Game.state.lizards.length} / ${Game.capacity()} 匹`, "rgba(0,0,0,.36)", "rgba(210,230,200,.8)", 13);
   },
 
   paintBackground(ctx, st) {
