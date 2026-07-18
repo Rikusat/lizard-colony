@@ -236,6 +236,12 @@ button.act .price {
 }
 
 .hint-text { font-size: calc(12px * var(--fs-scale, 1)); color: var(--sub); line-height: 1.7; }
+/* V5.2 §2-6: 右下ヒントは枠(ウィンドウ)を撤廃し文字のみ。見切れ解消のため折返し許可・高さ自由 */
+#hint-card {
+  background: none; border: none; box-shadow: none; padding: 4px 2px 0;
+  overflow: visible; flex: 0 0 auto;
+}
+#hint-card .hint-text { opacity: .8; }
 
 /* ============ canvas ============ */
 #center { position: relative; min-width: 0; }
@@ -446,36 +452,49 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
   background: none; border: none; box-shadow: none;
   padding: 0; gap: 8px;
 }
-/* オートボタン拡大(3.6): 唯一のトグルとして主役級に。緑ランプのアンカーは不変 */
-#feeder-dial .fd-sw#fd-auto {
-  width: var(--fd-auto-size, 44px); height: var(--fd-auto-size, 44px);
-  border-radius: 10px;
-}
-#feeder-dial .fd-sw#fd-auto .icon { width: 22px; height: 22px; }
-#feeder-dial .fd-sw#fd-auto .fd-lamp { width: 7px; height: 7px; top: 4px; right: 4px; }
-
-/* 縦2段トグル(オート/補給)。補給はghostで控えめ */
-.fd-side { display: flex; flex-direction: column; gap: 6px; }
-.fd-sw {
-  position: relative; width: 30px; height: 29px; padding: 0;
+/* V5.2 §2: オート/安全装置=囲み枠・内蔵ランプを廃し「ボタン全体の後光」で状態表示(引き算のUX)。
+   2連ID(2,0,0)+クラスで、後述の全スキン .fd-sw 背景(1,2,0)に順序非依存で勝ち、枠を確実に消す */
+.fd-side { display: flex; flex-direction: column; gap: 8px; }
+#feeder-dial#feeder-dial .fd-sw.fd-glow {
+  position: relative; width: var(--fd-auto-size, 44px); height: var(--fd-auto-size, 44px); padding: 0;
   display: flex; align-items: center; justify-content: center;
-  border-radius: 6px; color: var(--sub);
+  border-radius: 12px; color: var(--sub);
+  background: none; border: none; box-shadow: none; /* 囲み枠(ウィンドウ)廃止・2-3 */
+  transition: color var(--dur-base), box-shadow var(--dur-base), filter var(--dur-base);
 }
-.fd-sw .icon { width: 15px; height: 15px; }
-.fd-sw .fd-lamp {
-  position: absolute; top: 3px; right: 3px; width: 5px; height: 5px; border-radius: 50%;
+#feeder-dial#feeder-dial .fd-sw.fd-glow .icon { width: 22px; height: 22px; }
+/* オートON=ボタン全体が緑の後光(直感アンカー「緑=オート」を全体発光で表現・ランプ廃止・2-2) */
+#feeder-dial#feeder-dial #fd-auto.on {
+  color: var(--life-400);
+  box-shadow: 0 0 15px 3px var(--life-glow), 0 0 5px 1px var(--life-400);
+}
+/* 安全装置ON=琥珀の後光(緑と混同させない) */
+#feeder-dial#feeder-dial #fd-empty.on {
+  color: var(--amber-400);
+  box-shadow: 0 0 12px 2px var(--amber-glow-soft);
+}
+/* 在庫僅少の警告ランプ(切れ時OFF+オート中に在庫<閾値で赤点滅・2-5) */
+.fd-warn {
+  position: absolute; top: 3px; right: 3px; width: 8px; height: 8px; border-radius: 50%;
   background: var(--ink-600); box-shadow: inset 0 1px 1px rgba(0, 0, 0, .6);
-  transition: background var(--dur-base), box-shadow var(--dur-base);
+  opacity: 0; transition: opacity var(--dur-base);
 }
-.fd-sw.on { color: var(--life-400); border-color: var(--life-600); }
-.fd-sw.on .fd-lamp { background: var(--life-400); box-shadow: 0 0 6px var(--life-glow); }
-.fd-sw.ghost {
-  background: transparent; border-color: transparent; box-shadow: none;
-  border-bottom-width: 1px; opacity: .45; width: 26px; height: 24px;
+#fd-empty.warn .fd-warn {
+  opacity: 1; background: var(--boss); box-shadow: 0 0 7px var(--boss);
+  animation: fd-warn-blink 1s steps(2, start) infinite;
 }
-.fd-sw.ghost:hover { opacity: .85; border-color: var(--ink-600); }
-.fd-sw.ghost.on { opacity: 1; color: var(--amber-400); border-color: var(--amber-600); }
-.fd-sw.ghost.on .fd-lamp { background: var(--amber-400); box-shadow: 0 0 6px var(--amber-glow-soft); }
+@keyframes fd-warn-blink { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { #fd-empty.warn .fd-warn { animation: none; } }
+
+/* ドラッグハンドル(ボタン群を1つの塊として移動・2-4)。フレームレスな群の左上に小さく */
+#fd-grip {
+  position: absolute; top: -3px; left: -3px; width: 16px; height: 16px; cursor: grab;
+  display: flex; flex-direction: column; justify-content: center; gap: 2px;
+  padding: 3px 4px; border-radius: 5px; opacity: .35; touch-action: none;
+  background: var(--ink-800); transition: opacity var(--dur-base);
+}
+#fd-grip:hover, #fd-grip:active { opacity: .9; cursor: grabbing; }
+#fd-grip i { display: block; height: 2px; border-radius: 1px; background: var(--sub); }
 
 /* 折りたたみハンドル(右上・クランク本体から干渉しない側)+折りたたみ=丸クランクのみ */
 #fd-fold {
