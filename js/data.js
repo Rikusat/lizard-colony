@@ -39,27 +39,24 @@ const CFG = {
   awayStageIncomeRate: 1.0, // V5: 留守コロニーの常時生産倍率(1=フル。インフレ調整は支出側で)
   feedGoldCost: 10,         // V5.1: 給餌1回のGoldコスト(旧: コオロギ1匹=10Gと等価)
 
-  // ---- 遺伝子ルーレット(roulette.md §7・全パラメータCFG化。反復で追い込む初期値) ----
-  roulDt: 0.0083,           // 固定タイムステップ(秒・約120Hz)。決定論の要
-  roulW: 150,               // シム空間の幅(単位・段階3で拡幅=カオス空間+レインボー帯)
-  roulH: 290,               // シム空間の高さ(単位・落下距離=カオス空間。段階5で縦充填)
-  roulBallRestitution: 0.86,// 球同士の反発係数(カオスの活き。0=くっつく/1=完全弾性)
-  roulRainbowX0: 0.0,       // レインボー帯の左端(幅比・far-left=自然には落ちない場所)
-  roulRainbowX1: 0.14,      // レインボー帯の右端(幅比)
-  roulGravity: 340,         // 重力(単位/秒^2)
-  roulRestitution: 0.5,     // 壁の反発係数(0=無反発/1=完全弾性)
-  roulWallDamp: 0.96,       // 壁反射時の接線減衰
-  roulEmitX: 0.08,          // 放出位置X(幅比・左下)
-  roulEmitY: 0.94,          // 放出位置Y(高さ比・左下)
-  roulEmitSpeed: 165,       // 放出初速(単位/秒)
-  roulEmitSpeedVar: 0.28,   // 初速のばらつき(±比)
-  roulEmitAngle: -63,       // 放出角(度・右上向き。0=右/-90=上)
-  roulEmitAngleVar: 22,     // 放出角のばらつき(±度)
-  roulBallR: 4.2,           // 球半径(単位)
-  roulMaxBalls: 64,         // 同時球数上限(性能・カオス上限)
-  roulBallTtl: 7,           // 球の寿命(秒・着地しない球の掃除)
-  roulEggChance: 0.12,      // 床到達(回収)1球あたりの卵生成確率(シードRNG・反復で調整)
-  roulLane1Ratio: 0.42,     // レーン1(上部)の高さ比(残りがレーン2)
+  // ---- 遺伝子ルーレット(roulette.md §7 v2・パチンコ方式・全CFG化。手触りは実機で最終調整) ----
+  roulW: 150,               // シム/描画の基準空間 幅(単位)
+  roulH: 290,               // 同 高さ(単位)
+  roulBallR: 4.6,           // 球半径(単位)
+  roulMaxBalls: 48,         // 飛行中の球数上限(性能・通常は下回る)
+  roulRainbowChance: 0.005, // ★各球独立のレインボー率(0.5%=1/200・基準。実機で調整)
+  roulTravelSec: 2.6,       // 発射→上昇→落下→最奥部の総旅程秒
+  roulFallEase: 3.8,        // 落下のease-out指数(大=終盤の減速が強い=焦らし。§6.2反復: 3.0→3.8)
+  // 軌道形状(W/H比。左下発射→左上アペックス→中央落下→当たり穴/通常スロット)
+  roulLaunchX: 0.12, roulLaunchY: 0.93, // 発射点(左下)
+  roulApexX: 0.20,  roulApexY: 0.14,    // 上昇の頂点(左上)
+  roulRiseP: 0.34,                       // 上昇が終わる進行度
+  roulArcP: 0.5,                         // アークが終わり落下に転じる進行度
+  roulFallX: 0.5,                        // 落下中の中立x(当たり判定を最後まで焦らす)
+  roulCommitP: 0.74,                     // ここから当たり穴/通常スロットへドリフト(§6.2反復: 0.82→0.74で焦らし延長)
+  roulRainbowSlotX: 0.82,                // 当たり穴(レインボー)のx(最奥部)
+  roulNormalSlotX: 0.42,                 // 通常スロットのx(最奥部)
+  roulLaneJitter: 0.04,                  // 軌道の微小ばらつき(x幅比・視覚の多様性)
 
   xpPopupAutoHighEvery: 10, // V5 3.5: オート高のXPポップ間引き(N回に1回だけ表示)
   xpPopupAutoHighSmall: true, // V5 3.5: オート高のXPポップを小さく表示

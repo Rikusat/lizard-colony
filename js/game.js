@@ -910,8 +910,7 @@ const Game = {
     }
     this.state.coins -= CFG.feedGoldCost; // V5.1: 給餌=Gold直接消費
     this.state.stats.fed++;
-    // 遺伝子ルーレット: 給餌1回=遺伝子球1個を放出(ルール層・Roulette無ければ無害)
-    if (typeof Roulette !== "undefined" && Roulette.emit) Roulette.emit({ hue: lz.hue, sat: lz.sat, light: lz.light, speciesId: lz.speciesId, morphId: lz.morphId });
+    // v2ルーレット: 球放出はfeed(個体ごと)でなくfeedAll(給餌1回=クランク1動作)単位で1発(§7.1)
     this.addRes("bio", CFG.resBioPerFeed); // V4: 育成から生態データが生まれる
     let xp = CFG.feedXp * (1 + this.facLv("heat") * 0.06);
     if (this.event && this.event.def.xpMult) xp *= this.event.def.xpMult;
@@ -952,14 +951,20 @@ const Game = {
   },
 
   feedAll(silent) {
-    let fed = 0;
+    let fed = 0, repGene = null;
     for (const lz of this.state.lizards) {
       if (this.state.coins < CFG.feedGoldCost) break; // V5.1: Gold不足で静かに停止
       if (lz.injuredT > 0 || this.isAway(lz)) continue;
       this.feed(lz, true);
+      if (!repGene && lz.stage === "adult") repGene = lz; // 代表個体(球の遺伝)
       fed++;
     }
     if (fed === 0 && !silent) UI.toast("餌をあげられるトカゲがいない…", true);
+    // v2ルーレット: 給餌1回(クランク1動作)=球1発。代表個体の遺伝を乗せる(§7.1)
+    if (fed > 0 && typeof Roulette !== "undefined" && Roulette.emit) {
+      const g = repGene || this.state.lizards[0];
+      Roulette.emit(g ? { hue: g.hue, sat: g.sat, light: g.light, speciesId: g.speciesId, morphId: g.morphId } : null);
+    }
     return fed > 0;
   },
 
