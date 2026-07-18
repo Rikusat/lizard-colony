@@ -99,6 +99,13 @@ const UI = {
           return;
         }
       }
+      // 巣の卵タップ → 卵メニュー(ダイヤ即時孵化・#7)。卵はNEST周りに描画
+      if (!raid && typeof NEST !== "undefined") {
+        for (let i = 0; i < Game.state.eggs.length; i++) {
+          const ex = NEST.x - 24 + i * 24, ey = NEST.y + 1;
+          if (Math.hypot(x - ex, y - ey) < 17) { this.openEggMenu(i); return; }
+        }
+      }
       // 鷹の急降下予告リングをタップ連打で追い払う
       if (raid && raid.typeId === "hawk" && raid.dive) {
         const tgt = Game.state.lizards.find((l) => l.id === raid.dive.targetId);

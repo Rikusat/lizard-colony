@@ -4,6 +4,37 @@
 // =============================================================
 
 Object.assign(UI, {
+  // #7: 巣の卵タップ→メニュー展開→ダイヤで即時孵化(卵スロット撤去で失われた導線を復活)
+  openEggMenu(i) {
+    const egg = Game.state.eggs[i];
+    if (!egg) return;
+    const sp = speciesById(egg.speciesId);
+    const mo = (typeof MORPHS !== "undefined") && MORPHS.find((m) => m.id === egg.morphId);
+    this.openModal(`${Icon.svg("egg")} 巣の卵`, (body) => {
+      const sec = Math.max(0, Math.ceil(egg.t));
+      const info = document.createElement("div");
+      info.innerHTML =
+        `<div class="list-row"><span>${(mo ? mo.name + " " : "") + (sp ? sp.name : "卵")}</span></div>` +
+        `<div class="list-row"><span>孵化まで</span> <b>${sec > 0 ? sec + "秒" : "まもなく"}</b></div>` +
+        `<div class="list-row hint-text">収容に空きがあると自動で孵化します。急ぐならダイヤで即時孵化。</div>`;
+      body.appendChild(info);
+      const btn = document.createElement("button");
+      btn.className = "act cta"; btn.style.marginTop = "10px";
+      const canGem = Game.state.gems >= 1;
+      btn.innerHTML = `<span class="bicon">${Icon.svg("gem")}</span><span class="lbl">今すぐ孵化<small>ダイヤ1消費（所持 ${Game.state.gems}）</small></span>`;
+      if (!canGem) btn.setAttribute("aria-disabled", "true");
+      btn.addEventListener("click", () => {
+        if (Game.state.gems < 1) { this.toast("ジェムが足りない!", true); return; }
+        const idx = Game.state.eggs.indexOf(egg); // 並びが変わっても同一卵を対象に
+        if (idx < 0) { this.closeModal(); return; }
+        Game.instantHatch(idx); // ダイヤ1消費→孵化タイマーを0に(空き待ちはゲーム側で処理)
+        this.closeModal();
+        this.toast(`${Icon.svg("gem")} 卵を今すぐ孵化させた!`, "life");
+      });
+      body.appendChild(btn);
+    });
+  },
+
   openNest() {
     Game.ensureNestWeb();
     const st = Game.currentStage();
