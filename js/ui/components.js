@@ -42,7 +42,9 @@ Object.assign(UI, {
 });
 
 function on(id, fn) {
-  document.getElementById(id).addEventListener("click", fn);
+  const el = document.getElementById(id);
+  if (!el) { console.warn("[on] 要素なし(スキップ):", id); return; } // 任意ボタンの欠落で全init停止を防ぐ
+  el.addEventListener("click", fn);
 }
 
 // 長押しオートリピート (GameExpansion_v2 ④)

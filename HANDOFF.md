@@ -1055,3 +1055,24 @@ paper 11.26 / sand 7.91 / life-400 7.45〜7.81 / amber-400 7.45 / boss-400 5.20(
 - [ ] ID9 ヴォルタ(廃原子炉): 原子炉5タイプの造形密度・文明がもがいた痕跡の増強
 - [ ] 今後差し替え予定のID7水中都市・ID4古墳も同様(軽め→本番の2段階前提で作る)
 - [ ] 背景本格化の際は既存の教訓を適用: 夜景/暗景は「空より明るい要素」を挟む・視覚要素は実機目視・確定値は撮影用変更と分離してコミット
+
+### ルーレット発射不具合の実測切り分け(fable3)+Phase 3.9 コオロギ給餌の復活(2026-07-18・自律ラン)✅
+
+**■ ルーレット発射不具合(fable3: 再現→仮説→検証)**
+- 前回の canvas0サイズ修正後も「実機で球が射出されない/レーンは出る」と報告。**推測せず実測**で切り分け:
+  - Chrome内fetchで**配信ファイルが最新(self-heal・feedAll emit込み)であることを確認**——サーバstaleは否定。※Git-BashのcurlはWindows localhostに届かず`000`を返すため無効、Chrome(puppeteer)経由で測定
+  - fresh/rank106実セーブ/**本物のクランクボタンclick**/advance/オート/ピクセル描画——**全経路がheadlessで正常にemit＆描画**。再現不能
+  - 結論: 現行の配信コードでは emit も描画も動作する。「レーンは出るが球ゼロ」を現行コードで説明できるのは、実ブラウザでだけ feedAll→emit に到達しない状態(最有力=game.jsだけ旧版キャッシュの混在/全個体isAway/負傷でfed=0)。**私が観測できない実機固有領域**
+- 対応: (a)実機で一発切り分けできる**恒久診断 `Game.roulDiag()`** を追加(console 1行で RouletteDefined/canvasSize/crickets/feedableLizards/ballsBefore→After/verdict を返す・無害・読取専用)。(b)下記 Phase 3.9 で給餌経路を作り替え、**そこに emit を明示配線**して確実化(検証: 「feedAll1回=球1発」が node/実ブラウザ両方でPASS)
+
+**■ Phase 3.9 コオロギ給餌の復活+安全装置トグル(SAVE_VERSION=7)**
+- **3.9.1 給餌の復活**: `feed()`をコオロギ1匹消費へ戻す(`acquireFeedUnit()`が在庫優先→切れ時トグルに従う)。新規=`startCrickets`。開拓支給/自然湧き/gecko拾い/コオロギ大発生/オオガラス強奪を**すべて共通在庫へ復活**(v6のGold換算を撤回)。コオロギ切れ警告バッジも復活
+- **3.9.2 切れ時トグル**: feederに第2スイッチ `#fd-empty`(盾アイコン・ghost)を追加。`dial.stopOnEmpty` = **ON:尽きたら自動停止(安全装置) / OFF:Gold換算で補充して継続**。既定OFF(=v6の連続給餌挙動を継続)。緑=オートと色分離(ON=琥珀)。crank.md アンカーをV5.2仕様へ更新(中核=クランク/緑オートの2概念不変・第2トグルは副次)
+- **3.9.3 購入ロット1項目固定**: 左メニューに`#btn-cricket`復活(短押し1ロット/長押し連続)。`cricketLot()`=`cricketLotBase+rank*cricketLotPerRank`。**表示は常に1項目・ランクで数値のみ変化**。実測: rank1/50/106でルーレット枠top=421px不動・左メニュー項目数=4一定・ロット表示のみ60→550→1110匹
+- **3.9.4 巣ネットワーク項目削除**: 左メニュー`#btn-nest`削除(巣穴フィールドタップ経路は維持・実測で巣ビュー開くことを確認)。在庫はコロニーカードに`#ui-crickets`で常時可視(左メニューを膨らませずルーレット位置を守る)
+- **セーブ移行(資産減ゼロ・冪等)**: `migrateV6to7`——v6で払い戻したGoldは**据置**(利益として残す)＋コオロギ在庫`reviveCrickets=300`を**付与**(資産プラスのみ)。旧`dial.supply`撤去・`stopOnEmpty=false`既定。`saveBackupKeyV7`退避・バージョンゲートで冪等。実測: v6セーブ注入→リロードで coins据置(100002)/crickets=300/backup退避/version7化
+- **防御的改善**: `on()`ヘルパをnull安全化(任意ボタン欠落で全UI初期化がthrowする脆さを解消——test-v3に`#btn-cricket`が無くても初期化継続)。attachHoldもガード
+- **検証**: node 93項目PASS(旧78+v7の15追加)/実ブラウザ統合17項目PASS(無エラー・給餌でコオロギ消費＆球emit・トグル・巣タップ・移行)/#spin-proof 全10惑星✅回転継続/魂(render.js)不変/grep件数確認(SAVE_VERSION=7・dial.supply実ロジック0件)
+
+**帰還後レビュー事項(Ric)**: ①`reviveCrickets=300`の付与量・`cricketLotBase/PerRank`(50/10)は暫定——手触りで調整可 ②切れ時トグル既定OFFの是非(現行はv6連続給餌の継続性優先) ③ルーレット発射の実機再発が続く場合は `Game.roulDiag()` の出力(特に verdict)を共有ください——emit到達/描画/在庫のどこで切れるか一発で判る
+- 教訓: 「検証はPASSなのに実機で出ない」は、まず**測定経路そのものの妥当性**を疑う(curlがlocalhostに届かない・test直接呼びが本番clickと乖離)。再現できない時は失敗する環境に測定器(roulDiag)を置く

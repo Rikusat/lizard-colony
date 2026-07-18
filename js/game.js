@@ -48,8 +48,8 @@ const Game = {
 
   newGame() {
     this.state = {
-      coins: CFG.startCoins + CFG.startCrickets * CFG.cricketCost, // V5.1: 旧コオロギ初期在庫のGold等価込み
-      // V5.1: コオロギ廃止。旧初期在庫はGold等価で上乗せ(startCoinsに合算)
+      coins: CFG.startCoins,
+      crickets: CFG.startCrickets, // V5.2: コオロギ給餌の復活(初期在庫)
       gems: CFG.startGems,
       rank: 1,
       rankXp: 0,
@@ -766,7 +766,7 @@ const Game = {
   // 開拓ボーナス (§9.2): 本部Lvが高いほど厚い支給
   applyStarterPack(tgt) {
     const lvl = this.hqLevel();
-    this.state.coins += (CFG.pioneerCrickets + lvl * 20) * CFG.cricketCost; // V5.1: 旧コオロギ支給のGold等価
+    this.state.crickets += CFG.pioneerCrickets + lvl * 20; // V5.2: コオロギ支給を復活(共通在庫へ)
     tgt.facilities.water = Math.max(tgt.facilities.water || 0, 1);
     tgt.facilities.shelter = Math.max(tgt.facilities.shelter || 0, 1);
     this.state.coins += CFG.pioneerCoins + lvl * 2000;
@@ -833,9 +833,9 @@ const Game = {
     }
     // 生産(離席中もフルレートで稼働。上限は offlineCapSec)
     s.coins += this.totalIncomePerSec() * sec; // V5: 合算収入で離席分を精算
-    // V5.1: 旧コオロギ自然湧き(餌場+環境の恵み)はGold換算のフロー収入へ
+    // V5.2: コオロギの自然湧き(餌場+環境の恵み)を共通在庫へ復活
     const spawn = this.facLv("feeder") * 0.5 + (env.crickets || 0);
-    if (spawn > 0) s.coins += spawn * CFG.cricketCost * sec;
+    if (spawn > 0) s.crickets = (s.crickets || 0) + spawn * sec;
     // V4: 資源のフロー生産と侵略圧も離席中に進む
     this.addRes("food", this.facLv("feeder") * CFG.resFoodPerFeederLv * sec);
     this.addRes("energy", (s.devLv || 0) * CFG.resEnergyPerDevLv * sec);
@@ -863,7 +863,8 @@ const Game = {
     const elapsed = (Date.now() - (st.lastTickAt || Date.now())) / 1000;
     if (st.eggs && st.eggs.some((e) => e.t - elapsed <= 0)) b.push(Icon.svg("egg"));
     if (st.boss && st.lizards.length > 0 && elapsed > (st.boss.raidTimer || CFG.raidInterval)) b.push(Icon.svg("snake"));
-    // V5.1: コオロギ廃止によりコオロギ切れ警告は撤去(Gold不足はトップバーで可視)
+    // V5.2: コオロギは共通在庫。切れ警告は現在地タブにのみ出す
+    if (st.lizards.length > 0 && st.stageId === (this.world ? this.world.currentStageId : 0) && Math.floor(this.state.crickets || 0) <= 0) b.push(Icon.svg("warn"));
     return b;
   },
   // V3 Phase5: 繁殖/変異プール = 基本種(Stage1〜5・ランク解放済み)+現Stageの固有種
@@ -896,19 +897,41 @@ const Game = {
   },
 
   // ---------------- 経済・育成 ----------------
-  // V5.1: コオロギ購入は廃止(給餌が直接Gold消費)。互換のため無害なスタブを残す
-  buyCrickets() { return false; },
-
-  feed(lz, silent) {
-    if (this.state.coins < CFG.feedGoldCost) {
-      if (!silent) UI.toast("コオロギがない! ショップで購入しよう", true);
+  // V5.2: コオロギ購入(まとめ買い)を復活。共通在庫へ。左メニューは cricketLot() の1ロット固定表示
+  buyCrickets(n, silent) {
+    n = n || this.cricketLot();
+    const cost = n * CFG.cricketCost;
+    if (this.state.coins < cost) {
+      if (!silent) UI.toast("Goldが足りない!", true);
       return false;
     }
+    this.state.coins -= cost;
+    this.state.crickets = (this.state.crickets || 0) + n;
+    if (!silent) UI.toast(`コオロギを${fmt(n)}匹購入した`);
+    return true;
+  },
+  // 購入ロット数=そのランクで買える最大ロット(表示は常に1項目・数値だけランクで増える)
+  cricketLot() { return CFG.cricketLotBase + (this.state.rank || 1) * CFG.cricketLotPerRank; },
+
+  // 1回の給餌に必要な「餌」を確保。コオロギ在庫を優先し、切れたら切れ時トグルに従う:
+  //   stopOnEmpty=ON → 確保できず給餌停止(安全装置) / OFF → Gold換算で1匹補充して継続
+  acquireFeedUnit(silent) {
+    if ((this.state.crickets || 0) >= 1) { this.state.crickets -= 1; return true; }
+    const d = this.ensureDial();
+    if (d.stopOnEmpty || this.state.coins < CFG.feedGoldCost) {
+      if (!silent) UI.toast(d.stopOnEmpty ? "コオロギ切れ(自動停止中)。購入するか切れ時トグルをOFFに" : "Goldが足りない!", true);
+      return false;
+    }
+    this.state.coins -= CFG.feedGoldCost; // OFF: Gold換算補充(在庫±0で1匹ぶん消費)
+    return true;
+  },
+
+  feed(lz, silent) {
     if (lz.injuredT > 0) {
       if (!silent) UI.toast("負傷中は食べられない…", true);
       return false;
     }
-    this.state.coins -= CFG.feedGoldCost; // V5.1: 給餌=Gold直接消費
+    if (!this.acquireFeedUnit(silent)) return false; // V5.2: コオロギ(or 切れ時Gold換算)を1消費
     this.state.stats.fed++;
     // v2ルーレット: 球放出はfeed(個体ごと)でなくfeedAll(給餌1回=クランク1動作)単位で1発(§7.1)
     this.addRes("bio", CFG.resBioPerFeed); // V4: 育成から生態データが生まれる
@@ -934,7 +957,8 @@ const Game = {
   },
 
   ensureDial() {
-    if (!this.state.dial) this.state.dial = { auto: false, rate: 1, supply: false };
+    if (!this.state.dial) this.state.dial = { auto: false, rate: 1, stopOnEmpty: false };
+    if (this.state.dial.stopOnEmpty === undefined) this.state.dial.stopOnEmpty = false; // V5.2: 既定OFF=Gold補充
     return this.state.dial;
   },
 
@@ -946,26 +970,45 @@ const Game = {
     const interval = CFG.dialRates[d.rate] || CFG.dialRates[1];
     if (this._dialT < interval) return;
     this._dialT = 0;
-    // V5.1: 給餌=Gold直接消費のため補給の概念は消滅。Gold不足時はfeedAllが静かに停止
+    // V5.2: 自動給餌はコオロギ在庫を消費。切れ時トグルON=停止/OFF=Gold換算補充(feedAll内で処理)
     this.feedAll(true);
   },
 
   feedAll(silent) {
-    let fed = 0, repGene = null;
+    let fed = 0, repGene = null, stopped = false;
     for (const lz of this.state.lizards) {
-      if (this.state.coins < CFG.feedGoldCost) break; // V5.1: Gold不足で静かに停止
       if (lz.injuredT > 0 || this.isAway(lz)) continue;
-      this.feed(lz, true);
+      if (!this.feed(lz, true)) { stopped = true; break; } // 餌切れ(停止 or Gold尽き)=資源理由でのみ止まる
       if (!repGene && lz.stage === "adult") repGene = lz; // 代表個体(球の遺伝)
       fed++;
     }
-    if (fed === 0 && !silent) UI.toast("餌をあげられるトカゲがいない…", true);
+    if (fed === 0 && !silent) {
+      const d = this.ensureDial();
+      UI.toast(stopped ? (d.stopOnEmpty ? "コオロギ切れ(自動停止中)" : "Goldが足りない!") : "餌をあげられるトカゲがいない…", true);
+    }
     // v2ルーレット: 給餌1回(クランク1動作)=球1発。代表個体の遺伝を乗せる(§7.1)
     if (fed > 0 && typeof Roulette !== "undefined" && Roulette.emit) {
       const g = repGene || this.state.lizards[0];
       Roulette.emit(g ? { hue: g.hue, sat: g.sat, light: g.light, speciesId: g.speciesId, morphId: g.morphId } : null);
     }
     return fed > 0;
+  },
+
+  // 実機での発射不具合切り分け用の恒久診断(consoleで Game.roulDiag() を叩くと配線状態が一目で判る)。
+  // fable3: 再現できない環境では失敗する環境に測定器を置く。無害・読み取り専用
+  roulDiag() {
+    const before = (typeof Roulette !== "undefined") ? Roulette.balls.length : "N/A";
+    const feedable = this.state.lizards.filter((l) => l.injuredT <= 0 && !this.isAway(l)).length;
+    const emitted = this.feedAll(true);
+    const after = (typeof Roulette !== "undefined") ? Roulette.balls.length : "N/A";
+    const cv = (typeof document !== "undefined") && document.getElementById("roulette-canvas");
+    const r = { RouletteDefined: typeof Roulette, drawRoulette: typeof (UI && UI.drawRoulette),
+      canvasExists: !!cv, canvasSize: cv ? [cv.width, cv.height] : null,
+      crickets: Math.floor(this.state.crickets || 0), coins: Math.floor(this.state.coins),
+      feedableLizards: feedable, ballsBefore: before, feedAllEmitted: emitted, ballsAfter: after,
+      verdict: (after > before) ? "✅ emitは動作(=描画側を疑う)" : (feedable === 0 ? "⚠ 給餌可能なトカゲが0(=球が出ないのは正常。餌/在庫/巣を確認)" : "❌ emit未到達(=配線/コード版を疑う)") };
+    if (typeof console !== "undefined") console.log("[roulDiag]", JSON.stringify(r, null, 1));
+    return r;
   },
 
   sell(lz) {
@@ -1499,9 +1542,9 @@ const Game = {
           r.stolenEgg = this.state.eggs.shift();
           UI.toast("オオガラスが卵をくわえた! 逃げられる前に撃墜しろ!", true);
         } else {
-          const loss = Math.floor(Math.min(this.state.coins * 0.02, 2000)); // V5.1: Gold強奪へ(2%・上限2000G)
-          this.state.coins -= loss;
-          if (loss > 0) UI.toast(`卵がないのでGoldを${fmt(loss)}G略奪された!`, true);
+          const loss = Math.floor((this.state.crickets || 0) * 0.1); // V5.2: コオロギ強奪を復活(在庫の10%)
+          this.state.crickets -= loss;
+          if (loss > 0) UI.toast(`卵がないのでコオロギを${fmt(loss)}匹食い荒らされた!`, true);
         }
         r.fleeing = true;
       }
@@ -1698,24 +1741,24 @@ const Game = {
       }
     }
 
-    // V5.1: 旧コオロギ自然湧き(昆虫養殖場+環境の恵み)はGold換算のフロー収入へ
+    // V5.2: コオロギの自然湧き(昆虫養殖場+環境の恵み)を共通在庫へ復活
     const spawn = this.facLv("feeder") * 0.5 + (env.crickets || 0);
-    if (spawn > 0) s.coins += spawn * CFG.cricketCost * dt;
+    if (spawn > 0) s.crickets = (s.crickets || 0) + spawn * dt;
 
     // 味方のパッシブ・自動給餌・解禁チェック(毎秒)
     this._allyT = (this._allyT || 0) + dt;
     if (this._allyT >= 1) {
       this._allyT = 0;
-      if (this.allyLv("gecko")) s.coins += 0.1 * this.allyLv("gecko") * CFG.cricketCost; // V5.1: 拾い=Gold換算
+      if (this.allyLv("gecko")) s.crickets = (s.crickets || 0) + 0.1 * this.allyLv("gecko"); // V5.2: コオロギ拾いを復活
       // 自動給餌器: 毎秒Lv匹へ餌やり
       const feeder = this.facLv("feeder");
-      // V4: 自動給餌は食料供給を燃料にする(§3.1.3)
-      if (feeder > 0 && s.coins >= CFG.feedGoldCost && this.res("food") >= CFG.autoFeedFoodCost) {
+      // V4: 自動給餌は食料供給を燃料にする(§3.1.3)。餌はfeed()がコオロギ/切れ時Goldで確保
+      if (feeder > 0 && this.res("food") >= CFG.autoFeedFoodCost) {
         let n = 0;
         for (const lz of s.lizards) {
-          if (n >= feeder || s.coins < CFG.feedGoldCost || this.res("food") < CFG.autoFeedFoodCost) break;
+          if (n >= feeder || this.res("food") < CFG.autoFeedFoodCost) break;
           if (lz.injuredT > 0 || this.isHidden(lz)) continue;
-          this.feed(lz, true);
+          if (!this.feed(lz, true)) break; // 餌切れ(停止 or Gold尽き)で止まる
           this.addRes("food", -CFG.autoFeedFoodCost);
           n++;
         }
@@ -1925,7 +1968,7 @@ const Game = {
   updateEvents(dt) {
     if (this.event) {
       this.event.t -= dt;
-      if (this.event.def.cricketRate) this.state.coins += this.event.def.cricketRate * CFG.cricketCost * dt; // V5.1: Gold換算
+      if (this.event.def.cricketRate) this.state.crickets = (this.state.crickets || 0) + this.event.def.cricketRate * dt; // V5.2: コオロギ大発生を復活
       if (this.event.t <= 0) {
         if (this.event.def.endGems) {
           this.state.gems += this.event.def.endGems;
@@ -2094,7 +2137,7 @@ const Game = {
       version: SAVE_VERSION,
       savedAt: Date.now(),
       idSeq: this._idSeq,
-      wallet: { coins: s.coins, gems: s.gems }, // V5.1: コオロギ廃止(v6でGold払い戻し済み)
+      wallet: { coins: s.coins, gems: s.gems, crickets: s.crickets || 0 }, // V5.2: コオロギ給餌の復活(共通在庫)
       headquarters: { rank: s.rank, rankXp: s.rankXp, research: s.research || {}, rocket: s.rocket || { stage: 0, invested: 0, done: false } },
       collection: {
         dex: s.dex, stats: s.stats, missionsClaimed: s.missionsClaimed,
@@ -2151,6 +2194,20 @@ const Game = {
     return w;
   },
 
+  // V5.2: コオロギ給餌の復活。v6で払い戻したGoldは据置(利便性として残す)＋在庫を付与=資産プラスのみ。
+  // 切れ時トグルは既定OFF(=Gold換算補充)でv6の連続給餌挙動を継続。バージョンゲートで冪等
+  migrateV6to7(w) {
+    if ((w.version || 0) >= 7) return w;
+    w.wallet = w.wallet || { coins: 0, gems: 0 };
+    w.wallet.crickets = (w.wallet.crickets || 0) + CFG.reviveCrickets;
+    w.dial = w.dial || { auto: false, rate: 1 };
+    if (w.dial.stopOnEmpty === undefined) w.dial.stopOnEmpty = false; // OFF=Gold補充(v6と同じ連続給餌)
+    delete w.dial.supply; // 旧「控えめな補給」トグルは廃止(機能は切れ時トグルへ統合)
+    w._reviveV7 = { crickets: CFG.reviveCrickets }; // 通知用(保存されない)
+    w.version = 7;
+    return w;
+  },
+
   applyWorld(w) {
     if (w.planets && !w.stages) w.stages = w.planets; // V4改名の互換
     if (w.stages && !w.planets) w.planets = w.stages;
@@ -2160,14 +2217,14 @@ const Game = {
     if (!active) active = w.stages[w.stages.length - 1] || this.emptyStageData(1);
     this.state = {
       coins: w.wallet.coins, gems: w.wallet.gems,
+      crickets: w.wallet.crickets || 0, // V5.2: コオロギ給餌の復活(全コロニー共通在庫)
       rank: w.headquarters.rank, rankXp: w.headquarters.rankXp,
       research: w.headquarters.research || {},
       lizards: active.lizards, eggs: active.eggs,
       facilities: active.facilities,
-      // V5.1: crickets撤廃(v6移行でGold払い戻し済み)
       res: w.res || { bio: 0, food: 0, energy: 0, science: 0 },
       nestWeb: w.nestWeb || { nodes: {}, surprises: 0 },
-      dial: w.dial || { auto: false, rate: 1, supply: false },
+      dial: w.dial || { auto: false, rate: 1, stopOnEmpty: false },
       rare: w.rareWallet || { amethyst: 0, iridium: 0, amber: 0, meteorite: 0, orichalcum: 0, titaniumOre: 0 },
       erosion: w.erosion || 0,
       rocket: (w.headquarters && w.headquarters.rocket) || { stage: 0, invested: 0, done: false },
@@ -2342,8 +2399,12 @@ const Game = {
     try {
       const data = JSON.parse(raw);
       let world;
-      if (data.version >= 6) {
+      if (data.version >= 7) {
         world = data;
+      } else if (data.version === 6) {
+        // V6セーブ → V7移行(コオロギ給餌の復活・バックアップしてから)
+        try { localStorage.setItem(CFG.saveBackupKeyV7, raw); } catch (e) { /* noop */ }
+        world = data; // 実移行は下の共通ゲートで(冪等)
       } else if (data.version === 5) {
         // V5セーブ → V6移行(コオロギ→Gold払い戻し・バックアップしてから)
         try { localStorage.setItem(CFG.saveBackupKeyV6, raw); } catch (e) { /* noop */ }
@@ -2382,10 +2443,14 @@ const Game = {
         world = this.migrateV3to4(this.migrateV2to3(this.migrateV1(data)));
         setTimeout(() => UI.toast("セーブを最新形式へ移行しました。旧データはバックアップ済み"), 900);
       }
-      world = this.migrateV5to6(this.migrateV4to5(world)); // V5/V6共通ゲート(全チェーンの最終段・冪等)
-      if (world._refundV6 && world._refundV6.gold > 0) {
+      // V5/V6/V7共通ゲート(全チェーンの最終段・各段は冪等)。v6→v7で払戻Goldは据置＋在庫付与=資産プラスのみ
+      world = this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world)));
+      if (world._reviveV7 && world._reviveV7.crickets > 0) {
+        const r7 = world._reviveV7;
+        setTimeout(() => UI.toast(`V5.2: コオロギ給餌が復活! 在庫コオロギ${fmt(r7.crickets)}匹を進呈(以前のGold払い戻しはそのまま)`), 900);
+      } else if (world._refundV6 && world._refundV6.gold > 0) {
         const r6 = world._refundV6;
-        setTimeout(() => UI.toast(`V5.1: 給餌はGold直接消費になりました。コオロギ在庫${fmt(Math.floor(r6.crickets))}匹を全額払い戻し: +${fmt(r6.gold)}G`), 900);
+        setTimeout(() => UI.toast(`コオロギ在庫${fmt(Math.floor(r6.crickets))}匹を払い戻し: +${fmt(r6.gold)}G`), 900);
       }
       this.applyWorld(world);
       // V4.1: 留守中の侵食上昇(全体で1回だけ)と巣の一括解放

@@ -19,13 +19,13 @@ const UI = {
     "ランクが上がるとステージが進み、新しい種族が解放される。",
     "購入・餌やりボタンは長押しで加速連続実行できる!",
     "繁殖ボタンを長押しすると最善ペアで連続クイック繁殖!",
-    "ランク30/60でまとめ買いの単位が育ち、100で自動補給が解禁!",
+    "ランクが上がるとコオロギのまとめ買いロットが大きくなる!",
     "ランク30からは毎回ボスが襲来。5回に1回は報酬2倍のElite!",
     "オオタカの急降下予告リングはタップ連打で追い払える!",
     "クモのウェブはタップ連打でほつれる。ヤモリがいれば自動切除!",
     "サソリの毒は水場のLvが高いほど早く抜ける。",
     "生態データで味方をLvアップできる(味方ボタン)。",
-    "巣ネットワークは繁殖するだけで勝手に育つ。眺めて楽しもう!",
+    "巣ネットワークは繁殖するだけで勝手に育つ。フィールドの巣穴をタップ!",
     "侵食率は毎日ログインすれば低く保てる。放置しすぎ注意!",
     "隕石はHQの遺伝子ラボで割れる。中から希少個体が…",
     "惑星欄をタップすると惑星マップが開く。移動は1タップ!",
@@ -57,7 +57,10 @@ const UI = {
     on("btn-merchant", () => this.openMerchant());
     on("btn-stats", () => this.openStats());
     on("btn-hq", () => this.openHQ());
-    on("btn-nest", () => this.openNest());
+    // V5.2: コオロギ購入(まとめ買い)復活。短押し=1ロット / 長押し=連続。巣ネットワークは巣タップで開く
+    on("btn-cricket", () => Game.buyCrickets());
+    const cricketBtn = document.getElementById("btn-cricket");
+    if (cricketBtn) attachHold(cricketBtn, () => Game.buyCrickets(undefined, true));
     on("row-stage", () => this.openMap());
     on("row-title", () => this.openTitles());
     // キーボード操作(§7): role=buttonの行は Enter/Space でも発火
@@ -226,9 +229,11 @@ const UI = {
     const curSt = Game.currentStage();
     document.getElementById("ui-invasion").textContent = Math.round(s.erosion || 0) + "%";
     this.updateStageBar();
-    const nc = Game.nestWebCounts();
-    document.getElementById("nest-badge").classList.toggle("hidden",
-      nc.open <= ((s.nestWeb && s.nestWeb.seen) || 0));
+    // V5.2: コオロギ在庫と購入ロット表示(項目数は常に1・数値だけランクで変化=ルーレット位置安定)
+    const crk = document.getElementById("ui-crickets");
+    if (crk) crk.textContent = fmt(Math.floor(s.crickets || 0));
+    const lotLbl = document.getElementById("cricket-lot-lbl");
+    if (lotLbl) { const n = Game.cricketLot(); lotLbl.textContent = `+${fmt(n)}匹 / ${fmt(n * CFG.cricketCost)}G`; }
     // 称号・放浪商人
     const tt = s.titleSel && TITLES.find((t) => t.id === s.titleSel);
     document.getElementById("ui-title").textContent = tt ? tt.name : "(称号なし)";

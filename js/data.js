@@ -3,7 +3,7 @@
 // トカゲコロニー: マスターデータ / バランス定数
 // ============================================================
 
-const SAVE_VERSION = 6; // V5.1: コオロギ廃止→Gold消費給餌(在庫は全額Gold払い戻し)
+const SAVE_VERSION = 7; // V5.2: コオロギ給餌の復活(v6の払戻Goldは据置＋在庫付与・資産プラスのみ)
 
 const CFG = {
   saveKey: "lizardColonySaveV1",
@@ -12,6 +12,7 @@ const CFG = {
   saveBackupKeyV4: "lizardColonyV4Backup", // V4→V4.1移行前のバックアップ(ロールバック用)
   saveBackupKeyV5: "lizardColonyV5Backup", // V4.1→V5移行前のバックアップ(コオロギ共通化)
   saveBackupKeyV6: "lizardColonyV6Backup", // V5→V6移行前のバックアップ(コオロギ→Gold払い戻し)
+  saveBackupKeyV7: "lizardColonyV7Backup", // V6→V7移行前のバックアップ(コオロギ給餌の復活)
   startCoins: 500,
   startCrickets: 20,
   startGems: 3,
@@ -37,7 +38,11 @@ const CFG = {
   offlineCapHours: 24,      // オフライン進行の上限(V3 §3.4。研究で延長)
   offlineRate: 0.5,         // オフライン収益倍率(ブラウザを閉じていた時間・ロード時一括精算)
   awayStageIncomeRate: 1.0, // V5: 留守コロニーの常時生産倍率(1=フル。インフレ調整は支出側で)
-  feedGoldCost: 10,         // V5.1: 給餌1回のGoldコスト(旧: コオロギ1匹=10Gと等価)
+  feedGoldCost: 10,         // V5.1: 給餌1回のGoldコスト(旧: コオロギ1匹=10Gと等価)。V5.2ではコオロギ切れ時のGold換算補充単価に流用
+  // ---- V5.2: コオロギ給餌の復活(Phase 3.9) ----
+  reviveCrickets: 300,      // v6→v7移行で付与する初期在庫(払戻Goldは据置=資産プラスのみ・帰還後Ric調整)
+  cricketLotBase: 50,       // 購入ロット(まとめ買い)の基準数。表示は常に1項目=このロット×ランク係数
+  cricketLotPerRank: 10,    // ランクごとにロット数へ加算(項目数は増やさず数値だけ変化=ルーレット位置安定)
 
   // ---- 遺伝子ルーレット(roulette.md §7 v2・パチンコ方式・全CFG化。手触りは実機で最終調整) ----
   roulW: 150,               // シム/描画の基準空間 幅(単位)

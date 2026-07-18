@@ -31,6 +31,11 @@ Object.assign(UI, {
           title="オート給餌(レバー位置のレートで自動給餌)" aria-label="オート給餌">
           <svg class="icon"><use href="#i-auto"/></svg><span class="fd-lamp"></span>
         </button>
+        <button id="fd-empty" class="fd-sw ghost" role="switch" aria-checked="false"
+          title="コオロギ切れ時の挙動 — ON:自動停止(安全) / OFF:Gold換算で補充"
+          aria-label="コオロギ切れ時トグル(ON=自動停止/OFF=Gold補充)">
+          <svg class="icon"><use href="#i-shield"/></svg><span class="fd-lamp"></span>
+        </button>
       </div>`;
     center.appendChild(el);
     // 危機ヴィネット(Brushup V2 §3.1): 飼育槽の縁の内側だけを赤く。魂(Canvas描画)不変
@@ -108,6 +113,13 @@ Object.assign(UI, {
       d.auto = !d.auto;
       this.updateFeeder();
     });
+    // 切れ時トグル: ON=コオロギが尽きたら自動停止(安全) / OFF=Gold換算で補充して継続
+    el.querySelector("#fd-empty").addEventListener("click", () => {
+      const d = Game.ensureDial();
+      d.stopOnEmpty = !d.stopOnEmpty;
+      UI.toast(d.stopOnEmpty ? "コオロギ切れ時: 自動停止(安全装置ON)" : "コオロギ切れ時: Goldで補充して継続");
+      this.updateFeeder();
+    });
     this.updateFeeder();
   },
 
@@ -154,5 +166,7 @@ Object.assign(UI, {
     const sw = document.getElementById("fd-auto");
     sw.classList.toggle("on", d.auto);
     sw.setAttribute("aria-checked", d.auto);
+    const emp = document.getElementById("fd-empty");
+    if (emp) { emp.classList.toggle("on", !!d.stopOnEmpty); emp.setAttribute("aria-checked", !!d.stopOnEmpty); }
   },
 });
