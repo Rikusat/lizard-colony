@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>トカゲコロニー — 開発履歴（指示→結果）</title>
+<style>
+  :root {
+    --bg: #17140f; --panel: #221d16; --panel2: #2c2619; --border: #4a3f2a;
+    --ink: #e8dcc4; --sub: #a89878; --amber: #e0b45a; --amber-d: #7a5410; --life: #7bd986;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Segoe UI", system-ui, sans-serif; line-height: 1.6;
+    padding: 24px 16px; max-width: 1000px; margin: 0 auto;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h1 small { color: var(--sub); font-size: 13px; font-weight: normal; display: block; margin-top: 2px; }
+  .bar {
+    position: sticky; top: 0; background: var(--bg); padding: 12px 0; z-index: 5;
+    display: flex; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid var(--border); margin-bottom: 16px;
+  }
+  button {
+    font: inherit; cursor: pointer; border-radius: 8px; padding: 9px 16px;
+    border: 1px solid var(--border); background: linear-gradient(var(--panel2), var(--panel));
+    color: var(--ink); transition: filter .15s, border-color .15s;
+  }
+  button:hover { filter: brightness(1.15); border-color: var(--amber-d); }
+  button.primary { background: linear-gradient(#e6c06e, var(--amber)); color: var(--amber-d); border-color: var(--amber-d); font-weight: 600; }
+  button.copied { border-color: var(--life); color: var(--life); }
+  section { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 18px; overflow: hidden; }
+  .head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; background: var(--panel2); border-bottom: 1px solid var(--border); }
+  .head h2 { font-size: 15px; margin: 0; }
+  .head .meta { color: var(--sub); font-size: 12px; }
+  pre {
+    margin: 0; padding: 14px; max-height: 60vh; overflow: auto; white-space: pre-wrap; word-break: break-word;
+    font-family: "Consolas", "SFMono-Regular", ui-monospace, monospace; font-size: 12.5px; color: #d8ceb8;
+  }
+  .note { color: var(--sub); font-size: 12px; margin: 10px 0 18px; }
+  code { background: var(--panel2); padding: 1px 6px; border-radius: 4px; color: var(--amber); }
+  .err { color: #e08a7a; }
+</style>
+</head>
+<body>
+  <h1>トカゲコロニー — 開発履歴
+    <small>指示 → 結果 のワンクリックコピー（HANDOFF.md ＝判断記録 ／ git log ＝コミット履歴）</small>
+  </h1>
+
+  <div class="bar">
+    <button class="primary" id="copyAll">全部コピー（HANDOFF＋gitログ）</button>
+    <button id="copyHandoff">HANDOFF をコピー</button>
+    <button id="copyLog">git ログをコピー</button>
+    <button id="reload">再読込</button>
+  </div>
+
+  <section>
+    <div class="head"><h2>HANDOFF.md（session運用・判断記録＝単一の真実）</h2><span class="meta" id="handoffMeta">読込中…</span></div>
+    <pre id="handoff">読込中…</pre>
+  </section>
+
+  <section>
+    <div class="head"><h2>git コミット履歴（新しい順）</h2><span class="meta" id="logMeta">読込中…</span></div>
+    <pre id="log">読込中…</pre>
+  </section>
+
+  <p class="note">
+    ※ このページはローカルサーバ（例 <code>localhost:3000/dev-history.html</code>）で開いてください（file:// では取得がブロックされる場合があります）。<br>
+    ※ git ログは <code>dev-log.txt</code> のスナップショットです。最新化するには：<code>git log --pretty=format:'%h %ad  %s' --date=short &gt; dev-log.txt</code>
+  </p>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const state = { handoff: "", log: "" };
+
+  async function load() {
+    // キャッシュ回避のため no-store
+    try {
+      const h = await (await fetch("HANDOFF.md", { cache: "no-store" })).text();
+      state.handoff = h;
+      $("handoff").textContent = h;
+      $("handoffMeta").textContent = `${h.split("\n").length} 行 / ${h.length.toLocaleString()} 文字`;
+    } catch (e) {
+      $("handoff").innerHTML = '<span class="err">HANDOFF.md を取得できませんでした（ローカルサーバで開いていますか？）</span>';
+      $("handoffMeta").textContent = "取得失敗";
+    }
+    try {
+      const l = await (await fetch("dev-log.txt", { cache: "no-store" })).text();
+      state.log = l;
+      $("log").textContent = l;
+      $("logMeta").textContent = `${l.trim().split("\n").length} コミット`;
+    } catch (e) {
+      $("log").innerHTML = '<span class="err">dev-log.txt を取得できませんでした</span>';
+      $("logMeta").textContent = "取得失敗";
+    }
+  }
+
+  async function copy(text, btn) {
+    if (!text) { flash(btn, "内容が空です", true); return; }
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (e) {
+      // フォールバック（非セキュアコンテキスト等）
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); } catch (_) {}
+      document.body.removeChild(ta);
+    }
+    flash(btn, "コピーしました ✓");
+  }
+
+  function flash(btn, msg, isErr) {
+    const orig = btn.textContent;
+    btn.textContent = msg;
+    btn.classList.toggle("copied", !isErr);
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove("copied"); }, 1400);
+  }
+
+  function combined() {
+    return `=== トカゲコロニー 開発履歴（指示→結果） ===\n\n`
+      + `── HANDOFF.md（判断記録） ──\n\n${state.handoff}\n\n`
+      + `── git コミット履歴 ──\n\n${state.log}`;
+  }
+
+  $("copyAll").addEventListener("click", (e) => copy(combined(), e.currentTarget));
+  $("copyHandoff").addEventListener("click", (e) => copy(state.handoff, e.currentTarget));
+  $("copyLog").addEventListener("click", (e) => copy(state.log, e.currentTarget));
+  $("reload").addEventListener("click", load);
+  load();
+</script>
+</body>
+</html>
