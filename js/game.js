@@ -138,7 +138,7 @@ const Game = {
   facLv(id) { return this.state.facilities[id] || 0; },
   allyLv(id) { return (this.state.allies[id] && this.state.allies[id].lv) || 0; },
   isHidden(lz) { return lz.hiddenT > 0; }, // 鷹にさらわれて一時不在
-  isAway(lz) { return lz.hiddenT > 0 || !!lz.exploring; }, // フィールド外(さらわれ or 探索派遣)
+  isAway(lz) { return lz.hiddenT > 0; }, // フィールド外(鷹にさらわれ一時不在)。V5.2: 探索(exploring)はV4.1で撤去済のため参照しない(残留フラグで個体が永久away=給餌/emit不能になるバグ根治)
   isVisible(lz) { return !this.isAway(lz) && !lz.resting; }, // フィールドに描画される個体
 
   // 群衆スケール: 表示数が増えるほど個体を縮小して見通しを確保(フレームごとに再計算)
@@ -173,7 +173,7 @@ const Game = {
     this._restT = 0;
     // ベビー/ヤングは常に外(成長の実感は外で見せる)
     for (const l of s.lizards) if (l.stage !== "adult" && l.resting) l.resting = false;
-    const adults = s.lizards.filter((l) => l.stage === "adult" && !l.exploring);
+    const adults = s.lizards.filter((l) => l.stage === "adult"); // V5.2: exploring(V4.1撤去)は参照しない
     const cap = this.visibleAdultCap();
     const excess = adults.length - cap;
     if (excess <= 0) {
@@ -222,7 +222,7 @@ const Game = {
   combatSurge() {
     const s = this.state;
     const fs = s.lizards
-      .filter((l) => l.stage === "adult" && l.injuredT <= 0 && !this.isHidden(l) && !l.exploring)
+      .filter((l) => l.stage === "adult" && l.injuredT <= 0 && !this.isHidden(l)) // V5.2: exploring(V4.1撤去)は参照しない
       .sort((a, b) => this.lizardPrio(b) - this.lizardPrio(a));
     fs.forEach((l, i) => {
       if (i < CFG.combatDrawCap) {
@@ -2247,6 +2247,8 @@ const Game = {
     };
     // 補完
     for (const f of FACILITIES) if (this.state.facilities[f.id] === undefined) this.state.facilities[f.id] = 0;
+    // V5.2: 探索(V4.1撤去)の残留フラグを掃除。残るとisAway誤判定で個体が永久に給餌/emit不能になった(冪等)
+    for (const lz of this.state.lizards) if ("exploring" in lz) delete lz.exploring;
     if (!this.state.nextRaid) this.rollNextRaid();
   },
 

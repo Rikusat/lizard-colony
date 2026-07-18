@@ -230,8 +230,12 @@ const UI = {
     document.getElementById("ui-invasion").textContent = Math.round(s.erosion || 0) + "%";
     this.updateStageBar();
     // V5.2: コオロギ在庫と購入ロット表示(項目数は常に1・数値だけランクで変化=ルーレット位置安定)
+    // ヘッダーと右パネルは同一の state.crickets を参照(発射側 feed() と同じ在庫=参照ズレを構造的に排除)
+    const crkText = fmt(Math.floor(s.crickets || 0));
     const crk = document.getElementById("ui-crickets");
-    if (crk) crk.textContent = fmt(Math.floor(s.crickets || 0));
+    if (crk) crk.textContent = crkText;
+    const crkTop = document.getElementById("ui-crickets-top");
+    if (crkTop) crkTop.textContent = crkText;
     const lotLbl = document.getElementById("cricket-lot-lbl");
     if (lotLbl) { const n = Game.cricketLot(); lotLbl.textContent = `+${fmt(n)}匹 / ${fmt(n * CFG.cricketCost)}G`; }
     // 称号・放浪商人
