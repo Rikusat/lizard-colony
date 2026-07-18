@@ -1773,22 +1773,30 @@ button.holding::after {
 .inv-row b { color: var(--boss-400); min-width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
 
 /* toasts */
-#toasts { position: fixed; right: 18px; bottom: 18px; display: flex; flex-direction: column; gap: 9px; z-index: 60; max-width: 380px; }
-.toast {
-  background: linear-gradient(rgba(48, 37, 19, .97), rgba(30, 22, 11, .97));
-  border: 1px solid var(--gold-deep); border-left: 4px solid var(--gold);
-  border-radius: 10px;
-  padding: 10px 16px; font-size: calc(13px * var(--fs-scale, 1)); line-height: 1.5;
-  box-shadow: var(--elev-2);
-  animation: toast-in var(--dur-slow) var(--ease-out);
+/* 3.11: トースト=飼育槽上部中央からスマホ通知のように下へスライドイン(#frame内に配置)。
+   左上の惑星名/右上の襲撃HUD/右下クランクと重ならない中央上・半透明で生き物を隠さない(UISkills §5.5) */
+#toasts {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  z-index: 5; width: max-content; max-width: 56%; pointer-events: none;
 }
-/* 種別色(§5.5): 報酬=琥珀(既定) / 危機=boss / 成功=life / 情報=info */
-.toast.bad, .toast.boss { border-color: var(--boss-500); border-left-color: var(--boss-500); }
-.toast.life { border-color: var(--life-600); border-left-color: var(--life-500); }
-.toast.info { border-color: var(--info-500); border-left-color: var(--info-500); }
-.toast.out { animation: toast-out var(--dur-slow) var(--ease-out) forwards; }
-@keyframes toast-in { from { transform: translateX(60px); opacity: 0; } }
-@keyframes toast-out { to { transform: translateX(60px); opacity: 0; } }
+.toast {
+  background: linear-gradient(rgba(38, 29, 15, .82), rgba(24, 18, 9, .82));
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  border: 1px solid rgba(212, 175, 90, .4); border-left: 4px solid var(--gold);
+  border-radius: 10px; max-width: 100%; text-align: left;
+  padding: 8px 15px; font-size: calc(12.5px * var(--fs-scale, 1)); line-height: 1.45;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .42);
+  animation: toast-drop var(--dur-base) var(--ease-out);
+}
+/* 種別色(§5.5): 報酬=琥珀(既定) / 危機=boss / 成功=life / 情報=info(左端バー) */
+.toast.bad, .toast.boss { border-left-color: var(--boss-500); }
+.toast.life { border-left-color: var(--life-500); }
+.toast.info { border-left-color: var(--info-500); }
+.toast.out { animation: toast-rise var(--dur-base) var(--ease-out) forwards; }
+@keyframes toast-drop { from { transform: translateY(-16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes toast-rise { to { transform: translateY(-10px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } .toast.out { animation: none; opacity: 0; } }
 
 /* ============ ヒーローオーバーレイ(§5.8/§6) ============ */
 #hero-overlay {

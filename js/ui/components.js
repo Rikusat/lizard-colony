@@ -35,7 +35,8 @@ Object.assign(UI, {
     el.className = "toast" + (cls ? " " + cls : "");
     el.innerHTML = msg; // 内部生成の文字列のみ(SVGアイコンを含められるようinnerHTML)
     this.els["toasts"].appendChild(el);
-    while (this.els["toasts"].children.length > 5) this.els["toasts"].firstChild.remove();
+    // 3.11: 上限4件・古いものから消す(オート給餌中の孵化/成長通知の大量発生でも画面を埋めない)
+    while (this.els["toasts"].children.length > 4) this.els["toasts"].firstChild.remove();
     setTimeout(() => el.classList.add("out"), 3650);
     setTimeout(() => el.remove(), 4000);
   },
