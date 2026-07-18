@@ -1204,3 +1204,17 @@ paper 11.26 / sand 7.91 / life-400 7.45〜7.81 / amber-400 7.45 / boss-400 5.20(
 - **再デプロイ**: `npx vercel --prod`(コミット0c42a31=飼育槽拡大の基盤修正を含む)。readyState=READY・ビルドエラー/警告なし。
 - **本番URL**: https://lizardcolony.vercel.app (別名) / 直: lizardcolony-mpwghr17o-memoriacarsystem.vercel.app
 - **本番検証(15/15 PASS)**: 飼育槽拡大(1479x832・aspect1.7778・下余白18px) / 起動rank1・v8 / 初回ロードでルーレット描画(自己修復・釘40・明ピクセル43) / 既存v5→v8移行(rank106・ジェム43[42保全+日次]・Gold13,001,012・コオロギ300・個体Lv30・味方Lv休眠raw5/効果0・原本バックアップ) / consoleエラーゼロ・全4xxゼロ。
+
+### Phase 3.12 クランク固定+飼育槽の表示20匹制(2026-07-19・自律ラン)✅ [commit 453795a]
+
+- **前提確認(実測7/7)**: 表示制限(resting=巣籠り)は"表示のみ"。収入/給餌/XP/コオロギ消費/繁殖は籠り個体含む**全個体に従来どおり作用**(既存設計)。
+- **3.12.1**: クランクのドラッグ移動+位置保存(initFeederDrag/restoreFeederPos/#fd-grip/localStorage.feederPos)を撤去=右下固定+拡大92px。
+- **3.12.2**(既存restingシステム拡張・再構築せず):
+  ・visibleAdultCap→CFG.displayCap(20・平常/ボスとも)。combatDrawCap 60→20。
+  ・displayScore: 平常=攻撃弱い順に表示(強個体が籠る)/ボス=強い順に這い出す/ピン・選択は最優先。
+  ・updateResting二段: 上限超過はハード収束(大超過加速)/均衡時のみdisplayHysteresis(0.6)で交代=順位僅差でもちらつかない。再評価=平常3.5s/ボス0.4s。
+  ・settleDisplay(): ロード/新規/惑星切替で表示20を即確定。100匹コロニーでも一瞬で描画20体=fps安定。
+  ・combatSurge: 一斉でなくボスレート(emergeSwapPerSec=4)で強者が次々に湧き出す時間差。
+  ・③resting/restedAtはJSON replacerで保存からstrip(fable2)=セーブ形状不変・ロード後settleが再構築(既存の保存逸脱も是正)。
+- **fps実測(headless --disable-gpu)**: 平常は**個体数に非依存で一定**(20/50/100/200匹すべて~52fps・描画は常に20体=表示capが機能しfpsを個体数から切り離した=④達成)。ボスは~11fpsだが**個体数と無関係(20匹でも11)=3.12でなく既存のボス戦Canvas描画コスト**。headless --disable-gpuはCanvas2Dソフト描画でfpsを大きく過小評価するため、実GPUでの手触りはRic確認が必要。
+- 検証: node 118PASS / 実ブラウザ機能PASS / #spin-proof全10惑星 / 平常・ボスのスクショ(20体表示・ボスは巣穴から強者集結) / 魂不変。
