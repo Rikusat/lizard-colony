@@ -197,9 +197,6 @@ const CFG = {
   bossApproach: 1.3,        // 迫り(未到着シルエット)の追加拡大
   // Phase4: 終盤コンテンツ (GameExpansion_v2 ⑨)
   legendChance: 0.004,      // 繁殖時の伝説変異率(祭壇 +0.2%/Lv)
-  merchantIntervalMin: 300, // 放浪商人の来訪間隔(秒)
-  merchantIntervalMax: 600,
-  merchantStay: 90,         // 滞在秒数
   luckyEggInterval: 300,    // ラッキー卵の抽選間隔(秒)
   luckyEggChance: 0.25,
   eventInterval: 420,       // 定期イベントの抽選間隔(秒)

@@ -16,7 +16,6 @@ const Game = {
   slowmo: 0,             // 撃破スローモーション残り秒
   flashT: 0,             // 伝説誕生などの画面フラッシュ残り秒
   event: null,           // 進行中の定期イベント (セーブしない)
-  merchant: null,        // 滞在中の放浪商人 (セーブしない)
   _idSeq: 1,
 
   // ---------------- 初期化 ----------------
@@ -669,7 +668,7 @@ const Game = {
 
     // 進行中の襲撃は破棄(切替=そのStageの現地対応から離れる)
     if (this.raid) { this.raid = null; s.raidTimer = CFG.raidInterval; }
-    this.event = null; this.merchant = null; this.selectedId = null;
+    this.event = null; this.selectedId = null;
 
     // 現コロニーをworldへ書き戻し
     const active = this.activeStageData();
@@ -1828,9 +1827,8 @@ const Game = {
       if (s.raidTimer <= 0) this.startRaid();
     }
 
-    // Phase4: イベント・放浪商人・ラッキー卵・演出タイマー
+    // Phase4: イベント・ラッキー卵・演出タイマー(放浪商人はPhase3.10で撤廃)
     this.updateEvents(dt);
-    this.updateMerchant(dt);
     this.updateLuckyEgg(dt);
     if (this.flashT > 0) this.flashT = Math.max(0, this.flashT - dt);
 
@@ -2010,74 +2008,7 @@ const Game = {
     }
   },
 
-  // 放浪商人 (⑨-11): 数分に一度あらわれ、ジェムでレア品を売る
-  updateMerchant(dt) {
-    if (this.merchant) {
-      this.merchant.t -= dt;
-      if (this.merchant.t <= 0) {
-        this.merchant = null;
-        UI.toast("放浪商人は去っていった…");
-      }
-      return;
-    }
-    this._merchantT = (this._merchantT === undefined
-      ? rnd(CFG.merchantIntervalMin, CFG.merchantIntervalMax) : this._merchantT) - dt;
-    if (this._merchantT <= 0) {
-      this._merchantT = rnd(CFG.merchantIntervalMin, CFG.merchantIntervalMax);
-      this.rollMerchant();
-      UI.toast(`放浪商人がやってきた! (${Math.round(CFG.merchantStay)}秒滞在)`);
-    }
-  },
-
-  rollMerchant() {
-    const offers = [];
-    // レア卵
-    const pool = this.unlockedSpecies().filter((sp) => sp.stars >= 3);
-    if (pool.length) {
-      const sp = pool[Math.floor(Math.random() * pool.length)];
-      const morphs = MORPHS.filter((m) => m.id !== "normal" && !m.legendary);
-      const mo = morphs[Math.floor(Math.random() * morphs.length)];
-      offers.push({ kind: "egg", label: ` ${mo.name} ${sp.name}の卵`, price: sp.stars * 3 + 3, sp, mo });
-    }
-    offers.push({ kind: "bio", label: "生態データ 生態データ ×80", price: 6 });
-    offers.push({ kind: "coins", label: ` コイン袋 (${fmt(Math.max(5000, this.incomePerSec() * 600))}G)`, price: 8 });
-    if (Math.random() < 0.12) {
-      offers.push({ kind: "legendegg", label: " 虹色の卵 (伝説確定!)", price: 60 });
-    }
-    this.merchant = { t: CFG.merchantStay, offers };
-  },
-
-  buyMerchant(i) {
-    const m = this.merchant;
-    if (!m || !m.offers[i]) return false;
-    const o = m.offers[i];
-    if (this.state.gems < o.price) { UI.toast("ジェムが足りない!", true); return false; }
-    if ((o.kind === "egg" || o.kind === "legendegg") && this.state.eggs.length >= this.eggSlotCap()) {
-      UI.toast("卵スロットがいっぱい!", true);
-      return false;
-    }
-    this.state.gems -= o.price;
-    if (o.kind === "egg" || o.kind === "legendegg") {
-      const sp = o.sp || this.unlockedSpecies().slice(-1)[0];
-      const morphId = o.kind === "legendegg" ? "legendary" : o.mo.id;
-      this.state.eggs.push({
-        speciesId: sp.id, morphId,
-        hue: sp.hue + rnd(-10, 10), sat: sp.sat, light: sp.light,
-        pattern: PATTERNS[Math.floor(Math.random() * 4)],
-        t: 30, total: 30, lucky: o.kind === "legendegg",
-      });
-      UI.toast(`${o.label} を購入! 巣で孵化が始まった`);
-    } else if (o.kind === "bio") {
-      this.addRes("bio", 80);
-      UI.toast("生態データ×80 を購入!");
-    } else {
-      const g = Math.max(5000, Math.floor(this.incomePerSec() * 600));
-      this.state.coins += g;
-      UI.toast(`コイン袋を購入! +${fmt(g)}G`);
-    }
-    m.offers.splice(i, 1);
-    return true;
-  },
+  // V5.2 Phase3.10: 放浪商人は撤廃(3.10.1・残骸を残さない)
 
   // ラッキー卵 (⑨-28): 稀に虹色の卵が巣に現れる
   updateLuckyEgg(dt) {

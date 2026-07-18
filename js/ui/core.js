@@ -34,7 +34,6 @@ const UI = {
     "余ったGoldはHQで食料やエネルギーに変換できる。",
     "惑星開発(HQ)はGoldの立派な使い道。生産が底上げされる。",
     "ごく稀に虹色の伝説個体が生まれる。祭壇で確率が上がる!",
-    "放浪商人は数分に一度あらわれる。虹色の卵を売ることも…",
     "統計から称号の掲示とコロニー全景の画像保存ができる。",
     "毎日ログインするとデイリーボーナス! 連続でジェム増量。",
   ],
@@ -54,7 +53,6 @@ const UI = {
     attachHold(document.getElementById("btn-breed"), () => Game.quickBreed(true));
     // V5.1: 自動補給トグルは撤去(Gold直接消費給餌)
     on("btn-fac", () => this.openFacilities());
-    on("btn-merchant", () => this.openMerchant());
     on("btn-stats", () => this.openStats());
     on("btn-hq", () => this.openHQ());
     // V5.2: コオロギ購入(まとめ買い)復活。短押し=1ロット / 長押し=連続。巣ネットワークは巣タップで開く
@@ -251,12 +249,9 @@ const UI = {
     if (crkTop) crkTop.textContent = crkText;
     const lotLbl = document.getElementById("cricket-lot-lbl");
     if (lotLbl) { const n = Game.cricketLot(); lotLbl.textContent = `+${fmt(n)}匹 / ${fmt(n * CFG.cricketCost)}G`; }
-    // 称号・放浪商人
-    const tt = s.titleSel && TITLES.find((t) => t.id === s.titleSel);
-    document.getElementById("ui-title").textContent = tt ? tt.name : "(称号なし)";
-    const mBtn = document.getElementById("btn-merchant");
-    mBtn.classList.toggle("hidden", !Game.merchant);
-    mBtn.classList.toggle("primary", !!Game.merchant);
+    // 称号(統計モーダルへ集約・3.10.3)。DOM要素は撤去済のためガード
+    const tEl = document.getElementById("ui-title");
+    if (tEl) { const tt = s.titleSel && TITLES.find((t) => t.id === s.titleSel); tEl.textContent = tt ? tt.name : "(称号なし)"; }
 
     // 襲撃タイマー+次ボス予告 (GameExpansion_v2 ①: 予告強化)
     const rt = this.els["raid-timer"];

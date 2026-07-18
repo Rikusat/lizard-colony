@@ -50,7 +50,6 @@ const Render = {
     for (const lz of sorted) this.drawLizard(ctx, lz);
     if (Game.raid) this.drawBoss(ctx, Game.raid);
     else if (Game.corpse) this.drawCorpse(ctx, Game.corpse);
-    this.drawMerchant(ctx);
     if (Game.currentStage().id === 8) this.drawBugSweep(ctx); // 氷の前線: 自動掃討(純演出)
     this.drawPopups(ctx);
     this.drawVignette(ctx);
@@ -68,41 +67,6 @@ const Render = {
     }
   },
 
-  // 放浪商人の屋台
-  drawMerchant(ctx) {
-    const m = Game.merchant;
-    if (!m) return;
-    const x = 950, y = 688;
-    ctx.fillStyle = "rgba(0,0,0,.3)";
-    ctx.beginPath(); ctx.ellipse(x, y + 8, 40, 8, 0, 0, 7); ctx.fill();
-    // 荷車
-    ctx.fillStyle = "#6b5433";
-    rr(ctx, x - 30, y - 22, 60, 24, 5); ctx.fill();
-    ctx.strokeStyle = "rgba(0,0,0,.4)"; ctx.lineWidth = 1.5;
-    rr(ctx, x - 30, y - 22, 60, 24, 5); ctx.stroke();
-    // 幌
-    ctx.fillStyle = "#8f2f1c";
-    ctx.beginPath();
-    ctx.moveTo(x - 34, y - 20);
-    ctx.quadraticCurveTo(x, y - 48, x + 34, y - 20);
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = "#c9a86a";
-    ctx.beginPath();
-    ctx.moveTo(x - 28, y - 22);
-    ctx.quadraticCurveTo(x, y - 44, x + 28, y - 22);
-    ctx.closePath(); ctx.fill();
-    // 車輪
-    for (const ox of [-16, 16]) {
-      ctx.fillStyle = "#3d3222";
-      ctx.beginPath(); ctx.arc(x + ox, y + 3, 7, 0, 7); ctx.fill();
-      ctx.fillStyle = "#57452c";
-      ctx.beginPath(); ctx.arc(x + ox, y + 3, 3, 0, 7); ctx.fill();
-    }
-    // ランタン(ゆらめく)
-    ctx.fillStyle = `rgba(255,220,120,${0.7 + Math.sin(this.time * 6) * 0.2})`;
-    ctx.beginPath(); ctx.arc(x + 34, y - 26, 4, 0, 7); ctx.fill();
-    this.pill(ctx, x - 52, y + 14, `放浪商人 ${Math.ceil(m.t)}s`, "rgba(90,30,60,.75)", "#ffd0e0");
-  },
 
   // ---------------- 背景(キャッシュ) ----------------
   drawStage(ctx) {

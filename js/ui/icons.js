@@ -73,7 +73,6 @@ const ICONS = {
   stats: '<path d="M4 20V10M10 20V4M16 20v-8M22 20H2" fill="none"/>',
   settings: '<circle cx="12" cy="12" r="3" fill="none"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" fill="none"/>',
   nestweb: '<path d="M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9" fill="none"/><path d="M12 7.5c2.5 0 4.5 2 4.5 4.5s-2 4.5-4.5 4.5-4.5-2-4.5-4.5 2-4.5 4.5-4.5z" fill="none"/>',
-  merchant: '<path d="M6 8h12l2 13H4z" fill="none"/><path d="M9 11V6a3 3 0 0 1 6 0v5" fill="none"/>',
   egg: '<path d="M12 3c4 4 6.5 8 6.5 12a6.5 6.5 0 1 1-13 0C5.5 11 8 7 12 3z" fill="none"/>',
   lizard: '<path d="M4 13c3 0 4.5-3 8-3 2.5 0 4 .8 5.5 2.2L21 14l-3 1c-1.6 1.6-3.4 2.5-6 2.5-3.5 0-5-3-8-4.5z"/><path d="M8 17.5 7 20M13 18l1 2.5M19.5 12.5c.8-1.6.8-3.4 0-5" fill="none"/>',
   feed: '<path d="M7 3v7a2.5 2.5 0 0 0 5 0V3M9.5 3v18M16 3c2 1 3 3.5 3 6 0 2-1 3-2 3v9" fill="none"/>',

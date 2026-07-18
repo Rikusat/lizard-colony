@@ -127,31 +127,7 @@ Object.assign(UI, {
     this.toast(`${Icon.svg("camera")} コロニー全景を保存した!`);
   },
 
-  // ---------------- 放浪商人 (⑨-11) ----------------
-  openMerchant() {
-    const m = Game.merchant;
-    if (!m) return;
-    this.openModal(`${Icon.svg("merchant")} 放浪商人`, (body) => {
-      if (!Game.merchant || !Game.merchant.offers.length) {
-        body.innerHTML = `<p>「もう売るものがないよ。また来るね」</p>`;
-        return;
-      }
-      body.innerHTML = `<p style="font-size:calc(13px * var(--fs-scale, 1));color:var(--sub);margin-bottom:10px">
-        「いいものあるよ。ジェムで払っておくれ」(滞在 残り${Math.ceil(Game.merchant.t)}秒 / 所持${Icon.svg("gem")}${fmt(Game.state.gems)})</p>`;
-      Game.merchant.offers.forEach((o, i) => {
-        const row = document.createElement("div");
-        row.className = "list-row";
-        row.innerHTML = `
-          <div class="grow"><b>${o.label}</b></div>
-          <button ${Game.state.gems < o.price ? "disabled" : ""}>${Icon.svg("gem")}${o.price}</button>`;
-        row.querySelector("button").addEventListener("click", () => {
-          Game.buyMerchant(i);
-          this.openMerchant();
-        });
-        body.appendChild(row);
-      });
-    });
-  },
+  // V5.2 Phase3.10: 放浪商人は撤廃(3.10.1)
 
   // ---------------- ミッション ----------------
   openMissions() {
