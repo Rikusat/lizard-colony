@@ -235,6 +235,10 @@ const UI = {
     if (crkTop) crkTop.textContent = crkText;
     const lotLbl = document.getElementById("cricket-lot-lbl");
     if (lotLbl) { const n = Game.cricketLot(); lotLbl.textContent = `+${fmt(n)}匹 / ${fmt(n * CFG.cricketCost)}G`; }
+    // 3.13 C3: field-tools(コオロギ/設備)を惑星名バッジ・個体数(canvas描画・y18/y46)の下へ。
+    // canvasはスケールで伸縮するため、表示高さ追随で重なりを防ぐ(固定pxだと大画面で被る)
+    const ft = document.getElementById("field-tools"), gcv = document.getElementById("game");
+    if (ft && gcv) ft.style.top = Math.round(gcv.offsetTop + (60 / 720) * gcv.clientHeight + 10) + "px";
     // 称号(統計モーダルへ集約・3.10.3)。DOM要素は撤去済のためガード
     const tEl = document.getElementById("ui-title");
     if (tEl) { const tt = s.titleSel && TITLES.find((t) => t.id === s.titleSel); tEl.textContent = tt ? tt.name : "(称号なし)"; }

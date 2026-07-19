@@ -38,23 +38,15 @@
 </div>
 
 <main>
-  <aside id="left">
-    <div class="card">
-      <h3>操作卓</h3>
-      <!-- 3.11.4: 「繁殖する」ボタンは撤廃(トカゲクリック→相手選択で繁殖)。左の余白はルーレット拡大へ -->
-      <button id="btn-cricket" class="act"><span class="bicon"><svg class="icon"><use href="#i-cricket"/></svg></span><span class="lbl">コオロギ購入<small id="cricket-lot-lbl">まとめ買い</small></span></button>
-      <button id="btn-fac" class="act"><span class="bicon"><svg class="icon"><use href="#i-build"/></svg></span><span class="lbl">設備<small>コロニーを強化</small></span></button>
-    </div>
-    <div class="card" id="roulette-card">
-      <h3><svg class="icon"><use href="#i-egg"/></svg> 遺伝子ルーレット</h3>
-      <div id="roulette-wrap"><canvas id="roulette-canvas"></canvas></div>
-    </div>
-    <!-- 3.11.1e: ヒントは撤去しルーレットを最大化(ヒントは初回のみトースト表示・下記core.js) -->
-  </aside>
-
   <section id="center">
     <div id="frame">
       <canvas id="game" width="1280" height="720"></canvas>
+      <!-- 3.13 C3: 左メニュー撤廃→飼育槽を全画面化。コオロギ購入/設備は飼育槽左上の透過オーバーレイへ移設 -->
+      <!-- 惑星名バッジ・個体数(canvas描画)の下に置き干渉させない。機能は従来どおり(同一ID=ハンドラ結線を維持) -->
+      <div id="field-tools">
+        <button id="btn-cricket" class="ft-btn" title="コオロギ購入(まとめ買い / 長押しで連続)"><svg class="icon"><use href="#i-cricket"/></svg><span class="lbl">コオロギ<small id="cricket-lot-lbl"></small></span></button>
+        <button id="btn-fac" class="ft-btn" title="設備 — コロニーを強化"><svg class="icon"><use href="#i-build"/></svg><span class="lbl">設備</span></button>
+      </div>
       <!-- 3.10.3: 襲撃予告=飼育槽右上のコンパクト半透明HUD(生き物の動きを隠さない) -->
       <div id="raid-hud">
         <div class="rh-line"><svg class="icon"><use href="#i-snake"/></svg><span id="raid-timer">--:--</span></div>

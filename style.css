@@ -140,14 +140,14 @@ button.danger { color: var(--boss-400); }
 
 /* ============ layout ============ */
 main {
+  /* 3.13 C3: 左メニュー撤廃=単カラム。飼育槽を全画面化(横いっぱい) */
   display: grid;
-  grid-template-columns: clamp(228px, 17vw, 300px) minmax(0, 1fr); /* 3.10.3: 右パネル撤廃=2カラム。左拡大+水槽最大化 */
-  gap: clamp(8px, 1vw, 14px);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
   padding: clamp(6px, 1vh, 12px) clamp(10px, 1.1vw, 16px);
-  max-width: 1980px; margin: 0 auto; /* 右パネル撤廃ぶんを水槽へ回す */
+  max-width: 1980px; margin: 0 auto;
   align-items: start;
 }
-#left { display: flex; flex-direction: column; gap: clamp(6px, 1vh, 12px); align-self: stretch; min-height: 0; } /* ルーレット枠を縦に伸ばす */
 
 .card {
   background: var(--grad-card);
@@ -216,6 +216,26 @@ button.act .price {
 
 /* 襲撃タイマー */
 /* 3.10.3: 襲撃予告=飼育槽右上のコンパクト半透明HUD(生き物の動きを隠さない・ボスHPバーは中央上で不干渉) */
+/* 3.13 C3: 飼育槽左上の操作オーバーレイ(コオロギ購入/設備)。今すぐ呼ぶと同程度の透過。
+   惑星名バッジ・個体数(canvas描画・左上)の下に置き干渉させない */
+#field-tools {
+  position: absolute; top: 62px; left: 12px; z-index: 4;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 5px; pointer-events: none;
+}
+#field-tools > * { pointer-events: auto; }
+#field-tools .ft-btn {
+  display: flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; cursor: pointer;
+  background: rgba(18, 14, 10, .58); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  border: 1px solid rgba(255, 255, 255, .13);
+  color: var(--paper-100); font-weight: bold; font-size: calc(13px * var(--fs-scale, 1));
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .8); transition: background var(--dur-fast), transform var(--dur-fast) var(--ease-pop);
+}
+#field-tools .ft-btn:hover { background: rgba(30, 22, 14, .72); }
+#field-tools .ft-btn:active { transform: scale(.96); }
+#field-tools .ft-btn .icon { width: 15px; height: 15px; color: var(--amber-400); }
+#field-tools .ft-btn .lbl { display: flex; align-items: center; gap: 5px; }
+#field-tools .ft-btn small { color: var(--sub); font-weight: normal; font-size: .85em; }
+
 #raid-hud {
   position: absolute; top: 12px; right: 12px; z-index: 4;
   display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
