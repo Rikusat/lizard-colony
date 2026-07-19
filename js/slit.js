@@ -24,6 +24,11 @@ const Slit = {
   _rng: null,
   _cd: 0,         // クランク稼働トリガーのクールダウン残(秒)
   _stuckSeq: 1,
+  _time: 0,       // 回転の累積時間(固定dt・時間の純関数=決定論。ウォールクロック非依存)
+  _acc: 0,        // 固定dt積分のアキュムレータ
+
+  // 円iの切れ目の中心角(度)=基準角+回転。時刻tの純関数
+  ringSlitAngle(i) { return CFG.slitBaseAngleDeg + CFG.slitSpinDeg[i] * this._time; },
 
   setSeed(n) {
     this._seed = n >>> 0;
@@ -58,21 +63,29 @@ const Slit = {
   },
   cooldownLeft() { return this._cd; },
 
-  // 内向きに前進。跨いだ円ごとにスリット判定(高速で複数跨ぐ場合も順に処理)。クールダウン/張り付き寿命も進める
-  advance(dt) {
+  // 実dtを固定dtで積分(フレーム非依存=決定論)。回転・前進・張り付き寿命を進める
+  advance(realDt) {
+    this._acc += Math.min(realDt, 0.1);
+    const fdt = CFG.slitFixedDt;
+    let guard = 0;
+    while (this._acc >= fdt && guard < 400) { this._step(fdt); this._acc -= fdt; guard++; }
+  },
+
+  _step(dt) {
+    this._time += dt;                                // 回転の累積時間(全円の切れ目角はこれの純関数)
     if (this._cd > 0) this._cd = Math.max(0, this._cd - dt);
-    // 張り付き球の寿命(内側=惜しいほど長く残す=下記_addStuckの優先度と対で)
+    // 張り付き球: 寿命減衰+「付いた円と一緒に回転」(円の記録なので円と共に巡る)
     if (this.stuck.length) {
-      for (const s of this.stuck) s.life -= dt;
+      for (const s of this.stuck) { s.life -= dt; s.theta += CFG.slitSpinDeg[s.ring] * dt; }
       this.stuck = this.stuck.filter((s) => s.life > 0);
     }
     const b = this.ball;
     if (!b || b.phase !== "fly") return;
     b.r -= CFG.slitBallSpeedf * dt;
-    const N = CFG.slitRings, radii = CFG.slitRadiif, half = CFG.slitHalfDeg, base = CFG.slitBaseAngleDeg;
-    const dist = slitAngleDist(b.theta, base);
+    const N = CFG.slitRings, radii = CFG.slitRadiif, half = CFG.slitHalfDeg;
     while (b.ringIdx < N && b.r <= radii[b.ringIdx]) {
       const i = b.ringIdx;
+      const dist = slitAngleDist(b.theta, this.ringSlitAngle(i)); // 跨いだ瞬間の回転位置で判定(0.5s高速=ほぼ発射時刻の位相)
       if (dist <= half[i]) {
         this.passed = i + 1;
         this.events.push({ type: "SlitPass", ring: i, near: half[i] - dist }); // near小=ギリギリ通過
@@ -80,7 +93,7 @@ const Slit = {
       } else {
         b.phase = "blocked"; b.blockRing = i; b.r = radii[i];
         this.events.push({ type: "SlitBlocked", ring: i, miss: dist - half[i] }); // miss小=切れ目のすぐ横=惜しい
-        this._addStuck(radii[i], b.theta, i, dist - half[i]); // 痕跡を残す
+        this._addStuck(radii[i], b.theta, i, dist - half[i]); // 痕跡を残す(以後は付いた円と共に回転)
         return;
       }
     }
@@ -106,7 +119,7 @@ const Slit = {
 
   active() { return !!this.ball && this.ball.phase === "fly"; },
   outcome() { return this.ball ? this.ball.phase : "idle"; }, // "fly"|"blocked"|"success"|"idle"
-  reset() { this.ball = null; this.passed = 0; this.stuck = []; this._cd = 0; }, // 惑星切替/新セッションで痕跡もクリア
+  reset() { this.ball = null; this.passed = 0; this.stuck = []; this._cd = 0; this._time = 0; this._acc = 0; }, // 惑星切替/新セッションで痕跡もクリア
   drainEvents() { const ev = this.events.slice(); this.events.length = 0; return ev; },
 };
 

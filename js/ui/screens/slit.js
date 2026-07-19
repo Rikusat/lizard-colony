@@ -63,9 +63,10 @@ Object.assign(UI, {
     const baseA = 0.42 + (cd > 0 ? 0 : 0.06);
     const lw = Math.max(1.2, 1.4 * sc);
     for (let i = 0; i < N; i++) {
-      this._slitRing(ctx, cx, cy, radii[i] * R, base, half[i], `rgba(168,214,234,${baseA})`, lw);
-      for (const s of [-1, 1]) { // 切れ目の縁マーカー(明るい小点=開口の端が一目で分かる=惜しさの基準)
-        const [ex, ey] = pt(radii[i], base + s * half[i]);
+      const sa = Slit.ringSlitAngle ? Slit.ringSlitAngle(i) : base; // 各円は独立回転(§9.1)=切れ目の並びが常にズレ、たまに揃う
+      this._slitRing(ctx, cx, cy, radii[i] * R, sa, half[i], `rgba(168,214,234,${baseA})`, lw);
+      for (const s of [-1, 1]) { // 切れ目の縁マーカー(明るい小点=開口の端が一目=「そろそろ揃いそう」の予告)
+        const [ex, ey] = pt(radii[i], sa + s * half[i]);
         ctx.beginPath(); ctx.arc(ex, ey, lw * 1.4, 0, 7);
         ctx.fillStyle = "rgba(200,235,255,.9)"; ctx.fill();
       }
@@ -121,10 +122,10 @@ Object.assign(UI, {
         const gg = ctx.createRadialGradient(cx, cy, 1, cx, cy, rr);
         gg.addColorStop(0, `rgba(255,215,190,${(1 - q) * 0.8})`); gg.addColorStop(1, "rgba(255,215,190,0)");
         ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(cx, cy, rr, 0, 7); ctx.fill();
-      } else if (f.kind === "near") { // 惜しさ: その円の切れ目のふちに小さな明滅
-        const rr = radii[f.ring] * R;
+      } else if (f.kind === "near") { // 惜しさ: その円の切れ目のふちに小さな明滅(回転後の現在角)
+        const sa = Slit.ringSlitAngle ? Slit.ringSlitAngle(f.ring) : base;
         for (const s of [-1, 1]) {
-          const [ex, ey] = pt(rr / R, base + s * half[f.ring]);
+          const [ex, ey] = pt(radii[f.ring], sa + s * half[f.ring]);
           ctx.beginPath(); ctx.arc(ex, ey, (1 - q) * 2.2 + 0.6, 0, 7);
           ctx.fillStyle = `rgba(255,225,160,${(1 - q) * 0.7})`; ctx.fill();
         }
