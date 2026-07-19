@@ -16,6 +16,25 @@ const FAC_POS = {
 };
 const NEST = { x: 430, y: 300 };
 
+// ID8 氷の前線: 浮遊モノリス(上位存在の技術・中景の異物)の共有ジオメトリ。
+// 静的造形はpaintBackground(キャッシュ)へ、動く冷光はRender.drawMonolith8(毎フレーム)へ分離。
+const MONO8 = {
+  mx: 560,
+  base: HORIZON - 18,   // 接地せず浮く(下に隙間=出所不明)
+  h: 104,
+  wBot: 22, wTop: 16,   // わずかに先細るオベリスク
+  splitF: 0.42,         // 浮遊分割の高さ(基部からの割合)
+  gap: 7,               // 分割の空隙
+  offset: 3,            // 上segの水平ずれ(構造ロジックが通らない=非トカゲ的)
+  glyphs: 7,            // 解読不能グリフ列の段数(意味は描かない=模索UX)
+};
+const COLD8 = "127,199,222"; // 氷水#7FC7DE = 上位存在の冷光(軍用の赤=借り物と階層分離)
+// モノリスの断面半幅(基部wBot/2→頂部wTop/2の線形補間)。静的/動的で共有し重複を避ける
+function mono8HalfW(y) {
+  const t = (MONO8.base - y) / MONO8.h;
+  return (MONO8.wBot + (MONO8.wTop - MONO8.wBot) * t) / 2;
+}
+
 const Render = {
   ctx: null,
   time: 0,
@@ -40,6 +59,7 @@ const Render = {
     const ctx = this.ctx;
     Game.refreshCrowdScale();
     this.drawStage(ctx);
+    if (Game.currentStage().id === 8) this.drawMonolith8(ctx); // 氷の前線: モノリスの冷光(背景層)
     this.drawNest(ctx);
     this.drawFacilities(ctx);
     this.drawSmallFacilities(ctx);
@@ -534,17 +554,66 @@ const Render = {
         ctx.fillStyle = `rgb(${RED})`;
         ctx.beginPath(); ctx.arc(px, HORIZON - ph - 3.5, 1.8, 0, 7); ctx.fill();
       }
-      // 浮遊する黒いモノリス(接地していない=出所不明のオーバーテクノロジー)
+      // 浮遊する黒いモノリス(接地しない=出所不明のオーバーテクノロジー・中景の異物)。
+      // トカゲ文明の他の建造物(半埋没・風化した監視柱/巡回機)と精度が違いすぎる不気味さを担保する。
       {
-        const mx = 560, my = HORIZON - 70;
-        ctx.fillStyle = "rgba(0,0,0,.18)"; // 真下の影(浮いている証拠)
-        ctx.beginPath(); ctx.ellipse(mx, HORIZON - 4, 26, 5, 0, 0, 7); ctx.fill();
-        ctx.fillStyle = BLACK;
-        ctx.fillRect(mx - 11, my - 46, 22, 46);
-        ctx.fillStyle = "rgba(255,255,255,.08)";
-        ctx.fillRect(mx - 11, my - 46, 3, 46);
-        ctx.fillStyle = `rgba(${RED},.5)`; // 側面に走る細い線(何の記号かは描かない)
-        ctx.fillRect(mx + 4, my - 38, 1.2, 26);
+        const M = MONO8, mx = M.mx, base = M.base, top = base - M.h;
+        const splitY = base - M.h * M.splitF;
+
+        // 真下の影(浮いている証拠)+ 雪の空白環(場が雪をはじく=異常)
+        ctx.fillStyle = "rgba(0,0,0,.22)";
+        ctx.beginPath(); ctx.ellipse(mx, HORIZON + 6, 30, 6, 0, 0, 7); ctx.fill();
+        ctx.strokeStyle = `rgba(${COLD8},.13)`; ctx.lineWidth = 1; // 同心の圧痕リング
+        for (const rr of [40, 54]) { ctx.beginPath(); ctx.ellipse(mx, HORIZON + 6, rr, rr * 0.16, 0, 0, 7); ctx.stroke(); }
+
+        // 全体を包むごく淡い冷たいリムグロー(異物感のベースライン・本体の背後)
+        const rim = ctx.createRadialGradient(mx, (base + top) / 2, 6, mx, (base + top) / 2, M.h * 0.62);
+        rim.addColorStop(0, `rgba(${COLD8},.10)`); rim.addColorStop(1, `rgba(${COLD8},0)`);
+        ctx.fillStyle = rim; ctx.fillRect(mx - 46, top - 16, 92, M.h + 32);
+
+        // 下seg・上seg(上segは水平にずれて浮く=作れるはずのない造形)。非侵食の完璧な稜線を面取りで示す
+        const drawSeg = (y0, y1, dx) => {
+          const h0 = mono8HalfW(y0), h1 = mono8HalfW(y1);
+          ctx.fillStyle = BLACK;
+          ctx.beginPath();
+          ctx.moveTo(mx + dx - h0, y0); ctx.lineTo(mx + dx + h0, y0);
+          ctx.lineTo(mx + dx + h1, y1); ctx.lineTo(mx + dx - h1, y1);
+          ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = `rgba(${COLD8},.5)`; ctx.lineWidth = 1; // 左稜線=加工精度が高すぎる面取り光
+          ctx.beginPath(); ctx.moveTo(mx + dx - h0, y0); ctx.lineTo(mx + dx - h1, y1); ctx.stroke();
+          ctx.strokeStyle = `rgba(${COLD8},.16)`; // 右稜線のごく淡い反射
+          ctx.beginPath(); ctx.moveTo(mx + dx + h0, y0); ctx.lineTo(mx + dx + h1, y1); ctx.stroke();
+        };
+        drawSeg(base, splitY, 0);                 // 下seg(接地せず浮く)
+        drawSeg(splitY - M.gap, top, M.offset);   // 上seg(ずれて浮遊)
+
+        // 頂部の斜め切り(非トカゲ的幾何)
+        {
+          const h1 = mono8HalfW(top), dx = M.offset;
+          ctx.fillStyle = BLACK2;
+          ctx.beginPath();
+          ctx.moveTo(mx + dx - h1, top); ctx.lineTo(mx + dx + h1, top);
+          ctx.lineTo(mx + dx + h1, top - 9); ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = `rgba(${COLD8},.4)`; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(mx + dx - h1, top); ctx.lineTo(mx + dx + h1, top - 9); ctx.stroke();
+        }
+
+        // 分割の空隙の冷光シーム(静的ベースライン。呼吸する冷光はdrawMonolith8)
+        {
+          const h = mono8HalfW(splitY);
+          const seam = ctx.createLinearGradient(mx - h, splitY, mx + h, splitY);
+          seam.addColorStop(0, `rgba(${COLD8},0)`); seam.addColorStop(0.5, `rgba(${COLD8},.30)`); seam.addColorStop(1, `rgba(${COLD8},0)`);
+          ctx.fillStyle = seam; ctx.fillRect(mx - h, splitY - M.gap, h * 2 + M.offset, M.gap);
+        }
+
+        // 解読不能グリフ列(意味は描かない・等間隔で幾何学的=非トカゲ的な記号)
+        ctx.fillStyle = `rgba(${COLD8},.22)`;
+        for (let k = 0; k < M.glyphs; k++) {
+          const y = base - 12 - k * ((M.h - 22) / (M.glyphs - 1));
+          const seg = (y < splitY) ? 0 : M.offset;
+          const gw = Math.max(3, mono8HalfW(y) * 0.7);
+          ctx.fillRect(mx + seg - gw / 2, y, gw, 1.4);
+        }
       }
       // 六角の黒い台座が雪に埋まる(幾何学が精確すぎる)
       {
@@ -1788,6 +1857,35 @@ const Render = {
     ctx.moveTo(-21 * s, 6 * s); ctx.lineTo(-23 * s, 11 * s);
     ctx.stroke();
     ctx.restore();
+  },
+
+  // ---- ID8氷の前線: 浮遊モノリスの冷光(超低速・待機微動) ----
+  // 静的造形はpaintBackground(キャッシュ)に焼く。ここは動く冷光だけを毎フレーム重ねる。
+  // 平常は静か(UISkills)を守り、reduced-motionで停止(静的ベースラインが残るので暗転しない)。
+  drawMonolith8(ctx) {
+    if (window.Motion && Motion.reduced) return;
+    const M = MONO8, mx = M.mx, base = M.base;
+    const splitY = base - M.h * M.splitF;
+
+    // 分割シームの呼吸(約9s周期)
+    const br = 0.16 + Math.sin(this.time * 0.7) * 0.14;
+    const h = mono8HalfW(splitY);
+    const g = ctx.createLinearGradient(mx - h, splitY, mx + h, splitY);
+    g.addColorStop(0, `rgba(${COLD8},0)`); g.addColorStop(0.5, `rgba(${COLD8},${br})`); g.addColorStop(1, `rgba(${COLD8},0)`);
+    ctx.fillStyle = g; ctx.fillRect(mx - h - 3, splitY - M.gap - 1, h * 2 + M.offset + 6, M.gap + 2);
+
+    // グリフ列を一段ずつ上昇スキャンする冷光(約11s周期・1段≒1.57s)
+    const phase = (this.time * (M.glyphs / 11)) % M.glyphs;
+    for (let k = 0; k < M.glyphs; k++) {
+      const d = (k - phase + M.glyphs) % M.glyphs;
+      const near = Math.max(0, 1 - Math.min(d, M.glyphs - d) * 1.4);
+      if (near <= 0.02) continue;
+      const y = base - 12 - k * ((M.h - 22) / (M.glyphs - 1));
+      const seg = (y < splitY) ? 0 : M.offset;
+      const gw = Math.max(3, mono8HalfW(y) * 0.7);
+      ctx.fillStyle = `rgba(${COLD8},${0.4 * near})`;
+      ctx.fillRect(mx + seg - gw / 2, y - 0.3, gw, 2);
+    }
   },
 
   // ---- ID8氷の前線: 槽外バガー自動掃討(crank.md §3.4・純演出・メタ構図) ----
