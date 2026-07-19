@@ -93,10 +93,11 @@ const Roulette = {
   // ---- 報酬モード(Phase3.13 v4: ボス討伐後の報酬。給餌連動の常時発射は撤廃) ----
   // reward = { remaining, gene } 発射待ちの残り球数と、球に乗せる代表遺伝。
   reward: null,
-  // 報酬セッション開始。count発を撃てる状態にする(発射はfireRewardBall/autoFireRewardが行う)
-  startReward(count, gene) {
+  // 報酬セッション開始。count発を撃てる状態にする(発射はfireRewardBall/autoFireRewardが行う)。
+  // jackpotMode(§1.2.2): 中央ポケットの意味 "rainbow"=大ボス(新種) / "rare"=通常ボス(レア卵)。盤geometryは共通
+  startReward(count, gene, jackpotMode) {
     if (!this._rng) this.reset(); else this.reset(this.getSeed() + 1); // 盤をクリアして新セッション
-    this.reward = { remaining: Math.max(0, count | 0), gene: gene || null };
+    this.reward = { remaining: Math.max(0, count | 0), gene: gene || null, jackpotMode: jackpotMode || "rainbow" };
     this._emitAcc = 0;
     return this.reward;
   },
@@ -153,8 +154,9 @@ const Roulette = {
         b.x += (b.cupX - b.x) * 10 * dt;            // 器の中心へ吸い込む
         b.y += (b.cupY - b.y) * 10 * dt;            // 器の底へ沈む
         if (b.settleT <= 0) {
-          this.events.push({ type: b.rainbow ? "BallRainbow" : "BallWin", x: b.cupX });
-          if (this.onEgg) this.onEgg({ gene: b.gene, rainbow: b.rainbow });
+          this.events.push({ type: b.rainbow ? "BallRainbow" : "BallWin", x: b.cupX, mode: b.mode });
+          // rainbow=中央ジャックポットポケット命中(§1.2.2)。景品の意味(新種/レア卵)はmode+Game側で決める
+          if (this.onEgg) this.onEgg({ gene: b.gene, rainbow: b.rainbow, mode: b.mode });
           balls.splice(i, 1);
         }
         continue;
@@ -219,8 +221,9 @@ const Roulette = {
     else if (dx <= pzOut && prizeOpen) { win = true; }            // 景品帯(満杯時は閉=ハズレ)
     this.events.push({ type: "BallLanded", x: b.x, rainbow, win });
     if (win) {
-      // 受け皿へコトンと収まる。cupは虹=中央 / 景品=左右帯の中央
+      // 受け皿へコトンと収まる。cupは中央ポケット=中央 / 景品帯=左右帯の中央
       b.phase = "settle"; b.rainbow = rainbow;
+      b.mode = rainbow ? (this.reward ? this.reward.jackpotMode : "rainbow") : null; // 中央命中時のみモードを刻む
       b.cupX = rainbow ? cx : (b.x < cx ? cx - (rbHalf + pzOut) / 2 : cx + (rbHalf + pzOut) / 2);
       b.cupY = landY + CFG.roulCupDepthf * H * 0.6;
       b.settleT = CFG.roulSettleT;

@@ -1052,12 +1052,14 @@ const Game = {
   },
   // Phase3.13 v4: ルーレットはボス討伐後の報酬。tier(0-6)に応じた球数で報酬セッションを開始しUI(C2)へ通知。
   // 給餌連動の常時発射(旧rouletteEmitOne/canFeedNow/rouletteEmitInterval)は撤廃(給餌はGold消費育成へ純化)。
-  beginBossReward(tier) {
+  beginBossReward(tier, isElite) {
     if (typeof Roulette === "undefined" || !Roulette.startReward) return false;
     const t = tier | 0;
     const count = (CFG.roulRewardBalls && CFG.roulRewardBalls[t]) || CFG.roulRewardBalls[0];
-    Roulette.startReward(count, this.rouletteRepGene());
-    this.bossReward = { tier: t, count, eggs: 0, rainbows: 0 }; // 演出/集計用(非保存・runtime)
+    // §1.2.2: 大ボス(elite)=虹レアポケット(新種) / 通常ボス=レアポケット(レア卵)。盤geometryは共通
+    const mode = isElite ? "rainbow" : "rare";
+    Roulette.startReward(count, this.rouletteRepGene(), mode);
+    this.bossReward = { tier: t, count, mode, eggs: 0, rares: 0, rainbows: 0 }; // 演出/集計用(非保存・runtime)
     if (typeof UI !== "undefined" && UI.openBossReward) UI.openBossReward(this.bossReward);
     return true;
   },
@@ -1200,64 +1202,84 @@ const Game = {
     return cands[Math.floor(Math.random() * cands.length)];
   },
 
-  // 遺伝子ルーレット: 床到達(回収)で1個の卵を生成。
-  // 通常=給餌した遺伝子の子(inherit自己ペア再利用で変異/モーフ/色ゆらぎ二重化回避・fable0)
-  // レインボー=未所持の新種(種族同一・§7.5)。図鑑コンプ済みなら通常卵へフォールバック
+  // 遺伝子ルーレット: 中央ポケット/卵帯への着地で景品を生成(§1.2.2)。
+  // 中央(rainbow) × mode: "rainbow"(大ボス)=未所持の新種/コンプ後はレジェンダリー個体 / "rare"(通常ボス)=レア卵。
+  // 卵帯=給餌遺伝の通常卵。どれも捨てず段階変換(スロット→収容枠まで即ベビー→Gold。虹は満杯でも必ず付与)。
   spawnRouletteEgg(outcome) {
-    const rainbow = !!(outcome && outcome.rainbow);
-    // Phase3.13報酬: 卵は捨てず段階変換する(景品穴クローズ=旧②(a)は撤廃)。
-    // 通常卵=スロット充填→満杯なら収容枠まで即ベビー化→さらに満杯ならGold換算。虹=常に付与(レア保護)。
+    const center = !!(outcome && outcome.rainbow); // 中央ジャックポットポケット命中
+    const mode = (outcome && outcome.mode) || "rainbow";
     const hatchMult = Math.max(0.2, (1 - this.facLv("heat") * 0.025) * (1 - (((this.state.nest && this.state.nest.lv) || 1) - 1) * 0.03) * (1 - this.researchBonus("hatch")));
-    if (rainbow) {
+    if (center && mode === "rainbow") {
       const pick = this.pickUnownedDexEntry(this.currentStage().id);
       if (pick) {
         const sp = pick[0], mo = pick[1];
-        const total = CFG.hatchBasePerStar * sp.stars * hatchMult;
-        this.state.eggs.push({
-          speciesId: sp.id, morphId: mo.id,
-          hue: sp.hue + rnd(-10, 10), sat: sp.sat, light: sp.light,
-          pattern: PATTERNS[Math.floor(Math.random() * 4)],
-          t: total, total, // fable2: rainbow/fromRouletteは消費側(§4.3特別孵化)未実装のため保存に混入させない
-        });
+        this._grantRewardEgg(this._newSpeciesEgg(pick, hatchMult)); // 虹=満杯でも必ず付与(レア保護)
         UI.toast(`${Icon.svg("spark")} レインボー! 未発見の「${mo.name} ${sp.name}」の卵が生まれた!`);
         if (UI.rouletteRainbowFx) UI.rouletteRainbowFx(sp);
         if (this.bossReward) this.bossReward.rainbows++;
         return true;
       }
-      // 全所持=フォールバックで通常卵扱い(下へ)
+      // 全8枠コンプ=フォールバックでレジェンダリー個体(apex・§1.2.2③)。孵化時に既存のheroLegendBirth演出
+      const egg = this._legendaryRewardEgg(hatchMult);
+      this._grantRewardEgg(egg);
+      UI.toast(`${Icon.svg("spark")} 図鑑を極めし者へ — レジェンダリー個体の卵が生まれた!`);
+      if (UI.rouletteRainbowFx) UI.rouletteRainbowFx(speciesById(egg.speciesId));
+      if (this.bossReward) this.bossReward.rainbows++;
+      return true;
     }
-    const g = (outcome && outcome.gene) || {};
-    const fallbackSp = (this.state.lizards[0] && this.state.lizards[0].speciesId)
-      || (this.breedablePool()[0] && this.breedablePool()[0].id) || "kanahebi";
-    const base = {
-      speciesId: g.speciesId || fallbackSp,
-      morphId: g.morphId || "normal",
-      hue: g.hue != null ? g.hue : 90, sat: g.sat != null ? g.sat : 60, light: g.light != null ? g.light : 55,
-      pattern: g.pattern || "none",
-    };
-    const genes = this.inherit(base, base);
-    const sp = speciesById(genes.speciesId);
-    const total = CFG.hatchBasePerStar * sp.stars * hatchMult;
-    // 段階変換(オーバーフロー): スロット→収容枠まで即ベビー→さらに満杯ならGold。捨てない
-    if (this.state.eggs.length < this.eggSlotCap()) {
-      this.state.eggs.push({ ...genes, t: total, total }); // fable2: 未使用の派生/来歴フラグは保存しない
-    } else if (this.state.lizards.length < this.capacity()) {
-      this._spawnBabyFromGenes(genes);
-    } else {
-      this.state.coins += CFG.roulRewardOverflowGold;
+    if (center && mode === "rare") {
+      this._routeRewardEgg(this._rareRewardEgg(hatchMult)); // 通常ボスのレアポケット=レア卵
+      if (this.bossReward) this.bossReward.rares++;
+      return true;
     }
+    this._routeRewardEgg(this._normalRewardEgg(outcome, hatchMult)); // 卵帯=通常卵
     if (this.bossReward) this.bossReward.eggs++;
     return true;
   },
 
-  // 報酬オーバーフロー時: 卵スロットを介さず直接ベビーを孵す(hatchEggの通常誕生ぶんを再利用)
-  _spawnBabyFromGenes(genes) {
-    const lz = this.makeLizard(genes.speciesId, genes.morphId, genes, "baby");
-    lz.x = 430 + rnd(-40, 40); lz.y = 320 + rnd(-10, 30); // 巣の近くに出現
-    this.addLizard(lz);
-    this.state.stats.hatched++;
-    this.addRes("bio", CFG.resBioPerHatch);
-    this.addRankXp(20);
+  _eggTotal(speciesId, hatchMult) { return CFG.hatchBasePerStar * speciesById(speciesId).stars * hatchMult; },
+  // 未所持の図鑑エントリ(固有種×未所持モーフ)の卵
+  _newSpeciesEgg(pick, hatchMult) {
+    const sp = pick[0], mo = pick[1], total = this._eggTotal(sp.id, hatchMult);
+    return { speciesId: sp.id, morphId: mo.id, hue: sp.hue + rnd(-10, 10), sat: sp.sat, light: sp.light,
+      pattern: PATTERNS[Math.floor(Math.random() * 4)], t: total, total };
+  },
+  // レジェンダリー個体(全所持フォールバック): 固有種のレジェンダリーモーフ。孵化で専用演出
+  _legendaryRewardEgg(hatchMult) {
+    const pool = this.breedablePool();
+    const sp = pool[Math.floor(Math.random() * pool.length)] || speciesById("kanahebi");
+    const total = this._eggTotal(sp.id, hatchMult);
+    return { speciesId: sp.id, morphId: "legendary", hue: sp.hue, sat: 90, light: 60, pattern: "none", t: total, total };
+  },
+  // レア卵(通常ボスの中央): 固有種でレアモーフ優遇+初期Lvボーナス(アダルトで高Lv誕生)
+  _rareRewardEgg(hatchMult) {
+    const pool = this.breedablePool();
+    const sp = pool[Math.floor(Math.random() * pool.length)] || speciesById("kanahebi");
+    const rareMorphs = MORPHS.filter((m) => m.id !== "normal" && !m.legendary).map((m) => m.id);
+    const morphId = (Math.random() < CFG.roulRareMorphChance && rareMorphs.length)
+      ? rareMorphs[Math.floor(Math.random() * rareMorphs.length)] : "normal";
+    const total = this._eggTotal(sp.id, hatchMult);
+    return { speciesId: sp.id, morphId, hue: sp.hue + rnd(-10, 10), sat: sp.sat, light: sp.light,
+      pattern: PATTERNS[Math.floor(Math.random() * 4)], t: total, total, bonusLv: CFG.roulRareEggBonusLv };
+  },
+  // 通常卵(卵帯): 給餌遺伝の子(inherit自己ペア再利用で変異/モーフ/色ゆらぎ二重化回避)
+  _normalRewardEgg(outcome, hatchMult) {
+    const g = (outcome && outcome.gene) || {};
+    const fallbackSp = (this.state.lizards[0] && this.state.lizards[0].speciesId)
+      || (this.breedablePool()[0] && this.breedablePool()[0].id) || "kanahebi";
+    const base = { speciesId: g.speciesId || fallbackSp, morphId: g.morphId || "normal",
+      hue: g.hue != null ? g.hue : 90, sat: g.sat != null ? g.sat : 60, light: g.light != null ? g.light : 55, pattern: g.pattern || "none" };
+    const genes = this.inherit(base, base);
+    const total = this._eggTotal(genes.speciesId, hatchMult);
+    return { ...genes, t: total, total };
+  },
+  // 虹は満杯でも必ずスロットへ付与(レア保護)
+  _grantRewardEgg(egg) { this.state.eggs.push(egg); },
+  // レア/通常卵の段階変換: スロット→収容枠まで即孵化→さらに満杯ならGold。捨てない
+  _routeRewardEgg(egg) {
+    if (this.state.eggs.length < this.eggSlotCap()) this.state.eggs.push(egg);
+    else if (this.state.lizards.length < this.capacity()) this._hatchEggObject(egg);
+    else this.state.coins += CFG.roulRewardOverflowGold;
   },
 
   instantHatch(idx) {
@@ -1271,8 +1293,15 @@ const Game = {
   hatchEgg(idx) {
     const egg = this.state.eggs[idx];
     this.state.eggs.splice(idx, 1);
+    this._hatchEggObject(egg);
+  },
+
+  // 卵オブジェクトから1匹孵す(スロット孵化・報酬オーバーフロー即孵化で共有)。
+  // bonusLv(レア卵)はアダルトで高Lv誕生させる。特別演出は卵のフラグで分岐
+  _hatchEggObject(egg) {
     const lz = this.makeLizard(egg.speciesId, egg.morphId, egg, "baby");
     lz.x = 430 + rnd(-40, 40); lz.y = 320 + rnd(-10, 30); // 巣の近くに出現
+    if (egg.bonusLv) { lz.stage = "adult"; lz.level = 1 + egg.bonusLv; } // レア卵=高品質個体
     this.addLizard(lz);
     this.state.stats.hatched++;
     this.addRes("bio", CFG.resBioPerHatch);
@@ -1757,7 +1786,8 @@ const Game = {
         msg += ` / 捕獲→売却 +${fmt(bonus)}G`;
       }
       // Phase3.13 v4: ボス討伐(tier or boss)は報酬ルーレットを起動。通常の蛇(非ボス)は起動しない
-      if (r.tier || r.boss) this.beginBossReward(r.tier || 0);
+      // §1.2.2: eliteは虹レアポケット(新種)、それ以外の通常ボスはレアポケット(レア卵)
+      if (r.tier || r.boss) this.beginBossReward(r.tier || 0, !!r.elite);
       if (r.typeId === "hawk") {
         let rescued = 0;
         for (const lz of s.lizards) if (lz.hiddenT > 0) { lz.hiddenT = 0; rescued++; }

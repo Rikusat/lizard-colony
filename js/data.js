@@ -93,6 +93,9 @@ const CFG = {
   roulRewardEmitInterval: 0.35, // 報酬モードの球射出間隔(秒・長押し/スキップの自動発射ペース)
   roulRewardBalls: { 0: 8, 1: 10, 2: 16, 3: 22, 4: 28, 5: 34, 6: 40 }, // ボスTier別の報酬球数(見届けた強敵ほど厚い)
   roulRewardOverflowGold: 40, // 卵オーバーフロー(スロット満杯+収容枠も満杯)時に1卵→Gold換算する額
+  // §1.2.2 中央ポケットの景品(盤geometryは共通・景品のみボス格で差替): 通常ボス=レア卵 / 大ボス(elite)=虹(新種)
+  roulRareMorphChance: 0.5, // レア卵(通常ボスの中央): 非normalモーフ(albino/mela/golden)になる確率
+  roulRareEggBonusLv: 2,    // レア卵はアダルトで初期Lv=1+この値で誕生(高品質個体)
 
   xpPopupAutoHighEvery: 10, // V5 3.5: オート高のXPポップ間引き(N回に1回だけ表示)
   xpPopupAutoHighSmall: true, // V5 3.5: オート高のXPポップを小さく表示
