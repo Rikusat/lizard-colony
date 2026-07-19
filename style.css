@@ -2144,8 +2144,8 @@ button.holding::after {
 .hidden { display: none !important; }
 
 @media (min-width: 1600px) {
-  /* フルHDで水槽拡大最優先 — 左カラムを固定幅、余白を中央(水槽)へ回す(2カラム・3.10.3) */
-  main { max-width: 2040px; grid-template-columns: 300px minmax(0, 1fr); gap: 18px; }
+  /* 3.13 C3: 左メニュー撤廃=単カラム。フルHDでも飼育槽を全画面化(旧2カラム 300px+1fr を撤去) */
+  main { max-width: 2040px; grid-template-columns: minmax(0, 1fr); gap: 0; }
 }
 @media (max-width: 1180px) {
   main { grid-template-columns: 1fr; }
