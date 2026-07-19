@@ -38,12 +38,17 @@ Object.assign(UI, {
     if (!el) {
       el = document.createElement("div");
       el.id = "boss-reward";
+      // 盤(プレイフィールド)と操作部(ドック=クランク+全部撃つ)を領域として分離。
+      // クランクは盤の下の専用ドック右側に置き、球の落下・受け皿に重ねない(§1.2.3改修)
       el.innerHTML =
         '<div class="br-panel">' +
           '<div class="br-title"></div>' +
           '<div class="br-stage"><canvas class="br-canvas"></canvas></div>' +
           '<div class="br-tray"></div>' +
-          '<div class="br-actions"><button class="br-skip" type="button">全部撃つ</button></div>' +
+          '<div class="br-dock">' +
+            '<button class="br-skip" type="button">全部撃つ</button>' +
+            '<div class="br-crankslot"></div>' +
+          '</div>' +
           '<div class="br-hint"></div>' +
         '</div>';
       document.body.appendChild(el);
@@ -60,7 +65,7 @@ Object.assign(UI, {
     this._brState = "firing";
     this._brFireAcc = 0; this._brLastT = (typeof Render !== "undefined") ? Render.time : 0;
     Motion.play(el.querySelector(".br-panel"), "rise");
-    this._brRelocateCrank(el.querySelector(".br-stage")); // 盤右下に"同じクランク"を再登場
+    this._brRelocateCrank(el.querySelector(".br-crankslot")); // 盤の下のドック右側へ(盤に重ねない)
     this._brUpdateHint();
     this._brUpdateTray();
     if (Motion.reduced) this._brResolveInstant(); // 物理を回さず即時解決(結果保証)

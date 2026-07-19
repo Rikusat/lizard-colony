@@ -1850,16 +1850,21 @@ button.holding::after {
   font-size: calc(16px * var(--fs-scale, 1)); color: var(--gold); text-shadow: 0 1px 4px #000;
 }
 #boss-reward.rainbow .br-title { color: #ffe08a; }
-/* 盤(大きめ)+右下のクランクを載せる舞台。盤・球・釘の跳ねが見やすいサイズ(§1.2.3) */
-#boss-reward .br-stage { position: relative; }
+/* 盤(プレイフィールド・大きめ)。球・釘・受け皿が見やすいサイズ。操作部とは領域を分ける(§1.2.3改修) */
+#boss-reward .br-stage { position: relative; display: block; }
 #boss-reward .br-canvas {
   display: block; width: clamp(220px, 30vh, 300px); height: clamp(424px, 58vh, 580px);
   border-radius: 12px; background: rgba(8, 11, 9, .9); box-shadow: inset 0 0 0 1px rgba(160, 200, 150, .18);
 }
 #boss-reward.rainbow .br-canvas { box-shadow: inset 0 0 0 1px rgba(255, 200, 120, .3), 0 0 26px rgba(255, 180, 90, .24); }
-/* §1.2.3: 同じクランクをモーダルへ移設。盤の右下に載せる(飼育槽と同じ右下の定位置感) */
+/* 操作部ドック: 盤の下の独立領域。左=全部撃つ / 右=クランク(盤に重ねない=受け皿を隠さない) */
+#boss-reward .br-dock {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding-top: 2px;
+}
+#boss-reward .br-crankslot { display: flex; align-items: center; }
+/* §1.2.3: 同じクランクを移設。ドック内では通常フロー(絶対配置を解除して盤に重ねない) */
 #boss-reward #feeder-dial.in-reward {
-  position: absolute; right: 8px; bottom: 8px; left: auto; top: auto; z-index: 6;
+  position: static; right: auto; bottom: auto; left: auto; top: auto; z-index: auto; margin: 0;
 }
 #boss-reward .br-tray {
   display: flex; gap: 12px; font-size: calc(14px * var(--fs-scale, 1)); color: var(--paper-100);
@@ -1869,7 +1874,6 @@ button.holding::after {
 #boss-reward .br-tray .rare { color: var(--amber-400); }
 #boss-reward .br-tray .rainbow { color: #ffd36b; }
 #boss-reward .br-tray .rem { color: var(--sub); }
-#boss-reward .br-actions { display: flex; gap: 8px; }
 #boss-reward .br-skip {
   font-size: calc(12px * var(--fs-scale, 1)); color: var(--paper-100); cursor: pointer;
   background: var(--ink-700); border: 1px solid var(--amber-600); border-radius: var(--radius-pill);
