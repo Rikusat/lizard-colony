@@ -30,8 +30,7 @@ main { flex: 1 1 auto; min-height: 0; width: 100%; }
 /* ============ top bar ============ */
 #topbar {
   display: flex; align-items: center; gap: clamp(8px, 1.2vw, 16px);
-  /* 3.13①(B): 縦paddingのみ圧縮=飼育槽の高さ→幅を稼ぐ(文字/アイコン/44pxタップ標的は不変) */
-  padding: clamp(3px, .45vh, 5px) clamp(12px, 1.8vw, 24px);
+  padding: clamp(5px, .8vh, 8px) clamp(12px, 1.8vw, 24px);
   background: var(--grad-topbar);
   border-bottom: 1px solid var(--border); /* 3.11.1: HQバー上の目立つ惑星色ラインを控えめな枠色へ */
   box-shadow: 0 4px 16px rgba(0, 0, 0, .55);
@@ -141,15 +140,15 @@ button.danger { color: var(--boss-400); }
 
 /* ============ layout ============ */
 main {
-  /* 3.13 C3: 左メニュー撤廃=単カラム。飼育槽を全画面化(横いっぱい) */
+  /* 3.13(再): 2カラムへ復帰(左=操作卓 / 右=飼育槽)。空白より意味のある列 */
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0;
-  /* 3.13①(B): 縦paddingのみ圧縮(横は据置) */
-  padding: clamp(3px, .5vh, 6px) clamp(10px, 1.1vw, 16px);
+  grid-template-columns: clamp(228px, 17vw, 300px) minmax(0, 1fr);
+  gap: clamp(8px, 1vw, 14px);
+  padding: clamp(6px, 1vh, 12px) clamp(10px, 1.1vw, 16px);
   max-width: 1980px; margin: 0 auto;
   align-items: start;
 }
+#left { display: flex; flex-direction: column; gap: clamp(6px, 1vh, 12px); align-self: stretch; min-height: 0; }
 
 .card {
   background: var(--grad-card);
@@ -218,27 +217,20 @@ button.act .price {
 
 /* 襲撃タイマー */
 /* 3.10.3: 襲撃予告=飼育槽右上のコンパクト半透明HUD(生き物の動きを隠さない・ボスHPバーは中央上で不干渉) */
-/* 3.13 C3: 飼育槽左上の操作オーバーレイ(コオロギ購入/設備)。今すぐ呼ぶと同程度の透過。
-   惑星名バッジ・個体数(canvas描画・左上)の下に置き干渉させない */
-#field-tools {
-  position: absolute; top: 62px; left: 12px; z-index: 4;
-  display: flex; flex-direction: column; align-items: flex-start; gap: 7px; pointer-events: none;
+/* 3.13(再): 操作卓の見やすいカード(左カラム)。全画面化前の左カラムへ戻すが、②の見やすさ
+   (アイコン+名称+数値が一目)は維持。左カラム幅いっぱいの読みやすいボタン */
+#left .ft-card {
+  display: flex; align-items: center; gap: 11px; width: 100%; padding: 11px 14px; border-radius: var(--radius-md); cursor: pointer;
+  text-align: left; background: var(--grad-btn, linear-gradient(var(--ink-700), var(--ink-800)));
+  border: 1px solid var(--ink-600); color: var(--paper-100);
+  transition: background var(--dur-fast), transform var(--dur-fast) var(--ease-pop), border-color var(--dur-fast);
 }
-#field-tools > * { pointer-events: auto; }
-/* ②見やすいカード: 大きく・透過維持(生き物を隠さない)・惑星名/個体数バッジとトーンを揃え左上の一群に */
-#field-tools .ft-card {
-  display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 13px; cursor: pointer;
-  min-width: 176px; text-align: left;
-  background: rgba(14, 10, 6, .52); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, .15); color: var(--paper-100);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, .8); transition: background var(--dur-fast), transform var(--dur-fast) var(--ease-pop);
-}
-#field-tools .ft-card:hover { background: rgba(32, 24, 15, .66); }
-#field-tools .ft-card:active { transform: scale(.97); }
-#field-tools .ft-card .icon { width: 24px; height: 24px; color: var(--amber-400); flex: none; }
-#field-tools .ft-card .ft-txt { display: flex; flex-direction: column; line-height: 1.28; min-width: 0; }
-#field-tools .ft-card .ft-txt b { font-size: calc(14.5px * var(--fs-scale, 1)); font-weight: bold; }
-#field-tools .ft-card .ft-txt small {
+#left .ft-card:hover { border-color: var(--amber-600); background: linear-gradient(var(--ink-600), var(--ink-700)); }
+#left .ft-card:active { transform: scale(.98); }
+#left .ft-card .icon { width: 26px; height: 26px; color: var(--amber-400); flex: none; }
+#left .ft-card .ft-txt { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+#left .ft-card .ft-txt b { font-size: calc(15px * var(--fs-scale, 1)); font-weight: bold; }
+#left .ft-card .ft-txt small {
   font-size: calc(12.5px * var(--fs-scale, 1)); color: var(--amber-400); font-weight: bold; font-variant-numeric: tabular-nums;
 }
 
@@ -287,9 +279,9 @@ button.act .price {
 #center { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
 #frame {
   position: relative;
-  /* 3.11/3.13①(B): 利用可能な高さ(100vh-上部chrome)から16:9の最大サイズを算出し、横幅(100%)でも制限。
-     上部chromeは fitFrame() が実測して --chrome に反映(topbarの折返しにも追随=自己修復)。+16px=frame横padding */
-  width: min(100%, calc((100vh - var(--chrome, 100px)) * 1280 / 720 + 16px));
+  /* 3.11 余白解消: 利用可能な高さ(100vh-上部chrome112px)から16:9の最大サイズを算出し、横幅(100%)でも制限。
+     +16pxはpadding分。2カラムでは右カラム幅で頭打ち=飼育槽が右カラムいっぱいに広がる */
+  width: min(100%, calc((100vh - 112px) * 1280 / 720 + 16px));
   box-sizing: border-box;
   padding: 8px; border-radius: 18px;
   background: linear-gradient(160deg, #6b5433, #3a2c18 40%, #241a0e);
@@ -320,7 +312,7 @@ button.act .price {
   display: block;
   width: 100%; height: auto;
   aspect-ratio: 1280 / 720;
-  max-height: calc(100vh - var(--chrome, 100px)); /* 安全網(通常frame側の算出で到達しない) */
+  max-height: calc(100vh - 112px); /* 安全網(通常frame側の算出で到達しない) */
   border-radius: 12px;
   box-shadow: inset 0 0 40px rgba(0, 0, 0, .5);
 }
@@ -2150,11 +2142,9 @@ button.holding::after {
 .hidden { display: none !important; }
 
 @media (min-width: 1600px) {
-  /* 3.13 C3: 左メニュー撤廃=単カラム。フルHDでも飼育槽を全画面化(旧2カラム 300px+1fr を撤去) */
-  main { max-width: 2040px; grid-template-columns: minmax(0, 1fr); gap: 0; }
+  /* フルHDで水槽拡大最優先 — 左カラムを固定幅、余白を中央(水槽)へ回す(2カラム) */
+  main { max-width: 2040px; grid-template-columns: 300px minmax(0, 1fr); gap: 18px; }
 }
-@media (max-width: 1180px) {
-  main { grid-template-columns: 1fr; }
-  #left { flex-direction: row; flex-wrap: wrap; }
-  #left .card { flex: 1; min-width: 240px; }
-}
+/* 3.13(再): 旧・単カラム化(@media max-width:1180)は撤去。操作卓が軽くなり2カラムが狭幅でも収まるため、
+   常時2カラム=どのPC幅でも縦あふれを構造的に回避(単カラム積層は短い高さで溢れた)。狭幅では飼育槽が縮むのみ。
+   スマホ最適化は対象外(UISkills §7) */

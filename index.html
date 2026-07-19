@@ -38,21 +38,26 @@
 </div>
 
 <main>
+  <!-- 3.13(再): C3全画面化をやめ2カラムへ復帰(左=操作卓)。空白より意味のある列(Ric判断)。
+       操作卓は「コオロギ購入・設備」のみ(遺伝子ルーレットはボス討伐後の報酬モーダル=左に常設しない)。
+       カードの見やすさ(アイコン+名称+数値)は維持 -->
+  <aside id="left">
+    <div class="card">
+      <h3>操作卓</h3>
+      <button id="btn-cricket" class="ft-card" title="コオロギ購入(まとめ買い / 長押しで連続)">
+        <svg class="icon"><use href="#i-cricket"/></svg>
+        <span class="ft-txt"><b>コオロギ購入</b><small id="cricket-lot-lbl">まとめ買い</small></span>
+      </button>
+      <button id="btn-fac" class="ft-card" title="設備 — コロニーを強化">
+        <svg class="icon"><use href="#i-build"/></svg>
+        <span class="ft-txt"><b>設備</b><small>コロニーを強化</small></span>
+      </button>
+    </div>
+  </aside>
+
   <section id="center">
     <div id="frame">
       <canvas id="game" width="1280" height="720"></canvas>
-      <!-- 3.13 C3: 左メニュー撤廃→飼育槽を全画面化。コオロギ購入/設備は飼育槽左上の透過オーバーレイへ移設 -->
-      <!-- 惑星名バッジ・個体数(canvas描画)の下に置き干渉させない。機能は従来どおり(同一ID=ハンドラ結線を維持) -->
-      <div id="field-tools">
-        <button id="btn-cricket" class="ft-card" title="コオロギ購入(まとめ買い / 長押しで連続)">
-          <svg class="icon"><use href="#i-cricket"/></svg>
-          <span class="ft-txt"><b>コオロギ購入</b><small id="cricket-lot-lbl">まとめ買い</small></span>
-        </button>
-        <button id="btn-fac" class="ft-card" title="設備 — コロニーを強化">
-          <svg class="icon"><use href="#i-build"/></svg>
-          <span class="ft-txt"><b>設備</b><small>コロニーを強化</small></span>
-        </button>
-      </div>
       <!-- 3.10.3: 襲撃予告=飼育槽右上のコンパクト半透明HUD(生き物の動きを隠さない) -->
       <div id="raid-hud">
         <div class="rh-line"><svg class="icon"><use href="#i-snake"/></svg><span id="raid-timer">--:--</span></div>

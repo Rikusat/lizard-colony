@@ -137,11 +137,6 @@ const UI = {
     this.initFeeder(); // 給餌ダイヤル(飼育槽右下・Brushup V2 Phase1)
     this.initRoulette(); // 遺伝子ルーレット(左メニュー下部・roulette.md §7)
     this.initBossHud(); // ボスHPバー(上部中央・Brushup V2 Phase3)
-    // 3.13①(B): 上部chrome(topbar+hqbar+padding)の実高さを測り --chrome に反映=飼育槽が
-    // 高さいっぱいに広がる。topbarのflex-wrap(狭幅で2段化)にも追随=自己修復(_syncRoulSize同様)
-    this.fitFrame();
-    window.addEventListener("resize", () => this.fitFrame());
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => this.fitFrame()); // Webフォント確定後に再測(初期化タイミング差の吸収)
     setInterval(() => this.rotateHint(), 12000);
     // #breed で繁殖画面を直接開く(動作確認・デバッグ用)
     if (location.hash === "#breed") setTimeout(() => this.openBreed(), 400);
@@ -198,22 +193,6 @@ const UI = {
     document.documentElement.style.setProperty("--planet-accent", this.planetAccent(id));
   },
 
-  // 3.13①(B): 上部chrome(topbar+hqbar+main/frame padding)の実高さを測り --chrome に反映。
-  // topbarがflex-wrapで2段化しても実測なので追随=どのウィンドウサイズでも飼育槽が高さいっぱい(=幅も最大)
-  // に広がることを構造的に保証。フォント/アイコンは不変(余白圧縮はCSS側)。1画面固定を破らない安全マージン込み
-  fitFrame() {
-    const header = document.querySelector("header") || document.getElementById("topbar");
-    const main = document.querySelector("main");
-    const frame = document.getElementById("frame");
-    if (!header || !main || !frame) return;
-    const px = (v) => parseFloat(v) || 0;
-    const hq = document.getElementById("hq-bar");
-    const mc = getComputedStyle(main), fc = getComputedStyle(frame);
-    const chrome = header.offsetHeight + (hq ? hq.offsetHeight : 0)
-      + px(mc.paddingTop) + px(mc.paddingBottom) + px(fc.paddingTop) + px(fc.paddingBottom) + 4; // +4=境界/丸め安全網
-    document.documentElement.style.setProperty("--chrome", chrome + "px");
-  },
-
   // ランクアップ(§6: 軽)。3.10.4: HQバー(ヘッダー直下)が発光+数値ロールアップ
   rankUpFx() {
     const bar = document.getElementById("hq-bar");
@@ -256,10 +235,6 @@ const UI = {
     if (crkTop) crkTop.textContent = crkText;
     const lotLbl = document.getElementById("cricket-lot-lbl");
     if (lotLbl) { const n = Game.cricketLot(); lotLbl.textContent = `+${fmt(n)}匹 / ${fmt(n * CFG.cricketCost)}G`; }
-    // 3.13 C3: field-tools(コオロギ/設備)を惑星名バッジ・個体数(canvas描画・y18/y46)の下へ。
-    // canvasはスケールで伸縮するため、表示高さ追随で重なりを防ぐ(固定pxだと大画面で被る)
-    const ft = document.getElementById("field-tools"), gcv = document.getElementById("game");
-    if (ft && gcv) ft.style.top = Math.round(gcv.offsetTop + (60 / 720) * gcv.clientHeight + 10) + "px";
     // 称号(統計モーダルへ集約・3.10.3)。DOM要素は撤去済のためガード
     const tEl = document.getElementById("ui-title");
     if (tEl) { const tt = s.titleSel && TITLES.find((t) => t.id === s.titleSel); tEl.textContent = tt ? tt.name : "(称号なし)"; }
