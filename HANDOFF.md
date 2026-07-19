@@ -1218,3 +1218,13 @@ paper 11.26 / sand 7.91 / life-400 7.45〜7.81 / amber-400 7.45 / boss-400 5.20(
   ・③resting/restedAtはJSON replacerで保存からstrip(fable2)=セーブ形状不変・ロード後settleが再構築(既存の保存逸脱も是正)。
 - **fps実測(headless --disable-gpu)**: 平常は**個体数に非依存で一定**(20/50/100/200匹すべて~52fps・描画は常に20体=表示capが機能しfpsを個体数から切り離した=④達成)。ボスは~11fpsだが**個体数と無関係(20匹でも11)=3.12でなく既存のボス戦Canvas描画コスト**。headless --disable-gpuはCanvas2Dソフト描画でfpsを大きく過小評価するため、実GPUでの手触りはRic確認が必要。
 - 検証: node 118PASS / 実ブラウザ機能PASS / #spin-proof全10惑星 / 平常・ボスのスクショ(20体表示・ボスは巣穴から強者集結) / 魂不変。
+
+### Phase 4 純血化(案B・破壊的)+新ステージ純血ペア+復帰報酬(2026-07-19・自律ラン)✅ [commit 13eacde]
+
+- **Ric確定**: 実セーブpurifyPreview=残246/消72(総318)を確認し純血化を確定。
+- **migrateV8to9(破壊的・冪等・SAVE_VERSION 8→9)**: 各惑星は固有種(stage=惑星id)のみ残し他惑星の個体・卵を削除。消失数_purifyV9で集計・移行トースト通知。**実行前に全文をsaveBackupKeyV9へ退避=ロールバック可**(設定に「純血化前へ復元」ボタン+restoreV9Backup)。
+- **新ステージ移行**: 固有種#1の純血ペア2匹のみ(spawnPurePair)。引き連れ(創始者持ち込み)廃止。
+- **過去ステージ復帰**: クリア時スナップショット(StageData保持)+固有種#2の卵報酬(grantReturnGift)。**一度だけ=gotReturnGift**(ランタイム保持+activeStageData/applyWorld/selectStageで書き戻し=無限ループ防止)。gift卵は特別孵化演出(flash/slowmo/burst+里帰りの祝福+founder血統マーク)。
+- **固有種2種割当**: 各惑星stage一致の2種(#1=SPECIES順の先=純血ペア/#2=次=復帰卵報酬)。全10惑星に定義済。
+- 検証: node 129PASS / 実ブラウザ9項目PASS(v9化・惑星別固有種のみ・V9バックアップ・ロールバック元=v8混在・新ステージ純血ペア・復帰#2卵) / #spin-proof全10惑星 / 資産(通貨/ジェム/鉱石/固有種個体)保全。
+- **未決(Ric判断待ち)**: 卵増加ペース調整(前ターン提案の(a)満杯時に景品穴が閉じる+(b)卵率1/15〜1/20)は、Phase4優先で今回は未着手。方針確定待ち。
