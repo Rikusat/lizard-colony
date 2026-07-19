@@ -44,8 +44,8 @@ function loadGame() {
   sandbox.window = sandbox; sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   let code = "";
-  for (const f of ["js/data.js", "js/game.js"]) code += fs.readFileSync(path.join(ROOT, f), "utf8") + "\n;\n";
-  code += "globalThis.__exp = { Game, SPECIES, MORPHS, CFG, STAGES, speciesById };\n";
+  for (const f of ["js/data.js", "js/game.js", "js/slit.js"]) code += fs.readFileSync(path.join(ROOT, f), "utf8") + "\n;\n";
+  code += "globalThis.__exp = { Game, SPECIES, MORPHS, CFG, STAGES, speciesById, Slit };\n";
   vm.runInContext(code, sandbox, { filename: "combined.js" });
   sandbox.__exp.localStorage = sandbox.localStorage; // load()検証用にsandboxのlocalStorageを露出
   return sandbox.__exp;
@@ -195,6 +195,29 @@ for (let S = 1; S <= 10; S++) {
   check("load()後: world.version=11(賢者の石追加)", Game.world.version === 11, `version=${Game.world.version}`);
   const backup = ls.getItem(exp.CFG.saveBackupKeyV10);
   check("load()時: V10バックアップが退避されている(ロールバック可)", !!backup && JSON.parse(backup).version === 9);
+}
+
+// === 7) 二重スリット装置(§9): 本装置は種も卵も生成しない(賢者の石のみ=純血の罠を構造的に踏めない) ===
+{
+  const { Slit } = exp;
+  Game.newGame();
+  Game.state.rank = 106;
+  const lz0 = Game.state.lizards.length, eg0 = Game.state.eggs.length, st0 = Game.state.stones || 0;
+  Slit.onSuccess = () => Game.addStone(1); // boot と同一配線
+  Slit.setSeed(12345);
+  let success = 0;
+  for (let i = 0; i < 5000; i++) {
+    Slit.launch();
+    let g = 0; while (Slit.active() && g < 5000) { Slit.advance(0.008); g++; }
+    if (Slit.outcome() === "success") success++;
+    Slit.drainEvents();
+  }
+  check("スリット装置: 個体を1匹も生成しない", Game.state.lizards.length === lz0, `Δ=${Game.state.lizards.length - lz0}`);
+  check("スリット装置: 卵を1個も生成しない", Game.state.eggs.length === eg0, `Δ=${Game.state.eggs.length - eg0}`);
+  check("スリット装置: 成功時は賢者の石のみ付与", (Game.state.stones || 0) - st0 === success && success > 0, `stonesΔ=${(Game.state.stones || 0) - st0} success=${success}`);
+  // ソースに species/breedablePool/inherit 等の生成経路が無いことを静的にも確認(将来の混入防止)
+  const slitSrc = fs.readFileSync(path.join(ROOT, "js/slit.js"), "utf8");
+  check("スリット装置: 種生成APIを呼ばない(静的)", !/breedablePool|inherit|makeLizard|spawn|pickUnowned|speciesId/.test(slitSrc));
 }
 
 // ---- 結果 ----
