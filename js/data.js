@@ -3,7 +3,7 @@
 // トカゲコロニー: マスターデータ / バランス定数
 // ============================================================
 
-const SAVE_VERSION = 9; // V5.2 Phase4: 純血化(各惑星は固有種のみ)。他惑星種を削除する破壊的移行
+const SAVE_VERSION = 10; // V5.2 Phase4追補: 生成経路の他惑星種混入バグを根治し、混入個体を冪等に再掃除(v9→v10)
 
 const CFG = {
   saveKey: "lizardColonySaveV1",
@@ -15,6 +15,7 @@ const CFG = {
   saveBackupKeyV7: "lizardColonyV7Backup", // V6→V7移行前のバックアップ(コオロギ給餌の復活)
   saveBackupKeyV8: "lizardColonyV8Backup", // V7→V8移行前のバックアップ(ボス見届け化・今すぐ呼ぶ1日制限)
   saveBackupKeyV9: "lizardColonyV9Backup", // V8→V9移行前のバックアップ(純血化=破壊的。必ずロールバック可能に)
+  saveBackupKeyV10: "lizardColonyV10Backup", // V9→V10移行前のバックアップ(純血化の追補=混入個体の再掃除。ロールバック可能に)
   startCoins: 500,
   startCrickets: 20,
   startGems: 3,

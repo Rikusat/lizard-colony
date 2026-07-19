@@ -362,7 +362,8 @@ const Game = {
     if (this.ore("meteorite") < 1) { UI.toast("隕石がない(巣ネットワークで手に入る)", true); return false; }
     if (this.state.eggs.length >= this.eggSlotCap()) { UI.toast("卵スロットがいっぱい!", true); return false; }
     this.addOre("meteorite", -1);
-    const pool = this.unlockedSpecies().filter((sp) => sp.stars >= 2);
+    const rare = this.breedablePool().filter((sp) => sp.stars >= 2);
+    const pool = rare.length ? rare : this.breedablePool(); // 純血: 現惑星の固有種のみ(希少枠が無ければ固有種から)
     const sp = pool[Math.floor(Math.random() * pool.length)] || speciesById("kanahebi");
     const morphId = Math.random() < CFG.meteoriteLegendChance ? "legendary"
       : ["albino", "melanistic", "golden"][Math.floor(Math.random() * 3)];
@@ -414,8 +415,8 @@ const Game = {
     if (this.ore("amethyst") < CFG.amethystLegendCost) { UI.toast(`アメジストが${CFG.amethystLegendCost}個必要`, true); return false; }
     if (this.state.eggs.length >= this.eggSlotCap()) { UI.toast("卵スロットがいっぱい!", true); return false; }
     this.addOre("amethyst", -CFG.amethystLegendCost);
-    const pool = this.unlockedSpecies();
-    const sp = pool.sort((a, b) => b.stars - a.stars)[0];
+    const pool = this.breedablePool(); // 純血: 現惑星の固有種のみ(その中の最上位星を伝説に)
+    const sp = pool.sort((a, b) => b.stars - a.stars)[0] || speciesById("kanahebi");
     this.state.eggs.push({
       speciesId: sp.id, morphId: "legendary",
       hue: sp.hue, sat: sp.sat, light: sp.light,
@@ -918,15 +919,11 @@ const Game = {
     if (st.lizards.length > 0 && st.stageId === (this.world ? this.world.currentStageId : 0) && Math.floor(this.state.crickets || 0) <= 0) b.push(Icon.svg("warn"));
     return b;
   },
-  // V3 Phase5: 繁殖/変異プール = 基本種(Stage1〜5・ランク解放済み)+現Stageの固有種
-  unlockedSpecies() {
-    const cur = this.currentStage().id;
-    const rank = this.state.rank;
-    return SPECIES.filter((sp) => {
-      if (sp.stage >= 6) return sp.stage === cur; // Stage固有種はそのStageのみ
-      const st = stageById(sp.stage);
-      return rank >= st.rank;
-    });
+  // V5.2 Phase4(純血設計): 生成(繁殖・上位変異・ルーレット景品/遺伝子解析・隕石/アメジスト/ラッキー卵)で
+  // 使える種は「現在の惑星の固有種2種」のみ。これを唯一の生成プールにすることで、他惑星種を作らず
+  // 生態系の純血を守る(旧unlockedSpeciesはstage1〜5種を全惑星で含み混入の構造的原因だったため撤去)。
+  breedablePool() {
+    return this.endemicSpecies(this.currentStage().id).map((id) => speciesById(id)).filter(Boolean);
   },
   eggSlotCap() {
     const nl = (this.state.nest && this.state.nest.lv) || 1;
@@ -1184,7 +1181,7 @@ const Game = {
     let speciesId = Math.random() < 0.5 ? a.speciesId : b.speciesId;
     if (Math.random() < CFG.mutationSpeciesChance + this.facLv("breedfac") * 0.004) {
       const base = speciesById(speciesId);
-      const ups = this.unlockedSpecies().filter((s) => s.stars > base.stars);
+      const ups = this.breedablePool().filter((s) => s.stars > base.stars); // 純血: 上位変異も現惑星の固有種内のみ
       if (ups.length) speciesId = ups[Math.floor(Math.random() * ups.length)].id;
     }
     let morphId = Math.random() < 0.5 ? a.morphId : b.morphId;
@@ -1214,7 +1211,7 @@ const Game = {
   // 未所持の図鑑エントリ(種×モーフ)を1つ返す。ステージ種優先(§7.5)。全所持ならnull
   pickUnownedDexEntry(preferStageId) {
     const cands = [];
-    for (const sp of this.unlockedSpecies()) {
+    for (const sp of this.breedablePool()) { // 純血: 未所持dexも現惑星の固有種のみ(景品/遺伝子解析が他惑星種を作らない)
       for (const mo of MORPHS) {
         if (mo.legendary) continue;
         if (!this.state.dex[sp.id + ":" + mo.id]) cands.push([sp, mo]);
@@ -1256,7 +1253,7 @@ const Game = {
     }
     const g = (outcome && outcome.gene) || {};
     const fallbackSp = (this.state.lizards[0] && this.state.lizards[0].speciesId)
-      || (this.unlockedSpecies()[0] && this.unlockedSpecies()[0].id) || "kanahebi";
+      || (this.breedablePool()[0] && this.breedablePool()[0].id) || "kanahebi";
     const base = {
       speciesId: g.speciesId || fallbackSp,
       morphId: g.morphId || "normal",
@@ -2102,7 +2099,8 @@ const Game = {
     this._luckyT = CFG.luckyEggInterval;
     if (Math.random() >= CFG.luckyEggChance) return;
     if (this.state.eggs.length >= this.eggSlotCap()) return;
-    const pool = this.unlockedSpecies().filter((sp) => sp.stars >= 2);
+    const rare = this.breedablePool().filter((sp) => sp.stars >= 2);
+    const pool = rare.length ? rare : this.breedablePool(); // 純血: 現惑星の固有種のみ
     if (!pool.length) return;
     const sp = pool[Math.floor(Math.random() * pool.length)];
     // 中身は当たり: レアモーフ確定、5%で伝説
@@ -2256,21 +2254,35 @@ const Game = {
 
   // V5.2 Phase4: 純血化(案B・破壊的)。各惑星はその惑星の固有種(stage=惑星id)のみを残し、他惑星の種を削除。
   // 卵も同様(他惑星種の卵は孵化すると純血が崩れるため)。バージョンゲートで一度だけ・冪等。実行前バックアップはload側で退避。
+  // 純血フィルタ(共有・冪等): 各ステージから固有種(stage=惑星id)以外の個体/卵を除去し、除去数を返す。
+  // migrateV8to9(初回純血化)と migrateV9to10(混入バグの再掃除)が同一ロジックを共有(揺らぎ防止)。
+  _purifyStages(stages) {
+    let lizRemoved = 0, eggRemoved = 0; const detail = [];
+    for (const st of (stages || [])) {
+      const endemic = SPECIES.filter((sp) => sp.stage === st.stageId).map((sp) => sp.id);
+      const rl = {}, re = {};
+      st.lizards = (st.lizards || []).filter((lz) => { if (endemic.includes(lz.speciesId)) return true; rl[lz.speciesId] = (rl[lz.speciesId] || 0) + 1; lizRemoved++; return false; });
+      st.eggs = (st.eggs || []).filter((e) => { if (endemic.includes(e.speciesId)) return true; re[e.speciesId] = (re[e.speciesId] || 0) + 1; eggRemoved++; return false; });
+      if (Object.keys(rl).length || Object.keys(re).length) detail.push({ stage: st.stageId, lizards: rl, eggs: re });
+    }
+    return { lizards: lizRemoved, eggs: eggRemoved, detail }; // detail=惑星別・種別の除去内訳(監査ログ用)
+  },
   migrateV8to9(w) {
     if ((w.version || 0) >= 9) return w;
     const stages = w.planets || w.stages || [];
-    let lizRemoved = 0, eggRemoved = 0;
-    for (const st of stages) {
-      const endemic = SPECIES.filter((sp) => sp.stage === st.stageId).map((sp) => sp.id);
-      const lz0 = (st.lizards || []).length, eg0 = (st.eggs || []).length;
-      st.lizards = (st.lizards || []).filter((lz) => endemic.includes(lz.speciesId));
-      st.eggs = (st.eggs || []).filter((e) => endemic.includes(e.speciesId));
-      lizRemoved += lz0 - st.lizards.length;
-      eggRemoved += eg0 - st.eggs.length;
-    }
+    w._purifyV9 = this._purifyStages(stages); // 通知用(保存されない)
     w.planets = stages; w.stages = stages;
-    w._purifyV9 = { lizards: lizRemoved, eggs: eggRemoved }; // 通知用(保存されない)
     w.version = 9;
+    return w;
+  },
+  // V5.2 Phase4追補: 生成経路のバグ(全生成が他惑星種を作りうる=旧unlockedSpecies)で純血化後も混入した
+  // 個体/卵を、生成側の根治(breedablePool)と同時に冪等で再掃除。以後は再混入しない。バックアップはload側で退避。
+  migrateV9to10(w) {
+    if ((w.version || 0) >= 10) return w;
+    const stages = w.planets || w.stages || [];
+    w._purifyV10 = this._purifyStages(stages); // 通知用(保存されない)
+    w.planets = stages; w.stages = stages;
+    w.version = 10;
     return w;
   },
 
@@ -2473,15 +2485,19 @@ const Game = {
       const data = JSON.parse(raw);
       let world;
       if (data.version >= 9) {
-        world = data;
+        // v9セーブ → v10移行(混入個体の再掃除=破壊的。移行前を退避=ロールバック可能に)
+        if (data.version === 9) { try { localStorage.setItem(CFG.saveBackupKeyV10, raw); } catch (e) { /* noop */ } }
+        world = data; // 実移行は下の共通ゲートで(冪等)
       } else if (data.version === 8) {
         // V8セーブ → V9移行(純血化=破壊的。必ず全文バックアップを退避=ロールバック可能に)
         try { localStorage.setItem(CFG.saveBackupKeyV9, raw); } catch (e) { /* noop */ }
+        try { localStorage.setItem(CFG.saveBackupKeyV10, raw); } catch (e) { /* noop */ }
         world = data; // 実移行は下の共通ゲートで(冪等)
       } else if (data.version === 7) {
-        // V7セーブ → V8移行(ボス見届け化・1日3回カウンタ・バックアップしてから)。V9バックアップも退避
+        // V7セーブ → V8移行(ボス見届け化・1日3回カウンタ・バックアップしてから)。V9/V10バックアップも退避
         try { localStorage.setItem(CFG.saveBackupKeyV8, raw); } catch (e) { /* noop */ }
         try { localStorage.setItem(CFG.saveBackupKeyV9, raw); } catch (e) { /* noop */ }
+        try { localStorage.setItem(CFG.saveBackupKeyV10, raw); } catch (e) { /* noop */ }
         world = data; // 実移行は下の共通ゲートで(冪等)
       } else if (data.version === 6) {
         // V6セーブ → V7移行(コオロギ給餌の復活・バックアップしてから)
@@ -2525,11 +2541,24 @@ const Game = {
         world = this.migrateV3to4(this.migrateV2to3(this.migrateV1(data)));
         setTimeout(() => UI.toast("セーブを最新形式へ移行しました。旧データはバックアップ済み"), 900);
       }
-      // 共通ゲート(全チェーンの最終段・各段は冪等)。v8→v9=純血化(破壊的・一度だけ)
-      world = this.migrateV8to9(this.migrateV7to8(this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world)))));
+      // 共通ゲート(全チェーンの最終段・各段は冪等)。v8→v9=純血化(破壊的) / v9→v10=混入個体の再掃除
+      world = this.migrateV9to10(this.migrateV8to9(this.migrateV7to8(this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world))))));
       if (world._purifyV9 && (world._purifyV9.lizards > 0 || world._purifyV9.eggs > 0)) {
         const p9 = world._purifyV9;
         setTimeout(() => UI.toast(`${Icon.svg("planet")} 純血化: 各惑星は固有種のみになりました(他惑星種 ${p9.lizards}匹${p9.eggs > 0 ? "・卵" + p9.eggs : ""}が去った。設定からロールバック可)`, true), 900);
+      }
+      if (world._purifyV10 && (world._purifyV10.lizards > 0 || world._purifyV10.eggs > 0)) {
+        const p10 = world._purifyV10;
+        // 監査ログ(全走査結果): どの惑星から何の他惑星種が何匹/何卵 消えたかをコンソールへ
+        try {
+          console.log("=== 純血化(追補) 監査: 除去した他惑星種の内訳 ===");
+          for (const d of (p10.detail || [])) {
+            const st = stageById(d.stage) || {};
+            const fmt2 = (o) => Object.entries(o).map(([k, v]) => `${(speciesById(k) || { name: k }).name}×${v}`).join(", ");
+            console.log(`${st.pname || ""} ${st.name || ("stage" + d.stage)}: 個体[${fmt2(d.lizards) || "-"}] 卵[${fmt2(d.eggs) || "-"}]`);
+          }
+        } catch (e) { /* noop */ }
+        setTimeout(() => UI.toast(`${Icon.svg("planet")} 純血化の追補: 混入していた他惑星種 ${p10.lizards}匹${p10.eggs > 0 ? "・卵" + p10.eggs : ""}を掃除しました(生成側も根治済み・設定からロールバック可)`, true), 950);
       }
       if (world._reviveV7 && world._reviveV7.crickets > 0) {
         const r7 = world._reviveV7;
@@ -2583,6 +2612,14 @@ const Game = {
     let raw;
     try { raw = localStorage.getItem(CFG.saveBackupKeyV9); } catch (e) { raw = null; }
     if (!raw) { UI.toast("純血化前のバックアップが見つからない", true); return false; }
+    localStorage.setItem(CFG.saveKey, raw);
+    location.reload();
+    return true;
+  },
+  restoreV10Backup() {
+    let raw;
+    try { raw = localStorage.getItem(CFG.saveBackupKeyV10); } catch (e) { raw = null; }
+    if (!raw) { UI.toast("純血化(追補)前のバックアップが見つからない", true); return false; }
     localStorage.setItem(CFG.saveKey, raw);
     location.reload();
     return true;
