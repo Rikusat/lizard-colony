@@ -151,6 +151,15 @@ main {
   align-items: start;
 }
 #left { display: flex; flex-direction: column; gap: clamp(6px, 1vh, 12px); align-self: stretch; min-height: 0; }
+/* §9 二重スリット装置: 左カラム下部の極小窓(線のみ)。小さいからこそ「たまに覗き込む」対象に */
+#slit-device {
+  margin-top: auto; align-self: center; box-sizing: border-box;
+  width: min(100%, 170px); aspect-ratio: 1;
+  padding: 6px; border-radius: 12px;
+  background: radial-gradient(circle at 50% 45%, rgba(20, 34, 44, .55), rgba(8, 12, 16, .6));
+  border: 1px solid var(--ink-600); box-shadow: inset 0 0 16px rgba(0, 0, 0, .5);
+}
+#slit-canvas { display: block; width: 100%; height: 100%; }
 
 .card {
   background: var(--grad-card);

@@ -1030,7 +1030,8 @@ const Game = {
     if (this._dialT < interval) return;
     this._dialT = 0;
     // V5.2: 自動給餌はコオロギ在庫を消費。切れ時トグルON=停止/OFF=Gold換算補充(feedAll内で処理)
-    this.feedAll(true);
+    const ok = this.feedAll(true);
+    if (ok && typeof Slit !== "undefined") Slit.onCrank(); // §9: オートのクランク稼働でも作動(クールダウン内蔵)
   },
 
   feedAll(silent) {
