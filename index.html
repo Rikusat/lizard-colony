@@ -44,8 +44,14 @@
       <!-- 3.13 C3: 左メニュー撤廃→飼育槽を全画面化。コオロギ購入/設備は飼育槽左上の透過オーバーレイへ移設 -->
       <!-- 惑星名バッジ・個体数(canvas描画)の下に置き干渉させない。機能は従来どおり(同一ID=ハンドラ結線を維持) -->
       <div id="field-tools">
-        <button id="btn-cricket" class="ft-btn" title="コオロギ購入(まとめ買い / 長押しで連続)"><svg class="icon"><use href="#i-cricket"/></svg><span class="lbl">コオロギ<small id="cricket-lot-lbl"></small></span></button>
-        <button id="btn-fac" class="ft-btn" title="設備 — コロニーを強化"><svg class="icon"><use href="#i-build"/></svg><span class="lbl">設備</span></button>
+        <button id="btn-cricket" class="ft-card" title="コオロギ購入(まとめ買い / 長押しで連続)">
+          <svg class="icon"><use href="#i-cricket"/></svg>
+          <span class="ft-txt"><b>コオロギ購入</b><small id="cricket-lot-lbl">まとめ買い</small></span>
+        </button>
+        <button id="btn-fac" class="ft-card" title="設備 — コロニーを強化">
+          <svg class="icon"><use href="#i-build"/></svg>
+          <span class="ft-txt"><b>設備</b><small>コロニーを強化</small></span>
+        </button>
       </div>
       <!-- 3.10.3: 襲撃予告=飼育槽右上のコンパクト半透明HUD(生き物の動きを隠さない) -->
       <div id="raid-hud">

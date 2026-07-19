@@ -220,21 +220,25 @@ button.act .price {
    惑星名バッジ・個体数(canvas描画・左上)の下に置き干渉させない */
 #field-tools {
   position: absolute; top: 62px; left: 12px; z-index: 4;
-  display: flex; flex-direction: column; align-items: flex-start; gap: 5px; pointer-events: none;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 7px; pointer-events: none;
 }
 #field-tools > * { pointer-events: auto; }
-#field-tools .ft-btn {
-  display: flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; cursor: pointer;
-  background: rgba(18, 14, 10, .58); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
-  border: 1px solid rgba(255, 255, 255, .13);
-  color: var(--paper-100); font-weight: bold; font-size: calc(13px * var(--fs-scale, 1));
+/* ②見やすいカード: 大きく・透過維持(生き物を隠さない)・惑星名/個体数バッジとトーンを揃え左上の一群に */
+#field-tools .ft-card {
+  display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 13px; cursor: pointer;
+  min-width: 176px; text-align: left;
+  background: rgba(14, 10, 6, .52); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, .15); color: var(--paper-100);
   text-shadow: 0 1px 3px rgba(0, 0, 0, .8); transition: background var(--dur-fast), transform var(--dur-fast) var(--ease-pop);
 }
-#field-tools .ft-btn:hover { background: rgba(30, 22, 14, .72); }
-#field-tools .ft-btn:active { transform: scale(.96); }
-#field-tools .ft-btn .icon { width: 15px; height: 15px; color: var(--amber-400); }
-#field-tools .ft-btn .lbl { display: flex; align-items: center; gap: 5px; }
-#field-tools .ft-btn small { color: var(--sub); font-weight: normal; font-size: .85em; }
+#field-tools .ft-card:hover { background: rgba(32, 24, 15, .66); }
+#field-tools .ft-card:active { transform: scale(.97); }
+#field-tools .ft-card .icon { width: 24px; height: 24px; color: var(--amber-400); flex: none; }
+#field-tools .ft-card .ft-txt { display: flex; flex-direction: column; line-height: 1.28; min-width: 0; }
+#field-tools .ft-card .ft-txt b { font-size: calc(14.5px * var(--fs-scale, 1)); font-weight: bold; }
+#field-tools .ft-card .ft-txt small {
+  font-size: calc(12.5px * var(--fs-scale, 1)); color: var(--amber-400); font-weight: bold; font-variant-numeric: tabular-nums;
+}
 
 #raid-hud {
   position: absolute; top: 12px; right: 12px; z-index: 4;
