@@ -96,6 +96,9 @@ const CFG = {
   // §1.2.2 中央ポケットの景品(盤geometryは共通・景品のみボス格で差替): 通常ボス=レア卵 / 大ボス(elite)=虹(新種)
   roulRareMorphChance: 0.5, // レア卵(通常ボスの中央): 非normalモーフ(albino/mela/golden)になる確率
   roulRareEggBonusLv: 2,    // レア卵はアダルトで初期Lv=1+この値で誕生(高品質個体)
+  // C2演出(ヒーローオーバーレイ): 撃破の余韻→間→せり上がり→撃つ→集計→退場
+  roulRewardDelaySec: 1.5,  // ボス撃破→報酬盤せり上がりまでの「間」(余韻・実機で1.2〜1.8を詰める)
+  roulRewardTallySec: 2.4,  // 集計(卵×M・新種×K)を読み取れる時間だけ表示して退場
 
   xpPopupAutoHighEvery: 10, // V5 3.5: オート高のXPポップ間引き(N回に1回だけ表示)
   xpPopupAutoHighSmall: true, // V5 3.5: オート高のXPポップを小さく表示

@@ -165,6 +165,7 @@ const UI = {
       }
       Render.draw();
       if (this.drawRoulette) this.drawRoulette();
+      if (this.drawBossReward) this.drawBossReward(); // Phase3.13 C2: ボス報酬オーバーレイ(稼働中のみ)
       this.acc += real;
       if (this.acc >= 0.2) { this.acc = 0; this.update(); }
       requestAnimationFrame(loop);

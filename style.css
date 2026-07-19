@@ -1826,6 +1826,47 @@ button.holding::after {
 .hero-reward { font-size: calc(13px * var(--fs-scale, 1)); color: var(--paper-100); text-shadow: 0 1px 3px #000; }
 .hero-skip { position: absolute; bottom: 10%; font-size: calc(12px * var(--fs-scale, 1)); color: var(--sub); }
 
+/* Phase3.13 C2: ボス討伐後の報酬ルーレット(ヒーロー器・ephemeral・終わったら完全消去) */
+#boss-reward {
+  position: fixed; inset: 0; z-index: 320; display: flex;
+  flex-direction: column; align-items: center; justify-content: center;
+  background: rgba(14, 10, 6, .62); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
+  user-select: none; animation: br-dim var(--dur-slow) var(--ease-out);
+}
+#boss-reward.leaving { animation: br-out 240ms var(--ease-out) forwards; }
+@keyframes br-dim { from { opacity: 0; } }
+@keyframes br-out { to { opacity: 0; } }
+#boss-reward .br-panel {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 16px 20px 14px; border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, rgba(38, 28, 18, .92), rgba(24, 17, 11, .95));
+  box-shadow: var(--elev-3), inset 0 1px 0 rgba(255, 240, 200, .10);
+  border: 1px solid rgba(200, 170, 110, .28);
+}
+#boss-reward .br-panel.rise { animation: br-rise 520ms var(--ease-pop); }
+@keyframes br-rise { from { transform: translateY(60px) scale(.9); opacity: 0; } }
+#boss-reward .br-title {
+  font-family: var(--font-display); font-weight: bold;
+  font-size: calc(16px * var(--fs-scale, 1)); color: var(--gold); text-shadow: 0 1px 4px #000;
+}
+#boss-reward.rainbow .br-title { color: #ffe08a; }
+#boss-reward .br-canvas {
+  width: 176px; height: 340px; border-radius: 12px;
+  background: rgba(8, 11, 9, .9); box-shadow: inset 0 0 0 1px rgba(160, 200, 150, .18); cursor: pointer;
+}
+#boss-reward.rainbow .br-canvas { box-shadow: inset 0 0 0 1px rgba(255, 200, 120, .3), 0 0 22px rgba(255, 180, 90, .22); }
+#boss-reward .br-tray {
+  display: flex; gap: 10px; font-size: calc(13px * var(--fs-scale, 1)); color: var(--paper-100);
+  font-variant-numeric: tabular-nums;
+}
+#boss-reward .br-tray .rare { color: var(--amber-400); }
+#boss-reward .br-tray .rainbow { color: #ffd36b; }
+#boss-reward .br-tray .rem { color: var(--sub); }
+#boss-reward .br-hint { font-size: calc(12px * var(--fs-scale, 1)); color: var(--sub); }
+@media (prefers-reduced-motion: reduce) {
+  #boss-reward, #boss-reward .br-panel.rise, #boss-reward.leaving { animation: none; }
+}
+
 /* 巣ノード解放(中庸): メダル+走る糸+琥珀の発光 */
 .hero-nest .medal {
   position: relative; width: 92px; height: 92px; border-radius: 50%;

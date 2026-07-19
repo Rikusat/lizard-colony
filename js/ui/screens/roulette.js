@@ -29,8 +29,14 @@ Object.assign(UI, {
   drawRoulette() {
     const ctx = this._roulCtx, cv = this._roulCv;
     if (!ctx || !cv || typeof Roulette === "undefined") return;
+    if (this._bossRewardOpen) return; // 報酬オーバーレイ稼働中はそちらが描画(イベント二重drain防止)
     if (!this._syncRoulSize()) return; // 自己修復
-    const cw = cv.width, ch = cv.height;
+    this._paintRoulBoard(ctx, cv.width, cv.height, "rainbow");
+  },
+
+  // 盤面ペインタ(左メニュー(暫定)/報酬オーバーレイ で共有・fable1 演出のコピペ増殖を防ぐ)。
+  // jackpotMode(§1.2.2): "rainbow"=中央七色(新種) / "rare"=中央琥珀(レア卵)。盤geometryは共通
+  _paintRoulBoard(ctx, cw, ch, jackpotMode) {
     const W = CFG.roulW, H = CFG.roulH;
     const scale = Math.min(cw / W, ch / H);
     const ox = (cw - W * scale) / 2, oy = (ch - H * scale) / 2;
@@ -116,17 +122,28 @@ Object.assign(UI, {
     } else {
       drawLid(cx - pzMid); drawLid(cx + pzMid);
     }
-    // 虹の受け皿(中央・極細・七色脈動=最大の見せ場)
-    const rg = ctx.createLinearGradient(cx - rbHalf, 0, cx + rbHalf, 0);
-    rg.addColorStop(0, `hsla(${tp},95%,62%,${0.65 + pulse * 0.35})`);
-    rg.addColorStop(1, `hsla(${(tp + 160) % 360},95%,62%,${0.65 + pulse * 0.35})`);
-    drawCup(cx, Math.max(rbHalf, 2.2), rg, `hsla(${(tp + 60) % 360},95%,74%,.95)`);
-    // 虹受け皿の誘目グロー
-    if (!calm) {
-      ctx.save(); ctx.globalAlpha = 0.4 + pulse * 0.3;
-      const gg = ctx.createRadialGradient(cx, landY, 1, cx, landY, 14);
-      gg.addColorStop(0, `hsla(${tp},95%,66%,.7)`); gg.addColorStop(1, `hsla(${tp},95%,66%,0)`);
-      ctx.fillStyle = gg; ctx.fillRect(cx - 14, landY - 12, 28, 24); ctx.restore();
+    // 中央ポケット(§1.2.2): 大ボス=七色脈動(新種)/通常ボス=琥珀脈動(レア卵)。ボス撃破の瞬間に盤の色で「今日は虹だ」と分かる
+    const rareCenter = jackpotMode === "rare";
+    if (rareCenter) {
+      const a = 0.6 + pulse * 0.4;
+      drawCup(cx, Math.max(rbHalf, 2.2), `rgba(210,170,90,${a})`, `rgba(240,205,115,.95)`);
+      if (!calm) {
+        ctx.save(); ctx.globalAlpha = 0.4 + pulse * 0.3;
+        const gg = ctx.createRadialGradient(cx, landY, 1, cx, landY, 14);
+        gg.addColorStop(0, "rgba(235,195,110,.7)"); gg.addColorStop(1, "rgba(235,195,110,0)");
+        ctx.fillStyle = gg; ctx.fillRect(cx - 14, landY - 12, 28, 24); ctx.restore();
+      }
+    } else {
+      const rg = ctx.createLinearGradient(cx - rbHalf, 0, cx + rbHalf, 0);
+      rg.addColorStop(0, `hsla(${tp},95%,62%,${0.65 + pulse * 0.35})`);
+      rg.addColorStop(1, `hsla(${(tp + 160) % 360},95%,62%,${0.65 + pulse * 0.35})`);
+      drawCup(cx, Math.max(rbHalf, 2.2), rg, `hsla(${(tp + 60) % 360},95%,74%,.95)`);
+      if (!calm) {
+        ctx.save(); ctx.globalAlpha = 0.4 + pulse * 0.3;
+        const gg = ctx.createRadialGradient(cx, landY, 1, cx, landY, 14);
+        gg.addColorStop(0, `hsla(${tp},95%,66%,.7)`); gg.addColorStop(1, `hsla(${tp},95%,66%,0)`);
+        ctx.fillStyle = gg; ctx.fillRect(cx - 14, landY - 12, 28, 24); ctx.restore();
+      }
     }
 
     // 球(ルール層の実(x,y)を描く・しっかりした球体・#1)
