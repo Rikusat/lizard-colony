@@ -192,7 +192,7 @@ for (let S = 1; S <= 10; S++) {
   check("load()成功", ok === true);
   const afterLoad = auditWorld(exp, Game.world);
   check("load()後: 全惑星で他惑星種0(自動再純血化)", afterLoad.foreignLiz === 0 && afterLoad.foreignEgg === 0, afterLoad.detail.join(" | "));
-  check("load()後: world.version=10", Game.world.version === 10, `version=${Game.world.version}`);
+  check("load()後: world.version=11(賢者の石追加)", Game.world.version === 11, `version=${Game.world.version}`);
   const backup = ls.getItem(exp.CFG.saveBackupKeyV10);
   check("load()時: V10バックアップが退避されている(ロールバック可)", !!backup && JSON.parse(backup).version === 9);
 }

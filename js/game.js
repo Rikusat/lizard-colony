@@ -51,6 +51,7 @@ const Game = {
       coins: CFG.startCoins,
       crickets: CFG.startCrickets, // V5.2: コオロギ給餌の復活(初期在庫)
       gems: CFG.startGems,
+      stones: CFG.startStones, // 賢者の石(v11・二重スリット装置のレア報酬・保有のみ)
       rank: 1,
       rankXp: 0,
       lizards: [],
@@ -350,6 +351,10 @@ const Game = {
   addOre(id, n) {
     if (!this.state.rare) this.state.rare = {};
     this.state.rare[id] = Math.max(0, (this.state.rare[id] || 0) + n);
+  },
+  // 賢者の石(v11・二重スリット装置のレア報酬・保有のみ)。負値も可(将来の消費用)
+  addStone(n) {
+    this.state.stones = Math.max(0, (this.state.stones || 0) + n);
   },
   spendOre(id, n) {
     if (this.ore(id) < n) return false;
@@ -2196,7 +2201,7 @@ const Game = {
       version: SAVE_VERSION,
       savedAt: Date.now(),
       idSeq: this._idSeq,
-      wallet: { coins: s.coins, gems: s.gems, crickets: s.crickets || 0 }, // V5.2: コオロギ給餌の復活(共通在庫)
+      wallet: { coins: s.coins, gems: s.gems, crickets: s.crickets || 0, stones: s.stones || 0 }, // V5.2: 共通在庫。v11: 賢者の石
       headquarters: { rank: s.rank, rankXp: s.rankXp, research: s.research || {}, rocket: s.rocket || { stage: 0, invested: 0, done: false } },
       collection: {
         dex: s.dex, stats: s.stats, missionsClaimed: s.missionsClaimed,
@@ -2312,6 +2317,15 @@ const Game = {
     return w;
   },
 
+  // v10→v11: 賢者の石(二重スリット装置のレア報酬)をwalletへ追加。加算のみ=非破壊・冪等
+  migrateV10to11(w) {
+    if ((w.version || 0) >= 11) return w;
+    w.wallet = w.wallet || { coins: 0, gems: 0 };
+    if (w.wallet.stones == null) w.wallet.stones = 0;
+    w.version = 11;
+    return w;
+  },
+
   applyWorld(w) {
     if (w.planets && !w.stages) w.stages = w.planets; // V4改名の互換
     if (w.stages && !w.planets) w.planets = w.stages;
@@ -2321,6 +2335,7 @@ const Game = {
     if (!active) active = w.stages[w.stages.length - 1] || this.emptyStageData(1);
     this.state = {
       coins: w.wallet.coins, gems: w.wallet.gems,
+      stones: w.wallet.stones || 0, // v11: 賢者の石(旧セーブは既定0で後方互換)
       crickets: w.wallet.crickets || 0, // V5.2: コオロギ給餌の復活(全コロニー共通在庫)
       rank: w.headquarters.rank, rankXp: w.headquarters.rankXp,
       research: w.headquarters.research || {},
@@ -2513,6 +2528,8 @@ const Game = {
       if (data.version >= 9) {
         // v9セーブ → v10移行(混入個体の再掃除=破壊的。移行前を退避=ロールバック可能に)
         if (data.version === 9) { try { localStorage.setItem(CFG.saveBackupKeyV10, raw); } catch (e) { /* noop */ } }
+        // v10セーブ → v11移行(賢者の石追加=非破壊だが方針どおり退避)
+        if (data.version === 10) { try { localStorage.setItem(CFG.saveBackupKeyV11, raw); } catch (e) { /* noop */ } }
         world = data; // 実移行は下の共通ゲートで(冪等)
       } else if (data.version === 8) {
         // V8セーブ → V9移行(純血化=破壊的。必ず全文バックアップを退避=ロールバック可能に)
@@ -2568,7 +2585,7 @@ const Game = {
         setTimeout(() => UI.toast("セーブを最新形式へ移行しました。旧データはバックアップ済み"), 900);
       }
       // 共通ゲート(全チェーンの最終段・各段は冪等)。v8→v9=純血化(破壊的) / v9→v10=混入個体の再掃除
-      world = this.migrateV9to10(this.migrateV8to9(this.migrateV7to8(this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world))))));
+      world = this.migrateV10to11(this.migrateV9to10(this.migrateV8to9(this.migrateV7to8(this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world)))))));
       if (world._purifyV9 && (world._purifyV9.lizards > 0 || world._purifyV9.eggs > 0)) {
         const p9 = world._purifyV9;
         setTimeout(() => UI.toast(`${Icon.svg("planet")} 純血化: 各惑星は固有種のみになりました(他惑星種 ${p9.lizards}匹${p9.eggs > 0 ? "・卵" + p9.eggs : ""}が去った。設定からロールバック可)`, true), 900);

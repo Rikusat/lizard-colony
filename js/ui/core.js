@@ -40,7 +40,7 @@ const UI = {
   hintIdx: 0,
 
   init() {
-    const ids = ["ui-coins", "ui-cps", "ui-gems", "ui-rank", "rank-bar",
+    const ids = ["ui-coins", "ui-cps", "ui-gems", "ui-stones", "ui-rank", "rank-bar",
       "raid-timer", "raid-banner",
       "detail", "modal", "modal-title", "modal-body", "toasts", "mission-badge", "ui-hint"];
     for (const id of ids) this.els[id] = document.getElementById(id);
@@ -223,6 +223,7 @@ const UI = {
     this.els["ui-cps"].textContent = "+" + Game.totalIncomePerSec().toFixed(1) + "/秒"; // V5: 全コロニー合算
     // V5.1: コオロギピル撤去(givesはGold直接消費)
     this.resPill("ui-gems", s.gems, 0);
+    if (this.els["ui-stones"]) this.resPill("ui-stones", s.stones || 0, 0); // v11: 賢者の石
     // 3.10.4: HQはヘッダー直下のプログレスバー。数値はバー上の小ラベル。棒はrankXp進捗
     if (this.els["ui-rank"]) Motion.countUp(this.els["ui-rank"], s.rank, (v) => Math.round(v));
     if (this.els["rank-bar"]) this.els["rank-bar"].style.width = (s.rankXp / Game.rankXpNeed() * 100) + "%";

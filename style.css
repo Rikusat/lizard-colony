@@ -82,6 +82,8 @@ main { flex: 1 1 auto; min-height: 0; width: 100%; }
 .ricon.coin { background: radial-gradient(circle at 35% 30%, #ffe9a0, #d9a83c 60%, #a8781e); color: #7a5410; font-weight: bold; font-size: calc(14px * var(--fs-scale, 1)); }
 .ricon.cricket { background: radial-gradient(circle at 35% 30%, #b9d97a, #6f9436 65%, #4a681f); }
 .ricon.gem { background: radial-gradient(circle at 35% 30%, #b7e6ff, #4f9fd9 60%, #2a5f96); }
+/* 賢者の石(v11): 最上位の希少物質=錬金の紅玉。ジェム(青)と差別化した紅紫の光沢 */
+.ricon.stone { background: radial-gradient(circle at 35% 30%, #ffd0b0, #d95a7a 58%, #7a2f4e); color: #fff; box-shadow: 0 0 8px rgba(217, 90, 122, .5); }
 
 #topbar nav { margin-left: auto; display: flex; gap: 10px; }
 /* 3.11.3: ボス襲来中の暗転(マップ移動禁止・今すぐ呼ぶ不可)。給餌クランクも操作不可に */

@@ -9,6 +9,8 @@ const ICONS = {
   coin: '<circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 9.5h4a1.8 1.8 0 1 1 0 3.6h-3a1.8 1.8 0 1 0 0 3.6h4" fill="none"/>',
   cricket: '<ellipse cx="12" cy="14" rx="7" ry="4.5"/><path d="M7 10 4 5M17 10l3-5M6 17l-2 3M18 17l2 3M9 14h6" fill="none"/>',
   gem: '<path d="M7 4h10l4 5-9 11L3 9z"/><path d="M3 9h18M12 20 8.5 9l3.5-5 3.5 5z" fill="none" stroke-opacity=".55"/>',
+  // 賢者の石(v11・二重スリット装置のレア報酬): 円の石+内環+錬金の三角(gemのダイヤ形と差別化)
+  stone: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.6" fill="none" stroke-opacity=".6"/><path d="M12 8.2 15 13.5H9z" fill="none"/>',
   bio: '<path d="M8 3c0 6 8 6 8 9s-8 3-8 9M16 3c0 6-8 6-8 9s8 3 8 9M9 6.5h6M9 17.5h6" fill="none"/>',
   food: '<path d="M6 13a6 6 0 0 1 12 0v2H6z"/><path d="M5 18h14M8 15v3M12 15v3M16 15v3" fill="none"/>',
   energy: '<path d="M13 2 5 14h5l-1 8 8-12h-5z"/>',

@@ -3,7 +3,7 @@
 // トカゲコロニー: マスターデータ / バランス定数
 // ============================================================
 
-const SAVE_VERSION = 10; // V5.2 Phase4追補: 生成経路の他惑星種混入バグを根治し、混入個体を冪等に再掃除(v9→v10)
+const SAVE_VERSION = 11; // v11: 賢者の石(二重スリット装置の報酬・新プレミアム資源)をwalletに追加(v10→v11・加算のみ=非破壊)
 
 const CFG = {
   saveKey: "lizardColonySaveV1",
@@ -16,7 +16,10 @@ const CFG = {
   saveBackupKeyV8: "lizardColonyV8Backup", // V7→V8移行前のバックアップ(ボス見届け化・今すぐ呼ぶ1日制限)
   saveBackupKeyV9: "lizardColonyV9Backup", // V8→V9移行前のバックアップ(純血化=破壊的。必ずロールバック可能に)
   saveBackupKeyV10: "lizardColonyV10Backup", // V9→V10移行前のバックアップ(純血化の追補=混入個体の再掃除。ロールバック可能に)
+  saveBackupKeyV11: "lizardColonyV11Backup", // V10→V11移行前のバックアップ(賢者の石追加=非破壊だが方針どおり退避)
   startCoins: 500,
+  startStones: 0,           // 賢者の石(二重スリット装置のレア報酬・保有のみ・用途は後日)。新規は0
+
   startCrickets: 20,
   startGems: 3,
   cricketCost: 10,          // コオロギ1匹の価格
