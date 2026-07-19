@@ -57,28 +57,35 @@ Object.assign(UI, {
     const pt = (r, thDeg) => { const t = thDeg * Math.PI / 180; return [cx + r * R * Math.cos(t), cy - r * R * Math.sin(t)]; };
 
     ctx.clearRect(0, 0, cw, ch);
-    // 同心円レール(線のみ・低コントラスト)。待機中はクールダウンで僅かに減光
+    const sc = cw / 240; // 窓サイズ追随のスケール
+    // 同心円レール(線のみ)。切れ目=線の途切れ+両端のマーカーで「どこが切れ目か」を明確に(コントラスト向上)
     const cd = Slit.cooldownLeft ? Slit.cooldownLeft() : 0;
-    const baseA = 0.16 + (cd > 0 ? 0 : 0.04);
+    const baseA = 0.42 + (cd > 0 ? 0 : 0.06);
+    const lw = Math.max(1.2, 1.4 * sc);
     for (let i = 0; i < N; i++) {
-      this._slitRing(ctx, cx, cy, radii[i] * R, base, half[i], `rgba(150,195,215,${baseA})`, Math.max(1, 1.1 * (cw / 200)));
+      this._slitRing(ctx, cx, cy, radii[i] * R, base, half[i], `rgba(168,214,234,${baseA})`, lw);
+      for (const s of [-1, 1]) { // 切れ目の縁マーカー(明るい小点=開口の端が一目で分かる=惜しさの基準)
+        const [ex, ey] = pt(radii[i], base + s * half[i]);
+        ctx.beginPath(); ctx.arc(ex, ey, lw * 1.4, 0, 7);
+        ctx.fillStyle = "rgba(200,235,255,.9)"; ctx.fill();
+      }
     }
-    // 中心の的(奇跡の到達点)。ごく淡い
-    ctx.beginPath(); ctx.arc(cx, cy, Math.max(1.5, R * 0.05), 0, 7);
-    ctx.strokeStyle = "rgba(210,140,165,.35)"; ctx.lineWidth = 1; ctx.stroke();
+    // 中心の的(奇跡の到達点)
+    ctx.beginPath(); ctx.arc(cx, cy, Math.max(2, R * 0.055), 0, 7);
+    ctx.strokeStyle = "rgba(225,160,185,.65)"; ctx.lineWidth = 1.3 * sc; ctx.stroke();
 
-    // 張り付いた失敗の痕跡(内側=惜しいほど明るく大きく=静かな殿堂)。寿命末期はフェード
+    // 張り付いた失敗の痕跡(内側=惜しいほど明るく大きく=静かな殿堂)。どのリングに何個あるか一目で読める明るさ
     for (const s of Slit.stuck) {
       const [x, y] = pt(s.r, s.theta);
       const depth = (s.ring + 1) / N;               // 0..1 内側ほど大
       const fade = Math.min(1, s.life / 6);          // 消える前に薄く
-      const rad = (0.9 + depth * 1.8) * (cw / 200);
-      const a = (0.22 + depth * 0.5) * fade;
+      const rad = (2.0 + depth * 2.8) * sc;
+      const a = (0.5 + depth * 0.45) * fade;
       ctx.beginPath(); ctx.arc(x, y, rad, 0, 7);
-      ctx.fillStyle = `rgba(190,225,240,${a})`; ctx.fill();
-      if (depth >= 0.99 && !calm) { // 最内到達=最高記録は静かに光る
-        ctx.beginPath(); ctx.arc(x, y, rad + 1.6, 0, 7);
-        ctx.strokeStyle = `rgba(215,150,175,${0.5 * fade})`; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = `rgba(205,232,246,${a})`; ctx.fill();
+      if (depth >= 0.99) { // 最内到達=最高記録は静かに光る(reduced-motionでもリングは出す=記録の可視化を優先)
+        ctx.beginPath(); ctx.arc(x, y, rad + 2.2 * sc, 0, 7);
+        ctx.strokeStyle = `rgba(230,165,190,${0.7 * fade})`; ctx.lineWidth = 1.2 * sc; ctx.stroke();
       }
     }
 
