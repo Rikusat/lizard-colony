@@ -2139,8 +2139,11 @@ const Render = {
         ctx.font = p.small ? `10px sans-serif` : `bold ${Math.round(26 * pop)}px sans-serif`;
         ctx.fillStyle = "rgba(0,0,0,.75)"; ctx.fillText(p.txt, p.x + 2, p.y + 2);
       } else {
-        ctx.font = "bold 17px sans-serif";
-        ctx.fillStyle = "rgba(0,0,0,.7)"; ctx.fillText(p.txt, p.x + 1.5, p.y + 1.5);
+        // small=オート給餌のLvアップ(控えめ表示・CFGでpx調整可)。手動(small無し)は17px固定
+        const fs = p.small ? (CFG.autoFeedLevelPopSize || 10) : 17;
+        const sh = p.small ? 1 : 1.5;
+        ctx.font = `bold ${fs}px sans-serif`;
+        ctx.fillStyle = "rgba(0,0,0,.7)"; ctx.fillText(p.txt, p.x + sh, p.y + sh);
       }
       ctx.fillStyle = p.color; ctx.fillText(p.txt, p.x, p.y);
     }

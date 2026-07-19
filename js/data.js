@@ -99,6 +99,8 @@ const CFG = {
   // 3.11-6: オート給餌中のポップアップ抑制(オート全体で。手動は現状のまま)。実機調整用にCFG化
   autoFeedXpPopup: false,     // オート時のXPポップを出すか(false=非表示=最もうるさいので既定オフ)
   autoFeedLevelPopSmall: true, // オート時のLvアップポップを小さく表示(意味のある進行なので残すが控えめ)
+  autoFeedLevelPopSize: 10,    // オート時のLvアップポップのフォントpx(手動=17px固定・オートのみ縮小。実機で最終調整)
+  autoFeedLevelPopMax: 5,      // オート時のLvアップポップの同時表示上限(大量個体の同時Lvアップで画面を埋めない・超過分は間引く)
   // 長押しオートリピート (GameExpansion_v2 ④)
   holdDelay: 0.4,           // 連続実行が始まるまでの秒数
   holdStart: 0.15,          // 初期実行間隔(秒)

@@ -999,7 +999,11 @@ const Game = {
       UI.toast(`${this.lizardName(lz)} がアダルトに成長!`);
     } else if (lz.stage === "adult" && lz.xp >= CFG.adultXpPerLevel) {
       lz.xp -= CFG.adultXpPerLevel; lz.level++;
-      this.popup(lz.x, lz.y - 34, "Lv" + lz.level + "!", "#ffd24c", false, auto && CFG.autoFeedLevelPopSmall);
+      const smallLv = auto && CFG.autoFeedLevelPopSmall;
+      // オートの大量同時Lvアップで画面が埋まらないよう、控えめLvポップは同時表示数を上限で間引く(手動は常に表示)
+      if (!smallLv || this.popups.filter((p) => p.small).length < CFG.autoFeedLevelPopMax) {
+        this.popup(lz.x, lz.y - 34, "Lv" + lz.level + "!", "#ffd24c", false, smallLv);
+      }
     }
     return true;
   },
