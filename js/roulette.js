@@ -168,7 +168,25 @@ const Roulette = {
         if (b.y > H + b.r * 3) balls.splice(i, 1);
         continue;
       }
+      // 中央ステージ(谷型棚・§三層の関門): 谷の復元力(=重力の分力)+摩擦で揺れて減衰。
+      // 端に達したら転げ落ちて脇/ハズレ(元気な球は逃げる)/中央スリットで低速なら落ちて中央へ(力尽きた球が中央へ)
+      if (b.phase === "stage") {
+        const stageY = CFG.roulStageYf * H, half = CFG.roulStageHalfWf * W, slotHalf = CFG.roulStageSlotHalff * W;
+        b.stageT = (b.stageT || 0) + dt;
+        b.vx += -CFG.roulStageValley * (b.x - cx) * dt;   // 谷の復元(中央へ戻す)
+        b.vx -= b.vx * CFG.roulStageFriction * dt;        // 摩擦で減衰
+        b.x += b.vx * dt; b.y = stageY;                   // 棚の上を転がる
+        const off = b.x - cx;
+        if (Math.abs(off) > half) {                       // 端から転げ落ちる=脇/ハズレへ
+          b.phase = "fall"; b.staged = true; b.viaSlot = false; b.y = stageY + b.r; b.vy = 8;
+        } else if ((Math.abs(off) <= slotHalf && Math.abs(b.vx) <= CFG.roulStageSlotVmax) || b.stageT > CFG.roulStageMaxT) {
+          b.phase = "fall"; b.staged = true; b.viaSlot = true; b.y = stageY + b.r; b.vy = 20; // スリットから中央へ落ちる
+          this.events.push({ type: "BallSlot", x: b.x });
+        }
+        continue;
+      }
       // 通常: 重力→積分→(レール壁 or 釘)
+      const prevY = b.y;
       b.vy += CFG.roulGravity * dt;
       b.x += b.vx * dt; b.y += b.vy * dt;
       if (b.y < railEndY) {
@@ -201,6 +219,29 @@ const Roulette = {
             }
           }
         }
+        // ワープ穴(§三層): 入った球は釘の海をスキップして中央ステージへ直行(可視・稀)
+        if (CFG.roulStageOn && !b.warped && !b.staged) {
+          const wY = CFG.roulWarpYf * H, wHalf = CFG.roulWarpHalfWf * W, wx = CFG.roulWarpXf * W;
+          for (const s of [-1, 1]) {
+            const holeX = cx + s * wx;
+            if (Math.abs(b.x - holeX) <= wHalf && Math.abs(b.y - wY) <= wHalf * 1.8) {
+              b.warped = true;
+              this.events.push({ type: "BallWarp", x: holeX, y: wY });
+              b.x = cx + this._rand(-1, 1) * (CFG.roulStageSlotHalff * W); // ステージ中央付近へ移送
+              b.y = CFG.roulStageYf * H - b.r * 2; b.vx = this._rand(-1, 1) * 8; b.vy = 16;
+              break;
+            }
+          }
+        }
+        // 中央ステージに乗る(第一関門): 落下中に棚の高さを跨ぎ、棚幅内なら乗る(高速球も跨ぎ判定で捕捉)
+        if (CFG.roulStageOn && !b.staged && b.vy > 0) {
+          const stageY = CFG.roulStageYf * H;
+          if (prevY < stageY && b.y >= stageY && Math.abs(b.x - cx) <= CFG.roulStageHalfWf * W) {
+            b.phase = "stage"; b.y = stageY; b.vy = 0; b.stageT = 0;
+            this.events.push({ type: "BallOnStage", x: b.x });
+            continue;
+          }
+        }
       }
       // 着地=結果確定(§1.4)。入賞は受け皿へ収まるフェーズ、ハズレは流れて消えるフェーズへ
       if (b.y >= landY) this._resolveLanding(b);
@@ -217,8 +258,10 @@ const Roulette = {
     // ②(a) 3.11: 景品穴はスロット満杯で"物理的に閉じる"(canAcceptEgg=false)→球は入らずハズレ。
     // 虹穴は常に開=大当たりは必ず入る(レア保護)。判定は着地時の実状態をそのまま反映(見た目=真実)。
     const prizeOpen = !this.canAcceptEgg || this.canAcceptEgg();
-    if (dx <= rbHalf) { rainbow = true; win = true; }              // 中央極細=大当たり(常に開)
-    else if (dx <= pzOut && prizeOpen) { win = true; }            // 景品帯(満杯時は閉=ハズレ)
+    if (b.viaSlot) { rainbow = true; win = true; }                 // §三層: 中央スリット落下=中央ポケット(確定)
+    else if (CFG.roulStageOn) { if (dx <= pzOut && prizeOpen) win = true; } // ステージON: 中央はスリットのみ・landingは景品帯(卵)/ハズレ
+    else if (dx <= rbHalf) { rainbow = true; win = true; }         // 旧(ステージOFF): 中央極細=大当たり
+    else if (dx <= pzOut && prizeOpen) { win = true; }            // 旧: 景品帯(満杯時は閉=ハズレ)
     this.events.push({ type: "BallLanded", x: b.x, rainbow, win });
     if (win) {
       // 受け皿へコトンと収まる。cupは中央ポケット=中央 / 景品帯=左右帯の中央

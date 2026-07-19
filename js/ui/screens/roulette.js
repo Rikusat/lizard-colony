@@ -88,6 +88,46 @@ Object.assign(UI, {
     const pulse = calm ? 0.6 : 0.5 + 0.5 * Math.sin(Render.time * 2.6);
     const cupDepth = CFG.roulCupDepthf * H;
     const pzMid = (rbHalf + pzOut) / 2; // 景品受け皿の中心オフセット
+
+    // ── 三層の関門(§1.2.3拡張): ワープ穴 + 中央ステージ(谷型棚+スリット)。惑星意匠はここを差し替え ──
+    if (CFG.roulStageOn) {
+      const rareC = jackpotMode === "rare";
+      const accent = rareC ? "235,195,110" : "150,210,180"; // 中央の景品色(レア=琥珀/虹=翡翠寄り。虹の七色はスリット光で)
+      // ワープ穴(左右・釘の海をスキップして中央ステージへ直行=稀だが可視)
+      const wY = CFG.roulWarpYf * H, wx = CFG.roulWarpXf * W;
+      for (const s of [-1, 1]) {
+        const hx = cx + s * wx;
+        const wg = ctx.createRadialGradient(hx, wY, 0.5, hx, wY, 5.5);
+        wg.addColorStop(0, "rgba(10,16,20,.95)"); wg.addColorStop(1, "rgba(10,16,20,0)");
+        ctx.fillStyle = wg; ctx.beginPath(); ctx.arc(hx, wY, 5.5, 0, 7); ctx.fill();
+        ctx.strokeStyle = `rgba(${accent},${calm ? 0.5 : 0.4 + pulse * 0.4})`; ctx.lineWidth = 1.2 / scale;
+        ctx.beginPath(); ctx.arc(hx, wY, 3.4, 0, 7); ctx.stroke();
+      }
+      // 中央ステージ: 両端開放の谷型棚。中央にスリット(=中央ポケットへの落下口)
+      const stageY = CFG.roulStageYf * H, sHalf = CFG.roulStageHalfWf * W, slotH = CFG.roulStageSlotHalff * W;
+      ctx.fillStyle = "rgba(20,26,22,.92)"; // スリット(暗い縦の隙間=中央への落下口)
+      ctx.fillRect(cx - slotH, stageY - 1, slotH * 2, landY - stageY + 2);
+      ctx.fillStyle = "rgba(120,140,120,.16)"; // 棚の面(薄く反る=谷)
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(cx + s * slotH, stageY + 3);
+        ctx.quadraticCurveTo(cx + s * sHalf * 0.6, stageY - 1, cx + s * sHalf, stageY - 2);
+        ctx.lineTo(cx + s * sHalf, stageY + 4); ctx.lineTo(cx + s * slotH, stageY + 4);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.strokeStyle = "rgba(160,180,160,.5)"; ctx.lineWidth = 1.6 / scale; ctx.lineCap = "round"; // 棚の縁
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(cx + s * slotH, stageY + 3);
+        ctx.quadraticCurveTo(cx + s * sHalf * 0.6, stageY - 1, cx + s * sHalf, stageY - 2);
+        ctx.stroke();
+      }
+      // スリット縁の誘目光(中央=当たりへの落下口・modeで色。虹は七色脈動)
+      const sg = rareC ? `rgba(${accent},${0.5 + pulse * 0.3})` : `hsla(${tp},95%,64%,${0.5 + pulse * 0.35})`;
+      ctx.strokeStyle = sg; ctx.lineWidth = 1.2 / scale;
+      ctx.beginPath(); ctx.moveTo(cx - slotH, stageY + 2); ctx.lineTo(cx - slotH, landY - 2);
+      ctx.moveTo(cx + slotH, stageY + 2); ctx.lineTo(cx + slotH, landY - 2); ctx.stroke();
+    }
     // ハズレの床(暗い・受け皿の無い領域=球が滑り落ちて消える)
     ctx.fillStyle = "rgba(26,32,26,.92)";
     ctx.fillRect(0, landY, W, H - landY);
