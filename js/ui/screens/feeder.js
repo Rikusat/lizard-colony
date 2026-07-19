@@ -38,11 +38,12 @@ Object.assign(UI, {
           <svg class="icon"><use href="#i-shield"/></svg><span class="fd-warn" title="コオロギ残り僅か"></span>
         </button>
       </div>`;
-    center.appendChild(el);
+    // 3.11-7: クランクは飼育槽(#frame)の内側に据える(#centerの余白でなく飼育槽基準)=縁と重ならず生き物を邪魔しない右下
+    const frame = document.getElementById("frame");
+    (frame || center).appendChild(el);
     // 3.12.1: クランクは右下固定(ドラッグ移動+位置保存は撤去)。旧位置キーがあれば掃除
     try { localStorage.removeItem("feederPos"); } catch (e) { /* noop */ }
     // 危機ヴィネット(Brushup V2 §3.1): 飼育槽の縁の内側だけを赤く。魂(Canvas描画)不変
-    const frame = document.getElementById("frame");
     if (frame && !document.getElementById("dread-vign")) {
       const dv = document.createElement("div");
       dv.id = "dread-vign";

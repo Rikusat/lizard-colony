@@ -92,6 +92,9 @@ const CFG = {
 
   xpPopupAutoHighEvery: 10, // V5 3.5: オート高のXPポップ間引き(N回に1回だけ表示)
   xpPopupAutoHighSmall: true, // V5 3.5: オート高のXPポップを小さく表示
+  // 3.11-6: オート給餌中のポップアップ抑制(オート全体で。手動は現状のまま)。実機調整用にCFG化
+  autoFeedXpPopup: false,     // オート時のXPポップを出すか(false=非表示=最もうるさいので既定オフ)
+  autoFeedLevelPopSmall: true, // オート時のLvアップポップを小さく表示(意味のある進行なので残すが控えめ)
   // 長押しオートリピート (GameExpansion_v2 ④)
   holdDelay: 0.4,           // 連続実行が始まるまでの秒数
   holdStart: 0.15,          // 初期実行間隔(秒)

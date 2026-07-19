@@ -938,10 +938,10 @@ const Game = {
     lz.xp += xp;
     this.addRankXp(2);
     // V5 3.5: オート高では表示が洪水になるためN回に1回だけ・小さく(高限定)
-    const autoHigh = this.state.dial && this.state.dial.auto && this.state.dial.rate === 2;
-    this._xpPopN = (this._xpPopN || 0) + 1;
-    if (!autoHigh || this._xpPopN % CFG.xpPopupAutoHighEvery === 0) {
-      this.popup(lz.x, lz.y - 20, "+" + Math.round(xp) + "xp", "#9fe07a", false, autoHigh && CFG.xpPopupAutoHighSmall);
+    // 3.11-6: オート給餌中はポップアップを抑制(XP=非表示・Lv=小型化)。手動は現状のまま
+    const auto = !!(this.state.dial && this.state.dial.auto);
+    if (!auto || CFG.autoFeedXpPopup) {
+      this.popup(lz.x, lz.y - 20, "+" + Math.round(xp) + "xp", "#9fe07a");
     }
     // 成長処理
     if (lz.stage === "baby" && lz.xp >= CFG.babyXpToAdult) {
@@ -949,7 +949,7 @@ const Game = {
       UI.toast(`${this.lizardName(lz)} がアダルトに成長!`);
     } else if (lz.stage === "adult" && lz.xp >= CFG.adultXpPerLevel) {
       lz.xp -= CFG.adultXpPerLevel; lz.level++;
-      this.popup(lz.x, lz.y - 34, "Lv" + lz.level + "!", "#ffd24c");
+      this.popup(lz.x, lz.y - 34, "Lv" + lz.level + "!", "#ffd24c", false, auto && CFG.autoFeedLevelPopSmall);
     }
     return true;
   },
