@@ -163,7 +163,7 @@ const UI = {
         if (typeof Roulette !== "undefined") {
           // v3.1: オート給餌中は一定間隔で球を射出(単発は手動クランク側)。物理は固定dtで積分
           const d = Game.state.dial;
-          if (d && d.auto && Game.canFeedNow()) Roulette.autoEmit(gdt, Game.rouletteRepGene());
+          if (d && d.auto && Game.canFeedNow()) Roulette.autoEmit(gdt, Game.rouletteRepGene(), Game.rouletteEmitInterval());
           else if (Roulette.resetEmitClock) Roulette.resetEmitClock();
           Roulette.advance(gdt);
         }

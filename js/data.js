@@ -89,7 +89,9 @@ const CFG = {
   roulSettleT: 0.34,        // 入賞球が受け皿に収まって留まる秒数(コトンの間→onEgg発火)
   roulSettleDamp: 0.6,      // 収まり時の速度減衰(跳ねを抑えて器へ沈める)
   // 発射リズム(v3.1: 給餌1回でなく一定間隔。自動OFFは1クリック1発)
-  roulEmitInterval: 0.42,   // オート給餌中の球射出間隔(秒)
+  roulEmitInterval: 0.42,   // 既定/フォールバックの球射出間隔(秒)
+  // ①3.11: 自動回転レートに球の発射頻度を連動(低=少/中=中/高=多)。給餌ペース(レート)が球ペースを決める
+  roulEmitIntervalByRate: { 0: 1.6, 1: 0.7, 2: 0.28 }, // 低/中/高の射出間隔(秒)。実機調整用
 
   xpPopupAutoHighEvery: 10, // V5 3.5: オート高のXPポップ間引き(N回に1回だけ表示)
   xpPopupAutoHighSmall: true, // V5 3.5: オート高のXPポップを小さく表示

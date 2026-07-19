@@ -1049,6 +1049,13 @@ const Game = {
     let g = s.lizards.find((l) => l.stage === "adult" && !this.isAway(l)) || s.lizards[0];
     return g ? { hue: g.hue, sat: g.sat, light: g.light, speciesId: g.speciesId, morphId: g.morphId } : null;
   },
+  // ①3.11: 自動回転レートに連動した球の射出間隔(低=遅い/高=速い)。レートが球ペースを決める
+  rouletteEmitInterval() {
+    const r = (this.ensureDial().rate) || 0;
+    const by = CFG.roulEmitIntervalByRate;
+    return (by && by[r] > 0) ? by[r] : CFG.roulEmitInterval;
+  },
+
   // 今この瞬間に給餌が成立するか(発射トリガーのゲート)。餌(コオロギ or 切れ時Gold)と対象個体
   canFeedNow() {
     if (this.raid) return false; // 3.11.3: ボス襲来中はクランク/給餌/ルーレットemitを停止(ボス戦に集中)

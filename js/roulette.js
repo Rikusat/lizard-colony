@@ -89,13 +89,15 @@ const Roulette = {
     return b;
   },
 
-  // オート給餌中の一定間隔発射(§1.2)。dt秒経過ぶんを溜め、間隔ごとにemit
-  autoEmit(dt, gene) {
+  // オート給餌中の一定間隔発射(§1.2)。dt秒経過ぶんを溜め、間隔ごとにemit。
+  // interval=レート連動の射出間隔(①3.11・未指定なら既定)。
+  autoEmit(dt, gene, interval) {
     if (!this._rng) this.reset();
+    const iv = interval > 0 ? interval : CFG.roulEmitInterval;
     this._emitAcc += dt;
     let n = 0;
-    while (this._emitAcc >= CFG.roulEmitInterval) {
-      this._emitAcc -= CFG.roulEmitInterval;
+    while (this._emitAcc >= iv) {
+      this._emitAcc -= iv;
       this.emit(gene);
       n++;
     }
