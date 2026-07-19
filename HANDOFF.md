@@ -1227,4 +1227,50 @@ paper 11.26 / sand 7.91 / life-400 7.45〜7.81 / amber-400 7.45 / boss-400 5.20(
 - **過去ステージ復帰**: クリア時スナップショット(StageData保持)+固有種#2の卵報酬(grantReturnGift)。**一度だけ=gotReturnGift**(ランタイム保持+activeStageData/applyWorld/selectStageで書き戻し=無限ループ防止)。gift卵は特別孵化演出(flash/slowmo/burst+里帰りの祝福+founder血統マーク)。
 - **固有種2種割当**: 各惑星stage一致の2種(#1=SPECIES順の先=純血ペア/#2=次=復帰卵報酬)。全10惑星に定義済。
 - 検証: node 129PASS / 実ブラウザ9項目PASS(v9化・惑星別固有種のみ・V9バックアップ・ロールバック元=v8混在・新ステージ純血ペア・復帰#2卵) / #spin-proof全10惑星 / 資産(通貨/ジェム/鉱石/固有種個体)保全。
-- **未決(Ric判断待ち)**: 卵増加ペース調整(前ターン提案の(a)満杯時に景品穴が閉じる+(b)卵率1/15〜1/20)は、Phase4優先で今回は未着手。方針確定待ち。
+- **未決(Ric判断待ち)**: 卵増加ペース調整(前ターン提案の(a)満杯時に景品穴が閉じる+(b)卵率1/15〜1/20)は、Phase4優先で今回は未着手。方針確定待ち。→ 後日 [commit 67d16d8/16a13e3] で実装済(①レート連動発射・②満杯クローズ+卵率1/16.8)。
+
+---
+
+## セッション記録(2026-07-19): 発光/純血根治/Lvポップ/キャッシュ根治/本番デプロイ
+
+### 【最重要・運用手順の変更】デプロイ手順にキャッシュバスターのバンプを追加
+**新しいデプロイ手順(必ずこの順):**
+```
+node tools/bump-cache.mjs   # index.html の tokens.css/style.css/js/*.js 参照へ ?v=<内容sha1_8桁> を付与
+git add -A && git commit ...
+npx vercel --prod --yes
+```
+- `tools/bump-cache.mjs`(新設)が各アセットの**内容ハッシュ**を `?v=` に刻む。**変更ファイルだけURLが変わり必ず再取得**され、未変更はキャッシュ再利用(無駄な再取得なし)。
+- これにより **「ローカルで確認したもの＝本番に出るもの」が構造的に厳密保証**される。**今後デプロイ時は必ずバンプを実行すること**(忘れると変更ファイルのURLが更新されず、再びキャッシュズレの余地)。
+- vercel.json の `Cache-Control: max-age=0, must-revalidate`(html/js/css共通)は据え置き=その上の確実な保険。
+
+### 1. キャッシュ事象の突合と根治(本番クランクが小さく見えた件) [commit 2a3a118]
+- **実測で切り分け(推測で直さない)**: 本番サーバは `tokens.css=--fd-crank-size:92px` を配信(curl)/条件付きGETは**304**を返し再検証機能/fresh puppeteerでは**本番=ローカル=92px完全一致**・SW無し/デプロイ済みコミットに92pxは含有/js・css同一ヘッダ(サーバ非対称なし)。
+- **真因=クライアント側ブラウザキャッシュ**: ユーザーの本番ブラウザが古い `tokens.css`(素URL)をbfcache/ディスクキャッシュから**再検証せず使用**。「JS新・CSS旧」もサーバ由来でなく一過性のクライアント挙動。**サーバ・コミット・ヘッダはすべて正常**。
+- **対症療法(サイズ変更)は行わず**、内容ハッシュのキャッシュバスターで構造的に根治(上記手順)。検証: file://・本番とも `?v=` 付きで正常ロード(crank 92px・失敗req0・consoleエラー0)。
+
+### 2. クランク発光の修正 [commit e237cb8]
+- Phase3.6でウィンドウ(矩形パネル)を透過化したのに、給餌成功発光だけ旧 `res-gain` が `#feeder-dial`(矩形コンテナ)全体に掛かり「消したはずのウィンドウが光る時だけ現れる」不整合。
+- 根治: `#feeder-dial.fed` の矩形box-shadowを撤去し、**`#fd-crank::after` の円形発光(`fd-fed-glow`)へ移設**(全スキン共通の骨格1ルール・#fd-crankは全スキンで円形本体)。強さ・色は従来維持(0 0 16px --amber-glow)、範囲だけ本体円形へ。`--fd-fed-glow-r` でCFG化。
+- **副作用の予防**: `feeder.js` の animationendハンドラに `e.pseudoElement` ガード追加。::after(fd-fed-glow 320ms)の終了が `target===crank` で発火し、無いと連続給餌で後続タップの `.spin` を早期除去して回転が途切れる(--dur-slow320ms<fd-spin520ms)ため。
+- 検証: 全10スキンで円形発光がクランク本体のみ(矩形非再出現)をスクショ+計算スタイルで確認 / #spin-proof全10惑星PASS / オートON全体後光(別要素)不変。
+
+### 3. 【最重要】種の混入の根治(構造的) [commit 72e072b]
+- **実測で特定した原因**: `Game.unlockedSpecies()` が**現在の惑星と無関係に、ランク解放済みのstage1〜5種を全惑星で生成プールに含めていた**。これを使う**全生成経路**(繁殖の上位種族変異 `inherit`・ルーレット虹景品/遺伝子解析 `pickUnownedDexEntry`・隕石/アメジスト/ラッキー卵)が他惑星種を生成。node harnessで全10惑星を実測し再現(例: グラキス(8)でエリマキ(s3)、各惑星でコモド(s5))。
+- **根治**: `Game.breedablePool()＝現在の惑星の固有種のみ`(=`endemicSpecies(現ステージ)`)を新設し、上記全経路を差し替え。**`unlockedSpecies()` は撤去**(混入の構造的原因)。
+- **既存混入の除去**: `migrateV9to10`(SAVE_VERSION **9→10**・冪等・`_purifyStages`をmigrateV8to9と共有)。load時に自動再純血化+惑星別/種別の除去内訳をコンソール出力+件数トースト。`saveBackupKeyV10` へ退避(設定に「純血化(追補)前へ復元」+`restoreV10Backup`)。
+- **jade-in-メアリス**: 生成経路では再現不能(jade=s6はstage7のプールから旧新とも除外)。**純血化前の"引き連れ"時代の残存個体＋繁殖の親種50/50継承による伝播**と判断。v10再純血化がseedを除去+breedablePoolで新規注入を断つため、経緯を問わず解消。
+- **種テーブル健全性**: 全10惑星×2種=20種すべて異なり各stage2種(重複定義なし)を保証。
+- **再発防止テスト**: `tests/purity_regression.js`(`node tests/purity_regression.js`・**53項目PASS**)。生成経路が全惑星で他惑星種を作らない/20種すべて異なる/migrateV9to10が混入除去し冪等・固有種は残す/load()実チェーンで自動再純血化+V10退避+version10 を恒久検証。
+
+### 4. オートLvポップの是正 [commit 2b6f7c9]
+- **実測で判明**: `render.js drawPopups` の非big枝が `p.small` を無視し、オートLvポップも17px固定だった(従来の"小型化"はTTL短縮0.8sのみで実サイズ未縮小)。
+- 修正: `small` を実フォントpxへ反映。`CFG.autoFeedLevelPopSize=10px`(オートのみ縮小・**手動は17px固定=現状維持**)。`CFG.autoFeedLevelPopMax=5`(オートの大量同時Lvアップの同時表示数を上限で間引く・手動は上限なし)。Lvアップ自体は消さない。両CFGで実機調整可。
+- 検証: harness=オート20匹同時Lvアップ→表示5(=上限)・手動20件すべて通常17px。スクショで「気づけるが邪魔にならない」確認。
+
+### 5. 本番デプロイ(最新 [commit 2a3a118]・受入実測)
+- 本番URL: **https://lizardcolony.vercel.app** / 反映コミット: **2a3a118**。ビルドエラー/警告なし。
+- 受入(本番fresh実測): 新規起動=rank1・初期2匹(kanahebi=stage1固有種)・version10 / 既存v9セーブ→v10自動移行で**資産保全**(coins/gems保持・混入除去・V10バックアップ) / 遺伝子ルーレットcanvas描画(painted=true・Roulette稼働) / 飼育槽 #frame 1150×654(拡大反映) / **consoleエラー0・4xx0** / クランク92px(versioned URL `tokens.css?v=27b83863`)。
+
+### 6. 現在の保留・未着手(次編以降)
+- **Phase 5** 惑星背景の本格実装(**モノリス最優先**) / **Phase 6** 惑星固有の敵・味方＋命名(創作・Ric承認要) / **Phase 7** 味方のステージ固有化・ボスLv連動強化(6依存) / ルーレットの惑星別意匠(`docs/roulette_rules.md`) / 特性システム(`docs/trait_system.md`・寝かせ中)。
