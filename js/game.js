@@ -1050,45 +1050,16 @@ const Game = {
     let g = s.lizards.find((l) => l.stage === "adult" && !this.isAway(l)) || s.lizards[0];
     return g ? { hue: g.hue, sat: g.sat, light: g.light, speciesId: g.speciesId, morphId: g.morphId } : null;
   },
-  // ①3.11: 自動回転レートに連動した球の射出間隔(低=遅い/高=速い)。レートが球ペースを決める
-  rouletteEmitInterval() {
-    const r = (this.ensureDial().rate) || 0;
-    const by = CFG.roulEmitIntervalByRate;
-    return (by && by[r] > 0) ? by[r] : CFG.roulEmitInterval;
-  },
-
-  // 今この瞬間に給餌が成立するか(発射トリガーのゲート)。餌(コオロギ or 切れ時Gold)と対象個体
-  canFeedNow() {
-    if (this.raid) return false; // 3.11.3: ボス襲来中はクランク/給餌/ルーレットemitを停止(ボス戦に集中)
-    const s = this.state;
-    const d = this.ensureDial();
-    const hasTarget = s.lizards.some((l) => l.injuredT <= 0 && !this.isAway(l));
-    const hasFood = (s.crickets || 0) >= 1 || (!d.stopOnEmpty && s.coins >= CFG.feedGoldCost);
-    return hasTarget && hasFood;
-  },
-  // 単発発射(自動OFF時のクランク1クリック=1発・#6)。給餌が成立する時のみ
-  rouletteEmitOne() {
-    if (typeof Roulette === "undefined" || !Roulette.emit) return false;
-    if (!this.canFeedNow()) return false;
-    Roulette.emit(this.rouletteRepGene());
+  // Phase3.13 v4: ルーレットはボス討伐後の報酬。tier(0-6)に応じた球数で報酬セッションを開始しUI(C2)へ通知。
+  // 給餌連動の常時発射(旧rouletteEmitOne/canFeedNow/rouletteEmitInterval)は撤廃(給餌はGold消費育成へ純化)。
+  beginBossReward(tier) {
+    if (typeof Roulette === "undefined" || !Roulette.startReward) return false;
+    const t = tier | 0;
+    const count = (CFG.roulRewardBalls && CFG.roulRewardBalls[t]) || CFG.roulRewardBalls[0];
+    Roulette.startReward(count, this.rouletteRepGene());
+    this.bossReward = { tier: t, count, eggs: 0, rainbows: 0 }; // 演出/集計用(非保存・runtime)
+    if (typeof UI !== "undefined" && UI.openBossReward) UI.openBossReward(this.bossReward);
     return true;
-  },
-
-  // 実機での発射不具合切り分け用の恒久診断(consoleで Game.roulDiag() を叩くと配線状態が一目で判る)。
-  // fable3: 再現できない環境では失敗する環境に測定器を置く。無害・読み取り専用
-  roulDiag() {
-    const before = (typeof Roulette !== "undefined") ? Roulette.balls.length : "N/A";
-    const feedable = this.state.lizards.filter((l) => l.injuredT <= 0 && !this.isAway(l)).length;
-    const emitted = this.rouletteEmitOne(); // v3.1: 単発発射経路で検証
-    const after = (typeof Roulette !== "undefined") ? Roulette.balls.length : "N/A";
-    const cv = (typeof document !== "undefined") && document.getElementById("roulette-canvas");
-    const r = { RouletteDefined: typeof Roulette, drawRoulette: typeof (UI && UI.drawRoulette),
-      canvasExists: !!cv, canvasSize: cv ? [cv.width, cv.height] : null,
-      crickets: Math.floor(this.state.crickets || 0), coins: Math.floor(this.state.coins),
-      feedableLizards: feedable, canFeedNow: this.canFeedNow(), ballsBefore: before, emitOk: emitted, ballsAfter: after,
-      verdict: (after > before) ? "[OK] emitは動作(=描画側を疑う)" : (feedable === 0 ? "[WARN] 給餌可能なトカゲが0(球が出ないのは正常)" : "[NG] emit未到達(=配線/コード版を疑う)") };
-    if (typeof console !== "undefined") console.log("[roulDiag]", JSON.stringify(r, null, 1));
-    return r;
   },
 
   // 3.11.1: トカゲ売却は廃止(倫理観)。lizardSellPriceは価値評価としてのみ残す(捕食対象の選定等)
@@ -1234,9 +1205,8 @@ const Game = {
   // レインボー=未所持の新種(種族同一・§7.5)。図鑑コンプ済みなら通常卵へフォールバック
   spawnRouletteEgg(outcome) {
     const rainbow = !!(outcome && outcome.rainbow);
-    // ②(a): 通常卵は満杯なら生成しない(景品穴も閉じているので通常は到達しない安全弁)。
-    // 虹(大当たり)は"優先枠"で満杯でも必ず入る=レア保護。
-    if (!rainbow && this.state.eggs.length >= this.eggSlotCap()) return false;
+    // Phase3.13報酬: 卵は捨てず段階変換する(景品穴クローズ=旧②(a)は撤廃)。
+    // 通常卵=スロット充填→満杯なら収容枠まで即ベビー化→さらに満杯ならGold換算。虹=常に付与(レア保護)。
     const hatchMult = Math.max(0.2, (1 - this.facLv("heat") * 0.025) * (1 - (((this.state.nest && this.state.nest.lv) || 1) - 1) * 0.03) * (1 - this.researchBonus("hatch")));
     if (rainbow) {
       const pick = this.pickUnownedDexEntry(this.currentStage().id);
@@ -1251,6 +1221,7 @@ const Game = {
         });
         UI.toast(`${Icon.svg("spark")} レインボー! 未発見の「${mo.name} ${sp.name}」の卵が生まれた!`);
         if (UI.rouletteRainbowFx) UI.rouletteRainbowFx(sp);
+        if (this.bossReward) this.bossReward.rainbows++;
         return true;
       }
       // 全所持=フォールバックで通常卵扱い(下へ)
@@ -1267,8 +1238,26 @@ const Game = {
     const genes = this.inherit(base, base);
     const sp = speciesById(genes.speciesId);
     const total = CFG.hatchBasePerStar * sp.stars * hatchMult;
-    this.state.eggs.push({ ...genes, t: total, total }); // fable2: 未使用の派生/来歴フラグは保存しない
+    // 段階変換(オーバーフロー): スロット→収容枠まで即ベビー→さらに満杯ならGold。捨てない
+    if (this.state.eggs.length < this.eggSlotCap()) {
+      this.state.eggs.push({ ...genes, t: total, total }); // fable2: 未使用の派生/来歴フラグは保存しない
+    } else if (this.state.lizards.length < this.capacity()) {
+      this._spawnBabyFromGenes(genes);
+    } else {
+      this.state.coins += CFG.roulRewardOverflowGold;
+    }
+    if (this.bossReward) this.bossReward.eggs++;
     return true;
+  },
+
+  // 報酬オーバーフロー時: 卵スロットを介さず直接ベビーを孵す(hatchEggの通常誕生ぶんを再利用)
+  _spawnBabyFromGenes(genes) {
+    const lz = this.makeLizard(genes.speciesId, genes.morphId, genes, "baby");
+    lz.x = 430 + rnd(-40, 40); lz.y = 320 + rnd(-10, 30); // 巣の近くに出現
+    this.addLizard(lz);
+    this.state.stats.hatched++;
+    this.addRes("bio", CFG.resBioPerHatch);
+    this.addRankXp(20);
   },
 
   instantHatch(idx) {
@@ -1767,6 +1756,8 @@ const Game = {
         s.coins += bonus;
         msg += ` / 捕獲→売却 +${fmt(bonus)}G`;
       }
+      // Phase3.13 v4: ボス討伐(tier or boss)は報酬ルーレットを起動。通常の蛇(非ボス)は起動しない
+      if (r.tier || r.boss) this.beginBossReward(r.tier || 0);
       if (r.typeId === "hawk") {
         let rescued = 0;
         for (const lz of s.lizards) if (lz.hiddenT > 0) { lz.hiddenT = 0; rescued++; }

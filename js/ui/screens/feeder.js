@@ -58,7 +58,7 @@ Object.assign(UI, {
       if (ok) {
         Motion.play(el, "fed");
         Motion.play(crank, "spin");
-        Game.rouletteEmitOne(); // v3.1 #6: 手動クランク1動作=球1発(単発発射)。オートは別途間隔発射
+        // Phase3.13 v4: 給餌は球を出さない(Gold消費の育成に純化)。ルーレットはボス討伐後の報酬
       } else if (!held) {
         Motion.play(el, "empty");
         UI.toast(Game.state.coins < CFG.feedGoldCost ? "Goldが足りない!" : "餌をあげられるトカゲがいない…", true);

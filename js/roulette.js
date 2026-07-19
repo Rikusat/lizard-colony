@@ -90,21 +90,38 @@ const Roulette = {
     return b;
   },
 
-  // オート給餌中の一定間隔発射(§1.2)。dt秒経過ぶんを溜め、間隔ごとにemit。
-  // interval=レート連動の射出間隔(①3.11・未指定なら既定)。
-  autoEmit(dt, gene, interval) {
-    if (!this._rng) this.reset();
-    const iv = interval > 0 ? interval : CFG.roulEmitInterval;
+  // ---- 報酬モード(Phase3.13 v4: ボス討伐後の報酬。給餌連動の常時発射は撤廃) ----
+  // reward = { remaining, gene } 発射待ちの残り球数と、球に乗せる代表遺伝。
+  reward: null,
+  // 報酬セッション開始。count発を撃てる状態にする(発射はfireRewardBall/autoFireRewardが行う)
+  startReward(count, gene) {
+    if (!this._rng) this.reset(); else this.reset(this.getSeed() + 1); // 盤をクリアして新セッション
+    this.reward = { remaining: Math.max(0, count | 0), gene: gene || null };
+    this._emitAcc = 0;
+    return this.reward;
+  },
+  // 1発撃つ(タップ)。残があればemitして残を減らす
+  fireRewardBall() {
+    if (!this.reward || this.reward.remaining <= 0) return false;
+    this.reward.remaining--;
+    this.emit(this.reward.gene);
+    return true;
+  },
+  // dt秒ぶんを溜め、roulRewardEmitInterval間隔で自動発射(長押し/スキップ用)。撃った数を返す
+  autoFireReward(dt) {
+    if (!this.reward) return 0;
     this._emitAcc += dt;
     let n = 0;
-    while (this._emitAcc >= iv) {
-      this._emitAcc -= iv;
-      this.emit(gene);
-      n++;
+    while (this._emitAcc >= CFG.roulRewardEmitInterval && this.reward.remaining > 0) {
+      this._emitAcc -= CFG.roulRewardEmitInterval;
+      if (this.fireRewardBall()) n++;
     }
     return n;
   },
-  resetEmitClock() { this._emitAcc = 0; }, // オートOFF時に呼ぶ(溜まりを流さない)
+  rewardRemaining() { return this.reward ? this.reward.remaining : 0; },
+  // 報酬セッションが継続中か(残球 or 飛行中の球がある)。両方尽きたら演出は閉じてよい
+  rewardActive() { return !!this.reward && (this.reward.remaining > 0 || this.balls.length > 0); },
+  endReward() { this.reward = null; this.balls.length = 0; this._emitAcc = 0; },
 
   // 実dtを固定dtで積分(フレーム非依存=決定論)。大ラグは上限クランプ
   advance(realDt) {

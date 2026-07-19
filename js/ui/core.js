@@ -160,13 +160,8 @@ const UI = {
         const gdt = Game.slowmo > 0 ? real * 0.25 : real;
         if (Game.slowmo > 0) Game.slowmo = Math.max(0, Game.slowmo - real);
         Game.tick(gdt);
-        if (typeof Roulette !== "undefined") {
-          // v3.1: オート給餌中は一定間隔で球を射出(単発は手動クランク側)。物理は固定dtで積分
-          const d = Game.state.dial;
-          if (d && d.auto && Game.canFeedNow()) Roulette.autoEmit(gdt, Game.rouletteRepGene(), Game.rouletteEmitInterval());
-          else if (Roulette.resetEmitClock) Roulette.resetEmitClock();
-          Roulette.advance(gdt);
-        }
+        // Phase3.13 v4: 給餌連動の常時発射は撤廃(ルーレット=ボス討伐後の報酬)。物理は固定dtで積分し続ける
+        if (typeof Roulette !== "undefined") Roulette.advance(gdt);
       }
       Render.draw();
       if (this.drawRoulette) this.drawRoulette();
