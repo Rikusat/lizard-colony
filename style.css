@@ -30,7 +30,8 @@ main { flex: 1 1 auto; min-height: 0; width: 100%; }
 /* ============ top bar ============ */
 #topbar {
   display: flex; align-items: center; gap: clamp(8px, 1.2vw, 16px);
-  padding: clamp(5px, .8vh, 8px) clamp(12px, 1.8vw, 24px);
+  /* 3.13①(B): 縦paddingのみ圧縮=飼育槽の高さ→幅を稼ぐ(文字/アイコン/44pxタップ標的は不変) */
+  padding: clamp(3px, .45vh, 5px) clamp(12px, 1.8vw, 24px);
   background: var(--grad-topbar);
   border-bottom: 1px solid var(--border); /* 3.11.1: HQバー上の目立つ惑星色ラインを控えめな枠色へ */
   box-shadow: 0 4px 16px rgba(0, 0, 0, .55);
@@ -144,7 +145,8 @@ main {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
-  padding: clamp(6px, 1vh, 12px) clamp(10px, 1.1vw, 16px);
+  /* 3.13①(B): 縦paddingのみ圧縮(横は据置) */
+  padding: clamp(3px, .5vh, 6px) clamp(10px, 1.1vw, 16px);
   max-width: 1980px; margin: 0 auto;
   align-items: start;
 }
@@ -285,9 +287,9 @@ button.act .price {
 #center { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
 #frame {
   position: relative;
-  /* 3.11 余白解消: 利用可能な高さ(100vh-上部chrome)から16:9の最大サイズを算出し、横幅(100%)でも制限。
-     +16pxはpadding分。これで飼育槽が拡大しきり、下余白ゼロ・右余白は最小化(残りは領域比の差) */
-  width: min(100%, calc((100vh - 112px) * 1280 / 720 + 16px));
+  /* 3.11/3.13①(B): 利用可能な高さ(100vh-上部chrome)から16:9の最大サイズを算出し、横幅(100%)でも制限。
+     上部chromeは fitFrame() が実測して --chrome に反映(topbarの折返しにも追随=自己修復)。+16px=frame横padding */
+  width: min(100%, calc((100vh - var(--chrome, 100px)) * 1280 / 720 + 16px));
   box-sizing: border-box;
   padding: 8px; border-radius: 18px;
   background: linear-gradient(160deg, #6b5433, #3a2c18 40%, #241a0e);
@@ -318,7 +320,7 @@ button.act .price {
   display: block;
   width: 100%; height: auto;
   aspect-ratio: 1280 / 720;
-  max-height: calc(100vh - 112px); /* 安全網(通常frame側の算出で到達しない) */
+  max-height: calc(100vh - var(--chrome, 100px)); /* 安全網(通常frame側の算出で到達しない) */
   border-radius: 12px;
   box-shadow: inset 0 0 40px rgba(0, 0, 0, .5);
 }

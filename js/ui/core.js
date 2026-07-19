@@ -137,6 +137,11 @@ const UI = {
     this.initFeeder(); // 給餌ダイヤル(飼育槽右下・Brushup V2 Phase1)
     this.initRoulette(); // 遺伝子ルーレット(左メニュー下部・roulette.md §7)
     this.initBossHud(); // ボスHPバー(上部中央・Brushup V2 Phase3)
+    // 3.13①(B): 上部chrome(topbar+hqbar+padding)の実高さを測り --chrome に反映=飼育槽が
+    // 高さいっぱいに広がる。topbarのflex-wrap(狭幅で2段化)にも追随=自己修復(_syncRoulSize同様)
+    this.fitFrame();
+    window.addEventListener("resize", () => this.fitFrame());
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => this.fitFrame()); // Webフォント確定後に再測(初期化タイミング差の吸収)
     setInterval(() => this.rotateHint(), 12000);
     // #breed で繁殖画面を直接開く(動作確認・デバッグ用)
     if (location.hash === "#breed") setTimeout(() => this.openBreed(), 400);
@@ -191,6 +196,22 @@ const UI = {
     if (this._accentId === id) return;
     this._accentId = id;
     document.documentElement.style.setProperty("--planet-accent", this.planetAccent(id));
+  },
+
+  // 3.13①(B): 上部chrome(topbar+hqbar+main/frame padding)の実高さを測り --chrome に反映。
+  // topbarがflex-wrapで2段化しても実測なので追随=どのウィンドウサイズでも飼育槽が高さいっぱい(=幅も最大)
+  // に広がることを構造的に保証。フォント/アイコンは不変(余白圧縮はCSS側)。1画面固定を破らない安全マージン込み
+  fitFrame() {
+    const header = document.querySelector("header") || document.getElementById("topbar");
+    const main = document.querySelector("main");
+    const frame = document.getElementById("frame");
+    if (!header || !main || !frame) return;
+    const px = (v) => parseFloat(v) || 0;
+    const hq = document.getElementById("hq-bar");
+    const mc = getComputedStyle(main), fc = getComputedStyle(frame);
+    const chrome = header.offsetHeight + (hq ? hq.offsetHeight : 0)
+      + px(mc.paddingTop) + px(mc.paddingBottom) + px(fc.paddingTop) + px(fc.paddingBottom) + 4; // +4=境界/丸め安全網
+    document.documentElement.style.setProperty("--chrome", chrome + "px");
   },
 
   // ランクアップ(§6: 軽)。3.10.4: HQバー(ヘッダー直下)が発光+数値ロールアップ
