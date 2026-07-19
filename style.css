@@ -1850,18 +1850,33 @@ button.holding::after {
   font-size: calc(16px * var(--fs-scale, 1)); color: var(--gold); text-shadow: 0 1px 4px #000;
 }
 #boss-reward.rainbow .br-title { color: #ffe08a; }
+/* 盤(大きめ)+右下のクランクを載せる舞台。盤・球・釘の跳ねが見やすいサイズ(§1.2.3) */
+#boss-reward .br-stage { position: relative; }
 #boss-reward .br-canvas {
-  width: 176px; height: 340px; border-radius: 12px;
-  background: rgba(8, 11, 9, .9); box-shadow: inset 0 0 0 1px rgba(160, 200, 150, .18); cursor: pointer;
+  display: block; width: clamp(220px, 30vh, 300px); height: clamp(424px, 58vh, 580px);
+  border-radius: 12px; background: rgba(8, 11, 9, .9); box-shadow: inset 0 0 0 1px rgba(160, 200, 150, .18);
 }
-#boss-reward.rainbow .br-canvas { box-shadow: inset 0 0 0 1px rgba(255, 200, 120, .3), 0 0 22px rgba(255, 180, 90, .22); }
+#boss-reward.rainbow .br-canvas { box-shadow: inset 0 0 0 1px rgba(255, 200, 120, .3), 0 0 26px rgba(255, 180, 90, .24); }
+/* §1.2.3: 同じクランクをモーダルへ移設。盤の右下に載せる(飼育槽と同じ右下の定位置感) */
+#boss-reward #feeder-dial.in-reward {
+  position: absolute; right: 8px; bottom: 8px; left: auto; top: auto; z-index: 6;
+}
 #boss-reward .br-tray {
-  display: flex; gap: 10px; font-size: calc(13px * var(--fs-scale, 1)); color: var(--paper-100);
+  display: flex; gap: 12px; font-size: calc(14px * var(--fs-scale, 1)); color: var(--paper-100);
   font-variant-numeric: tabular-nums;
 }
+#boss-reward .br-tray span { transition: transform var(--dur-fast) var(--ease-pop); }
 #boss-reward .br-tray .rare { color: var(--amber-400); }
 #boss-reward .br-tray .rainbow { color: #ffd36b; }
 #boss-reward .br-tray .rem { color: var(--sub); }
+#boss-reward .br-actions { display: flex; gap: 8px; }
+#boss-reward .br-skip {
+  font-size: calc(12px * var(--fs-scale, 1)); color: var(--paper-100); cursor: pointer;
+  background: var(--ink-700); border: 1px solid var(--amber-600); border-radius: var(--radius-pill);
+  padding: 5px 16px; transition: background var(--dur-fast), transform var(--dur-fast) var(--ease-pop);
+}
+#boss-reward .br-skip:hover { background: var(--ink-600); }
+#boss-reward .br-skip:active { transform: scale(.96); }
 #boss-reward .br-hint { font-size: calc(12px * var(--fs-scale, 1)); color: var(--sub); }
 @media (prefers-reduced-motion: reduce) {
   #boss-reward, #boss-reward .br-panel.rise, #boss-reward.leaving { animation: none; }

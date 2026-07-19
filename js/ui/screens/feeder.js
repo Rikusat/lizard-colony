@@ -54,6 +54,13 @@ Object.assign(UI, {
     const crank = el.querySelector("#fd-crank");
     let holdTimer = null, held = false;
     const feedOnce = () => {
+      // §1.2.3: 報酬モーダル稼働中は「同じクランク」で球を撃つ(給餌→球射出に行動だけ分岐)。
+      // 同一要素のため スキン/spin/オート回転/#spin-proof は骨格のまま保たれる
+      if (UI._bossRewardOpen) {
+        const fired = UI._brCrankFire ? UI._brCrankFire() : false;
+        if (fired) Motion.play(crank, "spin"); // 球が出たら回す(見た目の因果)
+        return fired;
+      }
       const ok = Game.feedAll(true); // 既存の一括餌やり処理を再利用
       if (ok) {
         Motion.play(el, "fed");
@@ -68,7 +75,11 @@ Object.assign(UI, {
     };
     const holdStep = () => {
       if (!feedOnce()) { stopHold(); return; }
-      holdTimer = setTimeout(holdStep, CFG.dialRates[2] * 1000); // 高レートと厳密に同スピード
+      // 報酬モーダル中は「見ていられる速さ」(レート別)/平常給餌は高レート同速
+      const iv = UI._bossRewardOpen
+        ? (CFG.roulRewardRateInterval[Game.ensureDial().rate] || CFG.roulRewardRateInterval[1])
+        : CFG.dialRates[2];
+      holdTimer = setTimeout(holdStep, iv * 1000);
     };
     const stopHold = () => { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } };
     crank.addEventListener("pointerdown", () => {

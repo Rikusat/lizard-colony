@@ -1,10 +1,15 @@
 // =============================================================
 // ui/hero/boss-reward — ボス討伐後の報酬ルーレット(ヒーロー器・Phase3.13 C2)
-// 撃破の余韻→CFGの「間」→中央にせり上がり→タップで球を撃つ→着地で卵/レア/新種→
-// 尽きたら集計を読み取れる時間だけ見せて退場・完全消去(ephemeral・平常画面に残り香なし)。
-// 盤面は screens/roulette._paintRoulBoard を共有(コピペ増殖を防ぐ)。中央ポケットの色は
-// jackpotMode で差替(§1.2.2: rainbow=七色/rare=琥珀)=撃破の瞬間に「今日は虹だ」と盤で分かる。
-// reduced-motion時は物理を回さず即時解決(結果保証)。C2a: タップ=1発+集計+退場。長押し/全部撃つはC2b。
+// 撃破の余韻→CFGの「間」→中央にせり上がり(大きめ)→盤の右下に"同じクランク"を再登場。
+// クランクで球を撃つ→着地で卵/レア/新種→尽きたら集計を読み取れる時間だけ見せて退場・完全消去。
+//
+// §1.2.3 クランク: 既存の #feeder-dial を丸ごとモーダルへ移設して行動だけ「給餌→球射出」に分岐する
+// (新規機構を作らない)。同一要素のためスキン(CrankSkins・惑星差替可)/spin/オート回転/緑=オート/
+// #spin-proof は骨格のまま保たれる。操作モデルはボス前のオート状態を継承:
+//   auto ON  → モーダル内でも自動射出(crankは緑の後光で自動回転・操作不要)
+//   auto OFF → クランクのクリック=1発 / 長押し=連続(レート別間隔=見ていられる速さ)
+// 盤とクランクの意匠は惑星ごとに差し替える前提(roulette_rules §0)。意匠変更時は §4 でMC再測。
+// reduced-motion時は物理を回さず即時解決(結果保証)。
 // =============================================================
 
 Object.assign(UI, {
@@ -14,11 +19,14 @@ Object.assign(UI, {
   _brState: "idle",  // "firing" | "tally"
   _brTallyT: 0,
   _brOpenTimer: null,
+  _brFireAcc: 0,
+  _brLastT: 0,
 
   // Game.beginBossReward から呼ばれる。撃破の余韻(CFGの「間」)を置いてからせり上がる
   openBossReward(reward) {
     if (typeof document === "undefined" || !reward) return;
     if (this._brOpenTimer) clearTimeout(this._brOpenTimer);
+    if (this._bossRewardOpen) this.closeBossReward(); // 前の報酬が残っていたら畳む(通常ボスは逐次なので稀)
     const delay = (Motion.reduced ? 0.2 : (CFG.roulRewardDelaySec || 1.5)) * 1000;
     this._brOpenTimer = setTimeout(() => this._brRise(reward), delay);
   },
@@ -33,12 +41,13 @@ Object.assign(UI, {
       el.innerHTML =
         '<div class="br-panel">' +
           '<div class="br-title"></div>' +
-          '<canvas class="br-canvas"></canvas>' +
+          '<div class="br-stage"><canvas class="br-canvas"></canvas></div>' +
           '<div class="br-tray"></div>' +
-          '<div class="br-hint">タップで撃つ</div>' +
+          '<div class="br-actions"><button class="br-skip" type="button">全部撃つ</button></div>' +
+          '<div class="br-hint"></div>' +
         '</div>';
       document.body.appendChild(el);
-      el.querySelector(".br-canvas").addEventListener("pointerdown", () => this._brFire());
+      el.querySelector(".br-skip").addEventListener("click", () => this._brSkip());
     }
     el.querySelector(".br-title").innerHTML = mode === "rainbow"
       ? Icon.svg("spark") + " 大ボス討伐 — 虹の遺伝子"
@@ -49,17 +58,45 @@ Object.assign(UI, {
     this._brReward = reward;
     this._bossRewardOpen = true;
     this._brState = "firing";
+    this._brFireAcc = 0; this._brLastT = (typeof Render !== "undefined") ? Render.time : 0;
     Motion.play(el.querySelector(".br-panel"), "rise");
+    this._brRelocateCrank(el.querySelector(".br-stage")); // 盤右下に"同じクランク"を再登場
+    this._brUpdateHint();
     this._brUpdateTray();
     if (Motion.reduced) this._brResolveInstant(); // 物理を回さず即時解決(結果保証)
   },
 
-  _brFire() {
-    if (!this._bossRewardOpen || this._brState !== "firing") return;
-    Roulette.fireRewardBall(); // C2a: タップ=1発(長押し/全部撃つはC2b)
+  // #feeder-dial を丸ごとモーダルへ移設。行動分岐は feeder.feedOnce 側。
+  // 復帰先は常に #frame(クランクの定位置)=報酬が重なっても親が壊れない
+  _brRelocateCrank(into) {
+    const fd = document.getElementById("feeder-dial");
+    if (!fd || !into) return;
+    fd.classList.add("in-reward");
+    into.appendChild(fd);
+    if (UI.updateFeeder) UI.updateFeeder(); // オート状態を反映(raid=null→auto-onで自動回転)
+  },
+  _brRestoreCrank() {
+    const fd = document.getElementById("feeder-dial");
+    if (!fd) return;
+    fd.classList.remove("in-reward");
+    (document.getElementById("frame") || document.body).appendChild(fd);
+    if (UI.updateFeeder) UI.updateFeeder();
   },
 
-  // 毎フレーム(core loop)呼び出し。盤面を共有ペインタで描き、尽きたら集計→退場
+  // クランク(タップ/長押し)から呼ばれ、球を1発撃つ。撃てたら true
+  _brCrankFire() {
+    if (!this._bossRewardOpen || this._brState !== "firing") return false;
+    return (typeof Roulette !== "undefined") && Roulette.fireRewardBall();
+  },
+
+  // 「全部撃つ」(スキップ): 残りを即発射(物理は通るので損しない=着地で正しく判定)
+  _brSkip() {
+    if (!this._bossRewardOpen || this._brState !== "firing") return;
+    let g = 0;
+    while (Roulette.rewardRemaining() > 0 && g < 5000) { Roulette.fireRewardBall(); g++; }
+  },
+
+  // 毎フレーム(core loop)。盤面を共有ペインタで描画・auto射出・尽きたら集計→退場
   drawBossReward() {
     if (!this._bossRewardOpen) return;
     const cv = this._brCv, ctx = this._brCtx;
@@ -71,6 +108,17 @@ Object.assign(UI, {
         if (cv.width !== ww || cv.height !== hh) { cv.width = ww; cv.height = hh; }
         this._paintRoulBoard(ctx, cv.width, cv.height, this._brReward.jackpotMode);
       }
+    }
+    // オート射出(ボス前オートを継承): レート別間隔で自動発射。crankは緑の後光で自動回転(updateFeeder)
+    if (this._brState === "firing" && Game.ensureDial && Game.ensureDial().auto) {
+      const now = (typeof Render !== "undefined") ? Render.time : this._brLastT + 1 / 60;
+      const dt = Math.max(0, Math.min(0.1, now - this._brLastT));
+      this._brLastT = now;
+      this._brFireAcc += dt;
+      const iv = CFG.roulRewardRateInterval[Game.ensureDial().rate] || 0.5;
+      while (this._brFireAcc >= iv && Roulette.rewardRemaining() > 0) { this._brFireAcc -= iv; Roulette.fireRewardBall(); }
+    } else if (typeof Render !== "undefined") {
+      this._brLastT = Render.time;
     }
     this._brUpdateTray();
     if (this._brState === "firing" && !Roulette.rewardActive()) {
@@ -94,10 +142,18 @@ Object.assign(UI, {
       "<span>卵 " + (t.eggs || 0) + "</span>" + special + '<span class="rem">残 ' + rem + "</span>";
   },
 
+  _brUpdateHint() {
+    const el = document.getElementById("boss-reward"); if (!el) return;
+    const hint = el.querySelector(".br-hint"); if (!hint) return;
+    hint.textContent = (Game.ensureDial && Game.ensureDial().auto) ? "自動で撃っています" : "クランクで撃つ(長押しで連続)";
+  },
+
   _brShowTally() {
     const el = document.getElementById("boss-reward"); if (!el) return;
     const hint = el.querySelector(".br-hint");
     if (hint) hint.textContent = "報酬を受け取った";
+    const skip = el.querySelector(".br-skip");
+    if (skip) skip.style.visibility = "hidden";
   },
 
   _brResolveInstant() {
@@ -110,6 +166,7 @@ Object.assign(UI, {
   closeBossReward() {
     this._bossRewardOpen = false;
     this._brState = "idle";
+    this._brRestoreCrank(); // クランクを飼育槽の右下へ戻す
     if (typeof Roulette !== "undefined" && Roulette.endReward) Roulette.endReward();
     const el = document.getElementById("boss-reward");
     if (el) {

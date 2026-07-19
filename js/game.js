@@ -1018,7 +1018,8 @@ const Game = {
   dialTick(dt) {
     const d = this.ensureDial();
     if (!d.auto) return;
-    if (this.raid) return; // 3.11.3: ボス襲来中は自動給餌を停止(討伐後にd.auto維持のまま再開)
+    // 3.11.3: ボス襲来中は自動給餌停止。3.13: 報酬モーダル中もクランクは球射出に転用=自動給餌しない
+    if (this.raid || (typeof UI !== "undefined" && UI._bossRewardOpen)) return;
     this._dialT = (this._dialT || 0) + dt;
     const interval = CFG.dialRates[d.rate] || CFG.dialRates[1];
     if (this._dialT < interval) return;
