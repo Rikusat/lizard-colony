@@ -87,6 +87,9 @@ Object.assign(UI, {
     // オート回転(ID1つ)を恒久上書きしてしまう。主動作(crank自身か.fd-wheel)の終了時に必ず外す。
     // オート回転は無限ループでanimationendを発火しないため誤除去は起きない
     crank.addEventListener("animationend", (e) => {
+      // ::after(給餌発光=fd-fed-glow)の終了はtarget===crankだが主動作ではない。
+      // これで.spin/.boingを外すと連続給餌でタップの回転が早期に切れるため無視する
+      if (e.pseudoElement) return;
       const t = e.target;
       if (t === crank || (t.classList && t.classList.contains("fd-wheel"))) {
         crank.classList.remove("spin", "boing");

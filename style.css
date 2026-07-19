@@ -391,6 +391,7 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 }
 .fd-main { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 #fd-crank {
+  position: relative; /* .fed発光の::afterの基準(円形本体に沿わせる) */
   width: var(--fd-crank-size, 64px); height: var(--fd-crank-size, 64px); padding: 2px; border-radius: 50%;
   background: radial-gradient(circle at 35% 28%, #4d3a20, var(--ink-800));
   border: 1px solid var(--amber-600); border-bottom-width: 3px;
@@ -413,7 +414,16 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 @keyframes fd-boing { 30% { transform: scale(1.14); } 60% { transform: scale(.96); } }
 #fd-crank.spin .fd-wheel { animation: fd-spin 520ms var(--ease-pop); }
 @keyframes fd-spin { to { transform: rotate(360deg); } }
-#feeder-dial.fed { animation: res-gain var(--dur-slow) var(--ease-out); }
+/* 給餌成功の発光: Phase 3.6でウィンドウ(矩形パネル)を撤去したので、コンテナ矩形ではなく
+   回る主体=クランク本体の円形輪郭だけを光らせる。::afterに載せることで.boing(scale)/.spin(回転)の
+   animationと非干渉。強さ・色は従来res-gain(0 0 16px --amber-glow)を維持し、範囲だけ本体へ(CFG=--fd-fed-glow-r)。
+   全スキン共通の骨格ルール(#fd-crankは全スキンで円形の本体)ゆえ10惑星一括で成立 */
+#fd-crank::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  pointer-events: none; opacity: 0;
+}
+#feeder-dial.fed #fd-crank::after { animation: fd-fed-glow var(--dur-slow) var(--ease-out); }
+@keyframes fd-fed-glow { from { box-shadow: 0 0 var(--fd-fed-glow-r, 16px) var(--amber-glow); opacity: 1; } }
 #feeder-dial.empty { animation: fd-empty 300ms var(--ease-in-out); }
 @keyframes fd-empty { 30% { transform: translateX(-3px); } 70% { transform: translateX(3px); } }
 .fd-stock { display: flex; align-items: center; gap: 4px; font-size: calc(11px * var(--fs-scale, 1)); }
