@@ -96,10 +96,26 @@ Object.assign(UI, {
       ctx.fillStyle = fill; ctx.fill();
       ctx.strokeStyle = stroke; ctx.lineWidth = 1.0 / scale; ctx.stroke();
     };
-    // 景品の受け皿(左右・琥珀)
+    // ②(a): スロット満杯なら景品穴に蓋(閉=一目で満杯と分かる)。球は入らずハズレに(虹は常に開)
+    const prizeOpen = typeof Roulette === "undefined" || !Roulette.canAcceptEgg || Roulette.canAcceptEgg();
     const pzHalf = (pzOut - rbHalf) / 2;
-    drawCup(cx - pzMid, pzHalf, "rgba(210,170,90,.5)", "rgba(235,195,110,.8)");
-    drawCup(cx + pzMid, pzHalf, "rgba(210,170,90,.5)", "rgba(235,195,110,.8)");
+    const drawLid = (ccx) => { // 閉じた蓋: 灰の金属板+×印
+      ctx.fillStyle = "rgba(70,74,70,.95)";
+      ctx.fillRect(ccx - pzHalf, landY - 3, pzHalf * 2, 6);
+      ctx.strokeStyle = "rgba(120,124,120,.9)"; ctx.lineWidth = 1.0 / scale;
+      ctx.strokeRect(ccx - pzHalf, landY - 3, pzHalf * 2, 6);
+      ctx.strokeStyle = "rgba(40,44,40,.9)"; ctx.lineWidth = 1.2 / scale;
+      ctx.beginPath();
+      ctx.moveTo(ccx - pzHalf * 0.5, landY - 2); ctx.lineTo(ccx + pzHalf * 0.5, landY + 2);
+      ctx.moveTo(ccx + pzHalf * 0.5, landY - 2); ctx.lineTo(ccx - pzHalf * 0.5, landY + 2);
+      ctx.stroke();
+    };
+    if (prizeOpen) {
+      drawCup(cx - pzMid, pzHalf, "rgba(210,170,90,.5)", "rgba(235,195,110,.8)");
+      drawCup(cx + pzMid, pzHalf, "rgba(210,170,90,.5)", "rgba(235,195,110,.8)");
+    } else {
+      drawLid(cx - pzMid); drawLid(cx + pzMid);
+    }
     // 虹の受け皿(中央・極細・七色脈動=最大の見せ場)
     const rg = ctx.createLinearGradient(cx - rbHalf, 0, cx + rbHalf, 0);
     rg.addColorStop(0, `hsla(${tp},95%,62%,${0.65 + pulse * 0.35})`);

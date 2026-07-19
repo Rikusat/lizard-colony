@@ -1232,8 +1232,10 @@ const Game = {
   // 通常=給餌した遺伝子の子(inherit自己ペア再利用で変異/モーフ/色ゆらぎ二重化回避・fable0)
   // レインボー=未所持の新種(種族同一・§7.5)。図鑑コンプ済みなら通常卵へフォールバック
   spawnRouletteEgg(outcome) {
-    if (this.state.eggs.length >= this.eggSlotCap()) return false; // 満杯は静かに廃棄
     const rainbow = !!(outcome && outcome.rainbow);
+    // ②(a): 通常卵は満杯なら生成しない(景品穴も閉じているので通常は到達しない安全弁)。
+    // 虹(大当たり)は"優先枠"で満杯でも必ず入る=レア保護。
+    if (!rainbow && this.state.eggs.length >= this.eggSlotCap()) return false;
     const hatchMult = Math.max(0.2, (1 - this.facLv("heat") * 0.025) * (1 - (((this.state.nest && this.state.nest.lv) || 1) - 1) * 0.03) * (1 - this.researchBonus("hatch")));
     if (rainbow) {
       const pick = this.pickUnownedDexEntry(this.currentStage().id);

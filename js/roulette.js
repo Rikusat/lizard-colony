@@ -15,6 +15,7 @@ const Roulette = {
   nails: [],       // {x,y,r} 固定(reset時に構築)
   events: [],      // 表現層がdrainする(BallEmitted/BallLanded/BallWin/BallRainbow)
   onEgg: null,     // 入賞時の卵生成コールバック(boot時にGameが設定)
+  canAcceptEgg: null, // ②(a): 景品穴が開いているか(スロット満杯で閉=false)。boot時にGameが設定。null=常に開
   _seed: 0,
   _rng: null,
   _idSeq: 1,
@@ -194,8 +195,11 @@ const Roulette = {
     const dx = Math.abs(b.x - cx);
     const rbHalf = CFG.roulRainbowHalfWf * W, pzOut = CFG.roulPrizeOuterf * W;
     let rainbow = false, win = false;
-    if (dx <= rbHalf) { rainbow = true; win = true; }        // 中央極細=大当たり
-    else if (dx <= pzOut) { win = true; }                    // その外側の帯=景品(卵)
+    // ②(a) 3.11: 景品穴はスロット満杯で"物理的に閉じる"(canAcceptEgg=false)→球は入らずハズレ。
+    // 虹穴は常に開=大当たりは必ず入る(レア保護)。判定は着地時の実状態をそのまま反映(見た目=真実)。
+    const prizeOpen = !this.canAcceptEgg || this.canAcceptEgg();
+    if (dx <= rbHalf) { rainbow = true; win = true; }              // 中央極細=大当たり(常に開)
+    else if (dx <= pzOut && prizeOpen) { win = true; }            // 景品帯(満杯時は閉=ハズレ)
     this.events.push({ type: "BallLanded", x: b.x, rainbow, win });
     if (win) {
       // 受け皿へコトンと収まる。cupは虹=中央 / 景品=左右帯の中央
