@@ -718,32 +718,19 @@ const Game = {
     let tgt = this.stageData(id);
     if (!tgt) { tgt = this.emptyStageData(id); this.world.stages.push(tgt); }
     let pioneered = false;
-    let founded = 0;
-    let starters = 0;
+    let returnGift = false;
     if (!tgt.pioneered) {
+      // Phase4(純血・引き連れなし): 新ステージは固有種#1の純血ペア2匹のみ(創始者の持ち込みは廃止)
       this.applyStarterPack(tgt);
-      // 創始者の卵 (§9.4改): 繁殖の詰みを防ぐため最大2匹まで持ち込める
-      const seen = new Set();
-      for (const fid of fids.slice(0, CFG.founderCount)) {
-        if (seen.has(fid)) continue;
-        seen.add(fid);
-        const f = active.lizards.find((l) => l.id === fid);
-        if (f && this.canFound(f, id)) {
-          tgt.eggs.push({
-            speciesId: f.speciesId, morphId: f.morphId,
-            hue: f.hue, sat: f.sat, light: f.light, pattern: f.pattern,
-            t: 20, total: 20, founder: true,
-          });
-          founded++;
-        }
-      }
-      // V4 §2.1-A: 惑星は無人ではない——現地生物(その惑星の固有種)が既に生息している
-      // §2.1-B: さらにHQがアダルト2匹以上を保証(開拓ペア)。0匹は原理的に起きない
-      const natives = this.spawnNatives(tgt, id);
-      starters = natives;
+      this.spawnPurePair(tgt, id);
       tgt.pioneered = true;
       pioneered = true;
+    } else if (!tgt.gotReturnGift) {
+      // Phase4: 過去ステージ(クリア済)へ復帰の初回=固有種#2の卵を報酬(特別孵化演出)。無限ループ防止=一度だけ
+      returnGift = this.grantReturnGift(tgt, id);
+      if (returnGift) tgt.gotReturnGift = true;
     }
+    void fids; // Phase4: 引き連れ(創始者ID)は不使用へ
 
     // オフライン進行(留守中のコロニーが生きていた証)
     const report = this.simulateOffline(tgt);
@@ -752,6 +739,7 @@ const Game = {
     this.world.currentStageId = id;
     s.stageSel = id;
     s.lizards = tgt.lizards; s.eggs = tgt.eggs; s.facilities = tgt.facilities;
+    s.gotReturnGift = !!tgt.gotReturnGift; // Phase4: 復帰報酬の受領済みフラグをランタイムへ(書き戻しで保持)
     // V5: コオロギは共通在庫(入れ替えない)
     s.raidTimer = tgt.boss.raidTimer; s.nextRaid = tgt.boss.nextRaid;
     s.stageWins = tgt.boss.wins || 0;
@@ -764,9 +752,12 @@ const Game = {
 
     UI.toast(`${Icon.svg(target.icon)} コロニー「${target.name}」へ移動 — ${target.envText}`);
     if (pioneered) {
+      const puresp = SPECIES.filter((sp) => sp.stage === id)[0];
       UI.toast(`開拓ボーナス! 本部Lv${this.hqLevel()}の支援: コオロギ+${fmt(CFG.pioneerCrickets + this.hqLevel() * 20)}・開拓資金+${fmt(CFG.pioneerCoins + this.hqLevel() * 2000)}G・水場とシェルターを無償設置`);
-      if (founded > 0) UI.toast(`創始者の卵を${founded}匹ぶん持ち込んだ! 新天地で血統が続く…`);
-      if (starters > 0) UI.toast(`この惑星には現地のトカゲ${starters}匹が暮らしていた! 共存の始まりだ`);
+      UI.toast(`この惑星の固有種「${puresp ? puresp.name : ""}」の純血ペア2匹から始まる(純血設計)`);
+    } else if (returnGift) {
+      const gsp = SPECIES.filter((sp) => sp.stage === id)[1] || SPECIES.filter((sp) => sp.stage === id)[0];
+      UI.toast(`${Icon.svg("egg")} 里帰りの祝福! 固有種「${gsp ? gsp.name : ""}」の卵が贈られた(孵化を見届けよう)`);
     }
     // V5: 到着時の留守精算トーストは廃止(収入は常時合算・違和感の根治)
     void report;
@@ -799,6 +790,39 @@ const Game = {
       n++;
     }
     return n;
+  },
+
+  // Phase4: 新ステージは固有種#1の純血ペア2匹(アダルト)のみ。引き連れなし
+  spawnPurePair(tgt, stageId) {
+    const endemic = SPECIES.filter((sp) => sp.stage === stageId);
+    const sp = endemic[0] || speciesById("kanahebi"); // 固有種#1
+    for (let i = 0; i < 2; i++) {
+      const lz = this.makeLizard(sp.id, "normal", {
+        hue: sp.hue + rnd(-8, 8), sat: sp.sat, light: sp.light,
+        pattern: PATTERNS[Math.floor(Math.random() * 4)],
+      }, "adult");
+      lz.level = 1; lz.native = true;
+      tgt.lizards.push(lz);
+      if (this.state) this.registerDex(sp.id, "normal", true);
+    }
+    return 2;
+  },
+
+  // Phase4: 過去ステージ復帰の報酬=固有種#2の卵(特別孵化)。一度だけ(呼び出し側でgotReturnGift管理)=無限ループなし
+  grantReturnGift(tgt, stageId) {
+    const endemic = SPECIES.filter((sp) => sp.stage === stageId);
+    const sp = endemic[1] || endemic[0]; // 固有種#2(無ければ#1)
+    if (!sp) return false;
+    const nl = (tgt.nest && tgt.nest.lv) || 1;
+    const hatchMult = Math.max(0.2, 1 - (nl - 1) * 0.03);
+    const total = CFG.hatchBasePerStar * sp.stars * hatchMult;
+    tgt.eggs.push({
+      speciesId: sp.id, morphId: "normal",
+      hue: sp.hue + rnd(-8, 8), sat: sp.sat, light: sp.light,
+      pattern: PATTERNS[Math.floor(Math.random() * 4)],
+      t: total, total, gift: true, // gift=特別孵化演出フラグ
+    });
+    return true;
   },
 
   // 開拓ボーナス (§9.2): 本部Lvが高いほど厚い支給
@@ -1266,6 +1290,15 @@ const Game = {
       this.popupBurst(lz.x, lz.y - 30);
       if (UI.heroLegendBirth) UI.heroLegendBirth(lz); // 一生に数回級(§6)
       else UI.toast(`伝説個体が誕生!! ${this.lizardName(lz)} — 唯一無二の輝き!`);
+    } else if (egg.gift) {
+      // Phase4: 過去ステージ復帰の固有種#2報酬=特別な孵化演出(ジュース最大充当)
+      lz.founder = true; // 里帰りの祝福個体=創始者相当の血統マーク
+      this.flashT = 0.9;
+      this.slowmo = 1.1;
+      this.popupBurst(lz.x, lz.y - 30);
+      if (UI.heroReturnGift) UI.heroReturnGift(lz);
+      else if (UI.heroLegendBirth) UI.heroLegendBirth(lz);
+      else UI.toast(`${Icon.svg("spark")} 里帰りの祝福! この惑星の固有種「${this.lizardName(lz)}」が誕生した!`);
     } else {
       UI.toast(`${this.lizardName(lz)} が孵化した!${egg.lucky ? " (ラッキー卵!)" : ""}`);
     }
@@ -2107,6 +2140,7 @@ const Game = {
       boss: { wins: s.stageWins || 0, raidTimer: s.raidTimer, nextRaid: s.nextRaid },
       nest: s.nest || { lv: 1, pins: [] },
       devLv: s.devLv || 0,
+      gotReturnGift: !!s.gotReturnGift, // Phase4: 復帰報酬を受領済みか(無限ループ防止・書き戻しで保持)
     };
   },
 
@@ -2211,6 +2245,26 @@ const Game = {
     return w;
   },
 
+  // V5.2 Phase4: 純血化(案B・破壊的)。各惑星はその惑星の固有種(stage=惑星id)のみを残し、他惑星の種を削除。
+  // 卵も同様(他惑星種の卵は孵化すると純血が崩れるため)。バージョンゲートで一度だけ・冪等。実行前バックアップはload側で退避。
+  migrateV8to9(w) {
+    if ((w.version || 0) >= 9) return w;
+    const stages = w.planets || w.stages || [];
+    let lizRemoved = 0, eggRemoved = 0;
+    for (const st of stages) {
+      const endemic = SPECIES.filter((sp) => sp.stage === st.stageId).map((sp) => sp.id);
+      const lz0 = (st.lizards || []).length, eg0 = (st.eggs || []).length;
+      st.lizards = (st.lizards || []).filter((lz) => endemic.includes(lz.speciesId));
+      st.eggs = (st.eggs || []).filter((e) => endemic.includes(e.speciesId));
+      lizRemoved += lz0 - st.lizards.length;
+      eggRemoved += eg0 - st.eggs.length;
+    }
+    w.planets = stages; w.stages = stages;
+    w._purifyV9 = { lizards: lizRemoved, eggs: eggRemoved }; // 通知用(保存されない)
+    w.version = 9;
+    return w;
+  },
+
   applyWorld(w) {
     if (w.planets && !w.stages) w.stages = w.planets; // V4改名の互換
     if (w.stages && !w.planets) w.planets = w.stages;
@@ -2247,6 +2301,7 @@ const Game = {
       stageWins: active.boss.wins || 0,
       nest: active.nest || { lv: 1, pins: [] },
       devLv: active.devLv || 0,
+      gotReturnGift: !!active.gotReturnGift, // Phase4: 復帰報酬の受領済み(ランタイムへ)
       savedAt: w.savedAt,
     };
     // 補完
@@ -2408,11 +2463,16 @@ const Game = {
     try {
       const data = JSON.parse(raw);
       let world;
-      if (data.version >= 8) {
+      if (data.version >= 9) {
         world = data;
+      } else if (data.version === 8) {
+        // V8セーブ → V9移行(純血化=破壊的。必ず全文バックアップを退避=ロールバック可能に)
+        try { localStorage.setItem(CFG.saveBackupKeyV9, raw); } catch (e) { /* noop */ }
+        world = data; // 実移行は下の共通ゲートで(冪等)
       } else if (data.version === 7) {
-        // V7セーブ → V8移行(ボス見届け化・1日3回カウンタ・バックアップしてから)
+        // V7セーブ → V8移行(ボス見届け化・1日3回カウンタ・バックアップしてから)。V9バックアップも退避
         try { localStorage.setItem(CFG.saveBackupKeyV8, raw); } catch (e) { /* noop */ }
+        try { localStorage.setItem(CFG.saveBackupKeyV9, raw); } catch (e) { /* noop */ }
         world = data; // 実移行は下の共通ゲートで(冪等)
       } else if (data.version === 6) {
         // V6セーブ → V7移行(コオロギ給餌の復活・バックアップしてから)
@@ -2456,8 +2516,12 @@ const Game = {
         world = this.migrateV3to4(this.migrateV2to3(this.migrateV1(data)));
         setTimeout(() => UI.toast("セーブを最新形式へ移行しました。旧データはバックアップ済み"), 900);
       }
-      // V5/V6/V7共通ゲート(全チェーンの最終段・各段は冪等)。v6→v7で払戻Goldは据置＋在庫付与=資産プラスのみ
-      world = this.migrateV7to8(this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world))));
+      // 共通ゲート(全チェーンの最終段・各段は冪等)。v8→v9=純血化(破壊的・一度だけ)
+      world = this.migrateV8to9(this.migrateV7to8(this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world)))));
+      if (world._purifyV9 && (world._purifyV9.lizards > 0 || world._purifyV9.eggs > 0)) {
+        const p9 = world._purifyV9;
+        setTimeout(() => UI.toast(`${Icon.svg("planet")} 純血化: 各惑星は固有種のみになりました(他惑星種 ${p9.lizards}匹${p9.eggs > 0 ? "・卵" + p9.eggs : ""}が去った。設定からロールバック可)`, true), 900);
+      }
       if (world._reviveV7 && world._reviveV7.crickets > 0) {
         const r7 = world._reviveV7;
         setTimeout(() => UI.toast(`V5.2: コオロギ給餌が復活! 在庫コオロギ${fmt(r7.crickets)}匹を進呈(以前のGold払い戻しはそのまま)`), 900);
@@ -2500,6 +2564,16 @@ const Game = {
     let raw;
     try { raw = localStorage.getItem(CFG.saveBackupKeyV4); } catch (e) { raw = null; }
     if (!raw) { UI.toast("バックアップが見つからない", true); return false; }
+    localStorage.setItem(CFG.saveKey, raw);
+    location.reload();
+    return true;
+  },
+
+  // Phase4: 純血化(V9)前へロールバック=消えた個体を含む移行前の状態に戻す
+  restoreV9Backup() {
+    let raw;
+    try { raw = localStorage.getItem(CFG.saveBackupKeyV9); } catch (e) { raw = null; }
+    if (!raw) { UI.toast("純血化前のバックアップが見つからない", true); return false; }
     localStorage.setItem(CFG.saveKey, raw);
     location.reload();
     return true;
