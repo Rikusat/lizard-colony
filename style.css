@@ -1866,6 +1866,15 @@ button.holding::after {
 #boss-reward #feeder-dial.in-reward {
   position: static; right: auto; bottom: auto; left: auto; top: auto; z-index: auto; margin: 0;
 }
+/* ①訂正: モーダル内はレバー/オート/安全ボタンを非表示(モーダルは実行の場・設定は不要)。
+   #boss-reward スコープ限定=フィールド側の#feeder-dialには波及しない */
+#boss-reward #feeder-dial.in-reward .fd-lever,
+#boss-reward #feeder-dial.in-reward .fd-side { display: none; }
+/* ボタンを隠す代わりに、緑=オートの後光をクランク本体へ移して維持(auto継承の可視化) */
+#boss-reward #feeder-dial.in-reward.auto-on #fd-crank {
+  box-shadow: 0 0 16px var(--life-glow), 0 0 7px var(--life-400);
+  border-radius: 50%;
+}
 #boss-reward .br-tray {
   display: flex; gap: 12px; font-size: calc(14px * var(--fs-scale, 1)); color: var(--paper-100);
   font-variant-numeric: tabular-nums;
