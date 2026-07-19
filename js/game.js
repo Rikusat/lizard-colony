@@ -553,6 +553,35 @@ const Game = {
     const id = this.currentStage().id;
     return SPECIES.filter((sp) => sp.stage === id && sp.stage >= 6);
   },
+
+  // Phase 4準備: 惑星の固有種2種(stage=惑星id)。純血化で「残す」対象
+  endemicSpecies(stageId) { return SPECIES.filter((sp) => sp.stage === stageId).map((sp) => sp.id); },
+
+  // Phase 4: 純血化の非破壊プレビュー(読み取り専用・診断)。各惑星で残る/消える個体を数える。
+  // Ric承認前に「何がどれだけ失われるか」を実測するための関数。実際の削除は行わない。
+  purifyPreview() {
+    const w = this.toWorld(); // 現在地(state.lizards)も反映した全惑星スナップショット
+    const out = { totalKeep: 0, totalLose: 0, planets: [] };
+    for (const st of (w.stages || [])) {
+      const stage = stageById(st.stageId) || { name: "?", pname: "?" };
+      const endemic = this.endemicSpecies(st.stageId);
+      const keepBy = {}, loseBy = {};
+      let keep = 0, lose = 0;
+      for (const lz of (st.lizards || [])) {
+        const sid = lz.speciesId;
+        if (endemic.includes(sid)) { keep++; keepBy[sid] = (keepBy[sid] || 0) + 1; }
+        else { lose++; loseBy[sid] = (loseBy[sid] || 0) + 1; }
+      }
+      out.totalKeep += keep; out.totalLose += lose;
+      const nm = (o) => Object.entries(o).map(([k, v]) => `${(speciesById(k) || { name: k }).name}×${v}`).join(", ") || "(なし)";
+      out.planets.push({ id: st.stageId, planet: `${stage.pname || ""} ${stage.name}`.trim(),
+        total: (st.lizards || []).length, keep, lose,
+        endemic: endemic.map((id) => (speciesById(id) || { name: id }).name).join("/"),
+        残る: nm(keepBy), 消える: nm(loseBy) });
+    }
+    if (typeof console !== "undefined") { console.log("=== 純血化プレビュー(非破壊) ==="); console.table(out.planets); console.log(`合計: 残る${out.totalKeep} / 消える${out.totalLose}`); }
+    return out;
+  },
   mutateLizard(lz) {
     const pool = this.stageSpecificSpecies();
     if (!pool.length) { UI.toast("この惑星には固有種がいない", true); return false; }
