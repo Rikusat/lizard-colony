@@ -48,6 +48,13 @@ function feederTierInfo(lv) {
   const w = [0, 108, 132, 158][tier] + within * [0, 10, 12, 14][tier];
   return { tier, w, hitR: Math.max(60, w * 0.52) };
 }
+// 繁殖施設(岩場の巣→繁殖の庭→育種園・上限15/3tier。descの「繁殖CD・変異・伝説」に対応)
+function breedfacTierInfo(lv) {
+  const { tier, within } = facTier(lv, [5, 10, 15]);
+  if (!tier) return { tier: 0, w: 0, hitR: 0 };
+  const w = [0, 100, 132, 160][tier] + within * [0, 12, 12, 14][tier];
+  return { tier, w, hitR: Math.max(56, w * 0.5) };
+}
 
 // ID8 氷の前線: 浮遊モノリス(上位存在の技術・中景の異物)の共有ジオメトリ。
 // 静的造形はpaintBackground(キャッシュ)へ、動く冷光はRender.drawMonolith8(毎フレーム)へ分離。
@@ -1235,6 +1242,39 @@ const Render = {
     }
   },
 
+  // Phase8: 繁殖施設をtierで育てる(岩場の巣→繁殖の庭→育種園=花咲く聖域)。命が育つ場が豊かになる。
+  _drawBreed(ctx, p, lv) {
+    const info = breedfacTierInfo(lv), tier = info.tier, w = info.w, cx = p.x, gy = p.y, hw = w / 2, rrand = lcg(777);
+    // tier3: 弧を描く枝のあずまや(背・命を包む)
+    if (tier >= 3) {
+      ctx.strokeStyle = "#5a4028"; ctx.lineWidth = 5; ctx.lineCap = "round";
+      for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(cx + s * hw * 0.82, gy + 4); ctx.quadraticCurveTo(cx + s * hw * 0.5, gy - hw * 0.9, cx, gy - hw * 0.82); ctx.stroke(); }
+      ctx.fillStyle = "#3f7a3a"; const lr = lcg(99); // 葉
+      for (let i = 0; i < 14; i++) { const t = lr(), s = lr() < 0.5 ? -1 : 1; const x = cx + s * hw * 0.82 * (1 - t) + s * hw * 0.5 * t * 0, y = gy + 4 - (gy + 4 - (gy - hw * 0.82)) * t; ctx.beginPath(); ctx.ellipse(cx + s * (hw * 0.82 - hw * 0.4 * t) * (1 - t * 0.3), gy + 4 - (hw * 0.86) * t, 5, 3, lr() * 2, 0, 7); ctx.fill(); }
+    }
+    // 岩(全tier・tierで数増)
+    this.boulder(ctx, rrand, cx - hw * 0.5, gy + 8, Math.max(14, hw * 0.2), "#5d5142");
+    this.boulder(ctx, rrand, cx + hw * 0.42, gy + 10, Math.max(12, hw * 0.17), "#55483a");
+    if (tier >= 2) this.boulder(ctx, rrand, cx + hw * 0.06, gy - 4, Math.max(20, hw * 0.26), "#6b5c4a");
+    // 草の巣(全tier・円形の藁の窪み。tierで密度up)
+    ctx.fillStyle = "#5d4a30"; ctx.beginPath(); ctx.ellipse(cx, gy + 8, hw * 0.52, hw * 0.22, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#8a6a3c"; ctx.lineWidth = 1.8; ctx.lineCap = "round";
+    const rand2 = lcg(321); for (let i = 0; i < 14 + tier * 5; i++) { const a = rand2() * Math.PI * 2, r1 = hw * 0.28, r2 = hw * 0.52; ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r1, gy + 8 + Math.sin(a) * r1 * 0.42); ctx.lineTo(cx + Math.cos(a) * r2, gy + 8 + Math.sin(a) * r2 * 0.42); ctx.stroke(); }
+    // tier2+: 装飾の卵(命の気配)
+    if (tier >= 2) for (const [dx, dy] of [[-9, 4], [11, 6], [1, 0]]) {
+      ctx.fillStyle = "#e8dcc0"; ctx.beginPath(); ctx.ellipse(cx + dx, gy + 8 + dy, 6, 8, 0.2, 0, 7); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.3)"; ctx.beginPath(); ctx.ellipse(cx + dx - 1.5, gy + 5 + dy, 2, 3, 0.2, 0, 7); ctx.fill();
+    }
+    // tier2+: 花(繁殖の庭)
+    if (tier >= 2) { const fr = lcg(444); for (let i = 0; i < (tier === 2 ? 3 : 6); i++) { const a = fr() * Math.PI * 2, d = hw * (0.6 + fr() * 0.35); const x = cx + Math.cos(a) * d, y = gy + 8 + Math.sin(a) * d * 0.42; ctx.strokeStyle = "#3f7a3a"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 8); ctx.stroke(); ctx.fillStyle = fr() < 0.5 ? "#e8a0c0" : "#f5d76e"; ctx.beginPath(); ctx.arc(x, y - 9, 2.4, 0, 7); ctx.fill(); } }
+    // tier3: 舞う花びら(per-frame・淡い)+柔らかな暖色
+    if (tier >= 3) {
+      const wg = ctx.createRadialGradient(cx, gy - hw * 0.3, 4, cx, gy - hw * 0.3, hw); wg.addColorStop(0, "rgba(255,220,200,.08)"); wg.addColorStop(1, "rgba(255,220,200,0)");
+      ctx.fillStyle = wg; ctx.beginPath(); ctx.ellipse(cx, gy - hw * 0.3, hw, hw * 0.6, 0, 0, 7); ctx.fill();
+      for (let k = 0; k < 4; k++) { const t = ((this.time * 0.3 + k * 0.25) % 1); ctx.fillStyle = `rgba(232,160,192,${0.5 * (1 - t)})`; ctx.beginPath(); ctx.ellipse(cx + Math.sin(this.time * 0.8 + k * 2) * hw * 0.5, gy - hw * 0.7 + t * hw * 0.7, 2.5, 1.4, this.time + k, 0, 7); ctx.fill(); }
+    }
+  },
+
   drawFacilities(ctx) {
     const lv = (id) => Game.facLv(id);
     const P = FAC_POS;
@@ -1268,15 +1308,7 @@ const Render = {
 
     if (lv("heat")) this._drawHeat(ctx, P.light, lv("heat")); // Phase8: tierで保温ライト→保温器→温室の骨組み→温室
 
-    if (lv("breedfac")) { // 繁殖施設(岩場と草の巣)
-      const p = P.rocks;
-      const rrand = lcg(777);
-      this.boulder(ctx, rrand, p.x - 34, p.y + 8, 18, "#5d5142");
-      this.boulder(ctx, rrand, p.x + 2, p.y - 2, 27, "#6b5c4a");
-      this.boulder(ctx, rrand, p.x + 42, p.y + 10, 16, "#55483a");
-      ctx.fillStyle = "rgba(0,0,0,.2)";
-      ctx.beginPath(); ctx.ellipse(p.x + 20, p.y + 22, 8, 3, 0, 0, 7); ctx.ellipse(p.x - 12, p.y + 24, 6, 2.5, 0, 0, 7); ctx.fill();
-    }
+    if (lv("breedfac")) this._drawBreed(ctx, P.rocks, lv("breedfac")); // Phase8: tierで岩場の巣→繁殖の庭→育種園
 
     if (lv("feeder")) this._drawFeeder(ctx, P.heat, lv("feeder")); // Phase8: tierで餌トラフ→自動給餌機→養殖プラント
 
