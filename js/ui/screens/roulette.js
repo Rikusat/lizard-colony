@@ -25,9 +25,14 @@ const ROUL_BOARD_SKINS = {
         ctx.fillStyle = hg; ctx.fillRect(ex - s * 1.5, ey - s * 1.6, s * 3, s * 3.2);
         ctx.restore();
       }
-      // 線画の気配(巣の藁の弧+卵の輪郭)。普段はごく薄く、発光時に少しだけ明るく
+      // 線画の気配(惑星ごとの紋章モチーフ)。普段はごく薄く、発光時に少しだけ明るく。motifを差し替えれば惑星別に
       const line = 0.055 + g * 0.12;
-      ctx.strokeStyle = `rgba(${this.emblem},${line})`; ctx.lineWidth = Math.max(0.6, W * 0.005); ctx.lineCap = "round";
+      ctx.strokeStyle = `rgba(${this.emblem},${line})`; ctx.fillStyle = `rgba(${this.emblem},${line})`;
+      ctx.lineWidth = Math.max(0.6, W * 0.005); ctx.lineCap = "round";
+      this.motif(ctx, ex, ey, s);
+    },
+    // 紋章モチーフ(既定=卵と巣)。惑星skinはこれだけ差し替える(strokeStyle/lineWidthは呼び出し側が設定済)
+    motif(ctx, ex, ey, s) {
       for (let k = -2; k <= 2; k++) {
         ctx.beginPath();
         ctx.arc(ex, ey + s * 0.5, s * (0.9 + Math.abs(k) * 0.06), Math.PI * (0.12 + k * 0.02), Math.PI * (0.88 - k * 0.02));
@@ -85,8 +90,39 @@ const ROUL_BOARD_SKINS = {
   },
 };
 
+// 惑星別の盤意匠(描画のみ=当たり判定/geometry/確率は不変)。defaultの描画メソッドを継承し、パレットと紋章motifだけ差し替える。
+// 紋章motifはstrokeStyle/fillStyle設定済で呼ばれる(emblem_drawが管理)。惑星の文明を暗示する簡素なモチーフ。
+(function () {
+  const D = ROUL_BOARD_SKINS.default;
+  const mk = (id, pal, motif) => { ROUL_BOARD_SKINS[id] = Object.assign({}, D, { id }, pal, motif ? { motif } : {}); };
+  const eye = (c, x, y, s) => { c.beginPath(); c.arc(x, y, s * 0.9, 0, 7); c.stroke(); c.beginPath(); c.ellipse(x, y, s * 0.5, s * 0.24, 0, 0, 7); c.stroke(); c.beginPath(); c.arc(x, y, s * 0.12, 0, 7); c.fill(); }; // 企業ホログラムの眼
+  const gearLeaf = (c, x, y, s) => { c.beginPath(); c.arc(x, y, s * 0.58, 0, 7); c.stroke(); for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; c.fillRect(x + Math.cos(a) * s * 0.66 - s * 0.05, y + Math.sin(a) * s * 0.66 - s * 0.05, s * 0.1, s * 0.1); } c.beginPath(); c.ellipse(x + s * 0.72, y + s * 0.38, s * 0.3, s * 0.13, -0.6, 0, 7); c.stroke(); }; // からくり(歯車+葉)
+  const keyhole = (c, x, y, s) => { c.beginPath(); c.arc(x, y - s * 0.18, s * 0.52, 0, 7); c.stroke(); c.beginPath(); c.moveTo(x - s * 0.3, y + s * 0.28); c.lineTo(x + s * 0.3, y + s * 0.28); c.lineTo(x + s * 0.52, y + s * 0.82); c.lineTo(x - s * 0.52, y + s * 0.82); c.closePath(); c.stroke(); }; // 前方後円墳
+  const flame = (c, x, y, s) => { c.beginPath(); c.moveTo(x, y + s * 0.7); c.quadraticCurveTo(x - s * 0.58, y, x - s * 0.2, y - s * 0.4); c.quadraticCurveTo(x, y - s * 0.9, x + s * 0.2, y - s * 0.4); c.quadraticCurveTo(x + s * 0.58, y, x, y + s * 0.7); c.stroke(); }; // 炎
+  const wheel = (c, x, y, s) => { c.beginPath(); c.arc(x, y, s * 0.6, 0, 7); c.stroke(); for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + Math.PI / 4; c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(a) * s * 0.6, y + Math.sin(a) * s * 0.6); c.stroke(); } c.beginPath(); c.arc(x, y, s * 0.13, 0, 7); c.fill(); }; // 御神体の車輪
+  const hatch = (c, x, y, s) => { c.beginPath(); c.arc(x, y, s * 0.58, 0, 7); c.stroke(); for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2; c.beginPath(); c.moveTo(x + Math.cos(a) * s * 0.58, y + Math.sin(a) * s * 0.58); c.lineTo(x + Math.cos(a) * s * 0.85, y + Math.sin(a) * s * 0.85); c.stroke(); } }; // 耐圧ハッチホイール
+  const hexagon = (c, x, y, s) => { c.beginPath(); for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + 0.26; const px = x + Math.cos(a) * s * 0.7, py = y + Math.sin(a) * s * 0.7; k ? c.lineTo(px, py) : c.moveTo(px, py); } c.closePath(); c.stroke(); }; // 六角台座
+  const trefoil = (c, x, y, s) => { for (let k = 0; k < 3; k++) { const a = k / 3 * Math.PI * 2 - Math.PI / 2; c.beginPath(); c.moveTo(x, y); c.arc(x, y, s * 0.68, a - 0.5, a + 0.5); c.closePath(); c.stroke(); } c.beginPath(); c.arc(x, y, s * 0.16, 0, 7); c.fill(); }; // 放射能トレフォイル
+  const armillary = (c, x, y, s) => { c.beginPath(); c.arc(x, y, s * 0.62, 0, 7); c.stroke(); c.beginPath(); c.ellipse(x, y, s * 0.62, s * 0.24, 0, 0, 7); c.stroke(); c.beginPath(); c.ellipse(x, y, s * 0.24, s * 0.62, 0, 0, 7); c.stroke(); }; // 渾天儀
+  mk("p1", { straw: "198,158,96", core: "232,212,162", spine: "192,150,100", altar: "214,176,112", emblem: "212,180,120" });               // アリド(=卵と巣・default紋章)
+  mk("p2", { straw: "95,204,217", core: "217,87,176", spine: "120,150,200", altar: "217,87,176", emblem: "95,204,217" }, eye);            // ネオヴェルデ
+  mk("p3", { straw: "150,190,110", core: "200,230,150", spine: "120,150,90", altar: "180,150,90", emblem: "150,200,120" }, gearLeaf);     // シルヴァ
+  mk("p4", { straw: "150,175,120", core: "210,190,130", spine: "120,140,100", altar: "201,168,106", emblem: "150,180,130" }, keyhole);    // パルス
+  mk("p5", { straw: "230,140,70", core: "255,200,120", spine: "200,100,60", altar: "255,160,80", emblem: "240,150,80" }, flame);          // イグニス
+  mk("p6", { straw: "120,180,120", core: "180,230,170", spine: "100,150,110", altar: "201,168,106", emblem: "47,169,138" }, wheel);       // ユンガ(翡翠)
+  mk("p7", { straw: "120,190,210", core: "190,230,245", spine: "90,150,180", altar: "160,214,234", emblem: "95,168,201" }, hatch);        // メアリス
+  mk("p8", { straw: "150,190,210", core: "220,235,245", spine: "127,199,222", altar: "180,210,230", emblem: "127,199,222" }, hexagon);    // グラキス
+  mk("p9", { straw: "130,150,140", core: "200,215,205", spine: "111,184,160", altar: "150,170,160", emblem: "111,184,160" }, trefoil);    // ヴォルタ
+  mk("p10", { straw: "180,150,100", core: "220,190,130", spine: "150,130,90", altar: "201,162,39", emblem: "201,162,39" }, armillary);    // オリジン
+})();
+
 Object.assign(UI, {
-  _roulSkin() { return ROUL_BOARD_SKINS[this._roulSkinId] || ROUL_BOARD_SKINS.default; },
+  // 現在の惑星の盤意匠を選ぶ(_roulSkinId優先=テスト用/未設定なら惑星ID自動)。無ければdefault
+  _roulSkin() {
+    if (this._roulSkinId) return ROUL_BOARD_SKINS[this._roulSkinId] || ROUL_BOARD_SKINS.default;
+    const id = (typeof Game !== "undefined" && Game.currentStage) ? "p" + Game.currentStage().id : null;
+    return ROUL_BOARD_SKINS[id] || ROUL_BOARD_SKINS.default;
+  },
   initRoulette() {
     const cv = document.getElementById("roulette-canvas");
     if (!cv) return;
