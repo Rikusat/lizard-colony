@@ -18,7 +18,8 @@ Object.assign(UI, {
       // Phase8: 水場のタップ領域は育ったtierのスケールに追従(waterTierInfoを描画と共有)
       { id: "water", x: P.water.x, y: P.water.y, r: (typeof waterTierInfo !== "undefined" ? Math.max(70, waterTierInfo(Game.facLv("water")).hitR) : 78) },
       { id: "shelter", x: P.shelter.x, y: P.shelter.y, r: 62 },
-      { id: "heat", x: P.light.x - 30, y: P.light.y, r: 62 },   // 保温設備=吊りランプ(P.light)
+      // Phase8: 保温設備は温室化でスケール追従(heatTierInfo共有)。中心はP.light、育つと全体を覆う
+      { id: "heat", x: P.light.x, y: P.light.y, r: (typeof heatTierInfo !== "undefined" ? Math.max(60, heatTierInfo(Game.facLv("heat")).hitR) : 62) },
       { id: "breedfac", x: P.rocks.x, y: P.rocks.y, r: 56 },
       { id: "feeder", x: P.heat.x, y: P.heat.y, r: 64 },        // 餌場(P.heat)
     ];

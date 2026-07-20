@@ -26,6 +26,15 @@ function waterTierInfo(lv) {
   const rx = baseRx + within * grow;
   return { tier, rx, ry: rx * 0.42, hitR: rx * 0.98 };
 }
+// Phase8: 保温設備のtier(保温ライト→保温器→温室の骨組み→温室)。descの「ライト・保温器・温室を統合」に対応(上限20/4tier)。
+function heatTierInfo(lv) {
+  if (lv <= 0) return { tier: 0, w: 0, h: 0, hitR: 0 };
+  const tier = Math.min(4, Math.ceil(lv / 5));
+  const within = ((lv - 1) % 5) / 4;
+  const w = [0, 56, 92, 128, 158][tier] + within * [0, 8, 10, 12, 12][tier];
+  const h = [0, 92, 108, 138, 162][tier] + within * [0, 6, 8, 8, 8][tier];
+  return { tier, w, h, hitR: Math.max(58, w * 0.62) };
+}
 
 // ID8 氷の前線: 浮遊モノリス(上位存在の技術・中景の異物)の共有ジオメトリ。
 // 静的造形はpaintBackground(キャッシュ)へ、動く冷光はRender.drawMonolith8(毎フレーム)へ分離。
@@ -1113,6 +1122,67 @@ const Render = {
     }
   },
 
+  // Phase8: 保温設備をtierで育てる(保温ライト→保温器→温室の骨組み→温室)。定位置(P.light)で暖かい生息環境が完成していく。
+  _drawHeat(ctx, p, lv) {
+    const info = heatTierInfo(lv), tier = info.tier, w = info.w, h = info.h;
+    const cx = p.x, gy = p.y + 46, hw = w / 2, top = gy - h, flick = 0.85 + Math.sin(this.time * 6) * 0.1;
+    // 地面の暖かい光だまり(全tier・ほんのり脈動)
+    ctx.fillStyle = `rgba(255,206,110,${(0.1 + tier * 0.02) * flick})`;
+    ctx.beginPath(); ctx.ellipse(cx, gy + 4, hw * 1.2, hw * 0.34, 0, 0, 7); ctx.fill();
+    // 温室(tier3=骨組み / tier4=ガラス)。生息環境が屋根を得て"完成"していく
+    let barY = gy - h * 0.7;
+    if (tier >= 3) {
+      const eaveY = top + h * 0.34; barY = top + h * 0.26;
+      if (tier >= 4) { // ガラス壁+内部の暖色
+        ctx.fillStyle = "rgba(206,226,234,.15)"; ctx.fillRect(cx - hw, eaveY, w, gy - eaveY);
+        const ig = ctx.createRadialGradient(cx, gy - h * 0.22, 4, cx, gy - h * 0.22, hw * 1.3);
+        ig.addColorStop(0, `rgba(255,188,108,${0.16 * flick})`); ig.addColorStop(1, "rgba(255,188,108,0)");
+        ctx.fillStyle = ig; ctx.fillRect(cx - hw, eaveY, w, gy - eaveY);
+      }
+      ctx.strokeStyle = "#3a3226"; ctx.lineWidth = 3; ctx.lineJoin = "round"; // フレーム外形
+      ctx.beginPath(); ctx.moveTo(cx - hw, gy); ctx.lineTo(cx - hw, eaveY); ctx.lineTo(cx, top); ctx.lineTo(cx + hw, eaveY); ctx.lineTo(cx + hw, gy); ctx.stroke();
+      ctx.strokeStyle = tier >= 4 ? "rgba(185,208,218,.5)" : "rgba(96,80,58,.6)"; ctx.lineWidth = 1.3; // 屋根の桟
+      for (const s of [-1, 1]) for (const t2 of [0.4, 0.75]) { ctx.beginPath(); ctx.moveTo(cx + s * hw * t2, eaveY - (eaveY - top) * (1 - t2) * 0); ctx.lineTo(cx + s * hw * t2 * 0.5, (top + eaveY) / 2); ctx.stroke(); }
+      ctx.beginPath(); ctx.moveTo(cx, top); ctx.lineTo(cx, eaveY); ctx.stroke(); // 棟
+    }
+    // バスキングの温床(tier2+): 平たい温かい岩
+    if (tier >= 2) {
+      ctx.fillStyle = "#6b5442"; ctx.beginPath(); ctx.ellipse(cx, gy, hw * 0.5, hw * 0.16, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = `rgba(255,150,70,${0.3 + Math.sin(this.time * 3) * 0.12})`; ctx.beginPath(); ctx.ellipse(cx, gy - 1, hw * 0.38, hw * 0.1, 0, 0, 7); ctx.fill();
+    }
+    // ヒートランプ(全tier・tierで数増)
+    const bulbs = tier;
+    if (tier < 3) { // 開放: ポール+腕木
+      ctx.strokeStyle = "#3d3222"; ctx.lineWidth = 6; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(cx, gy + 12); ctx.lineTo(cx, barY - 4); ctx.stroke();
+      ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(cx, barY); ctx.lineTo(cx - hw * 0.5, barY - 6); ctx.stroke();
+    } else { // 温室内: 天井の吊りバー
+      ctx.strokeStyle = "#3d3222"; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(cx - hw * 0.55, barY); ctx.lineTo(cx + hw * 0.55, barY); ctx.stroke();
+    }
+    for (let i = 0; i < bulbs; i++) {
+      const bx = tier < 3 ? cx - hw * 0.5 : cx + (i - (bulbs - 1) / 2) * Math.min(30, w / (bulbs + 1));
+      const by = barY + (tier < 3 ? -2 : 3);
+      ctx.fillStyle = "#6b5433"; ctx.beginPath(); ctx.moveTo(bx - 9, by); ctx.lineTo(bx + 9, by); ctx.lineTo(bx + 5, by - 8); ctx.lineTo(bx - 5, by - 8); ctx.closePath(); ctx.fill();
+      const glow = ctx.createRadialGradient(bx, by + 4, 3, bx, by + 4, 38);
+      glow.addColorStop(0, `rgba(255,214,120,${0.68 * flick})`); glow.addColorStop(1, "rgba(255,214,120,0)");
+      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(bx, by + 4, 38, 0, 7); ctx.fill();
+      ctx.fillStyle = "#ffedb0"; ctx.beginPath(); ctx.arc(bx, by + 5, 6, 0, 7); ctx.fill();
+      if (tier < 3) break; // 開放は1灯のみ
+    }
+    // 温室の植物(tier3+): 暖かい緑の鉢植え
+    if (tier >= 3) for (const dx of [-hw * 0.58, hw * 0.55]) {
+      ctx.fillStyle = "#5a3f28"; ctx.fillRect(cx + dx - 6, gy - 10, 12, 10);
+      ctx.strokeStyle = "#3f7a3a"; ctx.lineWidth = 2.4; ctx.lineCap = "round";
+      for (const a of [-0.5, 0, 0.5]) { ctx.beginPath(); ctx.moveTo(cx + dx, gy - 10); ctx.quadraticCurveTo(cx + dx + a * 14, gy - 26, cx + dx + a * 20, gy - 30); ctx.stroke(); }
+    }
+    // ガラスのハイライト+棟の蒸気(tier4=完成形)
+    if (tier >= 4) {
+      ctx.strokeStyle = "rgba(255,255,255,.14)"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(cx - hw * 0.5, top + h * 0.18); ctx.lineTo(cx - 2, top + 4); ctx.stroke();
+      for (let k = 0; k < 3; k++) { const t2 = ((this.time * 0.4 + k * 0.34) % 1); ctx.fillStyle = `rgba(255,255,255,${0.13 * (1 - t2)})`; ctx.beginPath(); ctx.arc(cx + Math.sin(this.time + k) * 6, top - t2 * 26, 3 + t2 * 3, 0, 7); ctx.fill(); }
+    }
+  },
+
   drawFacilities(ctx) {
     const lv = (id) => Game.facLv(id);
     const P = FAC_POS;
@@ -1144,30 +1214,7 @@ const Render = {
       ctx.fillRect(p.x - 27, p.y + 4, 54, 5);
     }
 
-    if (lv("heat")) { // 吊りランプ(保温設備)
-      const p = P.light;
-      // 地面の光だまり
-      const flick = 0.85 + Math.sin(this.time * 7) * 0.08;
-      ctx.fillStyle = `rgba(255,214,120,${0.1 * flick})`;
-      ctx.beginPath(); ctx.ellipse(p.x - 46, p.y + 52, 78, 24, 0, 0, 7); ctx.fill();
-      // ポール+腕木
-      ctx.strokeStyle = "#3d3222"; ctx.lineWidth = 8; ctx.lineCap = "round";
-      ctx.beginPath(); ctx.moveTo(p.x, p.y + 60); ctx.lineTo(p.x, p.y - 46); ctx.stroke();
-      ctx.strokeStyle = "#55462f"; ctx.lineWidth = 5;
-      ctx.beginPath(); ctx.moveTo(p.x, p.y - 44); ctx.lineTo(p.x - 44, p.y - 52); ctx.stroke();
-      // 吊り紐+笠+電球
-      ctx.strokeStyle = "#2b2318"; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(p.x - 44, p.y - 52); ctx.lineTo(p.x - 46, p.y - 42); ctx.stroke();
-      const glow = ctx.createRadialGradient(p.x - 46, p.y - 34, 4, p.x - 46, p.y - 34, 66);
-      glow.addColorStop(0, `rgba(255,222,130,${0.85 * flick})`);
-      glow.addColorStop(1, "rgba(255,222,130,0)");
-      ctx.fillStyle = glow;
-      ctx.beginPath(); ctx.arc(p.x - 46, p.y - 34, 66, 0, 7); ctx.fill();
-      ctx.fillStyle = "#6b5433";
-      ctx.beginPath(); ctx.moveTo(p.x - 58, p.y - 36); ctx.lineTo(p.x - 34, p.y - 36); ctx.lineTo(p.x - 40, p.y - 44); ctx.lineTo(p.x - 52, p.y - 44); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = "#ffedb0";
-      ctx.beginPath(); ctx.arc(p.x - 46, p.y - 30, 8, 0, 7); ctx.fill();
-    }
+    if (lv("heat")) this._drawHeat(ctx, P.light, lv("heat")); // Phase8: tierで保温ライト→保温器→温室の骨組み→温室
 
     if (lv("breedfac")) { // 繁殖施設(岩場と草の巣)
       const p = P.rocks;
