@@ -34,6 +34,22 @@ function mono8HalfW(y) {
   const t = (MONO8.base - y) / MONO8.h;
   return (MONO8.wBot + (MONO8.wTop - MONO8.wBot) * t) / 2;
 }
+// ID8 軍事痕跡群(監視柱/六角台座/巡回機残骸)。「与えられた借り物の軍事技術」=非トカゲ的な精度×放棄・埋没。
+// 位置は静的body(paintBackground=キャッシュ)と動く赤い光学(drawMonolith8=毎フレーム)で共有する。
+const GRAKIS8 = {
+  pylons: [{ x: 214, h: 104, s: 1 }, { x: 858, h: 86, s: 0.92 }, { x: 1176, h: 58, s: 0.68 }], // s=奥行き縮尺
+  hexes: [{ x: 1052, y: 0, r: 27 }, { x: 1104, y: 0, r: 15 }], // yはpaint時にHORIZON基準で確定
+  wreck: { x: 332 },
+};
+// 赤い光学(監視柱の単眼・六角の休眠コア・残骸の消えかけの眼)の位置。静的な暗点と脈動グローで共有
+function grakisEyes() {
+  const H8 = (typeof HORIZON === "number") ? HORIZON : 0;
+  const eyes = [];
+  for (const p of GRAKIS8.pylons) eyes.push({ x: p.x, y: H8 - p.h - 8 * p.s, r: 9 * p.s, a: 0.9 });
+  for (const hx of GRAKIS8.hexes) eyes.push({ x: hx.x, y: H8 + 66, r: 4.5, a: 0.4 });
+  eyes.push({ x: GRAKIS8.wreck.x + 11, y: H8 + 98, r: 3.5, a: 0.32 }); // 消えかけ
+  return eyes;
+}
 
 const Render = {
   ctx: null,
@@ -541,19 +557,45 @@ const Render = {
       }
     } else if (st.id === 8) { // 氷の前線: 雪原の上に「与えられた」軍事技術の痕跡(気配まで・説明しない)
       const BLACK = "#14161a", BLACK2 = "#1d2026", RED = "224,64,64";
-      // 監視柱(センサーパイロン): 完璧な直立・非トカゲ的な精度。赤い単眼
-      for (const [px, ph] of [[210, 96], [860, 78]]) {
-        ctx.fillStyle = BLACK;
-        ctx.fillRect(px - 3.5, HORIZON - ph, 7, ph);
+      // 監視柱(センサーパイロン): 非トカゲ的な完璧な直立・分節装甲・機械加工の精度。半分は雪と風化に呑まれ始めた
+      const pylon = (px, ph, s) => {
+        ctx.save();
+        if (s < 1) ctx.globalAlpha = 0.5 + s * 0.45; // 奥は大気で霞む(パララックス)
+        const w = 7 * s, hy = HORIZON - ph;
+        // 半埋没の基部プレート(暗い断面)+風下の吹き溜まり
         ctx.fillStyle = BLACK2;
-        ctx.fillRect(px - 6, HORIZON - ph - 8, 12, 9);
-        const eye = ctx.createRadialGradient(px, HORIZON - ph - 3.5, 1, px, HORIZON - ph - 3.5, 8);
-        eye.addColorStop(0, `rgba(${RED},.9)`); eye.addColorStop(1, `rgba(${RED},0)`);
-        ctx.fillStyle = eye;
-        ctx.fillRect(px - 8, HORIZON - ph - 12, 16, 16);
-        ctx.fillStyle = `rgb(${RED})`;
-        ctx.beginPath(); ctx.arc(px, HORIZON - ph - 3.5, 1.8, 0, 7); ctx.fill();
-      }
+        ctx.beginPath(); ctx.ellipse(px, HORIZON + 3, 15 * s, 5 * s, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = "rgba(221,232,242,.8)";
+        ctx.beginPath(); ctx.ellipse(px - 10 * s, HORIZON + 4, 9 * s, 3 * s, 0, 0, 7); ctx.fill();
+        // 分節装甲ポスト(3節・わずかに先細り・節ごとの目地)
+        const segs = 3, segH = ph / segs;
+        for (let i = 0; i < segs; i++) {
+          const y0 = HORIZON - (i + 1) * segH, ww = w * (1 - i * 0.07);
+          ctx.fillStyle = i % 2 ? BLACK : BLACK2;
+          ctx.fillRect(px - ww, y0, ww * 2, segH - 1.2 * s);
+          ctx.fillStyle = "rgba(0,0,0,.5)";
+          ctx.fillRect(px - ww, HORIZON - i * segH - 1.2 * s, ww * 2, 1.2 * s);
+        }
+        // 左稜=機械加工の冷光シーム(精度が高すぎる)
+        ctx.strokeStyle = `rgba(${COLD8},.4)`; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(px - w + 0.5, hy); ctx.lineTo(px - w + 0.5, HORIZON - 2); ctx.stroke();
+        // センサーヘッド(角ばった装甲筐体+くぼんだレンズソケット+アンテナ)
+        ctx.fillStyle = BLACK2;
+        ctx.beginPath();
+        ctx.moveTo(px - 8 * s, hy); ctx.lineTo(px + 8 * s, hy);
+        ctx.lineTo(px + 6.5 * s, hy - 11 * s); ctx.lineTo(px - 6.5 * s, hy - 11 * s); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = `rgba(${COLD8},.3)`; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(px - 6.5 * s, hy - 11 * s); ctx.lineTo(px + 6.5 * s, hy - 11 * s); ctx.stroke();
+        ctx.fillStyle = "#0c0e12"; // レンズソケット(暗)
+        ctx.beginPath(); ctx.arc(px, hy - 8 * s, 3.2 * s, 0, 7); ctx.fill();
+        ctx.fillStyle = BLACK; // アンテナ
+        ctx.fillRect(px + 5 * s, hy - 18 * s, 1.4 * s, 8 * s);
+        // 静的な暗い単眼(呼吸する脈動グローはdrawMonolith8が重ねる)
+        ctx.fillStyle = `rgba(${RED},.5)`;
+        ctx.beginPath(); ctx.arc(px, hy - 8 * s, 1.5 * s, 0, 7); ctx.fill();
+        ctx.restore();
+      };
+      for (const p of GRAKIS8.pylons) pylon(p.x, p.h, p.s);
       // 浮遊する黒いモノリス(接地しない=出所不明のオーバーテクノロジー・中景の異物)。
       // トカゲ文明の他の建造物(半埋没・風化した監視柱/巡回機)と精度が違いすぎる不気味さを担保する。
       {
@@ -615,37 +657,47 @@ const Render = {
           ctx.fillRect(mx + seg - gw / 2, y, gw, 1.4);
         }
       }
-      // 六角の黒い台座が雪に埋まる(幾何学が精確すぎる)
+      // 六角の黒い台座が雪に埋まる(精確すぎる幾何・グリッド状に配置=施工計画の痕跡)。休眠エミッタ核・ボルト・薄いグリフ
+      const hexPad = (hx, r) => {
+        const hy = HORIZON + 66;
+        const vert = (rr) => { const pts = []; for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + 0.26; pts.push([hx + Math.cos(a) * rr, hy + Math.sin(a) * rr * 0.4]); } return pts; };
+        const outer = vert(r);
+        ctx.fillStyle = BLACK2; ctx.beginPath();
+        outer.forEach((pt, i) => i ? ctx.lineTo(pt[0], pt[1]) : ctx.moveTo(pt[0], pt[1])); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,.22)"; ctx.lineWidth = 1; ctx.stroke();
+        ctx.fillStyle = BLACK; ctx.beginPath(); // くぼんだ内パネル(同心六角)
+        vert(r * 0.6).forEach((pt, i) => i ? ctx.lineTo(pt[0], pt[1]) : ctx.moveTo(pt[0], pt[1])); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "rgba(180,196,210,.5)"; // 頂点のボルト
+        for (const pt of outer) { ctx.beginPath(); ctx.arc(pt[0], pt[1], 1.1, 0, 7); ctx.fill(); }
+        ctx.strokeStyle = `rgba(${COLD8},.18)`; ctx.lineWidth = 1; // 薄いグリフ刻印(意味は描かない)
+        ctx.beginPath(); ctx.moveTo(hx - r * 0.3, hy - r * 0.04); ctx.lineTo(hx + r * 0.3, hy - r * 0.04);
+        ctx.moveTo(hx, hy - r * 0.12); ctx.lineTo(hx, hy + r * 0.08); ctx.stroke();
+        ctx.fillStyle = `rgba(${RED},.3)`; // 休眠コア(静的暗点・脈動はdrawMonolith8)
+        ctx.beginPath(); ctx.arc(hx, hy, 2, 0, 7); ctx.fill();
+        ctx.fillStyle = "rgba(221,232,242,.85)"; // 縁の吹き溜まり
+        ctx.beginPath(); ctx.ellipse(hx - r * 0.6, hy + 4, r * 0.5, 4, 0, 0, 7); ctx.fill();
+      };
+      for (const hx of GRAKIS8.hexes) hexPad(hx.x, hx.r);
+      // 半分雪に埋もれた巡回機の残骸: 割れたセンサードーム・折れた脚・剥き出し配線・消えかけの眼。雪上に幾何学的な引き摺り痕
       {
-        const hx = 1050, hy = HORIZON + 68, r = 26;
-        ctx.fillStyle = BLACK2;
-        ctx.beginPath();
-        for (let k = 0; k < 6; k++) {
-          const a = k / 6 * Math.PI * 2 + 0.26;
-          const x = hx + Math.cos(a) * r, y = hy + Math.sin(a) * r * 0.38;
-          k === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-        }
-        ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = "rgba(255,255,255,.25)"; ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.fillStyle = `rgba(${RED},.45)`;
-        ctx.beginPath(); ctx.arc(hx, hy, 2.2, 0, 7); ctx.fill();
-        ctx.fillStyle = "rgba(221,232,242,.85)"; // 縁に吹き溜まった雪
-        ctx.beginPath(); ctx.ellipse(hx - r * 0.7, hy + 4, 12, 4, 0, 0, 7); ctx.fill();
-      }
-      // 半分雪に埋もれた巡回機の残骸(単眼は消えかけ)
-      {
-        const wx = 330, wy = HORIZON + 116;
-        ctx.save(); ctx.translate(wx, wy); ctx.rotate(-0.18);
-        ctx.fillStyle = BLACK;
-        ctx.fillRect(-20, -12, 40, 14);
-        ctx.fillStyle = BLACK2;
-        ctx.fillRect(12, -20, 9, 10);
-        ctx.fillStyle = `rgba(${RED},.35)`;
-        ctx.beginPath(); ctx.arc(16.5, -15, 1.6, 0, 7); ctx.fill();
+        const wx = GRAKIS8.wreck.x, wy = HORIZON + 108;
+        ctx.strokeStyle = "rgba(150,168,182,.18)"; ctx.lineWidth = 2; // 巡回痕(残骸へ続く2条=かつて動いていた)
+        ctx.beginPath(); ctx.moveTo(wx + 122, wy + 20); ctx.lineTo(wx + 14, wy + 4);
+        ctx.moveTo(wx + 124, wy + 26); ctx.lineTo(wx + 16, wy + 9); ctx.stroke();
+        ctx.save(); ctx.translate(wx, wy); ctx.rotate(-0.16);
+        ctx.fillStyle = BLACK; ctx.beginPath(); // 胴体(角ばった装甲・傾いて突き刺さる)
+        ctx.moveTo(-22, 2); ctx.lineTo(20, -2); ctx.lineTo(18, -13); ctx.lineTo(-18, -11); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = BLACK2; ctx.beginPath(); ctx.arc(6, -13, 7, Math.PI, 0); ctx.fill(); // 割れたセンサードーム
+        ctx.strokeStyle = `rgba(${COLD8},.25)`; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(2, -18); ctx.lineTo(6, -13); ctx.lineTo(4, -20); ctx.stroke(); // 亀裂
+        ctx.strokeStyle = BLACK; ctx.lineWidth = 3; // 折れて突き出す脚
+        ctx.beginPath(); ctx.moveTo(-16, 0); ctx.lineTo(-30, 10); ctx.lineTo(-26, 20); ctx.stroke();
+        ctx.strokeStyle = "rgba(120,90,60,.6)"; ctx.lineWidth = 1.2; // 剥き出しの配線
+        ctx.beginPath(); ctx.moveTo(18, -6); ctx.quadraticCurveTo(28, -2, 24, 6); ctx.stroke();
+        ctx.fillStyle = `rgba(${RED},.3)`; ctx.beginPath(); ctx.arc(12, -8, 1.5, 0, 7); ctx.fill(); // 消えかけの眼
         ctx.restore();
         ctx.fillStyle = "rgba(221,232,242,.95)"; // 残骸に積もる雪
-        ctx.beginPath(); ctx.ellipse(wx - 6, wy - 12, 16, 5, -0.18, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(wx - 6, wy - 12, 17, 5, -0.16, 0, 7); ctx.fill();
       }
       // ---- 以下は元の雪原(オーロラ・雪・吹き溜まり) ----
       for (let i = 0; i < 3; i++) { // オーロラ
@@ -1885,6 +1937,17 @@ const Render = {
       const gw = Math.max(3, mono8HalfW(y) * 0.7);
       ctx.fillStyle = `rgba(${COLD8},${0.4 * near})`;
       ctx.fillRect(mx + seg - gw / 2, y - 0.3, gw, 2);
+    }
+
+    // 軍事痕跡の赤い光学が静かに脈動(監視柱の単眼・六角の休眠コア・残骸の消えかけの眼=まだ全て見ている気配)。
+    // 静的な暗点はpaintBackground(キャッシュ)に焼き済み。ここは呼吸するグローだけを重ねる(reduced-motionは上でreturn)
+    const pr = 0.5 + Math.sin(this.time * 1.6) * 0.42;
+    for (const e of grakisEyes()) {
+      const gg = ctx.createRadialGradient(e.x, e.y, 0.4, e.x, e.y, e.r * 1.8);
+      gg.addColorStop(0, `rgba(224,64,64,${e.a * pr})`); gg.addColorStop(1, "rgba(224,64,64,0)");
+      ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 1.8, 0, 7); ctx.fill();
+      ctx.fillStyle = `rgba(255,128,128,${e.a * (0.45 + pr * 0.5)})`;
+      ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 0.26, 0, 7); ctx.fill();
     }
   },
 
