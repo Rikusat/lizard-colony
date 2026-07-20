@@ -847,7 +847,34 @@ const Render = {
         ctx.fillStyle = `rgba(${CHER},.30)`;
         ctx.beginPath(); ctx.ellipse(x, y, 14, 3.5, 0, 0, 7); ctx.fill();
       }
-    } else if (st.id === 10) { // 古代遺跡: 石柱・遺物・苔
+    } else if (st.id === 10) { // 古代遺跡: 文明の末路・原点回帰(発展を極めて、静寂へ還った地)。閑散=あえて動かさない
+      // 黄昏の帯(地平に沈む金・長い静けさ)
+      {
+        const dusk = ctx.createLinearGradient(0, HORIZON - 60, 0, HORIZON);
+        dusk.addColorStop(0, "rgba(201,162,39,0)"); dusk.addColorStop(1, "rgba(201,162,39,.12)");
+        ctx.fillStyle = dusk; ctx.fillRect(0, HORIZON - 60, W, 60);
+      }
+      // 崩れた渾天儀(天文台の遺構=この文明が星を極めた証・羅針盤クランクと同じ天測の科学。今は静止し苔むす)
+      {
+        const ox = 648, oy = HORIZON - 4;
+        ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.beginPath(); ctx.ellipse(ox, oy + 3, 54, 9, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = "#8f8168"; ctx.fillRect(ox - 48, oy - 14, 96, 14); // 段状の石基壇
+        ctx.fillStyle = "#a2937a"; ctx.fillRect(ox - 38, oy - 25, 76, 12);
+        ctx.fillStyle = "#b3a58c"; ctx.fillRect(ox - 28, oy - 34, 56, 10);
+        const cy = oy - 74;
+        ctx.strokeStyle = "#9a8c74"; ctx.lineWidth = 6; ctx.lineCap = "round"; // 外環(傾き・一部欠け=時が壊した)
+        ctx.beginPath(); ctx.ellipse(ox, cy, 40, 38, 0.16, -Math.PI * 0.12, Math.PI * 1.62); ctx.stroke();
+        ctx.strokeStyle = "#b3a58c"; ctx.lineWidth = 3; // 内環(交差=精緻な天球の骨組み)
+        ctx.beginPath(); ctx.ellipse(ox, cy, 40, 15, 0.16, 0, 7); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(ox, cy, 15, 38, 0.16, 0, 7); ctx.stroke();
+        ctx.fillStyle = "#c9a86a"; ctx.beginPath(); ctx.arc(ox, cy, 6, 0, 7); ctx.fill(); // 中心の天球儀(金)
+        ctx.fillStyle = "rgba(255,240,180,.6)"; ctx.beginPath(); ctx.arc(ox - 2, cy - 2, 2, 0, 7); ctx.fill();
+        ctx.fillStyle = "rgba(90,130,70,.5)"; // 苔
+        ctx.beginPath(); ctx.ellipse(ox - 30, oy - 8, 10, 4, 0.3, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(ox + 22, cy + 20, 6, 8, 0.2, 0, 7); ctx.fill();
+        ctx.fillStyle = "#9a8c74"; // 折れて倒れた支柱の破片
+        ctx.save(); ctx.translate(ox + 60, oy - 6); ctx.rotate(0.5); ctx.fillRect(-4, -30, 8, 30); ctx.restore();
+      }
       for (let i = 0; i < 7; i++) { // 崩れた石柱
         const x = 60 + rand() * (W - 120), y = groundY();
         const h2 = 40 + rand() * 70, w2 = 16 + rand() * 8;
@@ -864,12 +891,40 @@ const Render = {
         ctx.fillStyle = "rgba(90,130,70,.5)"; // 苔
         ctx.beginPath(); ctx.ellipse(x - w2 / 4, y - h2 + 6, w2 / 3, 5, 0.4, 0, 7); ctx.fill();
       }
+      // 倒れた巨像(かつて王とされたトカゲの石像・横倒し半埋没=王の末路。目の窪みは空、王冠は折れて半分だけ金)
+      {
+        const sx = 268, sy = HORIZON + 56;
+        ctx.save(); ctx.translate(sx, sy); ctx.rotate(0.07);
+        ctx.fillStyle = "rgba(0,0,0,.2)"; ctx.beginPath(); ctx.ellipse(4, 10, 66, 10, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = "#9a8c74"; // 横たわる胴(石)
+        ctx.beginPath(); ctx.moveTo(-60, 8); ctx.lineTo(28, 5); ctx.quadraticCurveTo(52, 2, 58, -8);
+        ctx.lineTo(46, -16); ctx.quadraticCurveTo(18, -12, -60, -4); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#a2937a"; ctx.beginPath(); ctx.ellipse(52, -10, 15, 11, 0, 0, 7); ctx.fill(); // 頭
+        ctx.fillStyle = "rgba(28,24,18,.65)"; ctx.beginPath(); ctx.arc(56, -12, 2.3, 0, 7); ctx.fill(); // 空の眼窩
+        ctx.fillStyle = "#c9a86a"; // 折れた金の王冠(半分だけ残る)
+        ctx.beginPath(); ctx.moveTo(44, -20); ctx.lineTo(48, -28); ctx.lineTo(52, -20); ctx.lineTo(56, -27); ctx.lineTo(59, -19); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,.25)"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-8, -4); ctx.lineTo(-2, 6); ctx.stroke(); // ひび
+        ctx.fillStyle = "rgba(90,130,70,.5)"; ctx.beginPath(); ctx.ellipse(-28, 0, 11, 5, 0.2, 0, 7); ctx.fill(); // 苔
+        ctx.restore();
+        ctx.fillStyle = "rgba(180,165,130,.45)"; ctx.beginPath(); ctx.ellipse(sx - 36, sy + 8, 38, 7, 0, 0, 7); ctx.fill(); // 吹き溜まった砂
+      }
       for (let i = 0; i < 8; i++) { // 金の遺物のきらめき
         const x = rand() * W, y = groundY();
         ctx.fillStyle = "#d9b45a";
         ctx.beginPath(); ctx.arc(x, y, 3 + rand() * 3, 0, 7); ctx.fill();
         ctx.fillStyle = "rgba(255,240,180,.8)";
         ctx.beginPath(); ctx.arc(x - 1, y - 1, 1.2, 0, 7); ctx.fill();
+      }
+      // 文明の全所業を象る金の遺物(辿ってきた全ての惑星の記憶を静かに納める=原点回帰の暗示・説明しない)
+      {
+        const relic = (rx, ry, kind) => {
+          ctx.fillStyle = "#c9a86a";
+          if (kind === 0) { ctx.fillRect(rx - 2, ry - 13, 4, 13); ctx.fillRect(rx - 1, ry - 17, 3, 4); }         // モノリス片
+          else if (kind === 1) { ctx.fillRect(rx - 6, ry - 5, 12, 5); ctx.beginPath(); ctx.arc(rx, ry - 5, 6, Math.PI, 0); ctx.fill(); } // 格納容器ドーム
+          else { ctx.beginPath(); ctx.arc(rx, ry - 6, 6, 0, 7); ctx.fill(); ctx.fillStyle = "#8f8168"; for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; ctx.fillRect(rx + Math.cos(a) * 6 - 0.6, ry - 6 + Math.sin(a) * 6 - 0.6, 1.2, 1.2); } } // 羅針盤/歯車
+          ctx.fillStyle = "rgba(255,240,180,.5)"; ctx.beginPath(); ctx.arc(rx - 1, ry - 8, 1, 0, 7); ctx.fill();
+        };
+        relic(150, HORIZON + 150, 0); relic(556, HORIZON + 210, 1); relic(910, HORIZON + 250, 2);
       }
     }
   },
