@@ -4,7 +4,89 @@
 // 見えている落下がそのまま真実(§2 fable1: 演出と結果の乖離が原理的に起きない)。
 // =============================================================
 
+// ── 盤の意匠(boardSkin・§④): 描画のみ=当たり判定/確率は不変。惑星別へ差し替え可能な構造。
+//   釘=巣の藁(+芯の小点で視認性) / レール=祖の蛇の背骨 / 棚=祭壇 / 中央スリット=卵が孵る割れ目 /
+//   受け皿=巣穴 / 背景=紋章(既定は汎用「卵と巣」・スリット落下時のみ0.6s淡く発光→即戻る)。
+//   すべて低コントラストの温色=球が主役(役者>舞台)。reduced-motionで発光・藁のゆらぎは静的化。
+const ROUL_BOARD_SKINS = {
+  default: {
+    id: "default",
+    straw: "198,158,96", core: "232,212,162", spine: "192,150,100", altar: "214,176,112", emblem: "212,180,120",
+    // 背景の紋章(汎用=卵と巣)。普段は極薄の線画=気配、スリット落下時のみ光のハロー(発光)→即戻る。
+    // 将来は惑星固有種シルエットへ差替(この関数だけ置換すればよい=boardSkin分離)。
+    emblem_draw(ctx, W, H, glow, calm) {
+      const ex = W * 0.5, ey = H * 0.42, s = W * 0.14;      // 盤中ほど(釘の海の奥)に静かに
+      const g = calm ? 0 : glow;
+      // 落下時の光のハロー(発光=明るい温色が滲む・ソリッド塗りにしない=暗いブロブ回避)
+      if (g > 0.01) {
+        ctx.save();
+        const hg = ctx.createRadialGradient(ex, ey, 1, ex, ey, s * 1.5);
+        hg.addColorStop(0, `rgba(244,216,158,${g * 0.22})`); hg.addColorStop(1, "rgba(244,216,158,0)");
+        ctx.fillStyle = hg; ctx.fillRect(ex - s * 1.5, ey - s * 1.6, s * 3, s * 3.2);
+        ctx.restore();
+      }
+      // 線画の気配(巣の藁の弧+卵の輪郭)。普段はごく薄く、発光時に少しだけ明るく
+      const line = 0.055 + g * 0.12;
+      ctx.strokeStyle = `rgba(${this.emblem},${line})`; ctx.lineWidth = Math.max(0.6, W * 0.005); ctx.lineCap = "round";
+      for (let k = -2; k <= 2; k++) {
+        ctx.beginPath();
+        ctx.arc(ex, ey + s * 0.5, s * (0.9 + Math.abs(k) * 0.06), Math.PI * (0.12 + k * 0.02), Math.PI * (0.88 - k * 0.02));
+        ctx.stroke();
+      }
+      ctx.beginPath(); ctx.ellipse(ex, ey + s * 0.05, s * 0.34, s * 0.46, 0, 0, 7); ctx.stroke(); // 卵=輪郭のみ(気配)
+    },
+    // 釘=巣の藁の束(短い温色ストローク)+芯の小点(視認性維持=球の跳ね返り先が読める)
+    nail_draw(ctx, n, scale) {
+      const L = n.r * 2.4, lw = Math.max(0.5, 0.7 / scale);
+      ctx.strokeStyle = `rgba(${this.straw},.38)`; ctx.lineWidth = lw; ctx.lineCap = "round";
+      for (const dx of [-0.7, 0, 0.7]) {
+        ctx.beginPath(); ctx.moveTo(n.x + dx * n.r, n.y + n.r * 0.6);
+        ctx.lineTo(n.x + dx * n.r * 1.5, n.y - L); ctx.stroke();
+      }
+      ctx.fillStyle = `rgba(${this.core},.7)`;               // 芯の小点(明るめ=当たり判定の実体が一目)
+      ctx.beginPath(); ctx.arc(n.x, n.y, Math.max(0.7, n.r * 0.62), 0, 7); ctx.fill();
+    },
+    // レール=祖の蛇の背骨(2軌条に沿う椎骨の刻み)。温色・低コントラスト
+    rail_draw(ctx, cx, chTop, chBot, railEndY, scale) {
+      ctx.strokeStyle = `rgba(${this.spine},.30)`; ctx.lineWidth = Math.max(0.5, 0.7 / scale); ctx.lineCap = "round";
+      const seg = 7;
+      for (const s of [-1, 1]) {
+        for (let i = 1; i < seg; i++) {
+          const t = i / seg, x = cx + s * (chTop + (chBot - chTop) * t), y = railEndY * t;
+          const nx = -s * 2.0, ny = 0.6; // 椎骨=軌条に短い横棒
+          ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + nx, y + ny); ctx.stroke();
+        }
+      }
+    },
+    // 棚=祭壇(縁の温色装飾)+祭壇の灯り(球が乗ると縁が淡く灯る・高揚を邪魔しない程度)
+    shelf_draw(ctx, cx, stageY, sHalf, slotH, lit, scale, calm) {
+      const a = 0.22 + (calm ? 0 : lit * 0.30);
+      ctx.strokeStyle = `rgba(${this.altar},${a})`; ctx.lineWidth = Math.max(0.7, 1.0 / scale); ctx.lineCap = "round";
+      for (const s of [-1, 1]) { // 祭壇の段(棚縁の下に一段の飾り)
+        ctx.beginPath();
+        ctx.moveTo(cx + s * slotH, stageY + 4.5);
+        ctx.lineTo(cx + s * sHalf, stageY + 3.5); ctx.stroke();
+      }
+      if (lit > 0.01 && !calm) { // 灯り(乗った棚の面が淡く温まる)
+        const gy = stageY + 1;
+        const gg = ctx.createRadialGradient(cx, gy, 1, cx, gy, sHalf * 1.3);
+        gg.addColorStop(0, `rgba(${this.altar},${lit * 0.22})`); gg.addColorStop(1, `rgba(${this.altar},0)`);
+        ctx.fillStyle = gg; ctx.fillRect(cx - sHalf * 1.3, gy - 4, sHalf * 2.6, 8);
+      }
+    },
+    // 受け皿=巣穴(器の縁に温色の土の口)
+    cup_draw(ctx, ccx, halfW, landY, cupDepth, scale) {
+      ctx.strokeStyle = `rgba(${this.straw},.30)`; ctx.lineWidth = Math.max(0.6, 0.9 / scale);
+      ctx.beginPath();
+      ctx.moveTo(ccx - halfW * 1.05, landY - 1.5);
+      ctx.quadraticCurveTo(ccx, landY + cupDepth * 0.4, ccx + halfW * 1.05, landY - 1.5);
+      ctx.stroke();
+    },
+  },
+};
+
 Object.assign(UI, {
+  _roulSkin() { return ROUL_BOARD_SKINS[this._roulSkinId] || ROUL_BOARD_SKINS.default; },
   initRoulette() {
     const cv = document.getElementById("roulette-canvas");
     if (!cv) return;
@@ -57,6 +139,11 @@ Object.assign(UI, {
     ctx.lineWidth = 1.4 / scale;
     ctx.strokeRect(0.7, 0.7, W - 1.4, H - 1.4);
 
+    // 意匠: 背景の紋章(§④・卵と巣)。普段は極薄、スリット落下(BallWin/Rainbow)時のみ0.6s淡く発光→即戻る
+    const skin = this._roulSkin();
+    this._roulEmblemGlow = Math.max(0, (this._roulEmblemGlow || 0) - 1 / 60 / 0.6);
+    skin.emblem_draw(ctx, W, H, this._roulEmblemGlow, calm);
+
     // レール(発射→落下導入・roulette_rules.md §1): 球が沿って走る溝=ファネル状シュートの2軌条
     const railEndY = CFG.roulRailEndYf * H;
     const chTop = CFG.roulChuteTopHalff * W, chBot = CFG.roulChuteBotHalff * W;
@@ -73,14 +160,15 @@ Object.assign(UI, {
     // 解放点(レール終端)の淡い印
     ctx.strokeStyle = "rgba(170,205,175,.22)"; ctx.lineWidth = 0.8 / scale;
     ctx.beginPath(); ctx.moveTo(cx - chBot, railEndY); ctx.lineTo(cx + chBot, railEndY); ctx.stroke();
+    // 意匠: レール=祖の蛇の背骨(軌条に沿う椎骨の刻み)
+    skin.rail_draw(ctx, cx, chTop, chBot, railEndY, scale);
     // 発射口
     ctx.fillStyle = "rgba(180,200,170,.55)";
     ctx.beginPath(); ctx.arc(CFG.roulLaunchXf * W, 3, 3.2, 0, 7); ctx.fill();
 
-    // 釘(控えめ・低コントラスト=球が主役・#設計2)
-    ctx.fillStyle = "rgba(150,170,150,.42)";
+    // 釘=巣の藁(藁束+芯の小点で視認性維持・§④)。低コントラスト温色=球が主役
     for (const n of Roulette.nails) {
-      ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, 7); ctx.fill();
+      skin.nail_draw(ctx, n, scale);
     }
 
     // 着地=受け皿(roulette_rules.md §2): 入賞球が「コトンと収まる」器。ハズレは器が無く流れて消える
@@ -122,6 +210,12 @@ Object.assign(UI, {
         ctx.quadraticCurveTo(cx + s * sHalf * 0.6, stageY - 1, cx + s * sHalf, stageY - 2);
         ctx.stroke();
       }
+      // 意匠: 棚=祭壇。球が乗ると縁が淡く灯る(§④・「乗った!」の高揚は邪魔しない程度)
+      let shelfLit = 0;
+      for (const b of Roulette.balls) {
+        if (Math.abs(b.x - cx) <= sHalf && b.y > stageY - b.r - 2 && b.y < stageY + 4 && Math.abs(b.vy || 0) < 14) { shelfLit = 1; break; }
+      }
+      skin.shelf_draw(ctx, cx, stageY, sHalf, slotH, shelfLit, scale, calm);
       // スリット縁の誘目光(中央=当たりへの落下口・modeで色。虹は七色脈動)
       const sg = rareC ? `rgba(${accent},${0.5 + pulse * 0.3})` : `hsla(${tp},95%,64%,${0.5 + pulse * 0.35})`;
       ctx.strokeStyle = sg; ctx.lineWidth = 1.2 / scale;
@@ -159,6 +253,8 @@ Object.assign(UI, {
     if (prizeOpen) {
       drawCup(cx - pzMid, pzHalf, "rgba(210,170,90,.5)", "rgba(235,195,110,.8)");
       drawCup(cx + pzMid, pzHalf, "rgba(210,170,90,.5)", "rgba(235,195,110,.8)");
+      skin.cup_draw(ctx, cx - pzMid, pzHalf, landY, cupDepth, scale); // 意匠: 受け皿=巣穴(土の口)
+      skin.cup_draw(ctx, cx + pzMid, pzHalf, landY, cupDepth, scale);
     } else {
       drawLid(cx - pzMid); drawLid(cx + pzMid);
     }
@@ -237,6 +333,7 @@ Object.assign(UI, {
 
     // イベント購読(reduced-motionでは装飾を出さない・結果は保証)
     for (const ev of Roulette.drainEvents()) {
+      if (ev.type === "BallRainbow" || ev.type === "BallWin") this._roulEmblemGlow = 1; // スリット落下=紋章がひと呼吸灯る(§④)
       if (calm) continue;
       if (ev.type === "BallRainbow") { (this._roulFx = this._roulFx || []).push({ x: ev.x, y: landY, t: 1.1, ttl: 1.1, kind: "rainbow" }); }
       else if (ev.type === "BallWin") { (this._roulFx = this._roulFx || []).push({ x: ev.x, y: landY, t: 0.5, ttl: 0.5, kind: "win" }); }
