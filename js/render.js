@@ -50,6 +50,15 @@ function grakisEyes() {
   eyes.push({ x: GRAKIS8.wreck.x + 11, y: H8 + 98, r: 3.5, a: 0.32 }); // 消えかけ
   return eyes;
 }
+// ID9 廃原子炉: チェレンコフ冷光の脈動点(静的ベースはpaintBackground・呼吸はdrawReactor9)。死にかけの炉は不規則明滅
+const REACTOR9 = {
+  vents: [
+    { x: 400, y: HORIZON - 12, r: 22, a: 0.5 },   // 格納容器の開いた扉
+    { x: 1145, y: HORIZON - 14, r: 11, a: 0.5 },  // モジュール炉0
+    { x: 1187, y: HORIZON - 14, r: 11, a: 0.14 }, // モジュール炉1(死にかけ)
+    { x: 1229, y: HORIZON - 14, r: 11, a: 0.5 },  // モジュール炉2
+  ],
+};
 
 const Render = {
   ctx: null,
@@ -76,6 +85,7 @@ const Render = {
     Game.refreshCrowdScale();
     this.drawStage(ctx);
     if (Game.currentStage().id === 8) this.drawMonolith8(ctx); // 氷の前線: モノリスの冷光(背景層)
+    if (Game.currentStage().id === 9) this.drawReactor9(ctx); // 廃原子炉: チェレンコフ冷光の脈動(背景層)
     this.drawNest(ctx);
     this.drawFacilities(ctx);
     this.drawSmallFacilities(ctx);
@@ -726,6 +736,32 @@ const Render = {
     } else if (st.id === 9) { // 廃原子炉: 形の異なる原子炉モデル群(文明がもがいた試行錯誤の痕跡)
       const CHER = "111,184,160"; // チェレンコフ光
       const body = "#454e56", body2 = "#3d454d", edge = "rgba(255,255,255,.10)", rust = "rgba(150,90,55,.35)";
+      // 遠景: 地平線まで連なる原子炉の影(形が全部違う=あらゆるモデルを試した=もがいた量)。霞ませて奥行き
+      {
+        let fx = 30;
+        while (fx < W - 20) {
+          const t = (fx * 0.013 + 1) % 4 | 0, fh = 26 + ((fx * 7) % 22);
+          ctx.fillStyle = "rgba(58,66,74,.5)";
+          if (t === 0) { ctx.beginPath(); ctx.moveTo(fx, HORIZON); ctx.quadraticCurveTo(fx + 5, HORIZON - fh * 0.6, fx + 3, HORIZON - fh); ctx.lineTo(fx + 15, HORIZON - fh); ctx.quadraticCurveTo(fx + 13, HORIZON - fh * 0.6, fx + 18, HORIZON); ctx.closePath(); ctx.fill(); } // 冷却塔
+          else if (t === 1) { ctx.fillRect(fx, HORIZON - fh, 20, fh); ctx.beginPath(); ctx.arc(fx + 10, HORIZON - fh, 10, Math.PI, 0); ctx.fill(); } // ドーム
+          else if (t === 2) { ctx.fillRect(fx, HORIZON - fh * 0.8, 24, fh * 0.8); ctx.fillRect(fx + 4, HORIZON - fh, 5, fh * 0.3); } // 角型+煙突
+          else { ctx.beginPath(); ctx.arc(fx + 11, HORIZON - fh * 0.7, 11, 0, 7); ctx.fill(); ctx.fillRect(fx + 8, HORIZON - fh * 0.4, 6, fh * 0.4); } // 球形
+          if ((fx * 13) % 5 === 0) { ctx.fillStyle = `rgba(${CHER},.14)`; ctx.fillRect(fx + 7, HORIZON - fh * 0.5, 3, 3); } // ごく淡い冷却光
+          fx += 22 + ((fx * 3) % 16);
+        }
+        ctx.fillStyle = "rgba(30,36,42,.35)"; ctx.fillRect(0, HORIZON - 2, W, 4); // 遠景を沈める地平の帯
+      }
+      // 放射能トレフォイル(退色)を痕跡に忍ばせる(意味は説明しない・古い警告)
+      const trefoil = (tx, ty, s, alpha) => {
+        ctx.fillStyle = `rgba(210,180,60,${alpha})`;
+        ctx.beginPath(); ctx.arc(tx, ty, s * 0.28, 0, 7); ctx.fill();
+        for (let k = 0; k < 3; k++) {
+          const a = k / 3 * Math.PI * 2 - Math.PI / 2;
+          ctx.beginPath(); ctx.moveTo(tx, ty);
+          ctx.arc(tx, ty, s, a - 0.52, a + 0.52); ctx.closePath(); ctx.fill();
+        }
+        ctx.fillStyle = "rgba(20,22,26,.5)"; ctx.beginPath(); ctx.arc(tx, ty, s * 0.16, 0, 7); ctx.fill();
+      };
       // a) 冷却塔(双曲面・ひび割れ) — 左
       {
         const x = 120, y = HORIZON, h2 = 120, wTop = 34, wMid = 22, wBot = 40;
@@ -741,6 +777,7 @@ const Render = {
         ctx.beginPath(); ctx.moveTo(x - 8, y - h2 + 4); ctx.lineTo(x - 12, y - 30); ctx.stroke();
         ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.moveTo(x + 14, y - 20); ctx.lineTo(x + 6, y - 58); ctx.lineTo(x + 16, y - 74); ctx.stroke(); // ひび
+        trefoil(x, y - 46, 8, 0.32); // 退色した放射能警告(意味は説明しない)
       }
       // b) 格納容器ドーム(円筒+ドーム・扉から冷却光が漏れる) — 中央左
       {
@@ -764,6 +801,11 @@ const Render = {
           ctx.fillStyle = k % 2 ? "rgba(201,162,39,.5)" : "rgba(30,30,30,.5)";
           ctx.fillRect(-52 + k * 21, -12, 18, 12);
         }
+        // 応急修理: 規格違いの継ぎ板+黄テープ(ちゃちさ=クランクの布石。技量があるのに雑に直した痕跡)
+        ctx.fillStyle = "#5c6570"; ctx.fillRect(-20, -50, 26, 20); // 色違いの継ぎ板
+        ctx.strokeStyle = "rgba(30,34,40,.6)"; ctx.lineWidth = 1; ctx.strokeRect(-20, -50, 26, 20);
+        ctx.fillStyle = "rgba(214,184,66,.75)"; // 黄テープ(斜めに雑)
+        ctx.save(); ctx.translate(-7, -40); ctx.rotate(0.32); ctx.fillRect(-16, -3, 32, 6); ctx.restore();
         ctx.fillStyle = `rgba(${CHER},.5)`;
         ctx.fillRect(-30, -46, 7, 5); ctx.fillRect(6, -40, 7, 5); // 窓の冷却光
         ctx.restore();
@@ -1948,6 +1990,20 @@ const Render = {
       ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 1.8, 0, 7); ctx.fill();
       ctx.fillStyle = `rgba(255,128,128,${e.a * (0.45 + pr * 0.5)})`;
       ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 0.26, 0, 7); ctx.fill();
+    }
+  },
+
+  // ---- ID9廃原子炉: チェレンコフ冷光のゆっくりした呼吸+死にかけの炉の不規則明滅(待機微動) ----
+  // 静的な炉体・扉・排気窓はpaintBackground(キャッシュ)。ここは冷光の脈動だけを毎フレーム重ねる。
+  drawReactor9(ctx) {
+    if (window.Motion && Motion.reduced) return;
+    const pr = 0.6 + Math.sin(this.time * 1.1) * 0.3; // 冷却光のゆっくりした呼吸
+    for (const v of REACTOR9.vents) {
+      const flick = v.a < 0.2 ? (0.35 + 0.65 * Math.abs(Math.sin(this.time * 5.3 + v.x))) : 1; // 死にかけは不規則明滅
+      const al = v.a * pr * flick;
+      const gg = ctx.createRadialGradient(v.x, v.y, 1, v.x, v.y, v.r);
+      gg.addColorStop(0, `rgba(111,184,160,${al})`); gg.addColorStop(1, "rgba(111,184,160,0)");
+      ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(v.x, v.y, v.r, 0, 7); ctx.fill();
     }
   },
 
