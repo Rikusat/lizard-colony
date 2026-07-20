@@ -58,13 +58,14 @@ function breedfacTierInfo(lv) {
   const w = [0, 100, 132, 160][tier] + within * [0, 12, 12, 14][tier];
   return { tier, w, hitR: Math.max(56, w * 0.5) };
 }
-// 展望台(展望岩→標本棚→研究所・上限10/3tier。descの「展望岩・標本棚・研究所を統合」に対応)
+// 展望台(§8.9 観測施設群・上限10/3tier): 1観測台 / 2観測所 / 3観測施設群(大望遠鏡+アンテナ列+観測塔+足場+複数バルコニー)。
+// 群れが集まって空を見上げられる規模。居場所=観測デッキ(§8.5)。
 function observatoryTierInfo(lv) {
   const { tier, within } = facTier(lv, [3, 7, 10]);
   if (!tier) return { tier: 0, w: 0, h: 0, hitR: 0 };
-  const w = [0, 60, 98, 128][tier] + within * [0, 8, 10, 10][tier];
-  const h = [0, 56, 92, 122][tier] + within * [0, 6, 8, 8][tier];
-  return { tier, w, h, hitR: Math.max(54, w * 0.55) };
+  const w = [0, 96, 156, 236][tier] + within * [0, 12, 16, 20][tier];
+  const h = [0, 66, 108, 150][tier] + within * [0, 8, 10, 12][tier];
+  return { tier, w, h, hitR: Math.max(66, w * 0.5) };
 }
 // すみか(巣穴→掘り込みの住居→定住の巣/ワレン・住居Lv上限8/3tier)。常に存在(Lv1〜)。
 function burrowTierInfo(lv) {
@@ -1374,71 +1375,164 @@ const Render = {
     }
   },
 
-  // Phase8: 展望台をtierで育てる(展望岩→標本棚→研究所=ドーム天文台)。観測と研究の場が"完成"していく。
-  // Phase8.6: 展望台(展望岩→標本棚→研究所)。構造・素材・使われている感を作り込む。
-  // §8.5 観測スポット: 見晴らし台/バルコニー ≈ (cx, gy)。姿勢=lookout(頭をもたげ遠くを見る)。
+  // Phase8.9: 展望台 = 観測施設群(スケールの追求)。1観測台 → 2観測所 → 3観測施設群
+  //   (大型ドーム天文台+パラボラアンテナ列+格子アンテナ塔+観測塔の足場/階段+複数バルコニー)。
+  //   §8.5 居場所: 群れが集まって空を見上げる【観測デッキ】(前面の広い面)+塔上バルコニー。
+  //   物語の含み(説明しない・気配だけ): 皿と鏡筒はみな空へ向く=観測している者を観測し返そうとしている。
   _drawObservatory(ctx, spot, lv) {
     const info = observatoryTierInfo(lv), tier = info.tier, w = info.w, h = info.h, cx = spot[0], gy = spot[1], hw = w / 2;
-    ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.beginPath(); ctx.ellipse(cx, gy + 8, hw * 0.92, 8, 0, 0, 7); ctx.fill();
-    if (tier >= 3) { // ===== 研究所: ドーム天文台 =====
-      const bH = h * 0.5, bTop = gy - bH;
-      ctx.fillStyle = "#4a4640"; ctx.fillRect(cx - hw * 0.7, gy - 4, hw * 1.4, 5); // 基礎
-      ctx.fillStyle = "#6b6258"; rr(ctx, cx - hw * 0.64, bTop, hw * 1.28, bH, 3); ctx.fill(); // 円筒基部
-      ctx.fillStyle = "#5f574e"; rr(ctx, cx - hw * 0.64, bTop, hw * 0.28, bH, 3); ctx.fill(); // 陰
-      ctx.strokeStyle = "rgba(0,0,0,.22)"; ctx.lineWidth = 1; // パネルの継ぎ目(石積み感)
-      for (const yy of [0.33, 0.66]) { ctx.beginPath(); ctx.moveTo(cx - hw * 0.64, bTop + bH * yy); ctx.lineTo(cx + hw * 0.64, bTop + bH * yy); ctx.stroke(); }
-      for (const xx of [-0.3, 0.1, 0.45]) { ctx.beginPath(); ctx.moveTo(cx + hw * xx, bTop); ctx.lineTo(cx + hw * xx, gy); ctx.stroke(); }
-      ctx.strokeStyle = "#4a4640"; ctx.lineWidth = 2; ctx.strokeRect(cx + hw * 0.36 - 9, gy - 26, 18, 26); // ドア
-      ctx.fillStyle = "rgba(255,200,120,.5)"; ctx.fillRect(cx - hw * 0.42, gy - bH * 0.6, 9, 9); // 窓の暖光
-      ctx.strokeStyle = "rgba(90,80,64,.6)"; ctx.lineWidth = 1; ctx.strokeRect(cx - hw * 0.42, gy - bH * 0.6, 9, 9);
-      // ドーム(継ぎ目のリブ+開いたスリット)
-      const domeCy = bTop, domeR = hw * 0.66;
-      ctx.fillStyle = "#8f877c"; ctx.beginPath(); ctx.arc(cx, domeCy, domeR, Math.PI, 0); ctx.fill();
-      ctx.fillStyle = "#7d746a"; ctx.beginPath(); ctx.arc(cx + domeR * 0.2, domeCy, domeR, Math.PI, 0); ctx.fill();
-      ctx.strokeStyle = "rgba(0,0,0,.18)"; ctx.lineWidth = 1; for (const a of [Math.PI * 1.25, Math.PI * 1.5, Math.PI * 1.75]) { ctx.beginPath(); ctx.moveTo(cx, domeCy); ctx.lineTo(cx + Math.cos(a) * domeR, domeCy + Math.sin(a) * domeR); ctx.stroke(); } // リブ
-      ctx.fillStyle = "#23201b"; ctx.save(); ctx.beginPath(); ctx.arc(cx, domeCy, domeR, Math.PI, 0); ctx.clip(); ctx.fillRect(cx - 5, domeCy - domeR - 4, 10, domeR + 6); ctx.restore(); // スリット
-      // 赤道儀の望遠鏡(架台+鏡筒がスリットから覗く)
-      ctx.strokeStyle = "#3a3630"; ctx.lineWidth = 6; ctx.lineCap = "round";
-      ctx.beginPath(); ctx.moveTo(cx - 2, domeCy - domeR * 0.3); ctx.lineTo(cx + 11, domeCy - domeR - 12); ctx.stroke(); // 鏡筒
-      ctx.fillStyle = "#5a5148"; ctx.beginPath(); ctx.arc(cx + 11, domeCy - domeR - 12, 4.5, 0, 7); ctx.fill();
-      ctx.strokeStyle = "#2c2822"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx - 2, domeCy - domeR * 0.3); ctx.lineTo(cx - 8, domeCy - domeR * 0.05); ctx.stroke(); // 対物側の重り
-      // 観測バルコニー(手すり付き=§8.5 トカゲの居場所)
-      ctx.fillStyle = "#6b5c4a"; rr(ctx, cx - hw * 0.5, gy - 1, hw * 0.5, 5, 2); ctx.fill();
-      ctx.strokeStyle = "#4a4038"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(cx - hw * 0.5, gy - 1); ctx.lineTo(cx - hw * 0.5, gy - 9); ctx.moveTo(cx, gy - 1); ctx.lineTo(cx, gy - 9); ctx.moveTo(cx - hw * 0.5, gy - 8); ctx.lineTo(cx, gy - 8); ctx.stroke(); // 手すり
-    } else { // ===== 展望岩(平らな見晴らし台=居場所)+ 精緻な三脚望遠鏡 =====
-      const rr2 = Math.max(15, hw * 0.5);
-      this.boulder(ctx, lcg(606), cx - hw * 0.3, gy, rr2, "#6b5c4a");
-      ctx.fillStyle = "#8f7d66"; ctx.beginPath(); ctx.ellipse(cx - hw * 0.3, gy - rr2 * 0.5, rr2 * 0.7, rr2 * 0.24, 0, 0, 7); ctx.fill(); // 平らな天面(トカゲが乗る)
-      const tpx = cx + hw * 0.35, ty = gy - 4;
-      ctx.strokeStyle = "#2c2822"; ctx.lineWidth = 2.4; ctx.lineCap = "round"; // 三脚
-      for (const a of [-0.42, 0.05, 0.42]) { ctx.beginPath(); ctx.moveTo(tpx, ty - 18); ctx.lineTo(tpx + Math.sin(a) * 15, gy + 4); ctx.stroke(); }
-      ctx.fillStyle = "#5a564e"; ctx.beginPath(); ctx.arc(tpx, ty - 18, 3, 0, 7); ctx.fill(); // 雲台
-      ctx.save(); ctx.translate(tpx, ty - 18); ctx.rotate(-0.7); // 鏡筒(分節+フード+接眼)
-      ctx.fillStyle = "#4a4640"; rr(ctx, -4, -3, 26, 7, 2); ctx.fill();
+    const calm = window.Motion && Motion.reduced, T = calm ? 0 : this.time;
+    ctx.fillStyle = "rgba(0,0,0,.24)"; ctx.beginPath(); ctx.ellipse(cx, gy + 9, hw * 0.99, 11, 0, 0, 7); ctx.fill();
+
+    // ---- 観測デッキ(§8.5 群れが集まって見上げる面・全tier共通、tierで拡張) ----
+    const deckL = cx - hw * (tier >= 3 ? 0.74 : tier >= 2 ? 0.62 : 0.52);
+    const deckR = cx + hw * (tier >= 3 ? 0.46 : 0.42);
+    this._obsDeck(ctx, deckL, deckR, gy);
+
+    // ---- 左: アンテナ列(空を仰ぐ皿=気配) ----
+    if (tier >= 2) {
+      const ax = cx - hw * (tier >= 3 ? 0.86 : 0.66);
+      if (tier >= 3) { this._obsMast(ctx, ax - 20, gy, h * 0.72, T); this._obsAntenna(ctx, ax + 24, gy, 0.72, T + 1.4); }
+      this._obsAntenna(ctx, ax, gy, tier >= 3 ? 1 : 0.74, T);
+    }
+
+    // ---- 中央: ドーム天文台(t3) / 観測所の小屋(t2) / 三脚望遠鏡(t1) ----
+    if (tier >= 3) {
+      const dcx = cx - hw * 0.08, bH = h * 0.46, bTop = gy - bH;
+      ctx.fillStyle = "#4a4640"; ctx.fillRect(dcx - hw * 0.56, gy - 4, hw * 1.12, 5); // 基礎
+      ctx.fillStyle = "#6b6258"; rr(ctx, dcx - hw * 0.5, bTop, hw * 1.0, bH, 3); ctx.fill(); // 円筒基部
+      ctx.fillStyle = "#5f574e"; rr(ctx, dcx - hw * 0.5, bTop, hw * 0.22, bH, 3); ctx.fill(); // 陰
+      ctx.strokeStyle = "rgba(0,0,0,.22)"; ctx.lineWidth = 1;
+      for (const yy of [0.34, 0.68]) { ctx.beginPath(); ctx.moveTo(dcx - hw * 0.5, bTop + bH * yy); ctx.lineTo(dcx + hw * 0.5, bTop + bH * yy); ctx.stroke(); }
+      for (const xx of [-0.24, 0.08, 0.36]) { ctx.beginPath(); ctx.moveTo(dcx + hw * xx, bTop); ctx.lineTo(dcx + hw * xx, gy); ctx.stroke(); }
+      ctx.strokeStyle = "#4a4640"; ctx.lineWidth = 2; ctx.strokeRect(dcx + hw * 0.28 - 8, gy - 24, 16, 24); // ドア
+      ctx.fillStyle = "rgba(255,200,120,.55)"; ctx.fillRect(dcx - hw * 0.34, gy - bH * 0.62, 9, 9); // 窓の暖光
+      ctx.strokeStyle = "rgba(90,80,64,.6)"; ctx.lineWidth = 1; ctx.strokeRect(dcx - hw * 0.34, gy - bH * 0.62, 9, 9);
+      const domeCy = bTop, domeR = hw * 0.54; // ドーム
+      ctx.fillStyle = "#8f877c"; ctx.beginPath(); ctx.arc(dcx, domeCy, domeR, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = "#7d746a"; ctx.beginPath(); ctx.arc(dcx + domeR * 0.2, domeCy, domeR, Math.PI, 0); ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,.18)"; ctx.lineWidth = 1; for (const a of [Math.PI * 1.25, Math.PI * 1.5, Math.PI * 1.75]) { ctx.beginPath(); ctx.moveTo(dcx, domeCy); ctx.lineTo(dcx + Math.cos(a) * domeR, domeCy + Math.sin(a) * domeR); ctx.stroke(); }
+      ctx.fillStyle = "#23201b"; ctx.save(); ctx.beginPath(); ctx.arc(dcx, domeCy, domeR, Math.PI, 0); ctx.clip(); ctx.fillRect(dcx - 5, domeCy - domeR - 4, 10, domeR + 6); ctx.restore(); // スリット
+      ctx.strokeStyle = "#3a3630"; ctx.lineWidth = 6; ctx.lineCap = "round"; // 赤道儀の望遠鏡
+      ctx.beginPath(); ctx.moveTo(dcx - 2, domeCy - domeR * 0.3); ctx.lineTo(dcx + 11, domeCy - domeR - 12); ctx.stroke();
+      ctx.fillStyle = "#5a5148"; ctx.beginPath(); ctx.arc(dcx + 11, domeCy - domeR - 12, 4.5, 0, 7); ctx.fill();
+      ctx.strokeStyle = "#2c2822"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(dcx - 2, domeCy - domeR * 0.3); ctx.lineTo(dcx - 8, domeCy - domeR * 0.05); ctx.stroke();
+    } else if (tier >= 2) { // ===== 観測所: 高床の小屋+スリット窓+望遠鏡 =====
+      const pw = hw * 0.8, ph = h * 0.42, ptop = gy - ph - 10;
+      ctx.strokeStyle = "#3a352e"; ctx.lineWidth = 3; ctx.lineCap = "round"; // 高床の柱
+      for (const sx of [-pw * 0.82, -pw * 0.28, pw * 0.28, pw * 0.82]) { ctx.beginPath(); ctx.moveTo(cx + sx * 0.5, gy); ctx.lineTo(cx + sx * 0.5, ptop + ph); ctx.stroke(); }
+      ctx.fillStyle = "#6b6258"; rr(ctx, cx - pw * 0.5, ptop, pw, ph, 3); ctx.fill(); // 小屋本体
+      ctx.fillStyle = "#5a5249"; rr(ctx, cx - pw * 0.5, ptop, pw * 0.24, ph, 3); ctx.fill();
+      ctx.fillStyle = "#4d4640"; ctx.beginPath(); ctx.moveTo(cx - pw * 0.56, ptop + 2); ctx.lineTo(cx, ptop - ph * 0.4); ctx.lineTo(cx + pw * 0.56, ptop + 2); ctx.closePath(); ctx.fill(); // 傾いた屋根
+      ctx.fillStyle = "#20241e"; ctx.fillRect(cx - 4, ptop - ph * 0.3, 8, ph * 0.8); // 観測スリット
+      ctx.fillStyle = "rgba(255,200,120,.5)"; ctx.fillRect(cx + pw * 0.2, ptop + ph * 0.4, 8, 8); // 窓
+      ctx.strokeStyle = "#3a3630"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(cx, ptop + ph * 0.1); ctx.lineTo(cx + 10, ptop - ph * 0.5); ctx.stroke(); // 鏡筒
+      ctx.fillStyle = "#5a5148"; ctx.beginPath(); ctx.arc(cx + 10, ptop - ph * 0.5, 3.5, 0, 7); ctx.fill();
+    } else { // ===== 観測台: デッキ上の三脚望遠鏡+見晴らし =====
+      const tpx = cx + hw * 0.1, ty = gy - 4;
+      ctx.strokeStyle = "#2c2822"; ctx.lineWidth = 2.4; ctx.lineCap = "round";
+      for (const a of [-0.42, 0.05, 0.42]) { ctx.beginPath(); ctx.moveTo(tpx, ty - 20); ctx.lineTo(tpx + Math.sin(a) * 16, gy - 2); ctx.stroke(); }
+      ctx.fillStyle = "#5a564e"; ctx.beginPath(); ctx.arc(tpx, ty - 20, 3, 0, 7); ctx.fill();
+      ctx.save(); ctx.translate(tpx, ty - 20); ctx.rotate(-0.7);
+      ctx.fillStyle = "#4a4640"; rr(ctx, -4, -3, 28, 7, 2); ctx.fill();
       ctx.fillStyle = "#5f5a52"; rr(ctx, -4, -3, 8, 7, 2); ctx.fill();
-      ctx.fillStyle = "#2c2822"; rr(ctx, 22, -4, 5, 9, 1); ctx.fill(); // フード
+      ctx.fillStyle = "#2c2822"; rr(ctx, 24, -4, 5, 9, 1); ctx.fill(); // フード
       ctx.fillStyle = "#3a3630"; rr(ctx, -10, -1.5, 7, 4, 1); ctx.fill(); // 接眼
-      ctx.fillStyle = "#6a655c"; ctx.beginPath(); ctx.arc(8, 5, 2, 0, 7); ctx.fill(); // フォーカサーつまみ
+      ctx.fillStyle = "#6a655c"; ctx.beginPath(); ctx.arc(8, 5, 2, 0, 7); ctx.fill();
       ctx.restore();
     }
-    if (tier >= 2) { // 標本棚(木の棚+ラベル付き標本瓶+ノート)
-      const shx = cx - hw * 0.8, shy = gy;
+
+    // ---- 右: 観測塔(足場/階段+塔上バルコニー=もう一つの見張り所) ----
+    if (tier >= 3) this._obsTower(ctx, cx + hw * 0.72, gy, hw * 0.5, h * 0.92, T);
+
+    // ---- 標本棚(t2+) ----
+    if (tier >= 2) {
+      const shx = cx - hw * (tier >= 3 ? 0.62 : 0.86), shy = gy;
       ctx.fillStyle = "#5a4128"; rr(ctx, shx - 15, shy - 32, 30, 34, 2); ctx.fill();
       ctx.fillStyle = "#4a3420"; ctx.fillRect(shx - 15, shy - 32, 30, 3);
       ctx.strokeStyle = "rgba(0,0,0,.3)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(shx - 15, shy - 16); ctx.lineTo(shx + 15, shy - 16); ctx.stroke();
       for (const [jx, jy, c] of [[-9, -24, "143,208,192"], [-1, -24, "232,192,96"], [7, -24, "208,144,176"], [-6, -8, "144,176,208"], [3, -8, "192,208,144"]]) {
         ctx.fillStyle = `rgb(${c})`; rr(ctx, shx + jx - 2.5, shy + jy - 5, 6, 7, 1); ctx.fill();
-        ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.fillRect(shx + jx - 1.5, shy + jy - 2, 4, 1.2); // ラベル
+        ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.fillRect(shx + jx - 1.5, shy + jy - 2, 4, 1.2);
       }
       ctx.fillStyle = "#8a5a34"; rr(ctx, shx + 7, shy - 8, 7, 5, 1); ctx.fill(); // ノート
     }
-    if (tier >= 3) { // 星図の掲示板(枠+星+星座線)
-      const chx = cx + hw * 0.52, chy = gy - 30;
-      ctx.fillStyle = "#3a3226"; rr(ctx, chx - 1, chy - 1, 26, 24, 2); ctx.fill(); // 枠
-      ctx.fillStyle = "#1c2634"; rr(ctx, chx + 1, chy + 1, 22, 20, 1); ctx.fill();
-      const sr = lcg(717); ctx.fillStyle = "rgba(210,225,255,.8)"; for (let i = 0; i < 7; i++) { ctx.beginPath(); ctx.arc(chx + 3 + sr() * 18, chy + 3 + sr() * 16, 0.8, 0, 7); ctx.fill(); }
-      ctx.strokeStyle = "rgba(160,190,230,.5)"; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.moveTo(chx + 5, chy + 5); ctx.lineTo(chx + 13, chy + 11); ctx.lineTo(chx + 18, chy + 4); ctx.stroke();
+
+    // ---- 観測コンソール: 星図スクリーン(t3・微かなモノリスの影=気配だけ) ----
+    if (tier >= 3) {
+      const chx = cx + hw * 0.22, chy = gy - 34;
+      ctx.fillStyle = "#3a3226"; rr(ctx, chx - 1, chy - 1, 28, 26, 2); ctx.fill(); // 枠
+      ctx.fillStyle = "#141c28"; rr(ctx, chx + 1, chy + 1, 24, 22, 1); ctx.fill();
+      const sr = lcg(717); ctx.fillStyle = "rgba(210,225,255,.8)"; for (let i = 0; i < 8; i++) { ctx.beginPath(); ctx.arc(chx + 3 + sr() * 20, chy + 3 + sr() * 18, 0.8, 0, 7); ctx.fill(); }
+      ctx.fillStyle = "rgba(120,150,190,.28)"; ctx.fillRect(chx + 11, chy + 3, 3, 18); // 画面中央の細い縦影=モノリス(説明しない)
+      if (!calm) { const sy = chy + 2 + ((T * 6) % 22); ctx.strokeStyle = "rgba(150,210,190,.5)"; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(chx + 1, sy); ctx.lineTo(chx + 25, sy); ctx.stroke(); } // 走査線
     }
+  },
+
+  // 観測デッキ+観測広場(§8.5 群れの居場所): 手前に開けた広い舗装の面(見上げる群れが集まる)+奥に板張り縁と低い手すり
+  _obsDeck(ctx, x0, x1, gy) {
+    const dw = x1 - x0, cx = (x0 + x1) / 2, pr = dw * 0.66;
+    // 観測広場: 手前へ開ける淡い舗装の面(=群れのバスキング/見上げ面。大湖の浅瀬・保温の光面に相当)
+    const pg = ctx.createRadialGradient(cx, gy + 16, 6, cx, gy + 16, pr);
+    pg.addColorStop(0, "rgba(150,140,120,.30)"); pg.addColorStop(0.7, "rgba(150,140,120,.16)"); pg.addColorStop(1, "rgba(150,140,120,0)");
+    ctx.fillStyle = pg; ctx.beginPath(); ctx.ellipse(cx, gy + 16, pr, pr * 0.42, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = "rgba(60,52,40,.16)"; ctx.lineWidth = 1; // 敷石の目地(同心の弧)
+    for (const rf of [0.42, 0.72]) { ctx.beginPath(); ctx.ellipse(cx, gy + 16, pr * rf, pr * rf * 0.42, 0, Math.PI * 0.08, Math.PI * 0.92); ctx.stroke(); }
+    // 奥の板張り縁(構造物が乗る土台)+低い手すり(群れはこの手前=広場に立つ)
+    ctx.fillStyle = "#6b5c4a"; rr(ctx, x0, gy - 3, dw, 7, 2); ctx.fill();
+    ctx.fillStyle = "#5a4c3c"; ctx.fillRect(x0, gy + 2, dw, 2);
+    ctx.strokeStyle = "rgba(0,0,0,.16)"; ctx.lineWidth = 1;
+    for (let x = x0 + 13; x < x1 - 2; x += 14) { ctx.beginPath(); ctx.moveTo(x, gy - 3); ctx.lineTo(x, gy + 4); ctx.stroke(); }
+    ctx.strokeStyle = "#4a4038"; ctx.lineWidth = 1.5; ctx.lineCap = "round";
+    const n = 5; for (let i = 0; i <= n; i++) { const x = x0 + 5 + (dw - 10) * i / n; ctx.beginPath(); ctx.moveTo(x, gy - 2); ctx.lineTo(x, gy - 12); ctx.stroke(); }
+    ctx.beginPath(); ctx.moveTo(x0 + 5, gy - 11); ctx.lineTo(x1 - 5, gy - 11); ctx.stroke();
+  },
+
+  // パラボラアンテナ(空を仰いでゆっくり掃く=気配)
+  _obsAntenna(ctx, bx, gy, s, T) {
+    const mh = 52 * s;
+    ctx.fillStyle = "#4a4640"; ctx.beginPath(); ctx.ellipse(bx, gy, 9 * s, 3 * s, 0, 0, 7); ctx.fill(); // 基部
+    ctx.strokeStyle = "#3a352e"; ctx.lineWidth = 4 * s; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(bx, gy); ctx.lineTo(bx, gy - mh); ctx.stroke(); // 支柱
+    ctx.save(); ctx.translate(bx, gy - mh); ctx.rotate(Math.sin(T * 0.2 + bx * 0.01) * 0.32); // 皿の首振り
+    const dr = 17 * s;
+    ctx.fillStyle = "#9a938a"; ctx.beginPath(); ctx.ellipse(0, 0, dr, dr * 0.44, 0, 0, 7); ctx.fill(); // 皿面
+    ctx.fillStyle = "#6f685f"; ctx.beginPath(); ctx.ellipse(0, dr * 0.16, dr * 0.84, dr * 0.3, 0, 0, 7); ctx.fill(); // 凹みの陰
+    ctx.strokeStyle = "#3a352e"; ctx.lineWidth = 1.3; // フィードホーンの支柱
+    ctx.beginPath(); ctx.moveTo(-dr * 0.5, dr * 0.06); ctx.lineTo(0, -dr * 0.72); ctx.moveTo(dr * 0.5, dr * 0.06); ctx.lineTo(0, -dr * 0.72); ctx.stroke();
+    ctx.fillStyle = "#c9a24c"; ctx.beginPath(); ctx.arc(0, -dr * 0.72, 2.4 * s, 0, 7); ctx.fill();
+    ctx.restore();
+  },
+
+  // 格子アンテナ塔(頂に赤い明滅ビーコン)
+  _obsMast(ctx, bx, gy, hh, T) {
+    ctx.strokeStyle = "#4a4640"; ctx.lineWidth = 2; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(bx - 7, gy); ctx.lineTo(bx, gy - hh); ctx.moveTo(bx + 7, gy); ctx.lineTo(bx, gy - hh); ctx.stroke(); // 脚
+    ctx.lineWidth = 1; for (let i = 1; i <= 6; i++) { const yy = gy - hh * i / 7, ww = 7 * (1 - i / 7); ctx.beginPath(); ctx.moveTo(bx - ww, yy); ctx.lineTo(bx + ww, yy); ctx.stroke(); } // 横桟
+    const bl = 0.5 + 0.5 * Math.sin(T * 3);
+    ctx.fillStyle = `rgba(255,96,72,${0.4 + 0.5 * bl})`; ctx.beginPath(); ctx.arc(bx, gy - hh, 2.6, 0, 7); ctx.fill(); // ビーコン
+  },
+
+  // 観測塔(格子の足場+ジグザグ階段+塔上バルコニー=もう一つの見張り所)
+  _obsTower(ctx, bx, gy, tw, th, T) {
+    const levels = 3;
+    ctx.strokeStyle = "#4a423a"; ctx.lineWidth = 3; ctx.lineCap = "round"; // 4本脚(先細り)
+    ctx.beginPath(); ctx.moveTo(bx - tw * 0.5, gy); ctx.lineTo(bx - tw * 0.3, gy - th); ctx.moveTo(bx + tw * 0.5, gy); ctx.lineTo(bx + tw * 0.3, gy - th); ctx.stroke();
+    ctx.strokeStyle = "#5a5048"; ctx.lineWidth = 1.5; // 段ごとのXブレース+踏み段(足場/階段)
+    for (let i = 0; i < levels; i++) {
+      const y0 = gy - th * i / levels, y1 = gy - th * (i + 1) / levels;
+      const w0 = tw * 0.5 * (1 - i * 0.16), w1 = tw * 0.5 * (1 - (i + 1) * 0.16);
+      ctx.beginPath(); ctx.moveTo(bx - w0, y0); ctx.lineTo(bx + w1, y1); ctx.moveTo(bx + w0, y0); ctx.lineTo(bx - w1, y1); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(bx - w1, y1); ctx.lineTo(bx + w1, y1); ctx.stroke(); // 踏み段
+    }
+    const py = gy - th, pw = tw * 0.5; // 塔上バルコニー
+    ctx.fillStyle = "#6b5c4a"; rr(ctx, bx - pw, py - 3, pw * 2, 6, 2); ctx.fill();
+    ctx.strokeStyle = "#4a4038"; ctx.lineWidth = 1.4; ctx.lineCap = "round";
+    for (const rx of [bx - pw, bx - pw * 0.4, bx + pw * 0.4, bx + pw]) { ctx.beginPath(); ctx.moveTo(rx, py - 3); ctx.lineTo(rx, py - 12); ctx.stroke(); }
+    ctx.beginPath(); ctx.moveTo(bx - pw, py - 11); ctx.lineTo(bx + pw, py - 11); ctx.stroke();
+    ctx.strokeStyle = "#3a352e"; ctx.lineWidth = 3; // バルコニーの小望遠鏡(空へ・ゆっくり傾ぐ)
+    ctx.save(); ctx.translate(bx + pw * 0.2, py - 6); ctx.rotate(-0.9 + Math.sin(T * 0.18) * 0.12); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(16, 0); ctx.stroke();
+    ctx.fillStyle = "#5a5148"; ctx.beginPath(); ctx.arc(16, 0, 3, 0, 7); ctx.fill(); ctx.restore();
   },
 
   drawFacilities(ctx) {
