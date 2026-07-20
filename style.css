@@ -145,10 +145,15 @@ main {
   /* 3.13(再): 2カラムへ復帰(左=操作卓 / 右=飼育槽)。空白より意味のある列 */
   display: grid;
   grid-template-columns: clamp(228px, 17vw, 300px) minmax(0, 1fr);
-  gap: clamp(8px, 1vw, 14px);
-  padding: clamp(6px, 1vh, 12px) clamp(10px, 1.1vw, 16px);
+  /* 3.14: 操作卓と飼育槽の隙間を圧縮=COLUMN束縛の解像度(1920×1080等)で飼育槽が実際に広がる */
+  gap: clamp(6px, .5vw, 10px);
+  padding: clamp(6px, 1vh, 12px) clamp(6px, .6vw, 10px);
   max-width: 1980px; margin: 0 auto;
   align-items: start;
+  /* 上下シャシー予約(飼育槽の16:9高さ算出に使う)。topbar単行(≥1500px)=59px+余白。
+     魔法定数112pxを廃し実chrome追従に。狭幅でtopbarが2段折返し(≤1499px)する分は下のmediaで増やす。
+     必要条件: chrome-v ≥ frameTop(≈91)+padding16 = 107(縦束縛時のあふれ0)。実測で108に確定 */
+  --chrome-v: 108px;
 }
 #left { display: flex; flex-direction: column; gap: clamp(6px, 1vh, 12px); align-self: stretch; min-height: 0; }
 /* §9.5 二重スリット装置(食): 枠(縁取り)を設けず、幾何そのものが空間に浮かぶ佇まい。星図・天球儀のトーン */
@@ -291,7 +296,7 @@ button.act .price {
   position: relative;
   /* 3.11 余白解消: 利用可能な高さ(100vh-上部chrome112px)から16:9の最大サイズを算出し、横幅(100%)でも制限。
      +16pxはpadding分。2カラムでは右カラム幅で頭打ち=飼育槽が右カラムいっぱいに広がる */
-  width: min(100%, calc((100vh - 112px) * 1280 / 720 + 16px));
+  width: min(100%, calc((100vh - var(--chrome-v, 112px)) * 1280 / 720 + 16px));
   box-sizing: border-box;
   padding: 8px; border-radius: 18px;
   background: linear-gradient(160deg, #6b5433, #3a2c18 40%, #241a0e);
@@ -322,7 +327,7 @@ button.act .price {
   display: block;
   width: 100%; height: auto;
   aspect-ratio: 1280 / 720;
-  max-height: calc(100vh - 112px); /* 安全網(通常frame側の算出で到達しない) */
+  max-height: calc(100vh - var(--chrome-v, 112px)); /* 安全網(通常frame側の算出で到達しない) */
   border-radius: 12px;
   box-shadow: inset 0 0 40px rgba(0, 0, 0, .5);
 }
@@ -411,7 +416,8 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 
 /* ============ 給餌クランク(§5.10 v2.1: クランク1個へ集約) ============ */
 #feeder-dial {
-  position: absolute; right: 20px; bottom: 18px; z-index: 3;
+  /* 3.14: 右端張り付きをやめ少し左へ(right 20→48)=画面右に余白。auto/安全装置(.fd-side)は内部要素ゆえ一緒に移動 */
+  position: absolute; right: 48px; bottom: 18px; z-index: 3;
   display: flex; align-items: center; gap: 7px;
   background: linear-gradient(var(--ink-700), var(--ink-800));
   border: 1px solid var(--amber-600); border-radius: var(--radius-md);
@@ -2153,7 +2159,13 @@ button.holding::after {
 
 @media (min-width: 1600px) {
   /* フルHDで水槽拡大最優先 — 左カラムを固定幅、余白を中央(水槽)へ回す(2カラム) */
-  main { max-width: 2040px; grid-template-columns: 300px minmax(0, 1fr); gap: 18px; }
+  main { max-width: 2040px; grid-template-columns: 300px minmax(0, 1fr); gap: 10px; }
+}
+/* 3.14: topbarは幅≤1499pxで2段に折返す(実測: ≥1500=59px / ≤1499≈119px)。
+   折返し分だけ上部chromeが増えるので予約を増やし、狭幅ノートPCでも1画面固定(あふれ0)を守る。
+   結果として飼育槽は狭幅で相応に小さくなる(対症でなく実寸で正しく縮む=あふれない) */
+@media (max-width: 1499px) {
+  main { --chrome-v: 160px; }
 }
 /* 3.13(再): 旧・単カラム化(@media max-width:1180)は撤去。操作卓が軽くなり2カラムが狭幅でも収まるため、
    常時2カラム=どのPC幅でも縦あふれを構造的に回避(単カラム積層は短い高さで溢れた)。狭幅では飼育槽が縮むのみ。
