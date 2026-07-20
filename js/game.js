@@ -1220,9 +1220,11 @@ const Game = {
       const pick = this.pickUnownedDexEntry(this.currentStage().id);
       if (pick) {
         const sp = pick[0], mo = pick[1];
-        this._grantRewardEgg(this._newSpeciesEgg(pick, hatchMult)); // 虹=満杯でも必ず付与(レア保護)
+        const egg = this._newSpeciesEgg(pick, hatchMult);
+        this._grantRewardEgg(egg); // 虹=満杯でも必ず付与(レア保護)
         UI.toast(`${Icon.svg("spark")} レインボー! 未発見の「${mo.name} ${sp.name}」の卵が生まれた!`);
         if (UI.rouletteRainbowFx) UI.rouletteRainbowFx(sp);
+        if (UI.heroSpeciesReveal) UI.heroSpeciesReveal(sp, mo, egg); // C2c 虹の最大ジュース=新種の姿を大きくお披露目
         if (this.bossReward) this.bossReward.rainbows++;
         return true;
       }
