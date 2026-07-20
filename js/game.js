@@ -207,6 +207,7 @@ const Game = {
     const show = this.desiredShown();
     for (const l of this.state.lizards) {
       if (this.isHidden(l)) continue; // 鷹に不在の個体は据え置き
+      l.returning = false; // 即時確定=歩行途中の状態はクリア(ロード/惑星切替は瞬時に確定=fps安定)
       l.resting = !show.has(l.id);
       if (l.resting) l.restedAt = Date.now();
     }
@@ -226,8 +227,12 @@ const Game = {
     for (const l of s.lizards) {
       if (this.isHidden(l)) continue;
       const shouldShow = show.has(l.id);
-      if (shouldShow && l.resting) toEmerge.push(l);
-      else if (!shouldShow && !l.resting) toRetreat.push(l);
+      if (shouldShow) {
+        if (l.resting) toEmerge.push(l);
+        else if (l.returning) l.returning = false; // §8.14: 巣へ戻る途中で復帰条件を満たした=引き返して通常徘徊へ
+      } else if (!l.resting && !l.returning) {
+        toRetreat.push(l); // まだ表示中で戻り開始していない個体だけ
+      }
     }
     if (!toEmerge.length && !toRetreat.length) return;
     toEmerge.sort((a, b) => this.displayScore(b) - this.displayScore(a));   // 出る=スコア高い順
@@ -250,8 +255,9 @@ const Game = {
     lz.restedAt = Date.now();
   },
   retreatToNest(lz) {
-    lz.resting = true; // §8.13: 表示から外す(§8.14で歩いて巣へ戻る動作に置換予定)
-    lz.restedAt = Date.now();
+    // §8.14: 瞬間消滅にしない。巣へ向かって歩き出し、到達したら巣に入る(moveLizardsで処理)
+    lz.returning = true;
+    lz.moving = true;
   },
 
   // 3.12.2: ボス襲来=強者が巣穴から「次々に湧き出す」(一斉でなく時間差)。
@@ -1984,6 +1990,17 @@ const Game = {
     for (const lz of this.state.lizards) {
       this.ensureRuntime(lz);
       if (!this.isVisible(lz)) continue; // さらわれ中・休憩中
+      // §8.14: 巣へ帰還中は徘徊/戦闘を無視して巣口へ歩き、到達したら巣に入る(消える)。ワープ禁止=物理移動で入退場
+      if (lz.returning) {
+        const n = this.nestXY();
+        const dx = (n.x) - lz.x, dy = (n.y + 12) - lz.y, dist = Math.hypot(dx, dy);
+        if (dist < CFG.nestArriveR) { lz.returning = false; lz.resting = true; lz.restedAt = Date.now(); lz.moving = false; this.refreshCrowdScale(); continue; }
+        const spd = CFG.nestWalkSpeed * dt;
+        lz.x += (dx / dist) * Math.min(spd, dist); lz.y += (dy / dist) * Math.min(spd, dist);
+        lz.angle = Math.atan2(dy, dx); lz.moving = true;
+        lz.x = clamp(lz.x, 20, W - 20); lz.y = clamp(lz.y, FIELD.y1 - 30, H - 20);
+        continue;
+      }
       lz.wanderT -= dt;
       const fighting = snake && lz.stage === "adult" && lz.injuredT <= 0;
       if (fighting) {
