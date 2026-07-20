@@ -200,21 +200,54 @@ for (let S = 1; S <= 10; S++) {
 // === 7) 二重スリット装置(§9): 本装置は種も卵も生成しない(賢者の石のみ=純血の罠を構造的に踏めない) ===
 {
   const { Slit } = exp;
+  const CFG = exp.CFG;
   Game.newGame();
   Game.state.rank = 106;
   const lz0 = Game.state.lizards.length, eg0 = Game.state.eggs.length, st0 = Game.state.stones || 0;
   Slit.onSuccess = () => Game.addStone(1); // boot と同一配線
-  Slit.setSeed(12345);
+
+  // (7a) 配線検証: 成功→賢者の石のみ(個体/卵ゼロ)。実レートは食級に稀(1/3900)なので、
+  //      配線は「切れ目=全周(半角180)=常時成功」の広角に一時差替えて確実に発火させる(レートに依存しない検証)。
+  const origHalf = CFG.slitHalfDeg.slice();
+  CFG.slitHalfDeg = [180, 180, 180, 180];
+  Slit.reset(); Slit.setSeed(12345);
   let success = 0;
-  for (let i = 0; i < 5000; i++) {
+  for (let i = 0; i < 40; i++) {
     Slit.launch();
     let g = 0; while (Slit.active() && g < 5000) { Slit.advance(0.008); g++; }
     if (Slit.outcome() === "success") success++;
     Slit.drainEvents();
   }
+  CFG.slitHalfDeg = origHalf;
   check("スリット装置: 個体を1匹も生成しない", Game.state.lizards.length === lz0, `Δ=${Game.state.lizards.length - lz0}`);
   check("スリット装置: 卵を1個も生成しない", Game.state.eggs.length === eg0, `Δ=${Game.state.eggs.length - eg0}`);
-  check("スリット装置: 成功時は賢者の石のみ付与", (Game.state.stones || 0) - st0 === success && success > 0, `stonesΔ=${(Game.state.stones || 0) - st0} success=${success}`);
+  check("スリット装置: 成功時は賢者の石のみ付与", (Game.state.stones || 0) - st0 === success && success === 40, `stonesΔ=${(Game.state.stones || 0) - st0} success=${success}`);
+
+  // (7b) 回転の決定論(§9.5): 同一シード+同一時間スケジュール=同一結果(時間の純関数・ウォールクロック非依存)
+  const trace = () => {
+    Slit.reset(); Slit.setSeed(2024);
+    let s = "";
+    for (let i = 0; i < 300; i++) {
+      Slit.launch();
+      let g = 0; while (Slit.active() && g < 5000) { Slit.advance(0.008); g++; }
+      s += (Slit.ball.phase === "success" ? "S" : Slit.ball.blockRing);
+      Slit.drainEvents();
+      Slit.advance(1.3); // クールダウン+間隔ぶん回転を進める(位相が変わる)
+    }
+    return s + "|stuck=" + Slit.stuck.map((x) => x.ring + ":" + x.id).join(",");
+  };
+  check("スリット装置: 回転は時間の純関数=同一シードで同一結果(決定論)", trace() === trace());
+
+  // (7c) 最外周(ring1=index0)で弾かれた球は記録に残さない=1枚以上潜った球のみ痕跡(§9.5)
+  Slit.reset(); Slit.setSeed(31337);
+  for (let i = 0; i < 1200; i++) {
+    Slit.launch();
+    let g = 0; while (Slit.active() && g < 5000) { Slit.advance(0.008); g++; }
+    Slit.drainEvents();
+    Slit.advance(0.8);
+  }
+  check("スリット装置: ring1で弾かれた球は記録しない(1枚以上潜った球のみ)", Slit.stuck.length > 0 && Slit.stuck.every((s) => s.ring >= 1), `n=${Slit.stuck.length} rings=${[...new Set(Slit.stuck.map((s) => s.ring))]}`);
+
   // ソースに species/breedablePool/inherit 等の生成経路が無いことを静的にも確認(将来の混入防止)
   const slitSrc = fs.readFileSync(path.join(ROOT, "js/slit.js"), "utf8");
   check("スリット装置: 種生成APIを呼ばない(静的)", !/breedablePool|inherit|makeLizard|spawn|pickUnowned|speciesId/.test(slitSrc));

@@ -58,22 +58,38 @@ Object.assign(UI, {
 
     ctx.clearRect(0, 0, cw, ch);
     const sc = cw / 240; // 窓サイズ追随のスケール
-    // 同心円レール(線のみ)。切れ目=線の途切れ+両端のマーカーで「どこが切れ目か」を明確に(コントラスト向上)
-    const cd = Slit.cooldownLeft ? Slit.cooldownLeft() : 0;
-    const baseA = 0.42 + (cd > 0 ? 0 : 0.06);
-    const lw = Math.max(1.2, 1.4 * sc);
+
+    // 各円の切れ目角(独立回転・§9.5食)。合成ベクトル長R=1に近い=切れ目が揃う=食が近い
+    const sang = [];
+    let vx = 0, vy = 0;
     for (let i = 0; i < N; i++) {
-      const sa = Slit.ringSlitAngle ? Slit.ringSlitAngle(i) : base; // 各円は独立回転(§9.1)=切れ目の並びが常にズレ、たまに揃う
-      this._slitRing(ctx, cx, cy, radii[i] * R, sa, half[i], `rgba(168,214,234,${baseA})`, lw);
-      for (const s of [-1, 1]) { // 切れ目の縁マーカー(明るい小点=開口の端が一目=「そろそろ揃いそう」の予告)
-        const [ex, ey] = pt(radii[i], sa + s * half[i]);
-        ctx.beginPath(); ctx.arc(ex, ey, lw * 1.4, 0, 7);
-        ctx.fillStyle = "rgba(200,235,255,.9)"; ctx.fill();
-      }
+      const a = (Slit.ringSlitAngle ? Slit.ringSlitAngle(i) : base) * Math.PI / 180;
+      sang.push(a); vx += Math.cos(a); vy += Math.sin(a);
     }
-    // 中心の的(奇跡の到達点)
-    ctx.beginPath(); ctx.arc(cx, cy, Math.max(2, R * 0.055), 0, 7);
-    ctx.strokeStyle = "rgba(225,160,185,.65)"; ctx.lineWidth = 1.3 * sc; ctx.stroke();
+    const Rlen = Math.hypot(vx, vy) / N;                    // 0..1(整列度)
+    const align = Math.max(0, (Rlen - 0.72) / 0.28);        // 0.72未満=気配なし → 1.0=完全整列
+    const meanA = Math.atan2(vy, vx);                       // 平均角(切れ目が向かう先=回廊の中心)
+
+    // 整列の予告(§9.5): 揃いに近づくほど、回廊の中心へごく淡い光の気配。派手にしない=食を"待つ"体験の核
+    if (align > 0) {
+      const gi = align * (calm ? 0.09 : 0.16);
+      const ex = cx + Math.cos(meanA) * R * 1.02, ey = cy - Math.sin(meanA) * R * 1.02;
+      const g = ctx.createLinearGradient(cx, cy, ex, ey);
+      g.addColorStop(0, `rgba(214,236,255,${gi})`); g.addColorStop(1, "rgba(214,236,255,0)");
+      ctx.strokeStyle = g; ctx.lineWidth = Math.max(1.5, 5 * sc * align); ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(ex, ey); ctx.stroke();
+    }
+
+    // 同心円レール(線のみ)。切れ目=線の"不在"で窓を定義(端点マーカーは置かない・§9.5)。星図の佇まい
+    const baseA = 0.4 + align * 0.14;                       // 揃うほど僅かに明るく(気配)
+    const lw = Math.max(1.0, 1.15 * sc);
+    for (let i = 0; i < N; i++) {
+      const sa = sang[i] * 180 / Math.PI;
+      this._slitRing(ctx, cx, cy, radii[i] * R, sa, half[i], `rgba(170,214,236,${baseA})`, lw);
+    }
+    // 中心=回廊の終点(奇跡の到達点)。ごく小さく静かに
+    ctx.beginPath(); ctx.arc(cx, cy, Math.max(1.6, R * 0.028), 0, 7);
+    ctx.fillStyle = `rgba(226,168,192,${0.4 + align * 0.4})`; ctx.fill();
 
     // 張り付いた失敗の痕跡(内側=惜しいほど明るく大きく=静かな殿堂)。どのリングに何個あるか一目で読める明るさ
     for (const s of Slit.stuck) {
@@ -103,16 +119,12 @@ Object.assign(UI, {
       ctx.fillStyle = "rgba(235,250,255,.95)"; ctx.fill();
     }
 
-    // イベント購読: 失敗の"惜しさ"火花 / 成功ブルーム(reduced-motionでは出さない=結果は保証済)
+    // イベント購読: 成功=食の成立のみ控えめに祝う(§9.5: 端点マーカー/惜しさドットは置かない=幾何の純度)
     for (const ev of Slit.drainEvents()) {
       if (calm) continue;
-      if (ev.type === "SlitBlocked" && ev.miss < 6) { // 切れ目のすぐ横=惜しい
-        this._slitFx.push({ kind: "near", ring: ev.ring, t: 0.5, ttl: 0.5 });
-      } else if (ev.type === "SlitSuccess") {
-        this._slitFx.push({ kind: "win", t: 1.1, ttl: 1.1 });
-      }
+      if (ev.type === "SlitSuccess") this._slitFx.push({ kind: "win", t: 1.1, ttl: 1.1 });
     }
-    // fx描画
+    // fx描画(中心の控えめなブルームのみ)
     this._slitFx = (this._slitFx || []).filter((f) => f.t > 0);
     for (const f of this._slitFx) {
       f.t -= 0.016;
@@ -122,13 +134,6 @@ Object.assign(UI, {
         const gg = ctx.createRadialGradient(cx, cy, 1, cx, cy, rr);
         gg.addColorStop(0, `rgba(255,215,190,${(1 - q) * 0.8})`); gg.addColorStop(1, "rgba(255,215,190,0)");
         ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(cx, cy, rr, 0, 7); ctx.fill();
-      } else if (f.kind === "near") { // 惜しさ: その円の切れ目のふちに小さな明滅(回転後の現在角)
-        const sa = Slit.ringSlitAngle ? Slit.ringSlitAngle(f.ring) : base;
-        for (const s of [-1, 1]) {
-          const [ex, ey] = pt(radii[f.ring], sa + s * half[f.ring]);
-          ctx.beginPath(); ctx.arc(ex, ey, (1 - q) * 2.2 + 0.6, 0, 7);
-          ctx.fillStyle = `rgba(255,225,160,${(1 - q) * 0.7})`; ctx.fill();
-        }
       }
     }
   },

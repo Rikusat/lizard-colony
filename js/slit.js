@@ -104,8 +104,10 @@ const Slit = {
     }
   },
 
-  // 失敗球を張り付ける。最大数超過時は「より外側(=浅い)・古い」球から消す=内側(惜しい)記録を優先して残す
+  // 失敗球を張り付ける。§9.5: 最外周(ring=0)で弾かれた球は残さない=1枚以上潜り抜けた球のみ記録(残る点=「ここまで行けた」証拠)。
+  // 最大数超過時は「より外側(=浅い)・古い」球から消す=内側(惜しい)記録を優先して残す
   _addStuck(r, theta, ring, miss) {
+    if (ring < 1) return;
     this.stuck.push({ r, theta, ring, life: CFG.slitStickSec, miss, id: this._stuckSeq++ });
     while (this.stuck.length > CFG.slitStickMax) {
       let worst = 0;
@@ -119,7 +121,7 @@ const Slit = {
 
   active() { return !!this.ball && this.ball.phase === "fly"; },
   outcome() { return this.ball ? this.ball.phase : "idle"; }, // "fly"|"blocked"|"success"|"idle"
-  reset() { this.ball = null; this.passed = 0; this.stuck = []; this._cd = 0; this._time = 0; this._acc = 0; }, // 惑星切替/新セッションで痕跡もクリア
+  reset() { this.ball = null; this.passed = 0; this.stuck = []; this._cd = 0; this._time = 0; this._acc = 0; this._stuckSeq = 1; }, // 惑星切替/新セッションで痕跡・採番もクリア(=完全な再現性)
   drainEvents() { const ev = this.events.slice(); this.events.length = 0; return ev; },
 };
 
