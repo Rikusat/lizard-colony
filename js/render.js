@@ -2301,15 +2301,25 @@ const Render = {
 
 
   // 登場カットイン (T2+)
-  // §9.2 飼育槽中央の軽い通知(ボス出現ほか)。タップ不要・全画面暗転なし・時間で自動フェード。
-  //   accent: "boss"=赤系(襲来) / "info"=既定。sub=副題。
+  // §9.2/§9-C4 飼育槽中央の軽い通知(ボス出現・進行マイルストーン等)。タップ不要・暗転なし・自動フェード。
+  //   【トースト化しない設計】同時表示は1件のみ / 短時間 / キューは古いものを捨てて伸ばさない(CFG上限)。
+  //   accent: "boss"=赤系 / "info"=既定。sub=副題。
   showCenterNotice(text, sub, accent) {
-    this._notice = { text: text || "", sub: sub || "", t0: this.time, dur: 2.0, accent: accent || "info" };
+    const n = { text: text || "", sub: sub || "", accent: accent || "info", dur: CFG.centerNoticeSec || 1.6 };
+    if (!this._notice) { n.t0 = this.time; this._notice = n; return; }
+    this._noticeQ = this._noticeQ || [];
+    this._noticeQ.push(n);
+    const cap = CFG.centerNoticeQueue || 1;
+    while (this._noticeQ.length > cap) this._noticeQ.shift(); // 古いものを捨てる=待ち行列が伸びない
   },
   drawCenterNotice(ctx) {
     const n = this._notice; if (!n) return;
     const e = this.time - n.t0;
-    if (e > n.dur) { this._notice = null; return; }
+    if (e > n.dur) {
+      this._notice = null;
+      if (this._noticeQ && this._noticeQ.length) { const nx = this._noticeQ.shift(); nx.t0 = this.time; this._notice = nx; }
+      return;
+    }
     const k = e / n.dur; // 0..1: フェードイン(〜0.15)→保持→フェードアウト(0.72〜)
     const alpha = k < 0.15 ? k / 0.15 : k > 0.72 ? Math.max(0, (1 - k) / 0.28) : 1;
     const cx = W / 2, cy = 150, slide = (1 - Math.min(1, k / 0.15)) * 16;

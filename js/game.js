@@ -138,6 +138,8 @@ const Game = {
   },
   facLv(id) { return this.state.facilities[id] || 0; },
   nestLv() { return (this.state.nest && this.state.nest.lv) || 1; }, // §8.12: 巣Lv(繁殖/給餌効果の統合先。最低1)
+  // §9-C4: 進行マイルストーンは飼育槽中央の軽い通知へ(トースト非使用)。1件・短時間・古いものは捨てる(Render側)
+  notice(text, sub, accent) { if (typeof Render !== "undefined" && Render.showCenterNotice) Render.showCenterNotice(text, sub || "", accent || "info"); },
   // 3.11.5: 汎用味方は削除(Phase 6で惑星固有味方を新設)。効果・戦闘計算からは常に0で外す。
   // ただし state.allies のLvデータは消さず休眠保持=Phase 6で資産として振替する(残骸ではない)
   allyLv() { return 0; },
@@ -289,7 +291,7 @@ const Game = {
     if (s.coins < cost) { UI.toast("コインが足りない!", true); return false; }
     s.coins -= cost;
     s.nest.lv = lv + 1;
-    UI.toast(`巣が Lv${s.nest.lv} に! 外出枠+1・隊列枠が拡張`);
+    this.notice(`すみか Lv${s.nest.lv}`, "外出枠+1・隊列枠が拡張"); // §9-C4
     return true;
   },
 
@@ -563,7 +565,7 @@ const Game = {
     if (s.coins < cost) { UI.toast("コインが足りない!", true); return false; }
     s.coins -= cost;
     s.devLv = (s.devLv || 0) + 1;
-    UI.toast(`惑星開発 Lv${s.devLv}! この惑星の生産+2%・エネルギー産出が増えた`);
+    this.notice(`惑星開発 Lv${s.devLv}`, "生産+2%・エネルギー増"); // §9-C4
     return true;
   },
 
@@ -1383,22 +1385,21 @@ const Game = {
       s.rank++;
       const bonus = s.rank * 100;
       s.coins += bonus;
-      UI.toast(`コロニーランク ${s.rank} に上昇! ボーナス ${fmt(bonus)}G`);
+      this.notice(`ランク ${s.rank}`, `上昇ボーナス +${fmt(bonus)}G`); // §9-C4 中央通知へ
       if (UI.rankUpFx) UI.rankUpFx(); // 軽(§6): 画面を占有しないその場リング
-      // ショップ進化・自動補給の解禁通知 (GameExpansion_v2 ⑤)
+      // ショップ進化・自動補給の解禁 (GameExpansion_v2 ⑤)
       if (SHOP_TIERS.some((t) => t.rank === s.rank)) {
-        UI.toast(`まとめ買いが解放された! 購入単位が ×${fmt(shopUnitsFor(s.rank)[1])} に育った!`);
+        this.notice("まとめ買い解放", `購入単位 ×${fmt(shopUnitsFor(s.rank)[1])}`);
       }
       if (s.rank === CFG.autoSupplyRank) {
-        UI.toast("自動補給が解禁! ショップ欄のトグルでONにできる");
+        this.notice("自動補給 解禁", "ショップのトグルでON");
       }
     }
     if (this.currentStage().id !== prevStage) {
-      UI.toast(`コロニーが「${this.currentStage().name}」へ広がった! 新種族が解放!`);
+      this.notice(`「${this.currentStage().name}」へ拡大`, "新種族が解放", "boss");
     } else if (this.unlockedStages().length > prevUnlocked) {
-      // 手動選択中に新ステージが解放された場合の移住案内
       const st = this.unlockedStages().slice(-1)[0];
-      UI.toast(`新ステージ「${st.name}」が解放! ステージ欄から移住できる`);
+      this.notice(`新ステージ「${st.name}」解放`, "ステージ欄から移住");
     }
   },
 
@@ -1554,7 +1555,7 @@ const Game = {
     // Enrage (T5+): 残り20%で激昂
     if (r.tierDef && r.tierDef.enrage && !r.enraged && e.hp < e.maxHp * 0.2 && e.hp > 0) {
       r.enraged = true;
-      UI.toast("敵が激昂した!! 攻撃が苛烈になる!", true);
+      this.notice("敵が激昂!!", "攻撃が苛烈になる", "boss"); // §9-C1
     }
     return e.hp <= 0;
   },
@@ -1828,16 +1829,15 @@ const Game = {
         s.eggs.push(r.stolenEgg);
         msg += " / 卵を取り返した!";
       }
-      if (UI.heroBossDown && (r.elite || r.boss || (r.tier || 0) >= 3)) UI.heroBossDown(r, msg);
-      else UI.toast(msg);
+      this.notice(`${r.type.name} 撃破`, msg, "boss"); // §9: 全画面撃破演出→中央の軽い通知(戦利品は報酬盤が見せる)
       this.popupBurst(r.snake.x, r.snake.y);
       this.slowmo = 0.6; // 撃破スローモーション
       r.dyingT = 1.15; r.hitT = 0;
       this.corpse = r; // 死に様の描画専用スナップショット(§3.3。ロジックはraid=nullで即終了)
     } else {
-      if (reason === "egg") UI.toast("オオガラスに卵を奪われた…!", true);
-      else if (reason === "grab") UI.toast("オオタカは仲間をさらって去った…(時間経過で戻ってくる)", true);
-      else UI.toast("敵は満足して去っていった…負傷者を回復させよう", true);
+      if (reason === "egg") this.notice("卵を奪われた", "オオガラスが持ち去った", "boss");
+      else if (reason === "grab") this.notice("仲間がさらわれた", "時間で戻ってくる", "boss");
+      else this.notice("敵は去った", "負傷者を回復させよう", "boss");
     }
     this.raid = null;
     s.raidTimer = CFG.raidInterval;
