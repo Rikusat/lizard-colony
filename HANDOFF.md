@@ -1287,7 +1287,14 @@ npx vercel --prod --yes
 - **③トップバー数値の揺れ解消(構造)**: 全数値=tabular-nums+inline-block+最大桁min-width予約の共通ルール。coins5em/cps8.4em/crickets3.4/gems3.0/stones2.0em。実測: 1,234〜1500.05B・+0.5〜+99999999.9/秒 の全ケース×3解像度で後続ピルx座標一致・overflow0。
 - **④盤の意匠**: `ROUL_BOARD_SKINS.default`で分離(将来の惑星差替構造・_roulSkin())。釘=巣の藁+芯/レール=蛇の背骨/棚=祭壇+灯り/受け皿=巣穴/背景=紋章(卵と巣・落下時0.6s発光)。**描画のみ=当たり判定/geometry不変=確率不変=MC不要**(js/roulette.jsルール層未変更)。球が主役をスクショ検証・fps75・reduced-motionで発光/灯り静的化。
 - **検証**: 純度59 PASS・#spin-proof 10/10・数値揺れ0(3解像度)・改称漏れ0・fps75・consoleエラー0。tools/bump-cache.mjsでハッシュ更新(ローカル=本番)。
-- **次(承認済/未着手)**: C2c(虹の最大ジュース=新種お披露目の最大演出)。
+
+### 9. 再修正4点 + C2c(2026-07-20)✅ [commit ad185bd, ee5026f]
+- **①ツールチップ見切れ(構造)**: `#topbar [data-tip]::after`を折返し可+`max-width:240px`(旧nowrapで520px級横伸び→右端見切れ)。右2つ(gems/stones)は左寄せ展開。実測: 3解像度で全ツールチップ画面内(inView)。
+- **②賢者の石=光吸収色**: 【周り深紅・中心ほぼ黒】へ(radial中心`--stone-deep #100206`→リム`--stone-hi #8A1626`・アイコンも暗紅)。宝石見えを排除。
+- **③Gold pill幅圧縮**: 予約を実運用へ(coins5→4.2em・cps8.4→7em)。Gold pill 226px。実測: 〜999.99B/〜+9999999.9/秒で後続pill不動・overflow0。
+- **④張り付き寿命=レーン別(CFG)**: `slitStickSec:[0,1,10,60]`。lane1即消滅/lane2 1s→点滅/lane3 10s/lane4 60s(実測一致)。`slitStickMax:12`(寿命が主限=平均5・稀バースト18のみ抑制)。view: フェードをlife0基準+残り<1sで淡い明滅(reduced-motion静的)。
+- **C2c 虹の最大ジュース**: `js/ui/hero/species-reveal.js`。大ボス虹ポケットの新種で全画面ヒーロー、`Render.drawLizard`で【姿を大きく・遺伝子カラー反映】+七色リング+名前/モーフ種族名/★。総尺2200ms・z340(盤の上)・reduced-motion静止。game.spawnRouletteEgg 新種pathで発火。承認方針=全画面ヒーロー×姿を大きく。
+- **検証**: 純度59 PASS・#spin-proof 10/10・ツールチップ画面内(3解像度)・Gold226px&揺れ0・寿命レーン別一致・C2c実機描画(nonEmptyPx多数・z340)・fps維持・reduced-motion静止・consoleエラー0。
 
 ### 6. 現在の保留・未着手(次編以降)
 - **Phase 5** 惑星背景の本格実装(**モノリス最優先**) / **Phase 6** 惑星固有の敵・味方＋命名(創作・Ric承認要) / **Phase 7** 味方のステージ固有化・ボスLv連動強化(6依存) / ルーレットの惑星別意匠(`docs/roulette_rules.md`) / 特性システム(`docs/trait_system.md`・寝かせ中)。
