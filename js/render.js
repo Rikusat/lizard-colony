@@ -11,7 +11,9 @@ const FAC_POS = {
   light: { x: 1010, y: 322 },       // 保温設備(§8.12で旧・展望台位置=右へ移動。ボス側)。名残でキー名はlight
   observatory: { x: 640, y: 300 },  // 展望台(§8.12で中央へ配置し巨大化=中央のランドマーク/ギミック)
   burrow: { x: 185, y: 322 },       // すみか(§8.12で旧・保温設備位置=左へ。ボス登場側の反対=ベビーが逃げ込む)
-  fenceX: 1218,
+  fenceX: 1218,                      // フェンス(右端の防柵。ボスの進路)
+  watchtower: { x: 1150, y: 254 },  // §8.17 監視塔(右上=ボスの接近を見張る物見櫓)
+  trap: { x: 1128, y: 470 },        // §8.17 罠(右のボス進入路=迎え撃つ。ルーレット盤/右端UIを避け y=470 のボスレーンへ)
 };
 const NEST = { x: 400, y: 512 };  // 卵の巣(§8.12で中央の巨大展望台を避け前景・左下寄りへ)
 // §8.15 スプライトキャッシュ: アニメ位相をこの粒度(phase単位)で量子化して焼き直す=時間スロットル。
@@ -66,6 +68,28 @@ function burrowTierInfo(lv) {
   const gap = 44 * scale;            // 入口の間隔
   const hitR = Math.max(84, gap * (entrances - 1) / 2 + 46 * scale);
   return { tier: t, scale, entrances, gap, hitR };
+}
+// §8.17 防衛設備(ボスは右から来る=右側に迎え撃つ構え。育つほど「守りが堅そう」に見える)
+// フェンス(木柵→補強柵→丸太の防柵・上限10/3tier)。垂直帯。tierで高さ/杭/堅牢さが増す。
+function fenceTierInfo(lv) {
+  const { tier, within } = facTier(lv, [3, 7, 10]);
+  if (!tier) return { tier: 0 };
+  return { tier, within, spikes: tier >= 2, thick: [0, 5, 7, 10][tier] };
+}
+// 監視塔(物見櫓・上限10/3tier)。見張りが立つ台=居場所。tierで高く堅牢に+篝火/鐘。
+function watchtowerTierInfo(lv) {
+  const { tier, within } = facTier(lv, [3, 6, 10]);
+  if (!tier) return { tier: 0, h: 0, hitR: 0 };
+  const h = [0, 84, 126, 172][tier] + within * [0, 10, 14, 16][tier];
+  const tw = [0, 58, 74, 92][tier] + within * [0, 6, 8, 10][tier];
+  return { tier, within, h, tw, hitR: Math.max(60, tw * 0.7) };
+}
+// 罠設備(杭列→落とし穴+網→焼却罠・上限15/3tier)。ボスの進路(右)に牙を向ける。
+function trapTierInfo(lv) {
+  const { tier, within } = facTier(lv, [5, 10, 15]);
+  if (!tier) return { tier: 0, w: 0, hitR: 0 };
+  const w = [0, 92, 132, 172][tier] + within * [0, 10, 14, 18][tier];
+  return { tier, within, w, hitR: Math.max(58, w * 0.5) };
 }
 
 // ID8 氷の前線: 浮遊モノリス(上位存在の技術・中景の異物)の共有ジオメトリ。
@@ -1466,24 +1490,86 @@ const Render = {
 
     if (lv("heat")) this._drawHeat(ctx, P.light, lv("heat")); // Phase8: tierで保温ライト→温室→空中ライト(§8.10で左=旧シェルター位置へ移動)
 
-    if (lv("fence")) { // 木製フェンス
-      const x = P.fenceX;
-      // 横板(2本、奥に)
-      ctx.strokeStyle = "#4d3d24"; ctx.lineWidth = 5;
-      ctx.beginPath(); ctx.moveTo(x - 1, 244); ctx.lineTo(x - 1, 696); ctx.stroke();
-      ctx.strokeStyle = "#5f4c2d"; ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.moveTo(x + 7, 250); ctx.lineTo(x + 7, 692); ctx.stroke();
-      // 支柱(丸頭+木目)
-      for (let y = 232; y <= 680; y += 46) {
-        ctx.fillStyle = "rgba(0,0,0,.25)";
-        ctx.beginPath(); ctx.ellipse(x + 2, y + 40, 9, 3, 0, 0, 7); ctx.fill();
-        ctx.fillStyle = "#6b5433";
-        rr(ctx, x - 5, y, 10, 40, 4); ctx.fill();
-        ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.lineWidth = 1.2;
-        rr(ctx, x - 5, y, 10, 40, 4); ctx.stroke();
-        ctx.fillStyle = "rgba(255,255,255,.14)";
-        rr(ctx, x - 3.5, y + 1.5, 3, 36, 2); ctx.fill();
-      }
+    if (lv("fence")) this._drawFence(ctx, P.fenceX, lv("fence")); // §8.17: tierで木柵→補強柵→丸太の防柵(右端・ボスを迎え撃つ)
+  },
+
+  // §8.17 フェンス: 右端の防柵。tierで高く・太く・杭(右=ボス側)・横桟増・土塁+旗=「守りが堅そう」に育つ。
+  _drawFence(ctx, x, lv) {
+    const info = fenceTierInfo(lv), tier = info.tier, th = info.thick;
+    const top = tier >= 3 ? 214 : tier >= 2 ? 224 : 232, bot = 692;
+    ctx.strokeStyle = "#4d3d24"; ctx.lineWidth = th; ctx.lineCap = "round"; // 縦の丸太(手前)
+    ctx.beginPath(); ctx.moveTo(x - 1, top + 12); ctx.lineTo(x - 1, bot); ctx.stroke();
+    ctx.strokeStyle = "#5f4c2d"; ctx.lineWidth = Math.max(3, th - 2);
+    ctx.beginPath(); ctx.moveTo(x + th * 1.3, top + 16); ctx.lineTo(x + th * 1.3, bot - 4); ctx.stroke();
+    for (let y = top; y <= bot - 40; y += tier >= 3 ? 38 : 46) { // 支柱(丸頭・tierで尖った杭を右へ)
+      ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(x + 2, y + 40, 9, 3, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#6b5433"; rr(ctx, x - th * 0.6, y, th * 1.2, 42, 4); ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.lineWidth = 1.2; rr(ctx, x - th * 0.6, y, th * 1.2, 42, 4); ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,.14)"; rr(ctx, x - th * 0.4, y + 1.5, 3, 38, 2); ctx.fill();
+      if (info.spikes) { ctx.fillStyle = "#7a6238"; ctx.beginPath(); ctx.moveTo(x - th * 0.6, y); ctx.lineTo(x + th * 0.6, y); ctx.lineTo(x + th * 0.6 + (tier >= 3 ? 11 : 6), y - (tier >= 3 ? 13 : 8)); ctx.closePath(); ctx.fill(); }
+    }
+    ctx.strokeStyle = "#5a4025"; ctx.lineWidth = tier >= 3 ? 5 : 3.5; // 横桟(tierで本数)
+    const rails = tier >= 3 ? [0.2, 0.5, 0.8] : tier >= 2 ? [0.3, 0.7] : [0.35, 0.75];
+    for (const r of rails) { const yy = top + (bot - top) * r; ctx.beginPath(); ctx.moveTo(x - th, yy); ctx.lineTo(x + th + 8, yy); ctx.stroke(); }
+    if (tier >= 3) { // 土塁の基部+旗(右へなびく)
+      ctx.strokeStyle = "#3a2e1a"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, top + 6); ctx.lineTo(x, top - 26); ctx.stroke();
+      const fl = Math.sin(this.time * 3) * 3; ctx.fillStyle = "#9a3b2e";
+      ctx.beginPath(); ctx.moveTo(x, top - 26); ctx.lineTo(x + 22, top - 22 + fl); ctx.lineTo(x, top - 13); ctx.closePath(); ctx.fill();
+    }
+  },
+
+  // §8.17 監視塔(物見櫓): tierで高く堅牢に。見張り台(手すり付き)=居場所。tier3で鐘+右へ向くサーチライト。
+  _drawWatchtower(ctx, x, gy, lv) {
+    const info = watchtowerTierInfo(lv), tier = info.tier, h = info.h, tw = info.tw, hw = tw / 2, topW = hw * 0.5;
+    ctx.fillStyle = "rgba(0,0,0,.26)"; ctx.beginPath(); ctx.ellipse(x, gy + 8, hw * 0.9, 9, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#463522"; ctx.lineWidth = tier >= 3 ? 5 : 4; ctx.lineCap = "round"; // 奥の2脚
+    ctx.beginPath(); ctx.moveTo(x - hw * 0.6, gy); ctx.lineTo(x - topW * 0.6, gy - h); ctx.moveTo(x + hw * 0.6, gy); ctx.lineTo(x + topW * 0.6, gy - h); ctx.stroke();
+    const lvl = tier >= 3 ? 4 : 3;
+    ctx.strokeStyle = "#6b5636"; ctx.lineWidth = 2; // 段ごとのXブレース+踏み桟
+    for (let i = 0; i < lvl; i++) { const y0 = gy - h * i / lvl, y1 = gy - h * (i + 1) / lvl, w0 = hw * (1 - i / lvl * 0.5), w1 = hw * (1 - (i + 1) / lvl * 0.5);
+      ctx.beginPath(); ctx.moveTo(x - w0, y0); ctx.lineTo(x + w1, y1); ctx.moveTo(x + w0, y0); ctx.lineTo(x - w1, y1); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x - w1, y1); ctx.lineTo(x + w1, y1); ctx.stroke(); }
+    ctx.strokeStyle = "#5a4630"; ctx.lineWidth = tier >= 3 ? 6 : 5; // 手前の2脚(明るく)
+    ctx.beginPath(); ctx.moveTo(x - hw, gy); ctx.lineTo(x - topW, gy - h); ctx.moveTo(x + hw, gy); ctx.lineTo(x + topW, gy - h); ctx.stroke();
+    ctx.strokeStyle = "#7a6238"; ctx.lineWidth = 1.6; // 梯子
+    for (let ry = gy - 10; ry > gy - h + 10; ry -= 12) { ctx.beginPath(); ctx.moveTo(x - 6, ry); ctx.lineTo(x + 6, ry); ctx.stroke(); }
+    const py = gy - h, pw = hw * 0.66; // 見張り台(居場所)+手すり
+    ctx.fillStyle = "#6b5c4a"; rr(ctx, x - pw, py - 4, pw * 2, 8, 2); ctx.fill();
+    ctx.strokeStyle = "#4a4038"; ctx.lineWidth = 2; ctx.lineCap = "round";
+    for (const rx of [x - pw, x - pw * 0.33, x + pw * 0.33, x + pw]) { ctx.beginPath(); ctx.moveTo(rx, py - 4); ctx.lineTo(rx, py - 15); ctx.stroke(); }
+    ctx.beginPath(); ctx.moveTo(x - pw, py - 14); ctx.lineTo(x + pw, py - 14); ctx.stroke();
+    if (tier >= 2) { ctx.fillStyle = "#5a4128"; ctx.beginPath(); ctx.moveTo(x - pw - 4, py - 15); ctx.lineTo(x, py - 15 - tw * 0.36); ctx.lineTo(x + pw + 4, py - 15); ctx.closePath(); ctx.fill(); } // 屋根
+    if (tier >= 3) { // 鐘+右へ向くサーチライト(ボスを睨む)
+      ctx.fillStyle = "#b8892e"; ctx.beginPath(); ctx.arc(x + pw * 0.55, py - 7, 5, Math.PI, 0); ctx.fill();
+      const lg = ctx.createLinearGradient(x + pw, py - 8, x + pw + 130, py - 8); lg.addColorStop(0, "rgba(255,235,150,.22)"); lg.addColorStop(1, "rgba(255,235,150,0)");
+      ctx.save(); ctx.translate(x + pw, py - 8); ctx.rotate(0.4 + Math.sin(this.time * 0.6) * 0.12); ctx.fillStyle = lg; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(130, -18); ctx.lineTo(130, 26); ctx.closePath(); ctx.fill(); ctx.restore();
+    }
+  },
+
+  // §8.17 罠設備: ボスの進路(右)へ牙。tierで杭列→落とし穴+網→焼却罠(篝火)。
+  _drawTrap(ctx, x, gy, lv) {
+    const info = trapTierInfo(lv), tier = info.tier, w = info.w, hw = w / 2;
+    ctx.fillStyle = "rgba(0,0,0,.24)"; ctx.beginPath(); ctx.ellipse(x, gy + 6, hw * 0.9, 8, 0, 0, 7); ctx.fill();
+    if (tier >= 2) { // 落とし穴+網
+      const pg = ctx.createRadialGradient(x, gy, 4, x, gy, hw * 0.8); pg.addColorStop(0, "#120c06"); pg.addColorStop(1, "rgba(60,44,26,0)");
+      ctx.fillStyle = pg; ctx.beginPath(); ctx.ellipse(x, gy, hw * 0.8, hw * 0.34, 0, 0, 7); ctx.fill();
+      ctx.strokeStyle = "rgba(180,190,170,.32)"; ctx.lineWidth = 1;
+      for (let gx = -hw * 0.7; gx <= hw * 0.7; gx += 12) { ctx.beginPath(); ctx.moveTo(x + gx, gy - hw * 0.28); ctx.lineTo(x + gx, gy + hw * 0.28); ctx.stroke(); }
+      for (let gyy = -hw * 0.28; gyy <= hw * 0.28; gyy += 8) { ctx.beginPath(); ctx.moveTo(x - hw * 0.7, gy + gyy); ctx.lineTo(x + hw * 0.7, gy + gyy); ctx.stroke(); }
+    }
+    const n = tier >= 3 ? 7 : tier >= 2 ? 5 : 4; // 杭列(右へ傾ける牙)
+    for (let i = 0; i < n; i++) {
+      const sx = x - hw * 0.7 + (hw * 1.4) * i / (n - 1), sh = tier >= 3 ? 26 : tier >= 2 ? 20 : 15, tip = tier >= 2 ? 9 : 6;
+      ctx.fillStyle = "#3a2c1a"; ctx.strokeStyle = "#5a4630"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(sx - 4, gy + 4); ctx.lineTo(sx + tip, gy - sh); ctx.lineTo(sx + 4, gy + 4); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,.2)"; ctx.beginPath(); ctx.moveTo(sx - 1, gy); ctx.lineTo(sx + tip * 0.8, gy - sh * 0.85); ctx.lineTo(sx + 1, gy); ctx.closePath(); ctx.fill();
+    }
+    if (tier >= 3) { // 焼却罠(篝火=ウェブ自動焼却)
+      const fx = x + hw * 0.72, fy = gy - 4, fl = Math.sin(this.time * 9) * 3;
+      const g = ctx.createRadialGradient(fx, fy - 8, 2, fx, fy - 8, 24); g.addColorStop(0, "rgba(255,150,60,.7)"); g.addColorStop(1, "rgba(255,150,60,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(fx, fy - 8, 24, 0, 7); ctx.fill();
+      ctx.fillStyle = "#ff9a40"; ctx.beginPath(); ctx.moveTo(fx - 6, fy); ctx.quadraticCurveTo(fx - 2 + fl, fy - 18, fx, fy - 22 + fl); ctx.quadraticCurveTo(fx + 4 - fl, fy - 14, fx + 6, fy); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "#3a2a16"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(fx - 7, fy + 2); ctx.lineTo(fx + 7, fy - 1); ctx.moveTo(fx - 6, fy - 1); ctx.lineTo(fx + 7, fy + 2); ctx.stroke();
     }
   },
 
@@ -1554,49 +1640,12 @@ const Render = {
     this.pill(ctx, bx - 16, yo + 18, "タップで巣", "rgba(0,0,0,.22)", "rgba(210,225,235,.55)", 9);
   },
 
-  // Phase3 追加設備の小型マーカー(小屋+アイコンラベル)
+  // 展望台+防衛設備(§8.17でそれぞれ独自tier=一目で分かるのでラベルなし)
   drawSmallFacilities(ctx) {
-    const spots = {
-      observatory: [FAC_POS.observatory.x, FAC_POS.observatory.y], watchtower: [862, 204], trap: [1148, 668],
-    };
-    for (const f of FACILITIES) {
-      if (!f.unlock || !Game.facLv(f.id)) continue;
-      const p = spots[f.id];
-      if (!p) continue;
-      if (f.id === "observatory") { this._drawObservatory(ctx, p, Game.facLv(f.id)); continue; } // Phase8: 展望台は独自tier(展望岩→標本棚→研究所・一目で分かるのでラベルなし)
-      const [x, y] = p;
-      // 接地影+小屋
-      ctx.fillStyle = "rgba(0,0,0,.25)";
-      ctx.beginPath(); ctx.ellipse(x, y + 13, 22, 5, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = "#57452c";
-      rr(ctx, x - 16, y - 8, 32, 20, 4); ctx.fill();
-      ctx.fillStyle = "#6d5636";
-      ctx.beginPath();
-      ctx.moveTo(x - 20, y - 6); ctx.lineTo(x, y - 20); ctx.lineTo(x + 20, y - 6);
-      ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.lineWidth = 1.4;
-      rr(ctx, x - 16, y - 8, 32, 20, 4); ctx.stroke();
-      // 特殊演出
-      if (f.id === "bonfire") { // 炎
-        const fl = Math.sin(this.time * 9) * 3;
-        const g = ctx.createRadialGradient(x, y - 24, 2, x, y - 24, 26);
-        g.addColorStop(0, "rgba(255,180,80,.8)"); g.addColorStop(1, "rgba(255,180,80,0)");
-        ctx.fillStyle = g;
-        ctx.beginPath(); ctx.arc(x, y - 24, 26, 0, 7); ctx.fill();
-        ctx.fillStyle = "#ff9a40";
-        ctx.beginPath();
-        ctx.moveTo(x - 6, y - 18); ctx.quadraticCurveTo(x - 2 + fl, y - 34, x, y - 38 + fl);
-        ctx.quadraticCurveTo(x + 4 - fl, y - 30, x + 6, y - 18);
-        ctx.closePath(); ctx.fill();
-      } else if (f.id === "altar") { // 金の光
-        const g = ctx.createRadialGradient(x, y - 12, 2, x, y - 12, 30);
-        g.addColorStop(0, `rgba(255,220,120,${0.35 + Math.sin(this.time * 2) * 0.15})`);
-        g.addColorStop(1, "rgba(255,220,120,0)");
-        ctx.fillStyle = g;
-        ctx.beginPath(); ctx.arc(x, y - 12, 30, 0, 7); ctx.fill();
-      }
-      this.pill(ctx, x - 30, y + 16, `${f.name}Lv${Game.facLv(f.id)}`); // Phase8: 英語キー(f.icon)露出を是正=設備名(f.name)で表示。小屋は汎用ゆえ名称は情報として残す
-    }
+    const lv = (id) => Game.facLv(id);
+    if (lv("observatory")) this._drawObservatory(ctx, [FAC_POS.observatory.x, FAC_POS.observatory.y], lv("observatory")); // §8.12 中央の巨大展望台
+    if (lv("watchtower")) this._drawWatchtower(ctx, FAC_POS.watchtower.x, FAC_POS.watchtower.y, lv("watchtower"));         // §8.17 右上の物見櫓
+    if (lv("trap")) this._drawTrap(ctx, FAC_POS.trap.x, FAC_POS.trap.y, lv("trap"));                                       // §8.17 右下の罠
   },
 
   // 半透明ラベル

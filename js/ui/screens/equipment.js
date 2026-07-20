@@ -20,12 +20,15 @@ Object.assign(UI, {
       // Phase8: 保温設備は温室化でスケール追従(heatTierInfo共有)。中心はP.light、育つと全体を覆う
       { id: "heat", x: P.light.x, y: P.light.y, r: (typeof heatTierInfo !== "undefined" ? Math.max(60, heatTierInfo(Game.facLv("heat")).hitR) : 62) },
       { id: "observatory", x: P.observatory.x, y: P.observatory.y, r: (typeof observatoryTierInfo !== "undefined" ? observatoryTierInfo(Game.facLv("observatory")).hitR : 56) }, // §8.12: 展望台=中央・巨大(FAC_POSと共有)
+      // §8.17: 防衛設備もタップ可能+スケール追従(監視塔=塔高/罠=杭列幅)
+      { id: "watchtower", x: P.watchtower.x, y: P.watchtower.y - (typeof watchtowerTierInfo !== "undefined" ? watchtowerTierInfo(Game.facLv("watchtower")).h * 0.5 : 40), r: (typeof watchtowerTierInfo !== "undefined" ? watchtowerTierInfo(Game.facLv("watchtower")).hitR : 60) },
+      { id: "trap", x: P.trap.x, y: P.trap.y, r: (typeof trapTierInfo !== "undefined" ? trapTierInfo(Game.facLv("trap")).hitR : 58) },
     ];
     for (const h of hits) {
       if (Game.facLv(h.id) > 0 && Math.hypot(x - h.x, y - h.y) < h.r) return h.id;
     }
     // フェンスは縦帯で判定(建設済みのみ)
-    if (Game.facLv("fence") > 0 && Math.abs(x - P.fenceX) < 26 && y > 230 && y < 700) return "fence";
+    if (Game.facLv("fence") > 0 && Math.abs(x - P.fenceX) < 30 && y > 200 && y < 700) return "fence";
     return null;
   },
 
