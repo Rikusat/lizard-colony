@@ -1337,5 +1337,9 @@ npx vercel --prod --yes
 
 **通しの検証**: 純度回帰**59 PASS**・#spin-proof **10/10**・決定論PASS・各解像度で1画面固定/あふれ0/当たり判定hit・数値レイアウト揺れ0・consoleエラー0。デプロイ前に`node tools/bump-cache.mjs`でハッシュ更新(ローカル=本番)。
 
+**K. 本番デプロイ(2026-07-20)** ✅ 本番URL=https://lizardcolony.vercel.app
+- デプロイ前QA(全パス・重大/軽微の不具合0): 新規セーブ起動(v11) / セーブ移行 v10・v9・v8・v5→v11(coins/gems保全・stones付与・冪等) / ボス討伐→報酬盤→虹お披露目 通し(hero-species z340) / 四重スリット装置稼働 / 各解像度(1920×1080/945・1600×860・1366×705・1180×720)で1画面固定・あふれ0・当たり判定hit / #spin-proof 10/10 / 純度59 / consoleエラー0。
+- `bump-cache`→`npx vercel --prod`。本番実測: 反映OK(四重スリット改称・species-reveal.js・賢者の石ピル・--chrome-v=108px) / 初回ロード描画OK(canvas非空・あふれ0) / 飼育槽=1612×907(拡大反映) / 既存v9セーブ→v11移行で資産保全 / HTTP4xx 0・consoleエラー0。
+
 ### 6. 現在の保留・未着手(次編以降)
 - **Phase 5** 惑星背景の本格実装(**モノリス最優先**) / **Phase 6** 惑星固有の敵・味方＋命名(創作・Ric承認要) / **Phase 7** 味方のステージ固有化・ボスLv連動強化(6依存) / ルーレットの惑星別意匠(`docs/roulette_rules.md`) / 特性システム(`docs/trait_system.md`・寝かせ中)。
