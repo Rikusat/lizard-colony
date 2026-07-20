@@ -1098,6 +1098,7 @@ const Render = {
   // 骨格は共通・惑星別意匠は後日(色/植生をここに集約すれば差し替え可能)。per-frameで軽量に。
   _drawWater(ctx, p, lv) {
     const info = waterTierInfo(lv), rx = info.rx, ry = info.ry, tier = info.tier;
+    if (tier >= 4) { this._drawGrandLake(ctx); return; } // 大湖(§8.6): 画面左下へ広がる巨大な湖(別レイアウト)
     // 岸(砂/土の縁=地面と馴染む)
     ctx.fillStyle = "#8a7350"; ctx.beginPath(); ctx.ellipse(p.x, p.y, rx * 1.14, ry * 1.16, 0, 0, 7); ctx.fill();
     ctx.fillStyle = "rgba(0,0,0,.2)"; ctx.beginPath(); ctx.ellipse(p.x, p.y + ry * 0.06, rx * 1.05, ry * 1.05, 0, 0, 7); ctx.fill();
@@ -1156,66 +1157,124 @@ const Render = {
       if (rand() < 0.28) { ctx.fillStyle = rand() < 0.5 ? "#e8a0c0" : "#f5d76e"; ctx.beginPath(); ctx.arc(x + rand() * 8 - 4, y - 6, 2, 0, 7); ctx.fill(); }
     }
   },
+  _reedCluster(ctx, bx, by, n) {
+    ctx.lineWidth = 2.4; ctx.lineCap = "round";
+    for (let i = 0; i < n; i++) {
+      const x = bx + i * 5 - n * 2.5, h = 22 + (i % 3) * 9, sway = Math.sin(this.time * 1.2 + i + bx * 0.1) * 3;
+      ctx.strokeStyle = "#4a7a3a"; ctx.beginPath(); ctx.moveTo(x, by); ctx.quadraticCurveTo(x + sway * 0.5, by - h * 0.6, x + sway, by - h); ctx.stroke();
+      ctx.fillStyle = "#6b4a2a"; ctx.beginPath(); ctx.ellipse(x + sway, by - h, 2.2, 6, 0, 0, 7); ctx.fill();
+    }
+  },
+  // Phase8.6: 大湖=画面左下の隅へ沈み画面外へ広がる巨大な湖。さざ波が流れ、岸辺=浅瀬でトカゲが水浴び(§8.5スポット)。
+  // 水浴びスポット(§8.5・記録): 浅瀬 ≈ (300,620)・岸へ歩いて入れる。飛び石 (340,618)/(250,648)。
+  _drawGrandLake(ctx) {
+    const lcx = 120, lcy = 702, lrx = 360, lry = 156;
+    ctx.fillStyle = "#8a7350"; ctx.beginPath(); ctx.ellipse(lcx, lcy, lrx + 20, lry + 18, 0, 0, 7); ctx.fill(); // 砂/土の岸
+    ctx.fillStyle = "rgba(0,0,0,.14)"; ctx.beginPath(); ctx.ellipse(lcx, lcy - 2, lrx + 8, lry + 6, 0, 0, 7); ctx.fill();
+    ctx.save();
+    ctx.beginPath(); ctx.ellipse(lcx, lcy, lrx, lry, 0, 0, 7); ctx.clip();
+    const wg = ctx.createLinearGradient(lcx + lrx * 0.7, lcy - lry * 0.7, lcx - lrx * 0.6, lcy + lry * 0.6);
+    wg.addColorStop(0, "#5a97b8"); wg.addColorStop(0.42, "#356883"); wg.addColorStop(1, "#173245"); // 岸=明/奥=深
+    ctx.fillStyle = wg; ctx.fillRect(lcx - lrx, lcy - lry, lrx * 2, lry * 2);
+    ctx.fillStyle = "rgba(150,205,225,.4)"; ctx.beginPath(); ctx.ellipse(lcx + lrx * 0.5, lcy - lry * 0.42, lrx * 0.5, lry * 0.42, -0.35, 0, 7); ctx.fill(); // 浅瀬
+    ctx.fillStyle = "rgba(195,228,242,.32)"; ctx.beginPath(); ctx.ellipse(lcx + lrx * 0.62, lcy - lry * 0.5, lrx * 0.3, lry * 0.26, -0.35, 0, 7); ctx.fill();
+    ctx.strokeStyle = "rgba(210,238,250,.16)"; ctx.lineWidth = 1.3; // さざ波(per-frame)
+    for (let i = 0; i < 8; i++) {
+      ctx.beginPath(); const baseY = lcy - lry * 0.85 + i * 24;
+      for (let x = lcx - lrx; x <= lcx + lrx; x += 22) { const yy = baseY + Math.sin(x * 0.04 + this.time * 1.3 + i * 0.6) * 3.5 + Math.sin(this.time * 0.7 + i) * 2; x === lcx - lrx ? ctx.moveTo(x, yy) : ctx.lineTo(x, yy); }
+      ctx.stroke();
+    }
+    ctx.fillStyle = "rgba(255,255,255,.4)"; // きらめき
+    for (const [sx, sy] of [[260, 600], [180, 662], [330, 632]]) { ctx.globalAlpha = 0.4 + Math.sin(this.time * 3 + sx) * 0.4; ctx.beginPath(); ctx.ellipse(sx, sy, 8, 1.6, 0.2, 0, 7); ctx.fill(); }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+    // 岸辺の植生(land側=上右の弧)+ 浅瀬の飛び石(水遊びの足場)+ 睡蓮
+    const shore = (a) => [lcx + Math.cos(a) * (lrx + 6), lcy + Math.sin(a) * (lry + 4)];
+    for (const a of [-0.2, -0.42, -0.62]) { const [sx, sy] = shore(a); this._reedCluster(ctx, sx, sy, 4); }
+    const gr = lcg(717); for (let i = 0; i < 9; i++) { const a = -0.1 - gr() * 0.62; const [sx, sy] = shore(a); this.tuft(ctx, sx + (gr() - 0.5) * 20, sy + 3, "#4a7a3a", gr); if (gr() < 0.3) { ctx.fillStyle = gr() < 0.5 ? "#e8a0c0" : "#f5d76e"; ctx.beginPath(); ctx.arc(sx, sy - 6, 2, 0, 7); ctx.fill(); } }
+    this.boulder(ctx, lcg(88), 340, 618, 14, "#6b5c4a"); // 飛び石(足場)
+    this.boulder(ctx, lcg(89), 250, 648, 10, "#5d5142");
+    this._lilyPad(ctx, 200, 622, 12, true); this._lilyPad(ctx, 300, 662, 11, false); this._lilyPad(ctx, 140, 642, 10, false);
+  },
 
-  // Phase8: 保温設備をtierで育てる(保温ライト→保温器→温室の骨組み→温室)。定位置(P.light)で暖かい生息環境が完成していく。
+  // Phase8.6: 保温設備(保温ライト→保温器→温室の骨組み→温室)。構造・素材・使われている感を作り込む。
+  // §8.5 バスキングスポット: ランプ直下の温床スラブ ≈ (P.light.x, P.light.y+44)。姿勢=bask(平たく伏せる)。
   _drawHeat(ctx, p, lv) {
     const info = heatTierInfo(lv), tier = info.tier, w = info.w, h = info.h;
     const cx = p.x, gy = p.y + 46, hw = w / 2, top = gy - h, flick = 0.85 + Math.sin(this.time * 6) * 0.1;
-    // 地面の暖かい光だまり(全tier・ほんのり脈動)
-    ctx.fillStyle = `rgba(255,206,110,${(0.1 + tier * 0.02) * flick})`;
-    ctx.beginPath(); ctx.ellipse(cx, gy + 4, hw * 1.2, hw * 0.34, 0, 0, 7); ctx.fill();
-    // 温室(tier3=骨組み / tier4=ガラス)。生息環境が屋根を得て"完成"していく
-    let barY = gy - h * 0.7;
+    ctx.fillStyle = "rgba(0,0,0,.16)"; ctx.beginPath(); ctx.ellipse(cx, gy + 5, hw * 1.05, hw * 0.26, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = `rgba(255,206,110,${(0.1 + tier * 0.02) * flick})`; ctx.beginPath(); ctx.ellipse(cx, gy + 2, hw * 1.12, hw * 0.32, 0, 0, 7); ctx.fill();
+    let barY = gy - h * 0.66;
+    // ===== 温室の構造(tier3=骨組み / tier4=ガラス) =====
     if (tier >= 3) {
-      const eaveY = top + h * 0.34; barY = top + h * 0.26;
-      if (tier >= 4) { // ガラス壁+内部の暖色
-        ctx.fillStyle = "rgba(206,226,234,.15)"; ctx.fillRect(cx - hw, eaveY, w, gy - eaveY);
-        const ig = ctx.createRadialGradient(cx, gy - h * 0.22, 4, cx, gy - h * 0.22, hw * 1.3);
-        ig.addColorStop(0, `rgba(255,188,108,${0.16 * flick})`); ig.addColorStop(1, "rgba(255,188,108,0)");
-        ctx.fillStyle = ig; ctx.fillRect(cx - hw, eaveY, w, gy - eaveY);
+      const eaveY = top + h * 0.36; barY = top + h * 0.22;
+      ctx.fillStyle = "#4a4038"; ctx.fillRect(cx - hw - 2, gy - 5, w + 4, 7); // 石の基礎
+      if (tier >= 4) {
+        ctx.fillStyle = "rgba(200,224,233,.16)"; ctx.fillRect(cx - hw, eaveY, w, gy - eaveY); // ガラス壁
+        const ig = ctx.createLinearGradient(cx, eaveY, cx, gy); ig.addColorStop(0, `rgba(255,196,120,${0.14 * flick})`); ig.addColorStop(1, `rgba(255,168,88,${0.08 * flick})`);
+        ctx.fillStyle = ig; ctx.fillRect(cx - hw, eaveY, w, gy - eaveY); // 内部の暖色
+        ctx.fillStyle = "rgba(200,224,233,.2)"; ctx.beginPath(); ctx.moveTo(cx - hw, eaveY); ctx.lineTo(cx, top); ctx.lineTo(cx + hw, eaveY); ctx.closePath(); ctx.fill(); // 屋根ガラス
       }
-      ctx.strokeStyle = "#3a3226"; ctx.lineWidth = 3; ctx.lineJoin = "round"; // フレーム外形
+      // 金属フレーム外形
+      ctx.strokeStyle = "#4a4640"; ctx.lineWidth = 3.5; ctx.lineJoin = "round";
       ctx.beginPath(); ctx.moveTo(cx - hw, gy); ctx.lineTo(cx - hw, eaveY); ctx.lineTo(cx, top); ctx.lineTo(cx + hw, eaveY); ctx.lineTo(cx + hw, gy); ctx.stroke();
-      ctx.strokeStyle = tier >= 4 ? "rgba(185,208,218,.5)" : "rgba(96,80,58,.6)"; ctx.lineWidth = 1.3; // 屋根の桟
-      for (const s of [-1, 1]) for (const t2 of [0.4, 0.75]) { ctx.beginPath(); ctx.moveTo(cx + s * hw * t2, eaveY - (eaveY - top) * (1 - t2) * 0); ctx.lineTo(cx + s * hw * t2 * 0.5, (top + eaveY) / 2); ctx.stroke(); }
+      // ガラスの桟=マリオン(品質の核)
+      ctx.strokeStyle = tier >= 4 ? "rgba(170,196,208,.55)" : "rgba(96,80,58,.55)"; ctx.lineWidth = 1.4;
+      for (const fx of [-0.5, 0, 0.5]) { ctx.beginPath(); ctx.moveTo(cx + fx * hw, eaveY); ctx.lineTo(cx + fx * hw, gy); ctx.stroke(); } // 壁の縦桟
+      for (const fy of [0.4, 0.72]) { const yy = eaveY + (gy - eaveY) * fy; ctx.beginPath(); ctx.moveTo(cx - hw, yy); ctx.lineTo(cx + hw, yy); ctx.stroke(); } // 壁の横桟
       ctx.beginPath(); ctx.moveTo(cx, top); ctx.lineTo(cx, eaveY); ctx.stroke(); // 棟
+      for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(cx + s * hw * 0.5, eaveY); ctx.lineTo(cx + s * hw * 0.25, (top + eaveY) / 2); ctx.stroke(); } // 屋根の桟
+      // ドア(正面・使われている入口)
+      ctx.strokeStyle = "#4a4640"; ctx.lineWidth = 2; ctx.strokeRect(cx + hw * 0.42 - 11, gy - 30, 22, 30);
+      ctx.fillStyle = "#6a665e"; ctx.beginPath(); ctx.arc(cx + hw * 0.42 - 7, gy - 15, 1.6, 0, 7); ctx.fill(); // ノブ
+      // 棟の換気窓(開=使われている)
+      ctx.fillStyle = "#3a3630"; ctx.save(); ctx.translate(cx - hw * 0.28, eaveY - (eaveY - top) * 0.32); ctx.rotate(-0.5); ctx.fillRect(0, -3, 18, 6); ctx.restore();
     }
-    // バスキングの温床(tier2+): 平たい温かい岩
+    // ===== バスキング台(温床スラブ)= §8.5 トカゲの居場所。tier2+で立派な平石に =====
     if (tier >= 2) {
-      ctx.fillStyle = "#6b5442"; ctx.beginPath(); ctx.ellipse(cx, gy, hw * 0.5, hw * 0.16, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = `rgba(255,150,70,${0.3 + Math.sin(this.time * 3) * 0.12})`; ctx.beginPath(); ctx.ellipse(cx, gy - 1, hw * 0.38, hw * 0.1, 0, 0, 7); ctx.fill();
+      const bpy = gy - 2;
+      ctx.fillStyle = "#726150"; ctx.beginPath(); ctx.ellipse(cx, bpy, hw * 0.46, hw * 0.15, 0, 0, 7); ctx.fill(); // 段
+      ctx.fillStyle = "#8f7d66"; ctx.beginPath(); ctx.ellipse(cx, bpy - 4, hw * 0.4, hw * 0.12, 0, 0, 7); ctx.fill(); // 天面(トカゲが乗る)
+      ctx.strokeStyle = "rgba(0,0,0,.18)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(cx, bpy - 4, hw * 0.4, hw * 0.12, 0, 0, 7); ctx.stroke();
+      ctx.fillStyle = `rgba(255,150,70,${0.22 + Math.sin(this.time * 3) * 0.08})`; ctx.beginPath(); ctx.ellipse(cx, bpy - 5, hw * 0.32, hw * 0.09, 0, 0, 7); ctx.fill(); // 温もりの照り
     }
-    // ヒートランプ(全tier・tierで数増)
+    // ===== ヒートランプ(反射笠+電球+フィラメント)。tierで数増 =====
     const bulbs = tier;
-    if (tier < 3) { // 開放: ポール+腕木
-      ctx.strokeStyle = "#3d3222"; ctx.lineWidth = 6; ctx.lineCap = "round";
-      ctx.beginPath(); ctx.moveTo(cx, gy + 12); ctx.lineTo(cx, barY - 4); ctx.stroke();
-      ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(cx, barY); ctx.lineTo(cx - hw * 0.5, barY - 6); ctx.stroke();
-    } else { // 温室内: 天井の吊りバー
-      ctx.strokeStyle = "#3d3222"; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(cx - hw * 0.55, barY); ctx.lineTo(cx + hw * 0.55, barY); ctx.stroke();
+    if (tier < 3) {
+      ctx.strokeStyle = "#3d3830"; ctx.lineWidth = 6; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(cx + hw * 0.55, gy + 10); ctx.lineTo(cx + hw * 0.55, barY); ctx.stroke(); // 支柱
+      ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(cx + hw * 0.55, barY); ctx.lineTo(cx, barY - 4); ctx.stroke(); // アーム
+      this._heatLamp(ctx, cx, barY - 2, flick);
+    } else {
+      ctx.strokeStyle = "#3d3830"; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(cx - hw * 0.55, barY); ctx.lineTo(cx + hw * 0.55, barY); ctx.stroke(); // 天井レール
+      for (let i = 0; i < bulbs; i++) this._heatLamp(ctx, cx + (i - (bulbs - 1) / 2) * Math.min(34, w / (bulbs + 1)), barY + 3, flick);
     }
-    for (let i = 0; i < bulbs; i++) {
-      const bx = tier < 3 ? cx - hw * 0.5 : cx + (i - (bulbs - 1) / 2) * Math.min(30, w / (bulbs + 1));
-      const by = barY + (tier < 3 ? -2 : 3);
-      ctx.fillStyle = "#6b5433"; ctx.beginPath(); ctx.moveTo(bx - 9, by); ctx.lineTo(bx + 9, by); ctx.lineTo(bx + 5, by - 8); ctx.lineTo(bx - 5, by - 8); ctx.closePath(); ctx.fill();
-      const glow = ctx.createRadialGradient(bx, by + 4, 3, bx, by + 4, 38);
-      glow.addColorStop(0, `rgba(255,214,120,${0.68 * flick})`); glow.addColorStop(1, "rgba(255,214,120,0)");
-      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(bx, by + 4, 38, 0, 7); ctx.fill();
-      ctx.fillStyle = "#ffedb0"; ctx.beginPath(); ctx.arc(bx, by + 5, 6, 0, 7); ctx.fill();
-      if (tier < 3) break; // 開放は1灯のみ
+    // ===== 使われている感の小物 =====
+    if (tier >= 2) { // 温度計(ポール式ゲージ)
+      const tx = tier >= 3 ? cx + hw * 0.74 : cx - hw * 0.5;
+      ctx.strokeStyle = "#5a564e"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(tx, gy); ctx.lineTo(tx, gy - 22); ctx.stroke();
+      ctx.fillStyle = "#e8e4dc"; ctx.beginPath(); ctx.arc(tx, gy - 25, 5, 0, 7); ctx.fill();
+      ctx.strokeStyle = "#c0392b"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(tx, gy - 25); ctx.lineTo(tx + 3, gy - 29); ctx.stroke(); // 針
     }
-    // 温室の植物(tier3+): 暖かい緑の鉢植え
-    if (tier >= 3) for (const dx of [-hw * 0.58, hw * 0.55]) {
-      ctx.fillStyle = "#5a3f28"; ctx.fillRect(cx + dx - 6, gy - 10, 12, 10);
+    if (tier >= 3) for (const dx of [-hw * 0.62, hw * 0.52]) { // テラコッタ鉢の手入れされた緑
+      ctx.fillStyle = "#7a4a2a"; rr(ctx, cx + dx - 7, gy - 11, 14, 11, 2); ctx.fill();
+      ctx.fillStyle = "#8a5a34"; ctx.fillRect(cx + dx - 7, gy - 11, 14, 3);
       ctx.strokeStyle = "#3f7a3a"; ctx.lineWidth = 2.4; ctx.lineCap = "round";
-      for (const a of [-0.5, 0, 0.5]) { ctx.beginPath(); ctx.moveTo(cx + dx, gy - 10); ctx.quadraticCurveTo(cx + dx + a * 14, gy - 26, cx + dx + a * 20, gy - 30); ctx.stroke(); }
+      for (const a of [-0.6, -0.1, 0.5]) { ctx.beginPath(); ctx.moveTo(cx + dx, gy - 11); ctx.quadraticCurveTo(cx + dx + a * 16, gy - 30, cx + dx + a * 24, gy - 34); ctx.stroke(); }
     }
-    // ガラスのハイライト+棟の蒸気(tier4=完成形)
-    if (tier >= 4) {
-      ctx.strokeStyle = "rgba(255,255,255,.14)"; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(cx - hw * 0.5, top + h * 0.18); ctx.lineTo(cx - 2, top + 4); ctx.stroke();
-      for (let k = 0; k < 3; k++) { const t2 = ((this.time * 0.4 + k * 0.34) % 1); ctx.fillStyle = `rgba(255,255,255,${0.13 * (1 - t2)})`; ctx.beginPath(); ctx.arc(cx + Math.sin(this.time + k) * 6, top - t2 * 26, 3 + t2 * 3, 0, 7); ctx.fill(); }
+    if (tier >= 4) { // ガラスのハイライト+棟の蒸気
+      ctx.strokeStyle = "rgba(255,255,255,.16)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx - hw * 0.5, top + h * 0.2); ctx.lineTo(cx - 4, top + 6); ctx.stroke();
+      for (let k = 0; k < 3; k++) { const t2 = ((this.time * 0.4 + k * 0.34) % 1); ctx.fillStyle = `rgba(255,255,255,${0.13 * (1 - t2)})`; ctx.beginPath(); ctx.arc(cx - hw * 0.28 + Math.sin(this.time + k) * 5, top - t2 * 24, 3 + t2 * 2, 0, 7); ctx.fill(); }
     }
+  },
+  _heatLamp(ctx, bx, by, flick) {
+    ctx.fillStyle = "#8a857a"; ctx.beginPath(); ctx.moveTo(bx - 11, by); ctx.lineTo(bx + 11, by); ctx.lineTo(bx + 6, by - 10); ctx.lineTo(bx - 6, by - 10); ctx.closePath(); ctx.fill(); // 反射笠(金属)
+    ctx.fillStyle = "#6a655c"; ctx.fillRect(bx - 6, by - 12, 12, 3); // 口金
+    ctx.strokeStyle = "rgba(255,255,255,.22)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(bx - 9, by - 1); ctx.lineTo(bx - 5, by - 8); ctx.stroke(); // 笠のハイライト
+    const glow = ctx.createRadialGradient(bx, by + 5, 3, bx, by + 5, 40); glow.addColorStop(0, `rgba(255,214,120,${0.7 * flick})`); glow.addColorStop(1, "rgba(255,214,120,0)");
+    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(bx, by + 5, 40, 0, 7); ctx.fill();
+    ctx.fillStyle = "#ffedb0"; ctx.beginPath(); ctx.arc(bx, by + 4, 6, 0, 7); ctx.fill(); // 電球
+    ctx.strokeStyle = `rgba(255,176,76,${flick})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(bx - 2, by + 4); ctx.lineTo(bx, by + 2); ctx.lineTo(bx + 2, by + 4); ctx.stroke(); // フィラメント
   },
 
   // Phase8: 餌場をtierで育てる(餌トラフ→自動給餌機→養殖プラント)。中央フィールドゆえ横型でコンパクトに(生き物を埋めない)。
@@ -1291,36 +1350,69 @@ const Render = {
   },
 
   // Phase8: 展望台をtierで育てる(展望岩→標本棚→研究所=ドーム天文台)。観測と研究の場が"完成"していく。
+  // Phase8.6: 展望台(展望岩→標本棚→研究所)。構造・素材・使われている感を作り込む。
+  // §8.5 観測スポット: 見晴らし台/バルコニー ≈ (cx, gy)。姿勢=lookout(頭をもたげ遠くを見る)。
   _drawObservatory(ctx, spot, lv) {
     const info = observatoryTierInfo(lv), tier = info.tier, w = info.w, h = info.h, cx = spot[0], gy = spot[1], hw = w / 2;
-    ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(cx, gy + 8, hw * 0.9, 8, 0, 0, 7); ctx.fill();
-    if (tier >= 3) { // 研究所: ドーム天文台
-      ctx.fillStyle = "#6b6258"; rr(ctx, cx - hw * 0.66, gy - h * 0.52, hw * 1.32, h * 0.52, 4); ctx.fill(); // 円筒基部
-      ctx.fillStyle = "rgba(255,200,120,.5)"; ctx.fillRect(cx - hw * 0.42, gy - h * 0.34, 9, 9); // 窓の暖光(静的ベース)
-      ctx.fillStyle = "#7d746a"; ctx.beginPath(); ctx.arc(cx, gy - h * 0.52, hw * 0.66, Math.PI, 0); ctx.fill(); // ドーム
-      ctx.fillStyle = "#8f877c"; ctx.beginPath(); ctx.arc(cx - hw * 0.2, gy - h * 0.52, hw * 0.3, Math.PI, 0); ctx.fill();
-      ctx.fillStyle = "#26221c"; ctx.save(); ctx.beginPath(); ctx.arc(cx, gy - h * 0.52, hw * 0.66, Math.PI, 0); ctx.clip(); ctx.fillRect(cx - 4, gy - h, 8, h * 0.6); ctx.restore(); // スリット
-      ctx.strokeStyle = "#3a3630"; ctx.lineWidth = 5; ctx.lineCap = "round"; // 覗く望遠鏡
-      ctx.beginPath(); ctx.moveTo(cx, gy - h * 0.5); ctx.lineTo(cx + 9, gy - h * 0.92); ctx.stroke();
-      ctx.fillStyle = "#5a5148"; ctx.beginPath(); ctx.arc(cx + 9, gy - h * 0.92, 4, 0, 7); ctx.fill();
-    } else { // 展望岩+三脚望遠鏡
-      this.boulder(ctx, lcg(606), cx, gy, Math.max(14, hw * 0.5), "#6b5c4a");
-      const ty = gy - Math.max(14, hw * 0.5) - 6;
-      ctx.strokeStyle = "#3a3630"; ctx.lineWidth = 2.6; ctx.lineCap = "round"; // 三脚
-      for (const a of [-0.4, 0.05, 0.4]) { ctx.beginPath(); ctx.moveTo(cx, ty + 4); ctx.lineTo(cx + Math.sin(a) * 16, gy + 4); ctx.stroke(); }
-      ctx.strokeStyle = "#4a4038"; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(cx - 6, ty + 6); ctx.lineTo(cx + 13, ty - 12); ctx.stroke(); // 鏡筒
-      ctx.fillStyle = "#5a5148"; ctx.beginPath(); ctx.arc(cx + 13, ty - 12, 4, 0, 7); ctx.fill();
+    ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.beginPath(); ctx.ellipse(cx, gy + 8, hw * 0.92, 8, 0, 0, 7); ctx.fill();
+    if (tier >= 3) { // ===== 研究所: ドーム天文台 =====
+      const bH = h * 0.5, bTop = gy - bH;
+      ctx.fillStyle = "#4a4640"; ctx.fillRect(cx - hw * 0.7, gy - 4, hw * 1.4, 5); // 基礎
+      ctx.fillStyle = "#6b6258"; rr(ctx, cx - hw * 0.64, bTop, hw * 1.28, bH, 3); ctx.fill(); // 円筒基部
+      ctx.fillStyle = "#5f574e"; rr(ctx, cx - hw * 0.64, bTop, hw * 0.28, bH, 3); ctx.fill(); // 陰
+      ctx.strokeStyle = "rgba(0,0,0,.22)"; ctx.lineWidth = 1; // パネルの継ぎ目(石積み感)
+      for (const yy of [0.33, 0.66]) { ctx.beginPath(); ctx.moveTo(cx - hw * 0.64, bTop + bH * yy); ctx.lineTo(cx + hw * 0.64, bTop + bH * yy); ctx.stroke(); }
+      for (const xx of [-0.3, 0.1, 0.45]) { ctx.beginPath(); ctx.moveTo(cx + hw * xx, bTop); ctx.lineTo(cx + hw * xx, gy); ctx.stroke(); }
+      ctx.strokeStyle = "#4a4640"; ctx.lineWidth = 2; ctx.strokeRect(cx + hw * 0.36 - 9, gy - 26, 18, 26); // ドア
+      ctx.fillStyle = "rgba(255,200,120,.5)"; ctx.fillRect(cx - hw * 0.42, gy - bH * 0.6, 9, 9); // 窓の暖光
+      ctx.strokeStyle = "rgba(90,80,64,.6)"; ctx.lineWidth = 1; ctx.strokeRect(cx - hw * 0.42, gy - bH * 0.6, 9, 9);
+      // ドーム(継ぎ目のリブ+開いたスリット)
+      const domeCy = bTop, domeR = hw * 0.66;
+      ctx.fillStyle = "#8f877c"; ctx.beginPath(); ctx.arc(cx, domeCy, domeR, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = "#7d746a"; ctx.beginPath(); ctx.arc(cx + domeR * 0.2, domeCy, domeR, Math.PI, 0); ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,.18)"; ctx.lineWidth = 1; for (const a of [Math.PI * 1.25, Math.PI * 1.5, Math.PI * 1.75]) { ctx.beginPath(); ctx.moveTo(cx, domeCy); ctx.lineTo(cx + Math.cos(a) * domeR, domeCy + Math.sin(a) * domeR); ctx.stroke(); } // リブ
+      ctx.fillStyle = "#23201b"; ctx.save(); ctx.beginPath(); ctx.arc(cx, domeCy, domeR, Math.PI, 0); ctx.clip(); ctx.fillRect(cx - 5, domeCy - domeR - 4, 10, domeR + 6); ctx.restore(); // スリット
+      // 赤道儀の望遠鏡(架台+鏡筒がスリットから覗く)
+      ctx.strokeStyle = "#3a3630"; ctx.lineWidth = 6; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(cx - 2, domeCy - domeR * 0.3); ctx.lineTo(cx + 11, domeCy - domeR - 12); ctx.stroke(); // 鏡筒
+      ctx.fillStyle = "#5a5148"; ctx.beginPath(); ctx.arc(cx + 11, domeCy - domeR - 12, 4.5, 0, 7); ctx.fill();
+      ctx.strokeStyle = "#2c2822"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx - 2, domeCy - domeR * 0.3); ctx.lineTo(cx - 8, domeCy - domeR * 0.05); ctx.stroke(); // 対物側の重り
+      // 観測バルコニー(手すり付き=§8.5 トカゲの居場所)
+      ctx.fillStyle = "#6b5c4a"; rr(ctx, cx - hw * 0.5, gy - 1, hw * 0.5, 5, 2); ctx.fill();
+      ctx.strokeStyle = "#4a4038"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(cx - hw * 0.5, gy - 1); ctx.lineTo(cx - hw * 0.5, gy - 9); ctx.moveTo(cx, gy - 1); ctx.lineTo(cx, gy - 9); ctx.moveTo(cx - hw * 0.5, gy - 8); ctx.lineTo(cx, gy - 8); ctx.stroke(); // 手すり
+    } else { // ===== 展望岩(平らな見晴らし台=居場所)+ 精緻な三脚望遠鏡 =====
+      const rr2 = Math.max(15, hw * 0.5);
+      this.boulder(ctx, lcg(606), cx - hw * 0.3, gy, rr2, "#6b5c4a");
+      ctx.fillStyle = "#8f7d66"; ctx.beginPath(); ctx.ellipse(cx - hw * 0.3, gy - rr2 * 0.5, rr2 * 0.7, rr2 * 0.24, 0, 0, 7); ctx.fill(); // 平らな天面(トカゲが乗る)
+      const tpx = cx + hw * 0.35, ty = gy - 4;
+      ctx.strokeStyle = "#2c2822"; ctx.lineWidth = 2.4; ctx.lineCap = "round"; // 三脚
+      for (const a of [-0.42, 0.05, 0.42]) { ctx.beginPath(); ctx.moveTo(tpx, ty - 18); ctx.lineTo(tpx + Math.sin(a) * 15, gy + 4); ctx.stroke(); }
+      ctx.fillStyle = "#5a564e"; ctx.beginPath(); ctx.arc(tpx, ty - 18, 3, 0, 7); ctx.fill(); // 雲台
+      ctx.save(); ctx.translate(tpx, ty - 18); ctx.rotate(-0.7); // 鏡筒(分節+フード+接眼)
+      ctx.fillStyle = "#4a4640"; rr(ctx, -4, -3, 26, 7, 2); ctx.fill();
+      ctx.fillStyle = "#5f5a52"; rr(ctx, -4, -3, 8, 7, 2); ctx.fill();
+      ctx.fillStyle = "#2c2822"; rr(ctx, 22, -4, 5, 9, 1); ctx.fill(); // フード
+      ctx.fillStyle = "#3a3630"; rr(ctx, -10, -1.5, 7, 4, 1); ctx.fill(); // 接眼
+      ctx.fillStyle = "#6a655c"; ctx.beginPath(); ctx.arc(8, 5, 2, 0, 7); ctx.fill(); // フォーカサーつまみ
+      ctx.restore();
     }
-    if (tier >= 2) { // 標本棚(標本瓶)
-      const shx = cx - hw * 0.78, shy = gy;
-      ctx.fillStyle = "#5a4128"; rr(ctx, shx - 14, shy - 30, 28, 32, 2); ctx.fill();
-      ctx.strokeStyle = "rgba(0,0,0,.3)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(shx - 14, shy - 15); ctx.lineTo(shx + 14, shy - 15); ctx.stroke();
-      for (const [jx, jy, c] of [[-8, -22, "143,208,192"], [0, -22, "232,192,96"], [7, -22, "208,144,176"], [-4, -7, "144,176,208"], [5, -7, "192,208,144"]]) { ctx.fillStyle = `rgb(${c})`; rr(ctx, shx + jx - 2, shy + jy - 4, 5, 6, 1); ctx.fill(); }
+    if (tier >= 2) { // 標本棚(木の棚+ラベル付き標本瓶+ノート)
+      const shx = cx - hw * 0.8, shy = gy;
+      ctx.fillStyle = "#5a4128"; rr(ctx, shx - 15, shy - 32, 30, 34, 2); ctx.fill();
+      ctx.fillStyle = "#4a3420"; ctx.fillRect(shx - 15, shy - 32, 30, 3);
+      ctx.strokeStyle = "rgba(0,0,0,.3)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(shx - 15, shy - 16); ctx.lineTo(shx + 15, shy - 16); ctx.stroke();
+      for (const [jx, jy, c] of [[-9, -24, "143,208,192"], [-1, -24, "232,192,96"], [7, -24, "208,144,176"], [-6, -8, "144,176,208"], [3, -8, "192,208,144"]]) {
+        ctx.fillStyle = `rgb(${c})`; rr(ctx, shx + jx - 2.5, shy + jy - 5, 6, 7, 1); ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.fillRect(shx + jx - 1.5, shy + jy - 2, 4, 1.2); // ラベル
+      }
+      ctx.fillStyle = "#8a5a34"; rr(ctx, shx + 7, shy - 8, 7, 5, 1); ctx.fill(); // ノート
     }
-    if (tier >= 3) { // 星図の掲示 + 研究の暖色
-      ctx.fillStyle = "#2c3a4a"; rr(ctx, cx + hw * 0.5, gy - 30, 24, 22, 2); ctx.fill(); // 星図板
-      const sr = lcg(717); ctx.fillStyle = "rgba(200,220,255,.7)"; for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.arc(cx + hw * 0.5 + 3 + sr() * 18, gy - 28 + sr() * 18, 0.8, 0, 7); ctx.fill(); }
-      ctx.strokeStyle = "rgba(160,190,230,.4)"; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.moveTo(cx + hw * 0.5 + 5, gy - 24); ctx.lineTo(cx + hw * 0.5 + 14, gy - 18); ctx.lineTo(cx + hw * 0.5 + 19, gy - 26); ctx.stroke(); // 星座線
+    if (tier >= 3) { // 星図の掲示板(枠+星+星座線)
+      const chx = cx + hw * 0.52, chy = gy - 30;
+      ctx.fillStyle = "#3a3226"; rr(ctx, chx - 1, chy - 1, 26, 24, 2); ctx.fill(); // 枠
+      ctx.fillStyle = "#1c2634"; rr(ctx, chx + 1, chy + 1, 22, 20, 1); ctx.fill();
+      const sr = lcg(717); ctx.fillStyle = "rgba(210,225,255,.8)"; for (let i = 0; i < 7; i++) { ctx.beginPath(); ctx.arc(chx + 3 + sr() * 18, chy + 3 + sr() * 16, 0.8, 0, 7); ctx.fill(); }
+      ctx.strokeStyle = "rgba(160,190,230,.5)"; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.moveTo(chx + 5, chy + 5); ctx.lineTo(chx + 13, chy + 11); ctx.lineTo(chx + 18, chy + 4); ctx.stroke();
     }
   },
 
