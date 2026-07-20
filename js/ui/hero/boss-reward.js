@@ -53,6 +53,7 @@ Object.assign(UI, {
         '</div>';
       document.body.appendChild(el);
       el.querySelector(".br-skip").addEventListener("click", () => this._brSkip());
+      el.addEventListener("click", (e) => { if (this._brState === "tally" && !e.target.closest("#feeder-dial")) this.closeBossReward(); }); // ④ 獲得景品はタップで即終了
     }
     el.querySelector(".br-title").innerHTML = mode === "rainbow"
       ? Icon.svg("spark") + " 大ボス討伐 — 虹の遺伝子"
@@ -127,8 +128,12 @@ Object.assign(UI, {
     }
     this._brUpdateTray();
     if (this._brState === "firing" && !Roulette.rewardActive()) {
+      // ④ 全球が落ち切った後に「獲得景品」を表示(獲得ありのみ・タップで即終了)。無ければ表示せず即退場(無駄な間なし)
+      const t = Game.bossReward || {};
+      const got = (t.eggs || 0) + (t.rares || 0) + (t.rainbows || 0);
+      if (got <= 0) { this.closeBossReward(); return; }
       this._brState = "tally";
-      this._brTallyT = CFG.roulRewardTallySec || 0.5; // §9.2 余韻短縮(reduced-motionも同値)
+      this._brTallyT = CFG.roulResultSec || 3.0;
       this._brShowTally();
     } else if (this._brState === "tally") {
       this._brTallyT -= 1 / 60;
@@ -142,9 +147,13 @@ Object.assign(UI, {
     const special = this._brReward && this._brReward.jackpotMode === "rare"
       ? '<span class="rare">レア卵 ' + (t.rares || 0) + "</span>"
       : '<span class="rainbow">新種 ' + (t.rainbows || 0) + "</span>";
-    const rem = (typeof Roulette !== "undefined") ? Roulette.rewardRemaining() : 0;
-    el.querySelector(".br-tray").innerHTML =
-      "<span>卵 " + (t.eggs || 0) + "</span>" + special + '<span class="rem">残 ' + rem + "</span>";
+    // ④ 射出中は残数のみ(獲得の内訳は落ち切った後=tallyで見せる=演出と被らない)
+    if (this._brState === "tally") {
+      el.querySelector(".br-tray").innerHTML = '<span class="got">獲得</span><span>卵 ' + (t.eggs || 0) + "</span>" + special;
+    } else {
+      const rem = (typeof Roulette !== "undefined") ? Roulette.rewardRemaining() : 0;
+      el.querySelector(".br-tray").innerHTML = '<span class="rem">残 ' + rem + "</span>";
+    }
   },
 
   _brUpdateHint() {
@@ -165,7 +174,9 @@ Object.assign(UI, {
     let g = 0;
     while (Roulette.rewardRemaining() > 0 && g < 5000) { Roulette.fireRewardBall(); g++; }
     g = 0; while (Roulette.rewardActive() && g < 200000) { Roulette.advance(CFG.roulFixedDt * 8); g++; }
-    this._brState = "tally"; this._brTallyT = CFG.roulRewardTallySec || 0.5; this._brShowTally();
+    const t = Game.bossReward || {}; const got = (t.eggs || 0) + (t.rares || 0) + (t.rainbows || 0);
+    if (got <= 0) { this.closeBossReward(); return; } // ④ 獲得なしは表示しない
+    this._brState = "tally"; this._brTallyT = CFG.roulResultSec || 3.0; this._brShowTally();
   },
 
   closeBossReward() {

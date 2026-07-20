@@ -1950,6 +1950,7 @@ button.holding::after {
 #boss-reward .br-tray .rare { color: var(--amber-400); }
 #boss-reward .br-tray .rainbow { color: #ffd36b; }
 #boss-reward .br-tray .rem { color: var(--sub); }
+#boss-reward .br-tray .got { color: var(--amber-400); font-weight: 700; } /* ④ 全球落下後の「獲得景品」ラベル */
 #boss-reward .br-skip {
   font-size: calc(12px * var(--fs-scale, 1)); color: var(--paper-100); cursor: pointer;
   background: var(--ink-700); border: 1px solid var(--amber-600); border-radius: var(--radius-pill);
