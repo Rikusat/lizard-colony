@@ -243,14 +243,22 @@ const Game = {
     for (let i = 0; i < Math.min(rate, toRetreat.length); i++) this.retreatToNest(toRetreat[i]);
   },
 
-  // §8.14(準備): 巣穴の座標(描画側FAC_POS.burrowと共有・実行時参照)。無ければ従来値にフォールバック
+  // §8.14: 巣穴の中心座標(描画側FAC_POS.burrowと共有・実行時参照)。無ければ従来値にフォールバック
   nestXY() {
     return (typeof FAC_POS !== "undefined" && FAC_POS.burrow) ? FAC_POS.burrow : { x: 185, y: 322 };
   },
+  // §8.16: この個体が使う入口(複数の入口へ動線を分散=詰まらない)。id で安定割当。描画のRender.burrowEntrancesと共有
+  nestEntryFor(lz) {
+    if (typeof Render !== "undefined" && Render.burrowEntrances) {
+      const ents = Render.burrowEntrances(this.nestLv());
+      if (ents && ents.length) return ents[lz.id % ents.length];
+    }
+    return this.nestXY();
+  },
   emergeFromNest(lz) {
     lz.resting = false;
-    const n = this.nestXY();
-    lz.x = n.x + rnd(-24, 24); lz.y = n.y + rnd(6, 20); // 巣口から出てくる(§8.12で巣は左へ移動)
+    const n = this.nestEntryFor(lz);
+    lz.x = n.x + rnd(-18, 18); lz.y = n.y + rnd(6, 18); // 割り当て入口から這い出す(§8.12で巣は左へ)
     lz.tx = lz.homeX; lz.ty = lz.homeY;
     lz.restedAt = Date.now();
   },
@@ -1992,8 +2000,8 @@ const Game = {
       if (!this.isVisible(lz)) continue; // さらわれ中・休憩中
       // §8.14: 巣へ帰還中は徘徊/戦闘を無視して巣口へ歩き、到達したら巣に入る(消える)。ワープ禁止=物理移動で入退場
       if (lz.returning) {
-        const n = this.nestXY();
-        const dx = (n.x) - lz.x, dy = (n.y + 12) - lz.y, dist = Math.hypot(dx, dy);
+        const n = this.nestEntryFor(lz); // §8.16: 割り当て入口へ歩く(動線分散)
+        const dx = (n.x) - lz.x, dy = (n.y + 10) - lz.y, dist = Math.hypot(dx, dy);
         if (dist < CFG.nestArriveR) { lz.returning = false; lz.resting = true; lz.restedAt = Date.now(); lz.moving = false; this.refreshCrowdScale(); continue; }
         const spd = CFG.nestWalkSpeed * dt;
         lz.x += (dx / dist) * Math.min(spd, dist); lz.y += (dy / dist) * Math.min(spd, dist);

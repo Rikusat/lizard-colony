@@ -56,12 +56,16 @@ function observatoryTierInfo(lv) {
   const h = [0, 84, 140, 196][tier] + within * [0, 10, 14, 16][tier];
   return { tier, w, h, hitR: Math.max(80, w * 0.46) };
 }
-// すみか(巣穴→掘り込みの住居→定住の巣/ワレン・住居Lv上限8/3tier)。常に存在(Lv1〜)。
+// すみか(§8.16 多数が暮らす集合住居/ワレン・住居Lv上限8/3tier)。常に存在(Lv1〜)。
+//   §8.12以降: ベビーの避難先・強個体の籠り先=コロニーの中心。複数の入口(entrances)で群れの出入り動線を分散。
 function burrowTierInfo(lv) {
   const { tier, within } = facTier(Math.max(1, lv), [3, 5, 8]);
   const t = tier || 1;
-  const scale = [1, 1, 1.24, 1.5][t] + within * [0, 0.08, 0.1, 0.12][t];
-  return { tier: t, scale, hitR: Math.max(70, 44 * scale + 26) };
+  const scale = [1, 1.12, 1.36, 1.6][t] + within * [0, 0.08, 0.1, 0.12][t];
+  const entrances = [0, 2, 3, 4][t]; // 入口数(育つほど増える=収容力/動線)
+  const gap = 44 * scale;            // 入口の間隔
+  const hitR = Math.max(84, gap * (entrances - 1) / 2 + 46 * scale);
+  return { tier: t, scale, entrances, gap, hitR };
 }
 
 // ID8 氷の前線: 浮遊モノリス(上位存在の技術・中景の異物)の共有ジオメトリ。
@@ -1483,50 +1487,71 @@ const Render = {
     }
   },
 
-  // 巣穴(すみか): アダルトの生活拠点+探索の入口(タップで巣ビュー)。Phase8: 住居Lvでtier(巣穴→掘り込みの住居→定住の巣)
+  // §8.16 入口の world 座標(描画と §8.14 の出入り動線で共有)。中心=FAC_POS.burrow、育つほど横に増える。
+  burrowEntrances(lv) {
+    const info = burrowTierInfo(lv), n = info.entrances, gap = info.gap;
+    const x0 = FAC_POS.burrow.x, y0 = FAC_POS.burrow.y;
+    const start = x0 - gap * (n - 1) / 2;
+    const pts = [];
+    for (let i = 0; i < n; i++) pts.push({ x: Math.round(start + i * gap), y: Math.round(y0 + (i % 2 ? 5 : 0) * info.scale) });
+    return pts;
+  },
+
+  // すみか(§8.16): 多数が暮らす集合住居/ワレン。大きな盛り土に複数の入口=群れの避難・籠りの動線が詰まらない。
   drawBurrow(ctx) {
     const resting = Game.state.lizards.filter((l) => l.resting).length;
-    const x = FAC_POS.burrow.x, y = FAC_POS.burrow.y;
+    const bx = FAC_POS.burrow.x, by = FAC_POS.burrow.y;
     const nlv = (Game.state.nest && Game.state.nest.lv) || 1;
     const info = burrowTierInfo(nlv), tier = info.tier, s = info.scale;
-    ctx.fillStyle = "rgba(0,0,0,.3)"; ctx.beginPath(); ctx.ellipse(x, y + 8, 52 * s, 12 * s, 0, 0, 7); ctx.fill();
-    if (tier >= 2) { // 盛り土のドーム(掘り込みの住居)+定着の草
-      ctx.fillStyle = "#6a5334"; ctx.beginPath(); ctx.ellipse(x, y - 4, 58 * s, 30 * s, 0, Math.PI, 0); ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,.06)"; ctx.beginPath(); ctx.ellipse(x - 16 * s, y - 16 * s, 18 * s, 8 * s, 0, Math.PI, 0); ctx.fill();
-      if (tier >= 3) { const gr = lcg(202); for (let i = 0; i < 5; i++) this.tuft(ctx, x - 40 * s + gr() * 80 * s, y - 4 * s - gr() * 8, "#4a6a2c", gr); }
+    const ents = this.burrowEntrances(nlv);
+    const halfW = info.gap * (ents.length - 1) / 2 + 42 * s; // 盛り土の半幅
+
+    // 接地影(住居全体)
+    ctx.fillStyle = "rgba(0,0,0,.3)"; ctx.beginPath(); ctx.ellipse(bx, by + 11, halfW + 6, 16 * s, 0, 0, 7); ctx.fill();
+    // 大きな盛り土のドーム(住居)
+    ctx.fillStyle = "#6a5334"; ctx.beginPath(); ctx.ellipse(bx, by - 2, halfW, 42 * s, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = "#5c4a2c"; ctx.beginPath(); ctx.ellipse(bx + halfW * 0.16, by - 2, halfW * 0.72, 32 * s, 0, Math.PI, 0); ctx.fill(); // 陰
+    ctx.fillStyle = "rgba(255,255,255,.06)"; ctx.beginPath(); ctx.ellipse(bx - halfW * 0.32, by - 24 * s, halfW * 0.34, 10 * s, 0, Math.PI, 0); ctx.fill(); // 陽の当たり
+    // 定着の草(tier2+)
+    if (tier >= 2) { const gr = lcg(202); for (let i = 0; i < 4 + tier * 2; i++) this.tuft(ctx, bx - halfW * 0.9 + gr() * halfW * 1.8, by - 8 * s - gr() * 12 * s, "#4a6a2c", gr); }
+    // 煙突+煙(tier3=定住の暮らし)
+    if (tier >= 3) {
+      ctx.fillStyle = "#4a3a26"; rr(ctx, bx + halfW * 0.52, by - 42 * s, 8 * s, 13 * s, 1); ctx.fill();
+      for (let k = 0; k < 2; k++) { const t2 = ((this.time * 0.3 + k * 0.5) % 1); ctx.fillStyle = `rgba(220,220,220,${0.1 * (1 - t2)})`; ctx.beginPath(); ctx.arc(bx + halfW * 0.52 + 4 * s + Math.sin(this.time + k) * 4, by - 42 * s - t2 * 22, 2.5 + t2 * 2.5, 0, 7); ctx.fill(); }
     }
-    // 掘り出した土の縁
-    ctx.fillStyle = "#57452c"; ctx.beginPath(); ctx.ellipse(x, y + 2, 46 * s, 15 * s, 0, Math.PI, 0); ctx.fill();
-    // メインの穴(tier2+は奥に暖かい光=住まいの気配)
-    const g = ctx.createRadialGradient(x, y, 3, x, y, 34 * s);
-    if (tier >= 2) { g.addColorStop(0, "#3a2a12"); g.addColorStop(0.55, "#1a1208"); g.addColorStop(1, "#241a10"); }
-    else { g.addColorStop(0, "#000"); g.addColorStop(1, "#241a10"); }
-    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, y + 1, 32 * s, 11 * s, 0, 0, 7); ctx.fill();
-    if (tier >= 2) {
-      const wg = ctx.createRadialGradient(x, y, 1, x, y, 14 * s);
-      wg.addColorStop(0, `rgba(255,190,110,${0.28 + Math.sin(this.time * 2) * 0.06})`); wg.addColorStop(1, "rgba(255,190,110,0)");
-      ctx.fillStyle = wg; ctx.beginPath(); ctx.ellipse(x, y + 1, 14 * s, 6 * s, 0, 0, 7); ctx.fill();
-      // 木枠の入口(2本柱+まぐさ)
-      ctx.strokeStyle = "#5a4128"; ctx.lineWidth = 4 * s; ctx.lineCap = "round";
-      for (const sgn of [-1, 1]) { ctx.beginPath(); ctx.moveTo(x + sgn * 30 * s, y + 4); ctx.lineTo(x + sgn * 26 * s, y - 16 * s); ctx.stroke(); }
-      ctx.lineWidth = 3.5 * s; ctx.beginPath(); ctx.moveTo(x - 28 * s, y - 15 * s); ctx.quadraticCurveTo(x, y - 24 * s, x + 28 * s, y - 15 * s); ctx.stroke();
+    // 掘り出した土の縁(前面・入口の手前)
+    ctx.fillStyle = "#57452c"; ctx.beginPath(); ctx.ellipse(bx, by + 5, halfW * 0.96, 17 * s, 0, Math.PI, 0); ctx.fill();
+
+    // 各入口: 穴+暖光+木枠+玄関マット+覗く目。resting数を入口へ配分(詰まらず賑わって見える)
+    let eyesLeft = Math.min(ents.length * 2, Math.ceil(resting / 22));
+    for (let e = 0; e < ents.length; e++) {
+      const ex = ents[e].x, ey = ents[e].y;
+      const hg = ctx.createRadialGradient(ex, ey, 2, ex, ey, 24 * s);
+      if (tier >= 2) { hg.addColorStop(0, "#3a2a12"); hg.addColorStop(0.55, "#1a1208"); hg.addColorStop(1, "#241a10"); }
+      else { hg.addColorStop(0, "#000"); hg.addColorStop(1, "#241a10"); }
+      ctx.fillStyle = hg; ctx.beginPath(); ctx.ellipse(ex, ey, 21 * s, 13 * s, 0, 0, 7); ctx.fill();
+      if (tier >= 2) { // 奥の暖光=住まいの気配
+        const wg = ctx.createRadialGradient(ex, ey, 1, ex, ey, 12 * s);
+        wg.addColorStop(0, `rgba(255,190,110,${0.26 + Math.sin(this.time * 2 + e) * 0.06})`); wg.addColorStop(1, "rgba(255,190,110,0)");
+        ctx.fillStyle = wg; ctx.beginPath(); ctx.ellipse(ex, ey, 12 * s, 6 * s, 0, 0, 7); ctx.fill();
+        // 木枠(2本柱+まぐさ)
+        ctx.strokeStyle = "#5a4128"; ctx.lineWidth = 3.4 * s; ctx.lineCap = "round";
+        for (const sgn of [-1, 1]) { ctx.beginPath(); ctx.moveTo(ex + sgn * 19 * s, ey + 3); ctx.lineTo(ex + sgn * 16 * s, ey - 12 * s); ctx.stroke(); }
+        ctx.lineWidth = 3 * s; ctx.beginPath(); ctx.moveTo(ex - 17 * s, ey - 11 * s); ctx.quadraticCurveTo(ex, ey - 18 * s, ex + 17 * s, ey - 11 * s); ctx.stroke();
+      }
+      if (tier >= 3) { ctx.fillStyle = "rgba(150,110,70,.5)"; rr(ctx, ex - 13 * s, ey + 6, 26 * s, 4 * s, 2); ctx.fill(); } // 玄関マット
+      // 覗く目(この入口ぶん)
+      const eyesHere = Math.min(2, eyesLeft); eyesLeft -= eyesHere;
+      for (let i = 0; i < eyesHere; i++) {
+        const gxp = ex - 6 * s + i * 12 * s, blink = Math.sin(this.time * 2 + e * 1.7 + i * 2.1) > -0.85;
+        if (!blink) continue;
+        ctx.fillStyle = "#ffcc44"; ctx.beginPath(); ctx.arc(gxp, ey - 1, 2, 0, 7); ctx.arc(gxp + 4.5, ey - 1, 2, 0, 7); ctx.fill();
+      }
     }
-    if (tier >= 3) { // 定住: 副穴(ワレン)+玄関マット+煙突の煙
-      for (const dx of [-52 * s, 50 * s]) { ctx.fillStyle = "#241a10"; ctx.beginPath(); ctx.ellipse(x + dx, y + 4, 12 * s, 5 * s, 0, 0, 7); ctx.fill(); ctx.fillStyle = "#57452c"; ctx.beginPath(); ctx.ellipse(x + dx, y + 2, 14 * s, 5 * s, 0, Math.PI, 0); ctx.fill(); }
-      ctx.fillStyle = "rgba(150,110,70,.5)"; rr(ctx, x - 20 * s, y + 6, 40 * s, 5 * s, 2); ctx.fill();
-      ctx.fillStyle = "#4a3a26"; rr(ctx, x + 27 * s, y - 34 * s, 7 * s, 8 * s, 1); ctx.fill(); // 煙突
-      for (let k = 0; k < 2; k++) { const t2 = ((this.time * 0.3 + k * 0.5) % 1); ctx.fillStyle = `rgba(220,220,220,${0.1 * (1 - t2)})`; ctx.beginPath(); ctx.arc(x + 30 * s + Math.sin(this.time + k) * 4, y - 34 * s - t2 * 20, 2.5 + t2 * 2, 0, 7); ctx.fill(); }
-    }
-    // 中から覗く目(数匹分)
-    for (let i = 0; i < Math.min(3, Math.ceil(resting / 30)); i++) {
-      const ex = x - 14 * s + i * 14 * s, blink = Math.sin(this.time * 2 + i * 2.1) > -0.85;
-      if (!blink) continue;
-      ctx.fillStyle = "#ffcc44"; ctx.beginPath(); ctx.arc(ex, y - 1, 2, 0, 7); ctx.arc(ex + 5, y - 1, 2, 0, 7); ctx.fill();
-    }
-    // ラベル: 巣の名(+休息数)。「タップで巣」は控えめ(小さめ=アフォーダンスは残しつつ主張を下げる・Ric要望)
-    const st = Game.currentStage(), yo = y + 14 + (s - 1) * 10;
-    this.pill(ctx, x - 40, yo, `${st.nest}${resting > 0 ? ` 休${resting}` : ""}`, "rgba(0,0,0,.34)", "rgba(255,255,255,.8)", 12);
-    this.pill(ctx, x - 16, yo + 18, "タップで巣", "rgba(0,0,0,.22)", "rgba(210,225,235,.55)", 9);
+    // ラベル: 巣の名(+休息数)。「タップで巣」は控えめ(アフォーダンスは残しつつ主張を下げる・Ric要望)
+    const st = Game.currentStage(), yo = by + 20 + (s - 1) * 10;
+    this.pill(ctx, bx - 40, yo, `${st.nest}${resting > 0 ? ` 休${resting}` : ""}`, "rgba(0,0,0,.34)", "rgba(255,255,255,.8)", 12);
+    this.pill(ctx, bx - 16, yo + 18, "タップで巣", "rgba(0,0,0,.22)", "rgba(210,225,235,.55)", 9);
   },
 
   // Phase3 追加設備の小型マーカー(小屋+アイコンラベル)
