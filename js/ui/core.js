@@ -73,8 +73,9 @@ const UI = {
       const x = (e.clientX - r.left) * (W / r.width);
       const y = (e.clientY - r.top) * (H / r.height);
       const raid = Game.raid;
-      // 巣穴タップ → 巣・探索ビュー (V3)
-      if (!raid && Math.hypot(x - 480, y - 668) < 70) {
+      // 巣穴タップ → 巣・探索ビュー (V3)。Phase8: 住居Lvのtierスケールにタップ領域を追従
+      const burrowR = (typeof burrowTierInfo !== "undefined") ? burrowTierInfo((Game.state.nest && Game.state.nest.lv) || 1).hitR : 70;
+      if (!raid && Math.hypot(x - 480, y - 668) < burrowR) {
         this.openNest();
         return;
       }
