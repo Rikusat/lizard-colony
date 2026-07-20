@@ -14,7 +14,7 @@ if (typeof Roulette !== "undefined") {
   Roulette.canAcceptEgg = null;
 }
 
-// 二重スリット装置(§9): 成功時に賢者の石を付与(ルール層Slit→Gameの資源。種・卵は生成しない)
+// 四重スリット装置(§9): 成功時に賢者の石を付与(ルール層Slit→Gameの資源。種・卵は生成しない)
 if (typeof Slit !== "undefined") {
   Slit.onSuccess = () => {
     Game.addStone(1);

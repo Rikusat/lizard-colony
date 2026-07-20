@@ -136,7 +136,7 @@ const UI = {
     }
     this.initFeeder(); // 給餌ダイヤル(飼育槽右下・Brushup V2 Phase1)
     this.initRoulette(); // 遺伝子ルーレット(左メニュー下部・roulette.md §7)
-    this.initSlit(); // 二重スリット実験装置(左メニュー下部・roulette.md §9)
+    this.initSlit(); // 四重スリット実験装置(左メニュー下部・roulette.md §9)
     this.initBossHud(); // ボスHPバー(上部中央・Brushup V2 Phase3)
     setInterval(() => this.rotateHint(), 12000);
     // #breed で繁殖画面を直接開く(動作確認・デバッグ用)
@@ -163,11 +163,11 @@ const UI = {
         Game.tick(gdt);
         // Phase3.13 v4: 給餌連動の常時発射は撤廃(ルーレット=ボス討伐後の報酬)。物理は固定dtで積分し続ける
         if (typeof Roulette !== "undefined") Roulette.advance(gdt);
-        if (typeof Slit !== "undefined") Slit.advance(gdt); // §9: 二重スリット装置(クールダウン/飛行/張り付き寿命)
+        if (typeof Slit !== "undefined") Slit.advance(gdt); // §9: 四重スリット装置(クールダウン/飛行/張り付き寿命)
       }
       Render.draw();
       if (this.drawRoulette) this.drawRoulette();
-      if (this.drawSlit) this.drawSlit(); // §9: 二重スリット装置(左メニュー下部・線のみ)
+      if (this.drawSlit) this.drawSlit(); // §9: 四重スリット装置(左メニュー下部・線のみ)
       if (this.drawBossReward) this.drawBossReward(); // Phase3.13 C2: ボス報酬オーバーレイ(稼働中のみ)
       this.acc += real;
       if (this.acc >= 0.2) { this.acc = 0; this.update(); }

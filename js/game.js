@@ -51,7 +51,7 @@ const Game = {
       coins: CFG.startCoins,
       crickets: CFG.startCrickets, // V5.2: コオロギ給餌の復活(初期在庫)
       gems: CFG.startGems,
-      stones: CFG.startStones, // 賢者の石(v11・二重スリット装置のレア報酬・保有のみ)
+      stones: CFG.startStones, // 賢者の石(v11・四重スリット装置のレア報酬・保有のみ)
       rank: 1,
       rankXp: 0,
       lizards: [],
@@ -352,7 +352,7 @@ const Game = {
     if (!this.state.rare) this.state.rare = {};
     this.state.rare[id] = Math.max(0, (this.state.rare[id] || 0) + n);
   },
-  // 賢者の石(v11・二重スリット装置のレア報酬・保有のみ)。負値も可(将来の消費用)
+  // 賢者の石(v11・四重スリット装置のレア報酬・保有のみ)。負値も可(将来の消費用)
   addStone(n) {
     this.state.stones = Math.max(0, (this.state.stones || 0) + n);
   },
@@ -2318,7 +2318,7 @@ const Game = {
     return w;
   },
 
-  // v10→v11: 賢者の石(二重スリット装置のレア報酬)をwalletへ追加。加算のみ=非破壊・冪等
+  // v10→v11: 賢者の石(四重スリット装置のレア報酬)をwalletへ追加。加算のみ=非破壊・冪等
   migrateV10to11(w) {
     if ((w.version || 0) >= 11) return w;
     w.wallet = w.wallet || { coins: 0, gems: 0 };
