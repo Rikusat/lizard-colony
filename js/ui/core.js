@@ -308,6 +308,7 @@ const UI = {
     this.updateBossHud();
     this.updateEggSlots();
     this.renderDetail(false);
+    if (this._eggPop && this._renderEggPop) this._renderEggPop(); // ⑤ 卵の小ウィンドウを毎更新で同期(孵化秒数が進み表示が止まらない)
   },
 
   // ---------------- V4.1 §4: 巣ネットワーク(蜘蛛の巣状・閲覧専用) ----------------

@@ -4,35 +4,54 @@
 // =============================================================
 
 Object.assign(UI, {
-  // #7: 巣の卵タップ→メニュー展開→ダイヤで即時孵化(卵スロット撤去で失われた導線を復活)
+  // ⑤ 巣の卵タップ→【小ウィンドウ】(モーダルでない=飼育槽を隠さない・孵化秒数が進み表示が同期し続ける)
   openEggMenu(i) {
     const egg = Game.state.eggs[i];
     if (!egg) return;
+    this._eggPop = { egg };
+    this._buildEggPop();
+  },
+  _buildEggPop() {
+    const frame = document.getElementById("frame") || document.body;
+    let el = document.getElementById("egg-pop");
+    if (!el) {
+      el = document.createElement("div"); el.id = "egg-pop";
+      frame.appendChild(el);
+      el.addEventListener("pointerdown", (e) => { // 委譲(innerHTML再構築でも失われない)
+        if (e.target.closest(".ep-close")) { this.closeEggPop(); return; }
+        if (e.target.closest(".ep-hatch")) {
+          const egg = this._eggPop && this._eggPop.egg; if (!egg) return;
+          if (Game.state.gems < 1) { UI.denyFlash("gems"); return; }
+          const idx = Game.state.eggs.indexOf(egg);
+          if (idx < 0) { this.closeEggPop(); return; }
+          Game.instantHatch(idx); // ダイヤ1消費→孵化タイマーを0に
+          this.closeEggPop();
+        }
+      });
+    }
+    this._renderEggPop();
+  },
+  // 毎フレームの update() から呼ばれ、孵化カウントダウン/進捗を同期(時間が進み表示が止まらない)
+  _renderEggPop() {
+    const el = document.getElementById("egg-pop"); if (!el || !this._eggPop) return;
+    const egg = this._eggPop.egg;
+    if (Game.state.eggs.indexOf(egg) < 0) { this.closeEggPop(); return; } // 孵化して消えた→自動で閉じる
     const sp = speciesById(egg.speciesId);
     const mo = (typeof MORPHS !== "undefined") && MORPHS.find((m) => m.id === egg.morphId);
-    this.openModal(`${Icon.svg("egg")} 巣の卵`, (body) => {
-      const sec = Math.max(0, Math.ceil(egg.t));
-      const info = document.createElement("div");
-      info.innerHTML =
-        `<div class="list-row"><span>${(mo ? mo.name + " " : "") + (sp ? sp.name : "卵")}</span></div>` +
-        `<div class="list-row"><span>孵化まで</span> <b>${sec > 0 ? sec + "秒" : "まもなく"}</b></div>` +
-        `<div class="list-row hint-text">収容に空きがあると自動で孵化します。急ぐならダイヤで即時孵化。</div>`;
-      body.appendChild(info);
-      const btn = document.createElement("button");
-      btn.className = "act cta"; btn.style.marginTop = "10px";
-      const canGem = Game.state.gems >= 1;
-      btn.innerHTML = `<span class="bicon">${Icon.svg("gem")}</span><span class="lbl">今すぐ孵化<small>ダイヤ1消費（所持 ${Game.state.gems}）</small></span>`;
-      if (!canGem) btn.setAttribute("aria-disabled", "true");
-      btn.addEventListener("click", () => {
-        if (Game.state.gems < 1) { UI.denyFlash("gems"); return; }
-        const idx = Game.state.eggs.indexOf(egg); // 並びが変わっても同一卵を対象に
-        if (idx < 0) { this.closeModal(); return; }
-        Game.instantHatch(idx); // ダイヤ1消費→孵化タイマーを0に(空き待ちはゲーム側で処理)
-        this.closeModal();
-        this.toast(`${Icon.svg("gem")} 卵を今すぐ孵化させた!`, "life");
-      });
-      body.appendChild(btn);
-    });
+    const sec = Math.max(0, Math.ceil(egg.t));
+    const prog = Math.max(0, Math.min(1, egg.total ? 1 - egg.t / egg.total : 1));
+    const canGem = Game.state.gems >= 1;
+    el.innerHTML =
+      `<div class="ep-head"><span>${Icon.svg("egg")} 巣の卵</span><button class="ep-close" aria-label="閉じる">×</button></div>` +
+      `<div class="ep-name">${(mo ? mo.name + " " : "") + (sp ? sp.name : "卵")}</div>` +
+      `<div class="ep-time">孵化まで <b>${sec > 0 ? sec + "秒" : "まもなく"}</b></div>` +
+      `<div class="ep-prog"><span style="width:${Math.round(prog * 100)}%"></span></div>` +
+      `<button class="ep-hatch cta"${canGem ? "" : ' aria-disabled="true"'}>${Icon.svg("gem")} 今すぐ孵化 <small>ダイヤ1 / 所持 ${Game.state.gems}</small></button>`;
+  },
+  closeEggPop() {
+    this._eggPop = null;
+    const el = document.getElementById("egg-pop");
+    if (el && el.parentNode) el.parentNode.removeChild(el);
   },
 
   openNest() {

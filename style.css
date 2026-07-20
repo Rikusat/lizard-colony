@@ -298,6 +298,24 @@ button.act .price {
 .res.deny b { animation: deny-red .5s var(--ease-out); }
 @keyframes deny-shake { 20% { transform: translateX(-3px); } 45% { transform: translateX(3px); } 70% { transform: translateX(-2px); } 100% { transform: none; } }
 @keyframes deny-red { from { color: var(--red); } }
+/* ⑤ 卵の小ウィンドウ(飼育槽内・左上の小窓・モーダルでない=生き物を見ながら操作、孵化秒数が同期) */
+#egg-pop {
+  position: absolute; top: 12px; left: 12px; z-index: 20; width: min(224px, 42%);
+  background: rgba(24, 16, 10, .9); border: 1px solid var(--amber-600); border-radius: var(--radius-md);
+  padding: 8px 10px; color: var(--paper-100); box-shadow: 0 6px 22px rgba(0, 0, 0, .45);
+  font-size: calc(13px * var(--fs-scale, 1)); animation: eggpop-in var(--dur-fast) var(--ease-pop);
+}
+@keyframes eggpop-in { from { transform: translateY(-8px) scale(.96); opacity: 0; } }
+#egg-pop .ep-head { display: flex; justify-content: space-between; align-items: center; font-weight: 700; margin-bottom: 6px; }
+#egg-pop .ep-head .icon { width: 15px; height: 15px; vertical-align: -2px; }
+#egg-pop .ep-close { background: none; border: none; color: var(--sub); font-size: 19px; line-height: 1; cursor: pointer; padding: 0 4px; }
+#egg-pop .ep-name { color: var(--amber-300); margin-bottom: 4px; }
+#egg-pop .ep-time { margin-bottom: 6px; font-variant-numeric: tabular-nums; }
+#egg-pop .ep-prog { height: 6px; background: rgba(255, 255, 255, .12); border-radius: 4px; overflow: hidden; margin-bottom: 9px; }
+#egg-pop .ep-prog span { display: block; height: 100%; background: var(--amber-400); transition: width .2s linear; }
+#egg-pop .ep-hatch { width: 100%; }
+#egg-pop .ep-hatch small { opacity: .8; margin-left: 4px; font-weight: 400; }
+@media (prefers-reduced-motion: reduce) { #egg-pop { animation: none; } #egg-pop .ep-prog span { transition: none; } }
 #btn-raid-now {
   padding: 5px 12px; border-radius: 8px; font-size: calc(11px * var(--fs-scale, 1));
   background: rgba(30, 18, 14, .66); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
