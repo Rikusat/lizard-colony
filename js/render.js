@@ -92,6 +92,7 @@ const Render = {
     if (Game.currentStage().id === 5) this.drawFurnace5(ctx); // 火山: 溶鉱炉の赤熱脈動・火の粉・溶岩の明滅(ふいご・背景層)
     if (Game.currentStage().id === 3) this.drawForest3(ctx); // 森林: からくり時計の振り子・木漏れ日・蛍(背景層)
     if (Game.currentStage().id === 1) this.drawDawn1(ctx); // 始まりの地: 朝の光にただよう花粉(希望の粒・背景層)
+    if (Game.currentStage().id === 2) this.drawSlum2(ctx); // 摩天楼スラム: ネオンの明滅/サーチライト/雨/企業ホログラム(背景層)
     this.drawNest(ctx);
     this.drawFacilities(ctx);
     this.drawSmallFacilities(ctx);
@@ -2110,6 +2111,46 @@ const Render = {
       ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 1.8, 0, 7); ctx.fill();
       ctx.fillStyle = `rgba(255,128,128,${e.a * (0.45 + pr * 0.5)})`;
       ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 0.26, 0, 7); ctx.fill();
+    }
+  },
+
+  // ---- ID2摩天楼スラム: ネオンの明滅・サーチライト・ネオン雨・見下ろす企業ホログラム。格差の夜 ----
+  // 静的なスカイライン(高層/スラム)はpaintBackground(キャッシュ)。ここは生きた都市の光だけを毎フレーム重ねる。
+  drawSlum2(ctx) {
+    const calm = window.Motion && Motion.reduced;
+    // 高層側の空に浮かぶ巨大企業ホログラム(格差を生む"上"の力=見下ろす眼。グリッチする)=気配・説明しない
+    {
+      const hx = 340, hy = 56, base = 0.10 + (calm ? 0 : Math.abs(Math.sin(this.time * 0.5)) * 0.05);
+      const jit = calm ? 0 : (Math.sin(this.time * 9) > 0.62 ? 2 : 0); // グリッチの横ずれ
+      ctx.save(); ctx.globalAlpha = base;
+      ctx.strokeStyle = "rgba(95,204,217,1)"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(hx + jit, hy, 42, 0, 7); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(hx + jit, hy, 24, 11, 0, 0, 7); ctx.stroke(); // 眼の輪郭
+      ctx.fillStyle = "rgba(95,204,217,1)"; ctx.beginPath(); ctx.arc(hx + jit, hy, 5, 0, 7); ctx.fill(); // 瞳
+      if (jit) { ctx.globalAlpha = base * 0.6; ctx.strokeStyle = "rgba(217,87,176,1)"; ctx.beginPath(); ctx.arc(hx - jit, hy, 42, 0, 7); ctx.stroke(); } // RGBずれ(ピンク)
+      ctx.restore();
+    }
+    if (calm) return; // 以下は微動(reduced-motionは静的なスカイライン+静止ホログラムのまま)
+    // ネオンの明滅(高層側の数点=生きた街灯)
+    for (const [nx, ny, c, sp] of [[120, HORIZON - 120, "217,87,176", 3], [430, HORIZON - 150, "95,204,217", 4.5], [560, HORIZON - 90, "217,87,176", 6]]) {
+      const p = 0.4 + Math.abs(Math.sin(this.time * sp)) * 0.6;
+      ctx.fillStyle = `rgba(${c},${p})`; ctx.fillRect(nx, ny, 6, 3);
+      const g = ctx.createRadialGradient(nx + 3, ny + 1, 1, nx + 3, ny + 1, 10); g.addColorStop(0, `rgba(${c},${p * 0.5})`); g.addColorStop(1, `rgba(${c},0)`);
+      ctx.fillStyle = g; ctx.fillRect(nx - 7, ny - 9, 20, 20);
+    }
+    // サーチライトの掃引(高塔から・ゆっくり)
+    {
+      const ang = -1.2 + Math.sin(this.time * 0.3) * 0.4;
+      ctx.save(); ctx.globalAlpha = 0.06; ctx.translate(470, HORIZON - 150); ctx.rotate(ang);
+      const g = ctx.createLinearGradient(0, 0, 300, 0); g.addColorStop(0, "rgba(255,245,210,1)"); g.addColorStop(1, "rgba(255,245,210,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(300, -26); ctx.lineTo(300, 26); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    // ネオン雨(細い斜線=生活の湿り)
+    ctx.strokeStyle = "rgba(150,180,210,.12)"; ctx.lineWidth = 1;
+    for (let k = 0; k < 24; k++) {
+      const rx = ((k * 137 + this.time * 320) % (W + 60)) - 30, ry = ((k * 89 + this.time * 620) % H);
+      ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx - 3, ry + 12); ctx.stroke();
     }
   },
 
