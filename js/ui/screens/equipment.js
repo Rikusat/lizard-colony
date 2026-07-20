@@ -15,7 +15,8 @@ Object.assign(UI, {
     if (typeof FAC_POS === "undefined") return null;
     const P = FAC_POS;
     const hits = [
-      { id: "water", x: P.water.x, y: P.water.y, r: 78 },
+      // Phase8: 水場のタップ領域は育ったtierのスケールに追従(waterTierInfoを描画と共有)
+      { id: "water", x: P.water.x, y: P.water.y, r: (typeof waterTierInfo !== "undefined" ? Math.max(70, waterTierInfo(Game.facLv("water")).hitR) : 78) },
       { id: "shelter", x: P.shelter.x, y: P.shelter.y, r: 62 },
       { id: "heat", x: P.light.x - 30, y: P.light.y, r: 62 },   // 保温設備=吊りランプ(P.light)
       { id: "breedfac", x: P.rocks.x, y: P.rocks.y, r: 56 },

@@ -16,6 +16,17 @@ const FAC_POS = {
 };
 const NEST = { x: 430, y: 300 };
 
+// Phase 8: 設備の成長表現。水場のtier(水たまり→池→湖→大湖)と規模を算出。描画と当たり判定で共有(定位置で規模だけ育つ)。
+// レベル上限20を4tierに区切る(1-5/6-10/11-15/16-20)。tier境界で姿が変わり、tier内は微増。
+function waterTierInfo(lv) {
+  if (lv <= 0) return { tier: 0, rx: 0, ry: 0, hitR: 0 };
+  const tier = Math.min(4, Math.ceil(lv / 5));
+  const baseRx = [0, 58, 86, 114, 142][tier], grow = [0, 9, 12, 14, 15][tier];
+  const within = ((lv - 1) % 5) / 4;           // tier内進捗 0..1
+  const rx = baseRx + within * grow;
+  return { tier, rx, ry: rx * 0.42, hitR: rx * 0.98 };
+}
+
 // ID8 氷の前線: 浮遊モノリス(上位存在の技術・中景の異物)の共有ジオメトリ。
 // 静的造形はpaintBackground(キャッシュ)へ、動く冷光はRender.drawMonolith8(毎フレーム)へ分離。
 const MONO8 = {
@@ -1039,39 +1050,74 @@ const Render = {
   },
 
   // ---------------- 設備 ----------------
+  // Phase8: 水場をtierで育てる(水たまり→池→湖→大湖)。定位置(P.water)で規模と生態系が育ち、背景と融合する。
+  // 骨格は共通・惑星別意匠は後日(色/植生をここに集約すれば差し替え可能)。per-frameで軽量に。
+  _drawWater(ctx, p, lv) {
+    const info = waterTierInfo(lv), rx = info.rx, ry = info.ry, tier = info.tier;
+    // 岸(砂/土の縁=地面と馴染む)
+    ctx.fillStyle = "#8a7350"; ctx.beginPath(); ctx.ellipse(p.x, p.y, rx * 1.14, ry * 1.16, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "rgba(0,0,0,.2)"; ctx.beginPath(); ctx.ellipse(p.x, p.y + ry * 0.06, rx * 1.05, ry * 1.05, 0, 0, 7); ctx.fill();
+    if (tier >= 4) this._waterShore(ctx, p, rx, ry);       // 大湖: 豊かな岸辺(草・花)を水の外側に敷く
+    // 水本体(深→浅・tierで層を増やす)
+    ctx.fillStyle = "#20415a"; ctx.beginPath(); ctx.ellipse(p.x, p.y, rx, ry, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#356485"; ctx.beginPath(); ctx.ellipse(p.x - rx * 0.04, p.y - ry * 0.08, rx * 0.78, ry * 0.76, 0, 0, 7); ctx.fill();
+    if (tier >= 2) { ctx.fillStyle = "#5b93b5"; ctx.beginPath(); ctx.ellipse(p.x - rx * 0.1, p.y - ry * 0.16, rx * 0.5, ry * 0.5, 0, 0, 7); ctx.fill(); }
+    if (tier >= 3) { ctx.fillStyle = "rgba(150,205,228,.55)"; ctx.beginPath(); ctx.ellipse(p.x - rx * 0.14, p.y - ry * 0.2, rx * 0.26, ry * 0.28, 0, 0, 7); ctx.fill(); }
+    // 波紋(per-frame)
+    ctx.strokeStyle = "rgba(210,240,252,.3)"; ctx.lineWidth = 1.6;
+    for (const off of [0, 1.5]) { const w = ((this.time + off) % 3) / 3; ctx.globalAlpha = 1 - w; ctx.beginPath(); ctx.ellipse(p.x, p.y - ry * 0.1, rx * 0.5 * w + 6, (rx * 0.5 * w + 6) * 0.4, 0, 0, 7); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+    // きらめき
+    ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.beginPath(); ctx.ellipse(p.x - rx * 0.3, p.y - ry * 0.35, Math.max(5, rx * 0.1), 2, -0.2, 0, 7); ctx.fill();
+    if (tier >= 3) { ctx.fillStyle = "rgba(255,255,255,.4)"; ctx.beginPath(); ctx.ellipse(p.x + rx * 0.2, p.y + ry * 0.2, rx * 0.07, 1.5, 0.15, 0, 7); ctx.fill(); }
+    // 睡蓮(tier2+・tierで数増。最内の1枚はtier4で花が咲く)
+    if (tier >= 2) { const pads = [[-.3, -.1], [.35, .12], [.08, .34], [-.12, -.32]]; for (let i = 0; i < tier - 1 && i < pads.length; i++) this._lilyPad(ctx, p.x + pads[i][0] * rx, p.y + pads[i][1] * ry, Math.max(6, rx * 0.11), tier >= 4 && i === 0); }
+    if (tier >= 3) this.boulder(ctx, lcg(555), p.x + rx * 0.9, p.y - ry * 0.3, Math.max(10, rx * 0.14), "#6b5c4a"); // 岸辺の岩
+    if (tier >= 2) this._reeds(ctx, p, rx, ry, tier);       // 葦(奥の縁・tierで本数増・微揺れ)
+    if (tier >= 4) this._spring(ctx, p, rx, ry);            // 大湖: 泉の流れ込み+着水の波紋+靄
+  },
+  _lilyPad(ctx, x, y, r, flower) {
+    ctx.fillStyle = "#3f7a3c"; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.5, 0, 0.5, Math.PI * 2 - 0.5); ctx.fill(); // 切れ込みのある葉
+    ctx.fillStyle = "rgba(255,255,255,.1)"; ctx.beginPath(); ctx.ellipse(x - r * 0.2, y - r * 0.14, r * 0.4, r * 0.2, 0, 0, 7); ctx.fill();
+    if (flower) {
+      ctx.fillStyle = "#e8a0c0"; for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; ctx.beginPath(); ctx.ellipse(x + Math.cos(a) * r * 0.32, y + Math.sin(a) * r * 0.16, r * 0.18, r * 0.1, a, 0, 7); ctx.fill(); }
+      ctx.fillStyle = "#f5d76e"; ctx.beginPath(); ctx.arc(x, y, r * 0.13, 0, 7); ctx.fill();
+    }
+  },
+  _reeds(ctx, p, rx, ry, tier) {
+    const n = tier + 1, bx = p.x - rx * 0.5, by = p.y - ry * 0.72;
+    ctx.strokeStyle = "#4a7a3a"; ctx.lineWidth = 2.4; ctx.lineCap = "round";
+    for (let i = 0; i < n; i++) {
+      const x = bx + i * 6 - n * 3, h = 24 + (i % 3) * 8, sway = Math.sin(this.time * 1.2 + i) * 3;
+      ctx.strokeStyle = "#4a7a3a"; ctx.beginPath(); ctx.moveTo(x, by); ctx.quadraticCurveTo(x + sway * 0.5, by - h * 0.6, x + sway, by - h); ctx.stroke();
+      ctx.fillStyle = "#6b4a2a"; ctx.beginPath(); ctx.ellipse(x + sway, by - h, 2.2, 6, 0, 0, 7); ctx.fill(); // 穂
+    }
+  },
+  _spring(ctx, p, rx, ry) {
+    const sx = p.x - rx * 0.18, sy = p.y - ry - 8;
+    this.boulder(ctx, lcg(888), sx, sy, 14, "#5d5142"); // 湧き出す小岩
+    ctx.strokeStyle = "rgba(200,235,250,.6)"; ctx.lineWidth = 3; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(sx, sy + 4); ctx.lineTo(sx + 2, p.y - ry * 0.4); ctx.stroke(); // 流れ落ちる水
+    const w = (this.time % 1);
+    ctx.strokeStyle = `rgba(220,245,255,${0.5 * (1 - w)})`; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.ellipse(sx + 2, p.y - ry * 0.4, 6 + w * 10, (6 + w * 10) * 0.4, 0, 0, 7); ctx.stroke(); // 着水の波紋
+    ctx.fillStyle = "rgba(255,255,255,.05)"; ctx.beginPath(); ctx.ellipse(p.x, p.y - ry * 0.5, rx * 0.6, ry * 0.5, 0, 0, 7); ctx.fill(); // 靄
+  },
+  _waterShore(ctx, p, rx, ry) {
+    const rand = lcg(333);
+    for (let i = 0; i < 11; i++) {
+      const a = rand() * Math.PI * 2, d = rx * (1.02 + rand() * 0.14);
+      const x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d * 0.42;
+      this.tuft(ctx, x, y, "#4a7a3a", rand);
+      if (rand() < 0.28) { ctx.fillStyle = rand() < 0.5 ? "#e8a0c0" : "#f5d76e"; ctx.beginPath(); ctx.arc(x + rand() * 8 - 4, y - 6, 2, 0, 7); ctx.fill(); }
+    }
+  },
+
   drawFacilities(ctx) {
     const lv = (id) => Game.facLv(id);
     const P = FAC_POS;
 
-    if (lv("water")) { // 岸のある水場
-      const p = P.water, r = 78 + lv("water") * 4;
-      // 岸(明るい砂の縁)
-      ctx.fillStyle = "#8a7350";
-      ctx.beginPath(); ctx.ellipse(p.x, p.y, r * 1.14, r * 0.44, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = "rgba(0,0,0,.25)";
-      ctx.beginPath(); ctx.ellipse(p.x, p.y + 2, r * 1.04, r * 0.4, 0, 0, 7); ctx.fill();
-      // 深い水 → 浅瀬のグラデーション
-      ctx.fillStyle = "#26485f";
-      ctx.beginPath(); ctx.ellipse(p.x, p.y, r, r * 0.36, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = "#3d6f8f";
-      ctx.beginPath(); ctx.ellipse(p.x - r * 0.05, p.y - 2, r * 0.78, r * 0.27, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = "#5b93b5";
-      ctx.beginPath(); ctx.ellipse(p.x - r * 0.12, p.y - 4, r * 0.5, r * 0.16, 0, 0, 7); ctx.fill();
-      // 波紋(2重)
-      ctx.strokeStyle = "rgba(210,240,252,.35)"; ctx.lineWidth = 1.8;
-      for (const off of [0, 1.5]) {
-        const w = ((this.time + off) % 3) / 3;
-        ctx.globalAlpha = 1 - w;
-        ctx.beginPath(); ctx.ellipse(p.x, p.y - 3, r * 0.6 * w + 8, (r * 0.6 * w + 8) * 0.3, 0, 0, 7); ctx.stroke();
-        ctx.globalAlpha = 1;
-      }
-      // きらめき
-      ctx.fillStyle = "rgba(255,255,255,.5)";
-      ctx.beginPath();
-      ctx.ellipse(p.x - r * 0.3, p.y - 6, 9, 2, -0.2, 0, 7);
-      ctx.ellipse(p.x + r * 0.25, p.y + 3, 6, 1.5, 0.15, 0, 7);
-      ctx.fill();
-    }
+    if (lv("water")) this._drawWater(ctx, P.water, lv("water")); // Phase8: tierで水たまり→池→湖→大湖(定位置で規模が育つ)
 
     if (lv("shelter")) { // 岩の洞窟
       const p = P.shelter;
@@ -1239,7 +1285,7 @@ const Render = {
         ctx.fillStyle = g;
         ctx.beginPath(); ctx.arc(x, y - 12, 30, 0, 7); ctx.fill();
       }
-      this.pill(ctx, x - 30, y + 16, `${f.icon}Lv${Game.facLv(f.id)}`);
+      this.pill(ctx, x - 30, y + 16, `${f.name}Lv${Game.facLv(f.id)}`); // Phase8: 英語キー(f.icon)露出を是正=設備名(f.name)で表示。小屋は汎用ゆえ名称は情報として残す
     }
   },
 
@@ -1310,7 +1356,7 @@ const Render = {
       ctx.strokeStyle = "rgba(242,198,94,.9)"; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(x, y, 19, -Math.PI / 2, -Math.PI / 2 + prog * Math.PI * 2); ctx.stroke();
     }
-    this.pill(ctx, n.x - 24, n.y + 34, "卵の巣");
+    // Phase8: 「卵の巣」ラベルは撤去(見れば分かる=自明)
   },
 
   // ---------------- トカゲ(横向き・オオトカゲスタイル) ----------------
