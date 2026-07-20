@@ -87,6 +87,7 @@ const Render = {
     if (Game.currentStage().id === 8) this.drawMonolith8(ctx); // 氷の前線: モノリスの冷光(背景層)
     if (Game.currentStage().id === 9) this.drawReactor9(ctx); // 廃原子炉: チェレンコフ冷光の脈動(背景層)
     if (Game.currentStage().id === 7) this.drawAbyss7(ctx); // 水中都市: 気泡/海藻/コースティクス/深海の影(背景層)
+    if (Game.currentStage().id === 6) this.drawJungle6(ctx); // 密林: 篝火の炎/火の粉・御神体の翡翠脈動・緑の木漏れ日(背景層)
     this.drawNest(ctx);
     this.drawFacilities(ctx);
     this.drawSmallFacilities(ctx);
@@ -418,57 +419,42 @@ const Render = {
         ctx.beginPath(); ctx.moveTo(-9, -th + 2); ctx.lineTo(-16, -th - 10); ctx.moveTo(9, -th + 2); ctx.lineTo(16, -th - 10); ctx.stroke();
         ctx.restore();
       }
-      // 祭祀の篝火(ゆれる炎・奉納の灯)
-      for (const [fx2, ph] of [[420, 0], [860, 2.4]]) {
+      // 祭祀の篝火(台座+灯りのハロー。ゆれる炎・火の粉はdrawJungle6が毎フレーム描く=キャッシュで凍結させない)
+      for (const fx2 of [420, 860]) {
         const fy = HORIZON + 26;
-        ctx.fillStyle = "#4a3a26";
-        ctx.fillRect(fx2 - 7, fy - 12, 14, 12);
-        ctx.strokeStyle = "#2c2114"; ctx.lineWidth = 1.2;
-        ctx.strokeRect(fx2 - 7, fy - 12, 14, 12);
-        const fl = Math.sin(this.time * 5 + ph) * 2.5;
-        const glow = ctx.createRadialGradient(fx2, fy - 20, 2, fx2, fy - 20, 26);
-        glow.addColorStop(0, "rgba(255,180,90,.35)"); glow.addColorStop(1, "rgba(255,180,90,0)");
-        ctx.fillStyle = glow; ctx.fillRect(fx2 - 26, fy - 46, 52, 52);
-        ctx.fillStyle = "#e8853a";
-        ctx.beginPath();
-        ctx.moveTo(fx2 - 5, fy - 12);
-        ctx.quadraticCurveTo(fx2 - 4 + fl, fy - 24, fx2 + fl * 0.6, fy - 30);
-        ctx.quadraticCurveTo(fx2 + 5 + fl, fy - 22, fx2 + 5, fy - 12);
-        ctx.closePath(); ctx.fill();
-        ctx.fillStyle = "#ffce6b";
-        ctx.beginPath();
-        ctx.moveTo(fx2 - 2.5, fy - 12);
-        ctx.quadraticCurveTo(fx2 + fl * 0.5, fy - 19, fx2 + fl * 0.4, fy - 22);
-        ctx.quadraticCurveTo(fx2 + 2.5 + fl * 0.4, fy - 17, fx2 + 2.5, fy - 12);
-        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#4a3a26"; ctx.fillRect(fx2 - 7, fy - 12, 14, 12);
+        ctx.strokeStyle = "#2c2114"; ctx.lineWidth = 1.2; ctx.strokeRect(fx2 - 7, fy - 12, 14, 12);
+        const glow = ctx.createRadialGradient(fx2, fy - 20, 2, fx2, fy - 20, 24);
+        glow.addColorStop(0, "rgba(255,180,90,.22)"); glow.addColorStop(1, "rgba(255,180,90,0)");
+        ctx.fillStyle = glow; ctx.fillRect(fx2 - 24, fy - 44, 48, 48);
       }
-      // 食料神を祀る祭壇(中央): 小さな車輪型の御神体+供物(崇拝対象=クランクを絵で示す)
+      // 食料神を祀る祭壇(中央): 御神体=金環4スポークの車輪(=クランクの御神体車輪と同意匠=崇拝対象を絵で示す)。神の座す社として荘厳に
       {
         const ax = 640, ay = HORIZON + 14;
-        ctx.fillStyle = "#6a6152";
-        ctx.fillRect(ax - 26, ay - 8, 52, 8);
-        ctx.fillStyle = "#7d745f";
-        ctx.fillRect(ax - 20, ay - 15, 40, 7);
-        ctx.strokeStyle = "#3a3428"; ctx.lineWidth = 1.2;
-        ctx.strokeRect(ax - 26, ay - 8, 52, 8); ctx.strokeRect(ax - 20, ay - 15, 40, 7);
-        // 御神体=車輪(小さなクランクの似姿・翡翠の宝玉を中心に)
-        ctx.strokeStyle = "#c9a86a"; ctx.lineWidth = 2.4;
-        ctx.beginPath(); ctx.arc(ax, ay - 27, 10, 0, 7); ctx.stroke();
-        ctx.lineWidth = 1.6;
-        for (let k = 0; k < 4; k++) {
-          const a = k * Math.PI / 2 + Math.PI / 4;
-          ctx.beginPath(); ctx.moveTo(ax, ay - 27); ctx.lineTo(ax + Math.cos(a) * 10, ay - 27 + Math.sin(a) * 10); ctx.stroke();
-        }
-        const jd = 0.75 + Math.sin(this.time * 1.2) * 0.25;
-        ctx.fillStyle = `rgba(47,169,138,${jd})`; // 翡翠の宝玉(静かに脈打つ)
-        ctx.beginPath(); ctx.arc(ax, ay - 27, 3.2, 0, 7); ctx.fill();
+        // 参道: 祭壇へ続く踏み固められた道(多くが祈りに来た証・気配)
+        ctx.fillStyle = "rgba(120,96,60,.20)";
+        ctx.beginPath(); ctx.moveTo(ax - 58, HORIZON + 210); ctx.lineTo(ax - 22, ay + 3); ctx.lineTo(ax + 22, ay + 3); ctx.lineTo(ax + 58, HORIZON + 210); ctx.closePath(); ctx.fill();
+        // 石の社(御神体を囲む祠のアーチ=神域)
+        ctx.fillStyle = "#5a5142";
+        ctx.fillRect(ax - 34, ay - 52, 8, 52); ctx.fillRect(ax + 26, ay - 52, 8, 52); // 二本柱
+        ctx.beginPath(); ctx.moveTo(ax - 38, ay - 50); ctx.quadraticCurveTo(ax, ay - 72, ax + 38, ay - 50);
+        ctx.lineTo(ax + 34, ay - 44); ctx.quadraticCurveTo(ax, ay - 62, ax - 34, ay - 44); ctx.closePath(); ctx.fill(); // 笠木
+        ctx.strokeStyle = "#3a3428"; ctx.lineWidth = 1.2; ctx.strokeRect(ax - 34, ay - 52, 8, 52); ctx.strokeRect(ax + 26, ay - 52, 8, 52);
+        ctx.fillStyle = "rgba(184,58,42,.7)"; ctx.fillRect(ax - 33, ay - 48, 6, 22); ctx.fillRect(ax + 27, ay - 48, 6, 22); // 奉納の赤布
+        // 段状の基壇
+        ctx.fillStyle = "#6a6152"; ctx.fillRect(ax - 26, ay - 8, 52, 8);
+        ctx.fillStyle = "#7d745f"; ctx.fillRect(ax - 20, ay - 15, 40, 7);
+        ctx.strokeStyle = "#3a3428"; ctx.lineWidth = 1.2; ctx.strokeRect(ax - 26, ay - 8, 52, 8); ctx.strokeRect(ax - 20, ay - 15, 40, 7);
+        // 御神体=車輪(金環4スポーク)。翡翠の宝玉を中心に(脈動はdrawJungle6)
+        ctx.strokeStyle = "#c9a86a"; ctx.lineWidth = 2.6;
+        ctx.beginPath(); ctx.arc(ax, ay - 27, 11, 0, 7); ctx.stroke();
+        ctx.lineWidth = 1.8;
+        for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + Math.PI / 4; ctx.beginPath(); ctx.moveTo(ax, ay - 27); ctx.lineTo(ax + Math.cos(a) * 11, ay - 27 + Math.sin(a) * 11); ctx.stroke(); }
+        ctx.fillStyle = "rgba(47,169,138,.55)"; ctx.beginPath(); ctx.arc(ax, ay - 27, 3.4, 0, 7); ctx.fill();
         // 供物(果実と虫かご=食料神への捧げ物)
-        ctx.fillStyle = "#c9563a";
-        ctx.beginPath(); ctx.arc(ax - 13, ay - 18, 3, 0, 7); ctx.fill();
-        ctx.fillStyle = "#d9a13a";
-        ctx.beginPath(); ctx.arc(ax - 7, ay - 17, 2.6, 0, 7); ctx.fill();
-        ctx.strokeStyle = "#4a3a26"; ctx.lineWidth = 1;
-        ctx.strokeRect(ax + 7, ay - 21, 8, 6);
+        ctx.fillStyle = "#c9563a"; ctx.beginPath(); ctx.arc(ax - 13, ay - 18, 3, 0, 7); ctx.fill();
+        ctx.fillStyle = "#d9a13a"; ctx.beginPath(); ctx.arc(ax - 7, ay - 17, 2.6, 0, 7); ctx.fill();
+        ctx.strokeStyle = "#4a3a26"; ctx.lineWidth = 1; ctx.strokeRect(ax + 7, ay - 21, 8, 6);
         ctx.beginPath(); ctx.moveTo(ax + 9, ay - 21); ctx.lineTo(ax + 9, ay - 15); ctx.moveTo(ax + 12, ay - 21); ctx.lineTo(ax + 12, ay - 15); ctx.stroke();
         // 祭壇の前の敷布
         ctx.fillStyle = "rgba(184,86,58,.35)";
@@ -2025,6 +2011,40 @@ const Render = {
       ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 1.8, 0, 7); ctx.fill();
       ctx.fillStyle = `rgba(255,128,128,${e.a * (0.45 + pr * 0.5)})`;
       ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 0.26, 0, 7); ctx.fill();
+    }
+  },
+
+  // ---- ID6密林: 祭祀の躍動(篝火の炎/火の粉・御神体の翡翠の脈動・緑の木漏れ日)。神聖な祝祭の気配 ----
+  // 静的な社/御神体/供物/篝火台はpaintBackground(キャッシュ)。ここは"生きた祭祀"だけを毎フレーム重ねる。
+  drawJungle6(ctx) {
+    const calm = window.Motion && Motion.reduced;
+    // 御神体の翡翠が静かに脈打つ(神の宿り・翡翠#2FA98A=オート/アクセント/固有種の三重の緑)
+    const ax = 640, jy = HORIZON - 13;
+    const jd = calm ? 0.6 : 0.55 + Math.sin(this.time * 1.2) * 0.28;
+    const jg = ctx.createRadialGradient(ax, jy, 1, ax, jy, 13);
+    jg.addColorStop(0, `rgba(47,169,138,${jd * 0.55})`); jg.addColorStop(1, "rgba(47,169,138,0)");
+    ctx.fillStyle = jg; ctx.beginPath(); ctx.arc(ax, jy, 13, 0, 7); ctx.fill();
+    ctx.fillStyle = `rgba(47,169,138,${jd})`; ctx.beginPath(); ctx.arc(ax, jy, 3.4, 0, 7); ctx.fill();
+    if (calm) return; // 以下は微動(reduced-motionは静的な社のまま)
+    // 篝火の炎+火の粉(奉納の灯)
+    for (const [fx2, ph] of [[420, 0], [860, 2.4]]) {
+      const fy = HORIZON + 26, fl = Math.sin(this.time * 5 + ph) * 2.5;
+      ctx.fillStyle = "#e8853a";
+      ctx.beginPath(); ctx.moveTo(fx2 - 5, fy - 12); ctx.quadraticCurveTo(fx2 - 4 + fl, fy - 24, fx2 + fl * 0.6, fy - 30); ctx.quadraticCurveTo(fx2 + 5 + fl, fy - 22, fx2 + 5, fy - 12); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#ffce6b";
+      ctx.beginPath(); ctx.moveTo(fx2 - 2.5, fy - 12); ctx.quadraticCurveTo(fx2 + fl * 0.5, fy - 19, fx2 + fl * 0.4, fy - 22); ctx.quadraticCurveTo(fx2 + 2.5 + fl * 0.4, fy - 17, fx2 + 2.5, fy - 12); ctx.closePath(); ctx.fill();
+      for (let k = 0; k < 3; k++) { // 火の粉が昇る
+        const et = ((this.time * 0.5 + k * 0.34 + ph) % 1);
+        ctx.fillStyle = `rgba(255,190,110,${0.6 * (1 - et)})`;
+        ctx.beginPath(); ctx.arc(fx2 + Math.sin(this.time * 2 + k) * 4, fy - 24 - et * 30, 1, 0, 7); ctx.fill();
+      }
+    }
+    // 緑の木漏れ日(祭祀の森の聖なる光・ゆっくり呼吸)
+    for (const [sx, ph] of [[300, 0], [780, 2]]) {
+      const br = 0.05 + Math.sin(this.time * 0.4 + ph) * 0.02;
+      const g = ctx.createLinearGradient(sx, 0, sx + 30, HORIZON + 100);
+      g.addColorStop(0, `rgba(150,220,120,${br})`); g.addColorStop(1, "rgba(150,220,120,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(sx - 20, 0); ctx.lineTo(sx + 20, 0); ctx.lineTo(sx + 50, HORIZON + 100); ctx.lineTo(sx - 30, HORIZON + 100); ctx.closePath(); ctx.fill();
     }
   },
 
