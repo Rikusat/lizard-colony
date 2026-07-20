@@ -169,6 +169,8 @@ Object.assign(UI, {
       body.innerHTML = `
         <div class="list-row"><div class="grow"><b>セーブ</b><div class="desc">10秒ごとに自動保存されます</div></div>
           <button id="set-save">今すぐ保存</button></div>
+        <div class="list-row"><div class="grow"><b>シェルター撤廃前のバックアップから復元</b><div class="desc">シェルター撤廃(v12)前のセーブへ巻き戻す(シェルターと投資Lvが戻り、払い戻しGoldは無くなる)</div></div>
+          <button id="set-rollbackV12">復元</button></div>
         <div class="list-row"><div class="grow"><b>純血化(追補)前のバックアップから復元</b><div class="desc">混入していた他惑星種の再掃除(v10)前のセーブへ巻き戻す</div></div>
           <button id="set-rollbackV10">復元</button></div>
         <div class="list-row"><div class="grow"><b>純血化(Phase4)前のバックアップから復元</b><div class="desc">純血化で消えた他惑星種を含む、移行前のセーブへ巻き戻す</div></div>
@@ -188,6 +190,9 @@ Object.assign(UI, {
         </div>`;
       body.querySelector("#set-save").addEventListener("click", () => {
         Game.save(); this.toast(`${Icon.svg("save")} セーブしました`);
+      });
+      body.querySelector("#set-rollbackV12").addEventListener("click", () => {
+        if (confirm("シェルター撤廃前のバックアップへ巻き戻しますか? シェルターと投資Lvが戻り、払い戻しGoldは無くなります。")) Game.restoreV12Backup();
       });
       body.querySelector("#set-rollbackV10").addEventListener("click", () => {
         if (confirm("純血化(追補)前のバックアップへ巻き戻しますか? 掃除された混入個体が戻ります(その後また掃除されます)。")) Game.restoreV10Backup();

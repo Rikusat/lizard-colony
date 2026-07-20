@@ -3,7 +3,7 @@
 // トカゲコロニー: マスターデータ / バランス定数
 // ============================================================
 
-const SAVE_VERSION = 11; // v11: 賢者の石(四重スリット装置の報酬・新プレミアム資源)をwalletに追加(v10→v11・加算のみ=非破壊)
+const SAVE_VERSION = 12; // v12: シェルター撤廃(§8.10)。ベビー安全を巣の基本仕様へ標準化、投資済みLvはGold全額払戻(v11→v12・非破壊/資産プラス)
 
 const CFG = {
   saveKey: "lizardColonySaveV1",
@@ -17,6 +17,7 @@ const CFG = {
   saveBackupKeyV9: "lizardColonyV9Backup", // V8→V9移行前のバックアップ(純血化=破壊的。必ずロールバック可能に)
   saveBackupKeyV10: "lizardColonyV10Backup", // V9→V10移行前のバックアップ(純血化の追補=混入個体の再掃除。ロールバック可能に)
   saveBackupKeyV11: "lizardColonyV11Backup", // V10→V11移行前のバックアップ(賢者の石追加=非破壊だが方針どおり退避)
+  saveBackupKeyV12: "lizardColonyV12Backup", // V11→V12移行前のバックアップ(シェルター撤廃+Gold払戻。方針どおり退避=ロールバック可)
   startCoins: 500,
   startStones: 0,           // 賢者の石(四重スリット装置のレア報酬・保有のみ・用途は後日)。新規は0
 
@@ -357,8 +358,6 @@ const FACILITIES = [
   // --- 防衛設備(ボス対策専用) ---
   { id: "fence",       name: "フェンス", icon: "fence", tab: "def", unlock: 0,  max: 10, baseCost: 500,    costMult: 1.6,
     desc: "先制攻撃時間 +2秒/Lv・敵の攻撃間隔 +1秒/Lv" },
-  { id: "shelter",     name: "シェルター", icon: "shelter", tab: "def", unlock: 0, max: 10, baseCost: 400,   costMult: 1.6,
-    desc: "ベビーを保護・攻撃回避 +6%/Lv" },
   { id: "watchtower",  name: "監視塔",   icon: "watchtower", tab: "def", unlock: 40, max: 10, baseCost: 100000, costMult: 1.7,
     desc: "迎撃の総攻撃力 +4%/Lv" },
   { id: "trap",        name: "罠設備",   icon: "trap", tab: "def", unlock: 45, max: 15, baseCost: 200000, costMult: 1.6,
@@ -367,7 +366,6 @@ const FACILITIES = [
 
 // シナジー示唆 (V2⑥継承・統合後版): 効果が自然に重なるだけで成立
 const FACILITY_SYNERGIES = [
-  { ids: ["heat", "shelter"],            name: "バスキング特化", desc: "回復と保護が両立。雪惑星で真価" },
   { ids: ["feeder", "water"],            name: "全自動生活圏",   desc: "湧く・食べる・潤うが自動で回る" },
   { ids: ["water", "trap"],              name: "毒無効化",       desc: "オオサソリの毒がほぼ機能しなくなる" },
   { ids: ["fence", "trap", "watchtower"], name: "対侵入要塞",    desc: "遅延+侵入ダメージ+迎撃強化で守り切る" },

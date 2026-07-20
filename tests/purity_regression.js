@@ -45,7 +45,7 @@ function loadGame() {
   vm.createContext(sandbox);
   let code = "";
   for (const f of ["js/data.js", "js/game.js", "js/slit.js"]) code += fs.readFileSync(path.join(ROOT, f), "utf8") + "\n;\n";
-  code += "globalThis.__exp = { Game, SPECIES, MORPHS, CFG, STAGES, speciesById, Slit };\n";
+  code += "globalThis.__exp = { Game, SPECIES, MORPHS, CFG, STAGES, speciesById, Slit, SAVE_VERSION };\n";
   vm.runInContext(code, sandbox, { filename: "combined.js" });
   sandbox.__exp.localStorage = sandbox.localStorage; // load()検証用にsandboxのlocalStorageを露出
   return sandbox.__exp;
@@ -192,7 +192,7 @@ for (let S = 1; S <= 10; S++) {
   check("load()成功", ok === true);
   const afterLoad = auditWorld(exp, Game.world);
   check("load()後: 全惑星で他惑星種0(自動再純血化)", afterLoad.foreignLiz === 0 && afterLoad.foreignEgg === 0, afterLoad.detail.join(" | "));
-  check("load()後: world.version=11(賢者の石追加)", Game.world.version === 11, `version=${Game.world.version}`);
+  check("load()後: world.versionが最新(SAVE_VERSION)まで移行済み", Game.world.version === exp.SAVE_VERSION, `version=${Game.world.version} / SAVE_VERSION=${exp.SAVE_VERSION}`);
   const backup = ls.getItem(exp.CFG.saveBackupKeyV10);
   check("load()時: V10バックアップが退避されている(ロールバック可)", !!backup && JSON.parse(backup).version === 9);
 }

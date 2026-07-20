@@ -836,7 +836,6 @@ const Game = {
     const lvl = this.hqLevel();
     this.state.crickets += CFG.pioneerCrickets + lvl * 20; // V5.2: コオロギ支給を復活(共通在庫へ)
     tgt.facilities.water = Math.max(tgt.facilities.water || 0, 1);
-    tgt.facilities.shelter = Math.max(tgt.facilities.shelter || 0, 1);
     this.state.coins += CFG.pioneerCoins + lvl * 2000;
   },
 
@@ -1690,14 +1689,9 @@ const Game = {
   },
 
   injureLizards(count) {
-    const shelterLv = this.facLv("shelter");
-    let targets = this.state.lizards.filter((lz) => lz.injuredT <= 0 && !this.isHidden(lz));
-    if (shelterLv > 0) targets = targets.filter((lz) => lz.stage === "adult"); // ベビー保護
+    // §8.10: ベビーは常に安全(旧シェルターのベビー保護を「巣の基本仕様」として標準化=無条件)。負傷対象はアダルトのみ
+    const targets = this.state.lizards.filter((lz) => lz.injuredT <= 0 && !this.isHidden(lz) && lz.stage === "adult");
     if (targets.length === 0) return;
-    if (Math.random() < shelterLv * 0.08) {
-      this.popup(SNAKE_HOME.x, SNAKE_HOME.y - 50, "ガード!", "#8fd0ff");
-      return;
-    }
     let hit = 0;
     const turtleLv = this.allyLv("turtle");
     for (let i = 0; i < Math.min(count, targets.length); i++) {
@@ -2329,6 +2323,29 @@ const Game = {
     return w;
   },
 
+  // v11→v12: シェルター撤廃(§8.10)。ベビー安全は巣の基本仕様へ標準化(injureLizardsで無条件保護)、
+  // ガード回避は廃止。投資済みシェルターLvを全惑星でGold全額払戻(V5「損失感ゼロ」・コオロギ廃止と同じ扱い)し
+  // shelterキーを削除。旧コスト(baseCost400/costMult1.6)は撤廃済み定義に依存せぬよう定数固定。
+  // バージョンゲート+キー削除で冪等(再実行しても shelter が無いので二重返金しない)。
+  migrateV11to12(w) {
+    if ((w.version || 0) >= 12) return w;
+    const planets = w.planets || w.stages || [];
+    let refund = 0, lvSum = 0;
+    for (const p of planets) {
+      if (!p.facilities) continue;
+      const lv = p.facilities.shelter || 0;
+      for (let k = 0; k < lv; k++) refund += Math.floor(400 * Math.pow(1.6, k));
+      lvSum += lv;
+      delete p.facilities.shelter;
+    }
+    w.planets = planets; w.stages = planets; // 掃除済み配列で再エイリアス(planets/stages分裂時の削除漏れ・二重返金を防ぐ・既存migrationと同型)
+    w.wallet = w.wallet || { coins: 0, gems: 0 };
+    w.wallet.coins = (w.wallet.coins || 0) + refund;
+    w._refundV12 = { shelterLvTotal: lvSum, gold: refund }; // 通知用(保存されない)
+    w.version = 12;
+    return w;
+  },
+
   applyWorld(w) {
     if (w.planets && !w.stages) w.stages = w.planets; // V4改名の互換
     if (w.stages && !w.planets) w.planets = w.stages;
@@ -2533,6 +2550,8 @@ const Game = {
         if (data.version === 9) { try { localStorage.setItem(CFG.saveBackupKeyV10, raw); } catch (e) { /* noop */ } }
         // v10セーブ → v11移行(賢者の石追加=非破壊だが方針どおり退避)
         if (data.version === 10) { try { localStorage.setItem(CFG.saveBackupKeyV11, raw); } catch (e) { /* noop */ } }
+        // v11セーブ → v12移行(シェルター撤廃+Gold払戻。方針どおり退避=ロールバック可)
+        if (data.version === 11) { try { localStorage.setItem(CFG.saveBackupKeyV12, raw); } catch (e) { /* noop */ } }
         world = data; // 実移行は下の共通ゲートで(冪等)
       } else if (data.version === 8) {
         // V8セーブ → V9移行(純血化=破壊的。必ず全文バックアップを退避=ロールバック可能に)
@@ -2588,7 +2607,7 @@ const Game = {
         setTimeout(() => UI.toast("セーブを最新形式へ移行しました。旧データはバックアップ済み"), 900);
       }
       // 共通ゲート(全チェーンの最終段・各段は冪等)。v8→v9=純血化(破壊的) / v9→v10=混入個体の再掃除
-      world = this.migrateV10to11(this.migrateV9to10(this.migrateV8to9(this.migrateV7to8(this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world)))))));
+      world = this.migrateV11to12(this.migrateV10to11(this.migrateV9to10(this.migrateV8to9(this.migrateV7to8(this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world))))))));
       if (world._purifyV9 && (world._purifyV9.lizards > 0 || world._purifyV9.eggs > 0)) {
         const p9 = world._purifyV9;
         setTimeout(() => UI.toast(`${Icon.svg("planet")} 純血化: 各惑星は固有種のみになりました(他惑星種 ${p9.lizards}匹${p9.eggs > 0 ? "・卵" + p9.eggs : ""}が去った。設定からロールバック可)`, true), 900);
@@ -2605,6 +2624,10 @@ const Game = {
           }
         } catch (e) { /* noop */ }
         setTimeout(() => UI.toast(`${Icon.svg("planet")} 純血化の追補: 混入していた他惑星種 ${p10.lizards}匹${p10.eggs > 0 ? "・卵" + p10.eggs : ""}を掃除しました(生成側も根治済み・設定からロールバック可)`, true), 950);
+      }
+      if (world._refundV12 && world._refundV12.gold > 0) {
+        const r12 = world._refundV12;
+        setTimeout(() => UI.toast(`シェルターは撤廃されました(ベビーは常に安全に)。投資分Lv${r12.shelterLvTotal}を全額払い戻し: +${fmt(r12.gold)}G(設定からロールバック可)`), 920);
       }
       if (world._reviveV7 && world._reviveV7.crickets > 0) {
         const r7 = world._reviveV7;
@@ -2666,6 +2689,15 @@ const Game = {
     let raw;
     try { raw = localStorage.getItem(CFG.saveBackupKeyV10); } catch (e) { raw = null; }
     if (!raw) { UI.toast("純血化(追補)前のバックアップが見つからない", true); return false; }
+    localStorage.setItem(CFG.saveKey, raw);
+    location.reload();
+    return true;
+  },
+  // §8.10: シェルター撤廃(V12)前へロールバック=シェルターと投資Lvが戻る(払戻Goldは移行前状態のため無し)
+  restoreV12Backup() {
+    let raw;
+    try { raw = localStorage.getItem(CFG.saveBackupKeyV12); } catch (e) { raw = null; }
+    if (!raw) { UI.toast("シェルター撤廃前のバックアップが見つからない", true); return false; }
     localStorage.setItem(CFG.saveKey, raw);
     location.reload();
     return true;

@@ -8,10 +8,9 @@ const HORIZON = 170;
 // 設備の配置座標
 const FAC_POS = {
   water: { x: 230, y: 610 },
-  shelter: { x: 170, y: 320 },
-  light: { x: 1110, y: 300 },
+  light: { x: 185, y: 320 },   // 保温設備の定位置(§8.10で旧シェルター位置=左へ移動。展望台(右)と分離)。名残でキー名はlight
   rocks: { x: 800, y: 630 },
-  heat: { x: 620, y: 250 },
+  heat: { x: 620, y: 250 },    // 餌場の定位置(名残でキー名はheat)
   fenceX: 1218,
 };
 const NEST = { x: 430, y: 300 };
@@ -1570,32 +1569,7 @@ const Render = {
 
     if (lv("water")) this._drawWater(ctx, P.water, lv("water")); // Phase8: tierで水たまり→池→湖→大湖(定位置で規模が育つ)
 
-    if (lv("shelter")) { // 岩の洞窟
-      const p = P.shelter;
-      ctx.fillStyle = "rgba(0,0,0,.32)";
-      ctx.beginPath(); ctx.ellipse(p.x, p.y + 10, 78, 20, 0, 0, 7); ctx.fill();
-      // 岩のドーム(重なった岩塊)
-      ctx.fillStyle = "#5a4c3e";
-      ctx.beginPath();
-      ctx.arc(p.x - 28, p.y - 18, 34, 0, 7);
-      ctx.arc(p.x + 20, p.y - 24, 38, 0, 7);
-      ctx.arc(p.x + 42, p.y - 6, 26, 0, 7);
-      ctx.arc(p.x - 48, p.y - 2, 24, 0, 7);
-      ctx.fill();
-      ctx.fillStyle = "#463a2e";
-      ctx.beginPath(); ctx.arc(p.x + 34, p.y - 12, 28, 0, 7); ctx.fill();
-      // 上面のハイライト
-      ctx.fillStyle = "rgba(255,255,255,.09)";
-      ctx.beginPath(); ctx.arc(p.x - 20, p.y - 34, 22, 0, 7); ctx.arc(p.x + 16, p.y - 40, 20, 0, 7); ctx.fill();
-      // 入口(奥行きのある闇)
-      const g = ctx.createRadialGradient(p.x, p.y + 4, 4, p.x, p.y + 4, 30);
-      g.addColorStop(0, "#000"); g.addColorStop(1, "#1c1510");
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.ellipse(p.x, p.y + 6, 27, 22, 0, Math.PI, 0); ctx.fill();
-      ctx.fillRect(p.x - 27, p.y + 4, 54, 5);
-    }
-
-    if (lv("heat")) this._drawHeat(ctx, P.light, lv("heat")); // Phase8: tierで保温ライト→保温器→温室の骨組み→温室
+    if (lv("heat")) this._drawHeat(ctx, P.light, lv("heat")); // Phase8: tierで保温ライト→温室→空中ライト(§8.10で左=旧シェルター位置へ移動)
 
     if (lv("breedfac")) this._drawBreed(ctx, P.rocks, lv("breedfac")); // Phase8: tierで岩場の巣→繁殖の庭→育種園
 
