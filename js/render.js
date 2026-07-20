@@ -88,6 +88,7 @@ const Render = {
     if (Game.currentStage().id === 9) this.drawReactor9(ctx); // 廃原子炉: チェレンコフ冷光の脈動(背景層)
     if (Game.currentStage().id === 7) this.drawAbyss7(ctx); // 水中都市: 気泡/海藻/コースティクス/深海の影(背景層)
     if (Game.currentStage().id === 6) this.drawJungle6(ctx); // 密林: 篝火の炎/火の粉・御神体の翡翠脈動・緑の木漏れ日(背景層)
+    if (Game.currentStage().id === 4) this.drawTomb4(ctx); // 古代古墳: 玄室の金の脈動・燐火(緑の鬼火)・水面のゆらぎ(背景層)
     this.drawNest(ctx);
     this.drawFacilities(ctx);
     this.drawSmallFacilities(ctx);
@@ -309,6 +310,12 @@ const Render = {
       }
       for (let i = 0; i < 22; i++) this.tuft(ctx, rand() * W, groundY(), "#2c4a22", rand);
     } else if (st.id === 4) { // 古代古墳: 湿地の水鏡に王墓が浮かぶ(悼みの地・水たまり・葦は残す)
+      // 遠景の墳墓群(霞む前方後円墳の影=歴代の王が眠る=悼みの重なり・気配)
+      for (const [nx, ns] of [[150, 0.5], [280, 0.36], [1000, 0.44], [1130, 0.32]]) {
+        ctx.fillStyle = "rgba(60,78,64,.5)";
+        ctx.beginPath(); ctx.ellipse(nx, HORIZON - 2, 90 * ns, 24 * ns, 0, Math.PI, 0); ctx.fill(); // 後円部
+        ctx.beginPath(); ctx.moveTo(nx + 60 * ns, HORIZON); ctx.lineTo(nx + 110 * ns, HORIZON); ctx.lineTo(nx + 96 * ns, HORIZON - 16 * ns); ctx.lineTo(nx + 74 * ns, HORIZON - 16 * ns); ctx.closePath(); ctx.fill(); // 前方部
+      }
       // 周濠(王墓を巡る水の帯)と、その水鏡に映る墳丘
       {
         const kx = 640, base = HORIZON;
@@ -322,23 +329,20 @@ const Render = {
         ctx.strokeStyle = "rgba(30,45,32,.5)"; ctx.lineWidth = 1.4;
         ctx.beginPath(); ctx.ellipse(kx, base, 170, 46, 0, Math.PI, 0); ctx.stroke();
         ctx.beginPath(); ctx.ellipse(kx, base - 26, 110, 32, 0, Math.PI, 0); ctx.stroke();
-        // 玄室の入口(石組み)と、副葬の金の微かな輝き
+        // 玄室の入口(石組み)。副葬の金の脈動・燐火(緑の鬼火)はdrawTomb4が毎フレーム描く(キャッシュで凍結させない)
         ctx.fillStyle = "#3a3428";
         ctx.fillRect(kx - 13, base - 22, 26, 22);
         ctx.strokeStyle = "#241f14"; ctx.lineWidth = 1.6;
         ctx.strokeRect(kx - 13, base - 22, 26, 22);
         ctx.fillStyle = "#1c1810";
         ctx.fillRect(kx - 8, base - 16, 16, 16);
-        const gl = 0.35 + Math.sin(this.time * 0.9) * 0.15;
-        ctx.fillStyle = `rgba(201,168,106,${gl})`; // 奥に眠る副葬の金
-        ctx.fillRect(kx - 3, base - 7, 6, 4);
-        // 玄室の燐火(緑の鬼火・ひとつだけ静かに漂う=クランクの緑の先触れ)
-        const wx = kx + 34 + Math.sin(this.time * 0.5) * 8, wy = base - 34 + Math.sin(this.time * 0.8) * 5;
-        const wisp = ctx.createRadialGradient(wx, wy, 1, wx, wy, 10);
-        wisp.addColorStop(0, "rgba(123,217,134,.5)"); wisp.addColorStop(1, "rgba(123,217,134,0)");
-        ctx.fillStyle = wisp; ctx.fillRect(wx - 10, wy - 10, 20, 20);
-        ctx.fillStyle = "rgba(180,240,190,.8)";
-        ctx.beginPath(); ctx.arc(wx, wy, 1.6, 0, 7); ctx.fill();
+        // 玄室の入口に垂れる金鈴(2つ・クランクの金鈴と呼応=王墓の音の記憶)
+        ctx.strokeStyle = "#8f7a4a"; ctx.lineWidth = 1;
+        for (const bx of [kx - 10, kx + 10]) {
+          ctx.beginPath(); ctx.moveTo(bx, base - 22); ctx.lineTo(bx, base - 14); ctx.stroke();
+          ctx.fillStyle = "#c9a86a"; ctx.beginPath(); ctx.arc(bx, base - 12, 2.4, 0, 7); ctx.fill();
+          ctx.fillStyle = "rgba(255,240,190,.5)"; ctx.beginPath(); ctx.arc(bx - 0.7, base - 12.7, 0.9, 0, 7); ctx.fill();
+        }
         // 水鏡の反映(墳丘がぼんやり映る)
         ctx.save(); ctx.globalAlpha = 0.16; ctx.scale(1, -0.32); ctx.translate(0, -base * 2 / 0.32 * 0.32 - base * 2);
         ctx.fillStyle = "#46604a";
@@ -2012,6 +2016,32 @@ const Render = {
       ctx.fillStyle = `rgba(255,128,128,${e.a * (0.45 + pr * 0.5)})`;
       ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 0.26, 0, 7); ctx.fill();
     }
+  },
+
+  // ---- ID4古代古墳: 玄室の金の脈動・燐火(緑の鬼火=クランクの緑の先触れ)・水鏡のゆらぎ。悼みの静けさ ----
+  // 静的な墳丘/玄室/埴輪/金鈴はpaintBackground(キャッシュ)。ここは金の輝きと漂う魂だけを毎フレーム重ねる。
+  drawTomb4(ctx) {
+    const calm = window.Motion && Motion.reduced;
+    const kx = 640, base = HORIZON;
+    // 玄室の奥に眠る副葬の金(暗がりでゆっくり明滅=「これは何だ」)
+    const gl = calm ? 0.4 : 0.35 + Math.sin(this.time * 0.9) * 0.16;
+    ctx.fillStyle = `rgba(201,168,106,${gl})`; ctx.fillRect(kx - 3, base - 7, 6, 4);
+    const gg = ctx.createRadialGradient(kx, base - 8, 0.5, kx, base - 8, 9);
+    gg.addColorStop(0, `rgba(201,168,106,${gl * 0.5})`); gg.addColorStop(1, "rgba(201,168,106,0)");
+    ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(kx, base - 8, 9, 0, 7); ctx.fill();
+    if (calm) return; // 以下は微動(reduced-motionは静的な墓のまま)
+    // 燐火(緑の鬼火)が墳丘の周りを漂う=悼む魂/クランクの緑の先触れ。数を抑えて静か
+    for (const [ox, oy, sp, ph] of [[34, -34, 0.5, 0], [-60, -20, 0.42, 2.3], [90, -12, 0.36, 4.1]]) {
+      const wx = kx + ox + Math.sin(this.time * sp + ph) * 10, wy = base + oy + Math.sin(this.time * (sp + 0.3) + ph) * 6;
+      const wisp = ctx.createRadialGradient(wx, wy, 1, wx, wy, 10);
+      wisp.addColorStop(0, "rgba(123,217,134,.5)"); wisp.addColorStop(1, "rgba(123,217,134,0)");
+      ctx.fillStyle = wisp; ctx.beginPath(); ctx.arc(wx, wy, 10, 0, 7); ctx.fill();
+      ctx.fillStyle = "rgba(180,240,190,.8)"; ctx.beginPath(); ctx.arc(wx, wy, 1.5, 0, 7); ctx.fill();
+    }
+    // 周濠の水面がかすかにゆらぐ
+    const sh = 0.12 + Math.sin(this.time * 0.6) * 0.05;
+    ctx.fillStyle = `rgba(160,195,200,${sh})`;
+    ctx.beginPath(); ctx.ellipse(kx, base + 8, 150 + Math.sin(this.time * 0.4) * 8, 5, 0, 0, 7); ctx.fill();
   },
 
   // ---- ID6密林: 祭祀の躍動(篝火の炎/火の粉・御神体の翡翠の脈動・緑の木漏れ日)。神聖な祝祭の気配 ----
