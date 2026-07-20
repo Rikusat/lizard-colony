@@ -19,7 +19,7 @@ Object.assign(UI, {
       { id: "water", x: P.water.x, y: P.water.y, r: (typeof waterTierInfo !== "undefined" ? Math.max(70, waterTierInfo(Game.facLv("water")).hitR) : 78) },
       // Phase8: 保温設備は温室化でスケール追従(heatTierInfo共有)。中心はP.light、育つと全体を覆う
       { id: "heat", x: P.light.x, y: P.light.y, r: (typeof heatTierInfo !== "undefined" ? Math.max(60, heatTierInfo(Game.facLv("heat")).hitR) : 62) },
-      { id: "observatory", x: 1005, y: 330, r: (typeof observatoryTierInfo !== "undefined" ? observatoryTierInfo(Game.facLv("observatory")).hitR : 56) }, // Phase8: 展望台=タップ可能+スケール追従(spots.observatory)
+      { id: "observatory", x: P.observatory.x, y: P.observatory.y, r: (typeof observatoryTierInfo !== "undefined" ? observatoryTierInfo(Game.facLv("observatory")).hitR : 56) }, // §8.12: 展望台=中央・巨大(FAC_POSと共有)
     ];
     for (const h of hits) {
       if (Game.facLv(h.id) > 0 && Math.hypot(x - h.x, y - h.y) < h.r) return h.id;

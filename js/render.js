@@ -8,10 +8,12 @@ const HORIZON = 170;
 // 設備の配置座標
 const FAC_POS = {
   water: { x: 230, y: 610 },
-  light: { x: 185, y: 320 },   // 保温設備の定位置(§8.10で旧シェルター位置=左へ移動。展望台(右)と分離)。名残でキー名はlight
+  light: { x: 1010, y: 322 },       // 保温設備(§8.12で旧・展望台位置=右へ移動。ボス側)。名残でキー名はlight
+  observatory: { x: 640, y: 300 },  // 展望台(§8.12で中央へ配置し巨大化=中央のランドマーク/ギミック)
+  burrow: { x: 185, y: 322 },       // すみか(§8.12で旧・保温設備位置=左へ。ボス登場側の反対=ベビーが逃げ込む)
   fenceX: 1218,
 };
-const NEST = { x: 430, y: 300 };
+const NEST = { x: 400, y: 512 };  // 卵の巣(§8.12で中央の巨大展望台を避け前景・左下寄りへ)
 
 // Phase 8: 設備の成長表現。tier算出を一元化(二重管理なし)。thresholds=各tierの上限レベルの配列(例 水場[5,10,15,20])。
 // 返り値 tier(1..N・0=未建設) と within(tier内進捗 0..1: そのtierの最初のLv=0/最後のLv=1)。描画と当たり判定で共有。
@@ -42,13 +44,13 @@ function heatTierInfo(lv) {
   return { tier, w, h, beamR, hitR };
 }
 // 展望台(§8.9 観測施設群・上限10/3tier): 1観測台 / 2観測所 / 3観測施設群(大望遠鏡+アンテナ列+観測塔+足場+複数バルコニー)。
-// 群れが集まって空を見上げられる規模。居場所=観測デッキ(§8.5)。
+// §8.12: 中央のランドマークとして巨大化。群れが集まって空を見上げられる規模。居場所=観測デッキ(§8.5)。
 function observatoryTierInfo(lv) {
   const { tier, within } = facTier(lv, [3, 7, 10]);
   if (!tier) return { tier: 0, w: 0, h: 0, hitR: 0 };
-  const w = [0, 96, 156, 236][tier] + within * [0, 12, 16, 20][tier];
-  const h = [0, 66, 108, 150][tier] + within * [0, 8, 10, 12][tier];
-  return { tier, w, h, hitR: Math.max(66, w * 0.5) };
+  const w = [0, 128, 210, 312][tier] + within * [0, 16, 22, 28][tier];
+  const h = [0, 84, 140, 196][tier] + within * [0, 10, 14, 16][tier];
+  return { tier, w, h, hitR: Math.max(80, w * 0.46) };
 }
 // すみか(巣穴→掘り込みの住居→定住の巣/ワレン・住居Lv上限8/3tier)。常に存在(Lv1〜)。
 function burrowTierInfo(lv) {
@@ -1478,7 +1480,7 @@ const Render = {
   // 巣穴(すみか): アダルトの生活拠点+探索の入口(タップで巣ビュー)。Phase8: 住居Lvでtier(巣穴→掘り込みの住居→定住の巣)
   drawBurrow(ctx) {
     const resting = Game.state.lizards.filter((l) => l.resting).length;
-    const x = 480, y = 668;
+    const x = FAC_POS.burrow.x, y = FAC_POS.burrow.y;
     const nlv = (Game.state.nest && Game.state.nest.lv) || 1;
     const info = burrowTierInfo(nlv), tier = info.tier, s = info.scale;
     ctx.fillStyle = "rgba(0,0,0,.3)"; ctx.beginPath(); ctx.ellipse(x, y + 8, 52 * s, 12 * s, 0, 0, 7); ctx.fill();
@@ -1524,7 +1526,7 @@ const Render = {
   // Phase3 追加設備の小型マーカー(小屋+アイコンラベル)
   drawSmallFacilities(ctx) {
     const spots = {
-      observatory: [1005, 330], watchtower: [862, 204], trap: [1148, 668],
+      observatory: [FAC_POS.observatory.x, FAC_POS.observatory.y], watchtower: [862, 204], trap: [1148, 668],
     };
     for (const f of FACILITIES) {
       if (!f.unlock || !Game.facLv(f.id)) continue;
