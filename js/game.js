@@ -1341,35 +1341,26 @@ const Game = {
   // bonusLv(レア卵)はアダルトで高Lv誕生させる。特別演出は卵のフラグで分岐
   _hatchEggObject(egg) {
     const lz = this.makeLizard(egg.speciesId, egg.morphId, egg, "baby");
-    lz.x = 430 + rnd(-40, 40); lz.y = 320 + rnd(-10, 30); // 巣の近くに出現
+    lz.x = 400 + rnd(-46, 46); lz.y = 512 + rnd(-14, 22); // §8.12/§9: 卵の巣(NEST≈400,512)の近くに出現=どこで生まれたか位置で分かる
     if (egg.bonusLv) { lz.stage = "adult"; lz.level = 1 + egg.bonusLv; } // レア卵=高品質個体
     this.addLizard(lz);
     this.state.stats.hatched++;
     this.addRes("bio", CFG.resBioPerHatch);
     this.addRankXp(20);
-    if (egg.founder) {
-      // 創始者 (V3 §9.4): 旧コロニーの血統を継ぐ個体
-      lz.founder = true;
-      this.flashT = 0.5;
-      UI.toast(`創始者が誕生! ${this.lizardName(lz)} — あの子の血が新天地で続く`);
+    // §9-C2: 「〇〇が孵化した」テキストを撤廃し、誕生位置の登場エフェクトで見せる(どの個体がどこで生まれたか=位置で把握)
+    if (egg.founder || egg.gift) {
+      lz.founder = true; // 創始者/里帰りの祝福=血統マーク
+      this.flashT = 0.6; this.slowmo = 1.0;
+      this.popupBurst(lz.x, lz.y - 30);
+      this.spawnFx(lz.x, lz.y, lz.hue, true); // 見逃さない強さ(創始者の冠は個体に恒久表示)
     } else if (egg.morphId === "legendary") {
-      // 伝説個体の専用登場演出 (⑨-6)
-      this.flashT = 0.8;
-      this.slowmo = 1.2;
+      // §9(希望2): 伝説誕生は全画面撤廃。誕生位置に【見逃さない強さ】のエフェクト+虹色発光は永続(個体自体が恒久の見せ場)
+      this.flashT = 0.9; this.slowmo = 1.2;
       this.popupBurst(lz.x, lz.y - 30);
-      if (UI.heroLegendBirth) UI.heroLegendBirth(lz); // 一生に数回級(§6)
-      else UI.toast(`伝説個体が誕生!! ${this.lizardName(lz)} — 唯一無二の輝き!`);
-    } else if (egg.gift) {
-      // Phase4: 過去ステージ復帰の固有種#2報酬=特別な孵化演出(ジュース最大充当)
-      lz.founder = true; // 里帰りの祝福個体=創始者相当の血統マーク
-      this.flashT = 0.9;
-      this.slowmo = 1.1;
-      this.popupBurst(lz.x, lz.y - 30);
-      if (UI.heroReturnGift) UI.heroReturnGift(lz);
-      else if (UI.heroLegendBirth) UI.heroLegendBirth(lz);
-      else UI.toast(`${Icon.svg("spark")} 里帰りの祝福! この惑星の固有種「${this.lizardName(lz)}」が誕生した!`);
+      this.spawnFx(lz.x, lz.y, lz.hue, true);
+      this.spawnFx(lz.x, lz.y, (lz.hue + 60) % 360, true); // 二重の虹リング=伝説の特別さ
     } else {
-      UI.toast(`${this.lizardName(lz)} が孵化した!${egg.lucky ? " (ラッキー卵!)" : ""}`);
+      this.spawnFx(lz.x, lz.y, lz.hue, !!egg.lucky); // 通常/ラッキー孵化=位置に登場エフェクト
     }
   },
 
@@ -1992,6 +1983,17 @@ const Game = {
       this._autoTails[i].t -= dt;
       if (this._autoTails[i].t <= 0) this._autoTails.splice(i, 1);
     }
+    // §9-C2 登場エフェクトの寿命
+    if (this._spawnFx) for (let i = this._spawnFx.length - 1; i >= 0; i--) {
+      this._spawnFx[i].t -= dt;
+      if (this._spawnFx[i].t <= 0) this._spawnFx.splice(i, 1);
+    }
+  },
+
+  // §9-C2 登場エフェクト(孵化・誕生の位置把握・テキスト不要)。big=伝説/創始者級の見逃さない強さ
+  spawnFx(x, y, hue, big) {
+    this._spawnFx = this._spawnFx || [];
+    if (this._spawnFx.length < 24) this._spawnFx.push({ x, y, hue: (hue == null ? 140 : hue), t: big ? 1.7 : 1.05, max: big ? 1.7 : 1.05, big: !!big, seed: Math.random() * 1000 });
   },
 
   // §9.1 自切: 尾を切り離す(魂の外のエフェクト=くねって注意を引き消える)+ボスと反対へ逃げる

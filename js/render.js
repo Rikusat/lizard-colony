@@ -180,6 +180,7 @@ const Render = {
     const sorted = Game.state.lizards.filter((lz) => Game.isVisible(lz)).sort((a, b) => a.y - b.y);
     for (const lz of sorted) this.drawLizard(ctx, lz);
     this._pruneLizCache();
+    this.drawSpawnFx(ctx); // §9-C2 誕生の登場エフェクト(生き物の上に重ねる祝祭)
     if (Game.raid) this.drawBoss(ctx, Game.raid);
     else if (Game.corpse) this.drawCorpse(ctx, Game.corpse);
     if (Game.currentStage().id === 8) this.drawBugSweep(ctx); // 氷の前線: 自動掃討(純演出)
@@ -3211,6 +3212,27 @@ const Render = {
       ctx.stroke();
       // 切断面の赤み(生々しさ・控えめ)
       ctx.fillStyle = "rgba(150,40,30,.5)"; ctx.beginPath(); ctx.arc(T.x, T.y, 3, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  },
+
+  // §9-C2 登場エフェクト: 誕生位置に広がるリング+昇るきらめき(どこで生まれたかを位置で伝える。big=伝説/創始者)
+  drawSpawnFx(ctx) {
+    const fx = Game._spawnFx; if (!fx || !fx.length) return;
+    for (const F of fx) {
+      const k = 1 - F.t / F.max, alpha = 1 - k;      // k: 0→1
+      const R = (F.big ? 48 : 30) * (0.3 + k * 1.1);
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, alpha) * 0.8;    // 広がるリング
+      ctx.strokeStyle = `hsl(${F.hue},80%,66%)`; ctx.lineWidth = (F.big ? 4 : 2.5) * (1 - k * 0.6);
+      ctx.beginPath(); ctx.ellipse(F.x, F.y, R, R * 0.5, 0, 0, 7); ctx.stroke();
+      if (F.big) { ctx.strokeStyle = `hsl(${(F.hue + 40) % 360},80%,70%)`; ctx.beginPath(); ctx.ellipse(F.x, F.y, R * 0.68, R * 0.34, 0, 0, 7); ctx.stroke(); }
+      const n = F.big ? 9 : 5, rr2 = lcg((F.seed | 0) + 1); // 昇るきらめき
+      ctx.globalAlpha = Math.max(0, alpha);
+      for (let i = 0; i < n; i++) { const a = rr2() * 6.28, d = R * (0.3 + rr2() * 0.6); const sx = F.x + Math.cos(a) * d, sy = F.y + Math.sin(a) * d * 0.5 - k * (F.big ? 40 : 22); ctx.fillStyle = `hsl(${(F.hue + rr2() * 60) | 0},85%,72%)`; ctx.beginPath(); ctx.arc(sx, sy, (F.big ? 2.7 : 1.8) * (1 - k * 0.5), 0, 7); ctx.fill(); }
+      ctx.globalAlpha = Math.max(0, alpha) * (1 - k); // 中心の輝き
+      ctx.fillStyle = "rgba(255,255,240,.9)"; ctx.beginPath(); ctx.arc(F.x, F.y - k * 10, (F.big ? 4.5 : 2.6) * (1 - k), 0, 7); ctx.fill();
       ctx.restore();
     }
     ctx.globalAlpha = 1;
