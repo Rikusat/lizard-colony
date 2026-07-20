@@ -90,6 +90,7 @@ const Render = {
     if (Game.currentStage().id === 6) this.drawJungle6(ctx); // 密林: 篝火の炎/火の粉・御神体の翡翠脈動・緑の木漏れ日(背景層)
     if (Game.currentStage().id === 4) this.drawTomb4(ctx); // 古代古墳: 玄室の金の脈動・燐火(緑の鬼火)・水面のゆらぎ(背景層)
     if (Game.currentStage().id === 5) this.drawFurnace5(ctx); // 火山: 溶鉱炉の赤熱脈動・火の粉・溶岩の明滅(ふいご・背景層)
+    if (Game.currentStage().id === 3) this.drawForest3(ctx); // 森林: からくり時計の振り子・木漏れ日・蛍(背景層)
     this.drawNest(ctx);
     this.drawFacilities(ctx);
     this.drawSmallFacilities(ctx);
@@ -300,16 +301,41 @@ const Render = {
         ctx.fillStyle = "rgba(159,208,255,.07)";
         ctx.beginPath(); ctx.ellipse(x + 8, y + 2, 14, 3.5, 0, 0, 7); ctx.fill();
       }
-    } else if (st.id === 3) { // 森林: 地平線の木・シダ
-      for (let i = 0; i < 9; i++) {
-        const x = rand() * W, s = 0.6 + rand() * 0.7;
+    } else if (st.id === 3) { // 森林: 木製からくり時計の民=シルヴァ(時計職人の気配。森に機構が溶け込む)
+      // 遠景の木立(霞む層=奥行き)
+      for (let i = 0; i < 7; i++) {
+        const x = (i * 188 + 50) % W;
+        ctx.fillStyle = "rgba(40,64,38,.5)";
+        ctx.fillRect(x - 3, HORIZON - 22, 6, 22);
+        ctx.beginPath(); ctx.arc(x, HORIZON - 24, 16, 0, 7); ctx.fill();
+      }
+      // からくり時計の大樹(時計職人の心臓): 幹に木の文字盤・歯車の歯・振り子。森に溶け込む=気配
+      {
+        const cx2 = 636, cb = HORIZON;
+        ctx.fillStyle = "#4a3a28"; ctx.fillRect(cx2 - 30, cb - 150, 60, 150); // 幹
+        ctx.fillStyle = "#3a2e1e"; ctx.fillRect(cx2 - 30, cb - 150, 10, 150); // 陰
+        ctx.strokeStyle = "rgba(30,22,14,.4)"; ctx.lineWidth = 1; // 木目
+        for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.moveTo(cx2 - 22 + k * 14, cb); ctx.quadraticCurveTo(cx2 - 18 + k * 14, cb - 80, cx2 - 22 + k * 14, cb - 148); ctx.stroke(); }
+        ctx.fillStyle = "#2e4a26"; // 樹冠
+        ctx.beginPath(); ctx.arc(cx2, cb - 158, 56, 0, 7); ctx.arc(cx2 - 40, cb - 140, 34, 0, 7); ctx.arc(cx2 + 42, cb - 144, 32, 0, 7); ctx.fill();
+        const fy = cb - 88;
+        ctx.fillStyle = "#6b5436"; ctx.beginPath(); ctx.arc(cx2, fy, 24, 0, 7); ctx.fill(); // 木の文字盤
+        ctx.strokeStyle = "#4a3a24"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx2, fy, 24, 0, 7); ctx.stroke();
+        ctx.fillStyle = "#5a462c"; for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2; ctx.fillRect(cx2 + Math.cos(a) * 26 - 1.5, fy + Math.sin(a) * 26 - 1.5, 3, 3); } // 歯車の歯
+        ctx.strokeStyle = "rgba(40,30,18,.6)"; ctx.lineWidth = 1; for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(cx2 + Math.cos(a) * 20, fy + Math.sin(a) * 20); ctx.lineTo(cx2 + Math.cos(a) * 23, fy + Math.sin(a) * 23); ctx.stroke(); } // 刻み
+        ctx.strokeStyle = "#3a2e1e"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx2, fy); ctx.lineTo(cx2 + 8, fy - 12); ctx.moveTo(cx2, fy); ctx.lineTo(cx2 - 10, fy + 4); ctx.stroke(); // 針
+        ctx.fillStyle = "#c9a86a"; ctx.beginPath(); ctx.arc(cx2, fy, 3, 0, 7); ctx.fill(); // 中心の真鍮ハブ(職人の芯)
+      }
+      // 中景の木立
+      for (let i = 0; i < 6; i++) {
+        const x = rand() * W, s = 0.7 + rand() * 0.6;
         ctx.fillStyle = "#233a1e";
         ctx.fillRect(x - 4 * s, HORIZON - 46 * s, 8 * s, 46 * s);
         ctx.beginPath(); ctx.arc(x, HORIZON - 52 * s, 26 * s, 0, 7); ctx.fill();
         ctx.fillStyle = "#2e4a26";
         ctx.beginPath(); ctx.arc(x - 10 * s, HORIZON - 44 * s, 16 * s, 0, 7); ctx.arc(x + 10 * s, HORIZON - 46 * s, 15 * s, 0, 7); ctx.fill();
       }
-      for (let i = 0; i < 22; i++) this.tuft(ctx, rand() * W, groundY(), "#2c4a22", rand);
+      for (let i = 0; i < 20; i++) this.tuft(ctx, rand() * W, groundY(), "#2c4a22", rand);
     } else if (st.id === 4) { // 古代古墳: 湿地の水鏡に王墓が浮かぶ(悼みの地・水たまり・葦は残す)
       // 遠景の墳墓群(霞む前方後円墳の影=歴代の王が眠る=悼みの重なり・気配)
       for (const [nx, ns] of [[150, 0.5], [280, 0.36], [1000, 0.44], [1130, 0.32]]) {
@@ -2061,6 +2087,31 @@ const Render = {
       ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 1.8, 0, 7); ctx.fill();
       ctx.fillStyle = `rgba(255,128,128,${e.a * (0.45 + pr * 0.5)})`;
       ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 0.26, 0, 7); ctx.fill();
+    }
+  },
+
+  // ---- ID3森林: からくり時計の振り子(木製時計文明)・緑の木漏れ日・蛍。時計職人の森 ----
+  // 静的な大樹/文字盤/歯車はpaintBackground(キャッシュ)。ここは時を刻む振り子と森の灯だけを毎フレーム重ねる。
+  drawForest3(ctx) {
+    const calm = window.Motion && Motion.reduced;
+    const cx2 = 636, fy = HORIZON - 88, piv = fy + 24;
+    // 振り子(からくり時計の錘がゆっくり時を刻む=等時性の拍)
+    const ang = calm ? 0.22 : Math.sin(this.time * 1.4) * 0.32;
+    const len = 40, bx = cx2 + Math.sin(ang) * len, by = piv + Math.cos(ang) * len;
+    ctx.strokeStyle = "#4a3a24"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(cx2, piv); ctx.lineTo(bx, by); ctx.stroke();
+    ctx.fillStyle = "#c9a86a"; ctx.beginPath(); ctx.arc(bx, by, 5, 0, 7); ctx.fill(); // 真鍮の錘
+    ctx.fillStyle = "rgba(255,240,190,.5)"; ctx.beginPath(); ctx.arc(bx - 1.4, by - 1.4, 1.6, 0, 7); ctx.fill();
+    if (calm) return; // 以下は微動(reduced-motionは静的な森+振り子静止のまま)
+    for (const [sx, ph] of [[300, 0], [820, 2.4]]) { // 緑の木漏れ日(ゆっくり呼吸)
+      const br = 0.05 + Math.sin(this.time * 0.35 + ph) * 0.02;
+      const g = ctx.createLinearGradient(sx, 0, sx + 30, HORIZON + 120);
+      g.addColorStop(0, `rgba(200,235,150,${br})`); g.addColorStop(1, "rgba(200,235,150,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(sx - 20, 0); ctx.lineTo(sx + 20, 0); ctx.lineTo(sx + 50, HORIZON + 120); ctx.lineTo(sx - 30, HORIZON + 120); ctx.closePath(); ctx.fill();
+    }
+    for (const [fx0, fy0, sp, ph] of [[200, HORIZON + 80, 0.5, 0], [900, HORIZON + 140, 0.4, 2], [500, HORIZON + 46, 0.45, 4]]) { // 蛍(森の灯)
+      const gx = fx0 + Math.sin(this.time * sp + ph) * 40, gy = fy0 + Math.cos(this.time * sp * 0.7 + ph) * 20;
+      const a = 0.3 + Math.abs(Math.sin(this.time * 1.5 + ph)) * 0.5;
+      ctx.fillStyle = `rgba(190,240,130,${a})`; ctx.beginPath(); ctx.arc(gx, gy, 1.6, 0, 7); ctx.fill();
     }
   },
 
