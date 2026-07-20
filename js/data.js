@@ -44,6 +44,8 @@ const CFG = {
   autoPanicSec: 1.4,        // §9.1 自切直後の逃走ダッシュ秒数(以後は負傷で鈍足)
   centerNoticeSec: 1.6,     // §9-C4 中央の軽い通知の表示秒数(短く・実機で調整可)
   centerNoticeQueue: 1,     // §9-C4 中央通知の待ち行列上限(超過分は古いものを捨てる=トースト化させない)
+  planetTravelSec: 3.0,     // ⑥ 惑星移動の演出秒数(スキップ不可=待ち時間そのものが宇宙の広さの表現。旧1.4は近すぎた)。実機で調整
+  planetTravelReducedSec: 1.2, // reduced-motion時(星流の演出なし=短縮するが即0にはしない)
   bossEvery: 5,             // n回撃退ごとにボス
   bossCallPerDay: 3,        // 3.11.3: 「今すぐ呼ぶ」の1日あたり回数(端末ローカル日付で回復)
   bossHpMult: 1.0,          // 3.11.5: ボスHPの一時調整枠(味方削除の難化はまず等倍で。きつければ下げる)

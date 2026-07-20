@@ -134,7 +134,7 @@ Object.assign(UI, {
           <span>◎ 現在地</span>
           <span class="map-ero">${Icon.svg("erosion")} 侵食率(全惑星共通)
             <span class="bar"><span style="width:${ero}%"></span></span> <b>${ero}%</b></span>
-          <span style="color:var(--sub)">タップで宇宙船が出発(クリックでスキップ)</span>
+          <span style="color:var(--sub)">タップで宇宙船が出発(航行には時間がかかる)</span>
         </div>`;
       body.innerHTML = html;
       for (const node of body.querySelectorAll(".planet-node")) {
@@ -145,7 +145,7 @@ Object.assign(UI, {
     });
   },
 
-  // 宇宙船トランジション(スキップ可)
+  // ⑥ 宇宙船トランジション(スキップ不可=待ち時間で惑星間の距離を想像させる。長さはCFG.planetTravelSec)
 
   travelTo(id) {
     this.closeModal();
@@ -162,7 +162,7 @@ Object.assign(UI, {
       <div class="tv-from">${Icon.svg(from.icon)} ${from.pname}</div>
       <div class="tv-ship">${Icon.svg("rocket")}</div>
       <div class="tv-to" style="color:${this.planetAccent(to.id)}">${Icon.svg(to.icon)} ${to.pname}</div>
-      <div class="tv-skip">クリックでスキップ</div>`;
+      <div class="tv-skip">航行中… 惑星は遠い</div>`;
     ov.classList.add("show");
     let done = false;
     const finish = () => {
@@ -171,8 +171,8 @@ Object.assign(UI, {
       ov.classList.remove("show");
       this.confirmSwitch(id);
     };
-    ov.onclick = finish;
-    setTimeout(finish, Motion.reduced ? 500 : 1400); // reduced時は即到着(§4.4)
+    // ⑥ スキップ撤廃(ov.onclick を設けない)。待ち時間そのものが宇宙の広さの表現。長さはCFG化。
+    setTimeout(finish, (Motion.reduced ? (CFG.planetTravelReducedSec || 1.2) : (CFG.planetTravelSec || 3.0)) * 1000);
   },
 
   // ---------------- V3: Stage切替バー (§10.1) ----------------
