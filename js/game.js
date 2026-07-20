@@ -137,6 +137,7 @@ const Game = {
     return Math.floor((CFG.capacityBase + this.state.rank * CFG.capacityPerRank) * capMult);
   },
   facLv(id) { return this.state.facilities[id] || 0; },
+  nestLv() { return (this.state.nest && this.state.nest.lv) || 1; }, // §8.12: 巣Lv(繁殖/給餌効果の統合先。最低1)
   // 3.11.5: 汎用味方は削除(Phase 6で惑星固有味方を新設)。効果・戦闘計算からは常に0で外す。
   // ただし state.allies のLvデータは消さず休眠保持=Phase 6で資産として振替する(残骸ではない)
   allyLv() { return 0; },
@@ -889,11 +890,11 @@ const Game = {
     }
     // 生産(離席中もフルレートで稼働。上限は offlineCapSec)
     s.coins += this.totalIncomePerSec() * sec; // V5: 合算収入で離席分を精算
-    // V5.2: コオロギの自然湧き(餌場+環境の恵み)を共通在庫へ復活
-    const spawn = this.facLv("feeder") * 0.5 + (env.crickets || 0);
+    // §8.12: コオロギの自然湧き(巣+環境の恵み)を共通在庫へ。餌場→巣へ統合
+    const spawn = this.nestLv() * CFG.nestCricketPerLv + (env.crickets || 0);
     if (spawn > 0) s.crickets = (s.crickets || 0) + spawn * sec;
-    // V4: 資源のフロー生産と侵略圧も離席中に進む
-    this.addRes("food", this.facLv("feeder") * CFG.resFoodPerFeederLv * sec);
+    // V4: 資源のフロー生産と侵略圧も離席中に進む(食料供給も巣Lv駆動)
+    this.addRes("food", this.nestLv() * CFG.resFoodPerFeederLv * sec);
     this.addRes("energy", (s.devLv || 0) * CFG.resEnergyPerDevLv * sec);
     this.erosionRise(sec); // V4.1: 離席中も侵食はゆっくり進む
     // V5.1: 自動補給はGold消費給餌により不要(撤廃)
@@ -1110,7 +1111,7 @@ const Game = {
     if (this.state.coins < cost) { if (!silent) UI.toast("コインが足りない!", true); return false; }
 
     this.state.coins -= cost;
-    const cd = CFG.breedCooldown * (1 - this.facLv("breedfac") * 0.04) * this.erosionBreedMult(); // 侵食で繁殖効率が落ちる
+    const cd = CFG.breedCooldown * Math.max(0.2, 1 - this.nestLv() * CFG.nestBreedCdPerLv) * this.erosionBreedMult(); // §8.12: 繁殖CDは巣Lvで短縮(侵食で効率低下)
     a.breedCd = cd; b.breedCd = cd;
     this.state.stats.bred++;
     this.addRes("bio", CFG.resBioPerBreed);
@@ -1159,17 +1160,18 @@ const Game = {
   },
 
   // 遺伝: 種族50/50(低確率で上位変異)、体色は平均±ゆらぎ、モーフ突然変異
-  // 祭壇=上位種族率+1%/Lv、人工巣=モーフ率+2%/Lv、洞窟環境=モーフ率+3%
+  // §8.12: 上位種変異/モーフ変異/伝説の底上げは巣(nest.lv)が担う(旧・繁殖施設から統合)。環境モーフ・研究は据置
   inherit(a, b) {
+    const nLv = this.nestLv();
     let speciesId = Math.random() < 0.5 ? a.speciesId : b.speciesId;
-    if (Math.random() < CFG.mutationSpeciesChance + this.facLv("breedfac") * 0.004) {
+    if (Math.random() < CFG.mutationSpeciesChance + nLv * CFG.nestSpeciesMutPerLv) {
       const base = speciesById(speciesId);
       const ups = this.breedablePool().filter((s) => s.stars > base.stars); // 純血: 上位変異も現惑星の固有種内のみ
       if (ups.length) speciesId = ups[Math.floor(Math.random() * ups.length)].id;
     }
     let morphId = Math.random() < 0.5 ? a.morphId : b.morphId;
     const morphChance = CFG.mutationMorphChance
-      + this.facLv("breedfac") * 0.008
+      + nLv * CFG.nestMorphMutPerLv
       + (this.currentStage().env.morphBonus || 0)
 ;
     if (Math.random() < morphChance) {
@@ -1177,8 +1179,8 @@ const Game = {
       const others = MORPHS.filter((m) => m.id !== morphId && !m.legendary);
       morphId = others[Math.floor(Math.random() * others.length)].id;
     }
-    // 伝説個体の抽選 (⑨-6): 極低確率、祭壇/研究/探索ツリーで微増
-    if (Math.random() < CFG.legendChance + this.facLv("breedfac") * 0.0007
+    // 伝説個体の抽選 (⑨-6): 極低確率、巣Lv/研究で微増
+    if (Math.random() < CFG.legendChance + nLv * CFG.nestLegendPerLv
       + this.researchBonus("legend")) {
       morphId = "legendary";
     }
@@ -1866,8 +1868,8 @@ const Game = {
       }
     }
 
-    // V5.2: コオロギの自然湧き(昆虫養殖場+環境の恵み)を共通在庫へ復活
-    const spawn = this.facLv("feeder") * 0.5 + (env.crickets || 0);
+    // §8.12: コオロギの自然湧き(巣+環境の恵み)を共通在庫へ。餌場→巣へ統合
+    const spawn = this.nestLv() * CFG.nestCricketPerLv + (env.crickets || 0);
     if (spawn > 0) s.crickets = (s.crickets || 0) + spawn * dt;
 
     // 味方のパッシブ・自動給餌・解禁チェック(毎秒)
@@ -1875,21 +1877,20 @@ const Game = {
     if (this._allyT >= 1) {
       this._allyT = 0;
       if (this.allyLv("gecko")) s.crickets = (s.crickets || 0) + 0.1 * this.allyLv("gecko"); // V5.2: コオロギ拾いを復活
-      // 自動給餌器: 毎秒Lv匹へ餌やり
-      const feeder = this.facLv("feeder");
-      // V4: 自動給餌は食料供給を燃料にする(§3.1.3)。餌はfeed()がコオロギ/切れ時Goldで確保
-      if (feeder > 0 && this.res("food") >= CFG.autoFeedFoodCost) {
+      // §8.12: 自動給餌(巣が担う)。毎秒 巣Lv×係数 匹へ餌やり。食料供給を燃料にする(§3.1.3)
+      const feedN = Math.round(this.nestLv() * CFG.nestAutoFeedPerLv);
+      if (feedN > 0 && this.res("food") >= CFG.autoFeedFoodCost) {
         let n = 0;
         for (const lz of s.lizards) {
-          if (n >= feeder || this.res("food") < CFG.autoFeedFoodCost) break;
+          if (n >= feedN || this.res("food") < CFG.autoFeedFoodCost) break;
           if (lz.injuredT > 0 || this.isHidden(lz)) continue;
           if (!this.feed(lz, true)) break; // 餌切れ(停止 or Gold尽き)で止まる
           this.addRes("food", -CFG.autoFeedFoodCost);
           n++;
         }
       }
-      // V4 §3.1.3: 繁殖予約(繁殖施設Lv5+・ONのとき自動でクイック繁殖)
-      if (s.autoBreed && this.facLv("breedfac") >= 5) {
+      // §8.12: 繁殖予約(巣Lv5+・ONのとき自動でクイック繁殖)
+      if (s.autoBreed && this.nestLv() >= CFG.nestReserveLv) {
         this._autoBreedT = (this._autoBreedT || 0) + 1;
         if (this._autoBreedT >= CFG.autoBreedInterval) {
           this._autoBreedT = 0;
@@ -1908,8 +1909,8 @@ const Game = {
       this.checkLore();
     }
 
-    // V4 §3.3: 資源のフロー生産(餌場=食料 / 惑星開発=エネルギー)
-    const foodRate = this.facLv("feeder") * CFG.resFoodPerFeederLv;
+    // V4 §3.3: 資源のフロー生産(§8.12で食料は巣Lv駆動 / 惑星開発=エネルギー)
+    const foodRate = this.nestLv() * CFG.resFoodPerFeederLv;
     if (foodRate > 0) this.addRes("food", foodRate * dt);
     const energyRate = (s.devLv || 0) * CFG.resEnergyPerDevLv;
     if (energyRate > 0) this.addRes("energy", energyRate * dt);
@@ -2346,6 +2347,31 @@ const Game = {
     return w;
   },
 
+  // v12→v13: 餌場・繁殖施設を撤廃し効果を巣(nest.lv)へ統合(§8.12)。投資済みLvを全惑星でGold全額払戻し
+  // feeder/breedfacキーを削除。旧コスト(feeder 5000/1.6・breedfac 20000/1.6)は撤廃済み定義に依存せぬよう定数固定。
+  // バージョンゲート+キー削除+掃除済み配列の再エイリアスで冪等(二重返金しない)。
+  migrateV12to13(w) {
+    if ((w.version || 0) >= 13) return w;
+    const planets = w.planets || w.stages || [];
+    const RATES = { feeder: [5000, 1.6], breedfac: [20000, 1.6] };
+    let refund = 0; const lvSum = { feeder: 0, breedfac: 0 };
+    for (const p of planets) {
+      if (!p.facilities) continue;
+      for (const id of ["feeder", "breedfac"]) {
+        const lv = p.facilities[id] || 0, base = RATES[id][0], mult = RATES[id][1];
+        for (let k = 0; k < lv; k++) refund += Math.floor(base * Math.pow(mult, k));
+        lvSum[id] += lv;
+        delete p.facilities[id];
+      }
+    }
+    w.planets = planets; w.stages = planets; // 掃除済み配列で再エイリアス(分裂時の削除漏れ・二重返金を防ぐ)
+    w.wallet = w.wallet || { coins: 0, gems: 0 };
+    w.wallet.coins = (w.wallet.coins || 0) + refund;
+    w._refundV13 = { feederLv: lvSum.feeder, breedfacLv: lvSum.breedfac, gold: refund }; // 通知用(保存されない)
+    w.version = 13;
+    return w;
+  },
+
   applyWorld(w) {
     if (w.planets && !w.stages) w.stages = w.planets; // V4改名の互換
     if (w.stages && !w.planets) w.planets = w.stages;
@@ -2552,6 +2578,8 @@ const Game = {
         if (data.version === 10) { try { localStorage.setItem(CFG.saveBackupKeyV11, raw); } catch (e) { /* noop */ } }
         // v11セーブ → v12移行(シェルター撤廃+Gold払戻。方針どおり退避=ロールバック可)
         if (data.version === 11) { try { localStorage.setItem(CFG.saveBackupKeyV12, raw); } catch (e) { /* noop */ } }
+        // v12セーブ → v13移行(餌場/繁殖撤廃+効果を巣へ統合+Gold払戻。退避=ロールバック可)
+        if (data.version === 12) { try { localStorage.setItem(CFG.saveBackupKeyV13, raw); } catch (e) { /* noop */ } }
         world = data; // 実移行は下の共通ゲートで(冪等)
       } else if (data.version === 8) {
         // V8セーブ → V9移行(純血化=破壊的。必ず全文バックアップを退避=ロールバック可能に)
@@ -2607,7 +2635,7 @@ const Game = {
         setTimeout(() => UI.toast("セーブを最新形式へ移行しました。旧データはバックアップ済み"), 900);
       }
       // 共通ゲート(全チェーンの最終段・各段は冪等)。v8→v9=純血化(破壊的) / v9→v10=混入個体の再掃除
-      world = this.migrateV11to12(this.migrateV10to11(this.migrateV9to10(this.migrateV8to9(this.migrateV7to8(this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world))))))));
+      world = this.migrateV12to13(this.migrateV11to12(this.migrateV10to11(this.migrateV9to10(this.migrateV8to9(this.migrateV7to8(this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world)))))))));
       if (world._purifyV9 && (world._purifyV9.lizards > 0 || world._purifyV9.eggs > 0)) {
         const p9 = world._purifyV9;
         setTimeout(() => UI.toast(`${Icon.svg("planet")} 純血化: 各惑星は固有種のみになりました(他惑星種 ${p9.lizards}匹${p9.eggs > 0 ? "・卵" + p9.eggs : ""}が去った。設定からロールバック可)`, true), 900);
@@ -2628,6 +2656,10 @@ const Game = {
       if (world._refundV12 && world._refundV12.gold > 0) {
         const r12 = world._refundV12;
         setTimeout(() => UI.toast(`シェルターは撤廃されました(ベビーは常に安全に)。投資分Lv${r12.shelterLvTotal}を全額払い戻し: +${fmt(r12.gold)}G(設定からロールバック可)`), 920);
+      }
+      if (world._refundV13 && world._refundV13.gold > 0) {
+        const r13 = world._refundV13;
+        setTimeout(() => UI.toast(`餌場・繁殖施設は「すみか(巣)」へ統合されました(巣Lvが給餌と繁殖を担います)。投資分(餌場Lv${r13.feederLv}/繁殖Lv${r13.breedfacLv})を全額払い戻し: +${fmt(r13.gold)}G(設定からロールバック可)`), 940);
       }
       if (world._reviveV7 && world._reviveV7.crickets > 0) {
         const r7 = world._reviveV7;
@@ -2698,6 +2730,15 @@ const Game = {
     let raw;
     try { raw = localStorage.getItem(CFG.saveBackupKeyV12); } catch (e) { raw = null; }
     if (!raw) { UI.toast("シェルター撤廃前のバックアップが見つからない", true); return false; }
+    localStorage.setItem(CFG.saveKey, raw);
+    location.reload();
+    return true;
+  },
+  // §8.12: 餌場/繁殖撤廃(V13)前へロールバック=両施設と投資Lvが戻る(払戻Goldは移行前状態のため無し)
+  restoreV13Backup() {
+    let raw;
+    try { raw = localStorage.getItem(CFG.saveBackupKeyV13); } catch (e) { raw = null; }
+    if (!raw) { UI.toast("餌場/繁殖施設 撤廃前のバックアップが見つからない", true); return false; }
     localStorage.setItem(CFG.saveKey, raw);
     location.reload();
     return true;

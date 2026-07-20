@@ -3,7 +3,7 @@
 // トカゲコロニー: マスターデータ / バランス定数
 // ============================================================
 
-const SAVE_VERSION = 12; // v12: シェルター撤廃(§8.10)。ベビー安全を巣の基本仕様へ標準化、投資済みLvはGold全額払戻(v11→v12・非破壊/資産プラス)
+const SAVE_VERSION = 13; // v13: 餌場・繁殖施設を撤廃し効果を巣(nest.lv)へ統合(§8.12)。投資済みLvはGold全額払戻(v12→v13・非破壊/資産プラス)
 
 const CFG = {
   saveKey: "lizardColonySaveV1",
@@ -18,6 +18,7 @@ const CFG = {
   saveBackupKeyV10: "lizardColonyV10Backup", // V9→V10移行前のバックアップ(純血化の追補=混入個体の再掃除。ロールバック可能に)
   saveBackupKeyV11: "lizardColonyV11Backup", // V10→V11移行前のバックアップ(賢者の石追加=非破壊だが方針どおり退避)
   saveBackupKeyV12: "lizardColonyV12Backup", // V11→V12移行前のバックアップ(シェルター撤廃+Gold払戻。方針どおり退避=ロールバック可)
+  saveBackupKeyV13: "lizardColonyV13Backup", // V12→V13移行前のバックアップ(餌場/繁殖撤廃+効果を巣へ統合+Gold払戻。ロールバック可)
   startCoins: 500,
   startStones: 0,           // 賢者の石(四重スリット装置のレア報酬・保有のみ・用途は後日)。新規は0
 
@@ -215,9 +216,18 @@ const CFG = {
   resBioPerHatch: 2,        // 孵化1回
   resBioPerBreed: 1,        // 繁殖1回
   resBioPerDex: 10,         // 図鑑新規登録
-  resFoodPerFeederLv: 0.05, // 餌場Lvごとの食料供給(/秒)
+  resFoodPerFeederLv: 0.05, // 巣Lvごとの食料供給(/秒)。§8.12で餌場から巣へ統合(定数名は歴史的に据置)
   resEnergyPerDevLv: 0.02,  // 惑星開発Lvごとのエネルギー(/秒)
   autoFeedFoodCost: 0.02,   // 自動給餌1回の食料消費
+  // §8.12: 餌場・繁殖施設を撤廃し効果を巣(nest.lv)へ統合。天井維持=nest上限Lv8で旧施設の最大相当。
+  nestBreedCdPerLv: 0.075,    // 繁殖CD -7.5%/Lv (旧 繁殖施設 -4%×15=-60% → 巣Lv8で-60%)
+  nestSpeciesMutPerLv: 0.0075,// 上位種変異 +0.75%/Lv (旧 +0.4%×15=6% → Lv8で6%)
+  nestMorphMutPerLv: 0.015,   // モーフ変異 +1.5%/Lv (旧 +0.8%×15=12% → Lv8で12%)
+  nestLegendPerLv: 0.0013,    // 伝説 +0.13%/Lv (旧 +0.07%×15≈1.05% → Lv8で≈1.04%)
+  nestCricketPerLv: 0.625,    // コオロギ自然湧き +0.625/秒/Lv (旧 餌場 +0.5×10=5/秒 → Lv8で5/秒)
+  nestAutoFeedPerLv: 1.25,    // 自動給餌 1.25匹/秒/Lv (旧 餌場 1匹/Lv×10=10 → Lv8で10匹/秒)
+  nestOmenLv: 3,              // 卵のレア予兆を出す巣Lv閾値(旧 繁殖施設Lv3)
+  nestReserveLv: 5,           // 繁殖予約が解禁される巣Lv閾値(旧 繁殖施設Lv5)
   sciencePerDepth: 1,       // 探索の深層(6層以降)1層ごとの研究力
   goldToFoodRate: 100,      // 100G → 食料1
   goldToEnergyRate: 150,    // 150G → エネルギー1
@@ -349,10 +359,6 @@ const FACILITIES = [
     desc: "生産 +7%/Lv・毒の持続 -5%/Lv(給水塔・高級水槽を統合)" },
   { id: "heat",        name: "保温設備", icon: "heat", tab: "norm", unlock: 0,  max: 20, baseCost: 350,    costMult: 1.5,
     desc: "餌XP +6%/Lv・負傷回復 +4%/Lv・孵化 -2.5%/Lv(ライト・保温器・温室を統合)" },
-  { id: "feeder",      name: "餌場",     icon: "feeder", tab: "norm", unlock: 10, max: 10, baseCost: 5000,   costMult: 1.6,
-    desc: "コオロギ湧き +0.5/秒/Lv・食料供給 +0.05/秒/Lv・毎秒Lv匹へ自動給餌(食料を消費)" },
-  { id: "breedfac",    name: "繁殖施設", icon: "breedfac", tab: "norm", unlock: 20, max: 15, baseCost: 20000,  costMult: 1.6,
-    desc: "繁殖CD -4%/Lv・モーフ変異 +0.8%/Lv・伝説 +0.07%/Lv。Lv3:卵のレア予兆 / Lv5:繁殖予約" },
   { id: "observatory", name: "展望台",   icon: "observatory", tab: "norm", unlock: 25, max: 10, baseCost: 30000,  costMult: 1.6,
     desc: "先制 +0.8秒/Lv・図鑑コンプ率×4%/Lvぶん生産(展望岩・標本棚・研究所を統合)" },
   // --- 防衛設備(ボス対策専用) ---
@@ -366,10 +372,8 @@ const FACILITIES = [
 
 // シナジー示唆 (V2⑥継承・統合後版): 効果が自然に重なるだけで成立
 const FACILITY_SYNERGIES = [
-  { ids: ["feeder", "water"],            name: "全自動生活圏",   desc: "湧く・食べる・潤うが自動で回る" },
   { ids: ["water", "trap"],              name: "毒無効化",       desc: "オオサソリの毒がほぼ機能しなくなる" },
   { ids: ["fence", "trap", "watchtower"], name: "対侵入要塞",    desc: "遅延+侵入ダメージ+迎撃強化で守り切る" },
-  { ids: ["breedfac", "heat"],           name: "繁殖ラボ",       desc: "回転の速い孵化と変異率でレア量産" },
 ];
 
 // ステージ(コロニーランクで進行)。rock/pebble は地面テクスチャ用の対比色

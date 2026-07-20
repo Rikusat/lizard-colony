@@ -64,7 +64,7 @@ Object.assign(UI, {
     // 孵化室でスロット数が変わったら作り直す
     if (this.els["egg-slots"].children.length !== Game.eggSlotCap()) this.buildEggSlots();
     const slots = this.els["egg-slots"].children;
-    const genelab = Game.facLv("breedfac") >= 3; // 繁殖施設Lv3: レア予兆
+    const genelab = Game.nestLv() >= CFG.nestOmenLv; // §8.12: すみか(巣)Lv3でレア予兆(旧・繁殖施設Lv3)
     for (let i = 0; i < slots.length; i++) {
       const el = slots[i], egg = Game.state.eggs[i];
       const btn = el.querySelector("button");

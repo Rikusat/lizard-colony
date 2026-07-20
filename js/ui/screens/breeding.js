@@ -36,9 +36,9 @@ Object.assign(UI, {
         系統を選んで2匹ペアを決めよう。突然変異で新モーフや上位種族が生まれることも…!
         (卵スロット ${Game.state.eggs.length}/${Game.eggSlotCap()})</p>
       <button id="quick-breed" class="cta">${Icon.svg("energy")} クイック繁殖 (最善の2匹を自動選抜・長押しで連続)</button>
-      ${Game.facLv("breedfac") >= 5
-        ? `<button id="auto-breed" class="${Game.state.autoBreed ? "primary" : ""}" style="width:100%;margin-bottom:10px">${Icon.svg("breedfac")} 繁殖予約: ${Game.state.autoBreed ? "ON(卵スロットが空くと自動繁殖)" : "OFF"}</button>`
-        : `<div style="font-size:calc(12px * var(--fs-scale, 1));color:var(--sub);margin-bottom:10px">繁殖施設Lv5で「繁殖予約」(自動繁殖)が解禁</div>`}
+      ${Game.nestLv() >= CFG.nestReserveLv
+        ? `<button id="auto-breed" class="${Game.state.autoBreed ? "primary" : ""}" style="width:100%;margin-bottom:10px">${Icon.svg("burrow")} 繁殖予約: ${Game.state.autoBreed ? "ON(卵スロットが空くと自動繁殖)" : "OFF"}</button>`
+        : `<div style="font-size:calc(12px * var(--fs-scale, 1));color:var(--sub);margin-bottom:10px">すみか(巣)Lv${CFG.nestReserveLv}で「繁殖予約」(自動繁殖)が解禁</div>`}
       <div id="breed-species"></div>`;
 
     const ab = body.querySelector("#auto-breed");
