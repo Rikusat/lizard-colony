@@ -55,6 +55,14 @@ function breedfacTierInfo(lv) {
   const w = [0, 100, 132, 160][tier] + within * [0, 12, 12, 14][tier];
   return { tier, w, hitR: Math.max(56, w * 0.5) };
 }
+// 展望台(展望岩→標本棚→研究所・上限10/3tier。descの「展望岩・標本棚・研究所を統合」に対応)
+function observatoryTierInfo(lv) {
+  const { tier, within } = facTier(lv, [3, 7, 10]);
+  if (!tier) return { tier: 0, w: 0, h: 0, hitR: 0 };
+  const w = [0, 60, 98, 128][tier] + within * [0, 8, 10, 10][tier];
+  const h = [0, 56, 92, 122][tier] + within * [0, 6, 8, 8][tier];
+  return { tier, w, h, hitR: Math.max(54, w * 0.55) };
+}
 // すみか(巣穴→掘り込みの住居→定住の巣/ワレン・住居Lv上限8/3tier)。常に存在(Lv1〜)。
 function burrowTierInfo(lv) {
   const { tier, within } = facTier(Math.max(1, lv), [3, 5, 8]);
@@ -1282,6 +1290,40 @@ const Render = {
     }
   },
 
+  // Phase8: 展望台をtierで育てる(展望岩→標本棚→研究所=ドーム天文台)。観測と研究の場が"完成"していく。
+  _drawObservatory(ctx, spot, lv) {
+    const info = observatoryTierInfo(lv), tier = info.tier, w = info.w, h = info.h, cx = spot[0], gy = spot[1], hw = w / 2;
+    ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(cx, gy + 8, hw * 0.9, 8, 0, 0, 7); ctx.fill();
+    if (tier >= 3) { // 研究所: ドーム天文台
+      ctx.fillStyle = "#6b6258"; rr(ctx, cx - hw * 0.66, gy - h * 0.52, hw * 1.32, h * 0.52, 4); ctx.fill(); // 円筒基部
+      ctx.fillStyle = "rgba(255,200,120,.5)"; ctx.fillRect(cx - hw * 0.42, gy - h * 0.34, 9, 9); // 窓の暖光(静的ベース)
+      ctx.fillStyle = "#7d746a"; ctx.beginPath(); ctx.arc(cx, gy - h * 0.52, hw * 0.66, Math.PI, 0); ctx.fill(); // ドーム
+      ctx.fillStyle = "#8f877c"; ctx.beginPath(); ctx.arc(cx - hw * 0.2, gy - h * 0.52, hw * 0.3, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = "#26221c"; ctx.save(); ctx.beginPath(); ctx.arc(cx, gy - h * 0.52, hw * 0.66, Math.PI, 0); ctx.clip(); ctx.fillRect(cx - 4, gy - h, 8, h * 0.6); ctx.restore(); // スリット
+      ctx.strokeStyle = "#3a3630"; ctx.lineWidth = 5; ctx.lineCap = "round"; // 覗く望遠鏡
+      ctx.beginPath(); ctx.moveTo(cx, gy - h * 0.5); ctx.lineTo(cx + 9, gy - h * 0.92); ctx.stroke();
+      ctx.fillStyle = "#5a5148"; ctx.beginPath(); ctx.arc(cx + 9, gy - h * 0.92, 4, 0, 7); ctx.fill();
+    } else { // 展望岩+三脚望遠鏡
+      this.boulder(ctx, lcg(606), cx, gy, Math.max(14, hw * 0.5), "#6b5c4a");
+      const ty = gy - Math.max(14, hw * 0.5) - 6;
+      ctx.strokeStyle = "#3a3630"; ctx.lineWidth = 2.6; ctx.lineCap = "round"; // 三脚
+      for (const a of [-0.4, 0.05, 0.4]) { ctx.beginPath(); ctx.moveTo(cx, ty + 4); ctx.lineTo(cx + Math.sin(a) * 16, gy + 4); ctx.stroke(); }
+      ctx.strokeStyle = "#4a4038"; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(cx - 6, ty + 6); ctx.lineTo(cx + 13, ty - 12); ctx.stroke(); // 鏡筒
+      ctx.fillStyle = "#5a5148"; ctx.beginPath(); ctx.arc(cx + 13, ty - 12, 4, 0, 7); ctx.fill();
+    }
+    if (tier >= 2) { // 標本棚(標本瓶)
+      const shx = cx - hw * 0.78, shy = gy;
+      ctx.fillStyle = "#5a4128"; rr(ctx, shx - 14, shy - 30, 28, 32, 2); ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,.3)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(shx - 14, shy - 15); ctx.lineTo(shx + 14, shy - 15); ctx.stroke();
+      for (const [jx, jy, c] of [[-8, -22, "143,208,192"], [0, -22, "232,192,96"], [7, -22, "208,144,176"], [-4, -7, "144,176,208"], [5, -7, "192,208,144"]]) { ctx.fillStyle = `rgb(${c})`; rr(ctx, shx + jx - 2, shy + jy - 4, 5, 6, 1); ctx.fill(); }
+    }
+    if (tier >= 3) { // 星図の掲示 + 研究の暖色
+      ctx.fillStyle = "#2c3a4a"; rr(ctx, cx + hw * 0.5, gy - 30, 24, 22, 2); ctx.fill(); // 星図板
+      const sr = lcg(717); ctx.fillStyle = "rgba(200,220,255,.7)"; for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.arc(cx + hw * 0.5 + 3 + sr() * 18, gy - 28 + sr() * 18, 0.8, 0, 7); ctx.fill(); }
+      ctx.strokeStyle = "rgba(160,190,230,.4)"; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.moveTo(cx + hw * 0.5 + 5, gy - 24); ctx.lineTo(cx + hw * 0.5 + 14, gy - 18); ctx.lineTo(cx + hw * 0.5 + 19, gy - 26); ctx.stroke(); // 星座線
+    }
+  },
+
   drawFacilities(ctx) {
     const lv = (id) => Game.facLv(id);
     const P = FAC_POS;
@@ -1395,6 +1437,7 @@ const Render = {
       if (!f.unlock || !Game.facLv(f.id)) continue;
       const p = spots[f.id];
       if (!p) continue;
+      if (f.id === "observatory") { this._drawObservatory(ctx, p, Game.facLv(f.id)); continue; } // Phase8: 展望台は独自tier(展望岩→標本棚→研究所・一目で分かるのでラベルなし)
       const [x, y] = p;
       // 接地影+小屋
       ctx.fillStyle = "rgba(0,0,0,.25)";
