@@ -86,6 +86,7 @@ const Render = {
     this.drawStage(ctx);
     if (Game.currentStage().id === 8) this.drawMonolith8(ctx); // 氷の前線: モノリスの冷光(背景層)
     if (Game.currentStage().id === 9) this.drawReactor9(ctx); // 廃原子炉: チェレンコフ冷光の脈動(背景層)
+    if (Game.currentStage().id === 7) this.drawAbyss7(ctx); // 水中都市: 気泡/海藻/コースティクス/深海の影(背景層)
     this.drawNest(ctx);
     this.drawFacilities(ctx);
     this.drawSmallFacilities(ctx);
@@ -535,28 +536,7 @@ const Render = {
       ctx.beginPath(); ctx.moveTo(830, HORIZON - 10); ctx.lineTo(902, HORIZON - 10); ctx.stroke();
       ctx.strokeStyle = "rgba(255,214,150,.30)"; ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.moveTo(252, HORIZON - 8); ctx.lineTo(302, HORIZON - 8); ctx.stroke();
-      // 気泡がゆっくり昇る(せわしなくしない)
-      for (const [bx, sp, ph, r] of [[240, 9, 0, 2], [610, 7, 3, 1.6], [1010, 8, 5.4, 2.2], [450, 6, 8, 1.4]]) {
-        const cyc = 34; // ゆっくり
-        const t = ((this.time * sp / cyc + ph / cyc) % 1);
-        const by = HORIZON + 20 - t * (HORIZON + 40);
-        ctx.strokeStyle = `rgba(200,230,245,${0.35 * (1 - t)})`;
-        ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.arc(bx + Math.sin(this.time * 0.8 + ph) * 6, by, r, 0, 7); ctx.stroke();
-      }
-      // 海藻がゆらぐ(やわらかい呼吸)
-      for (const [kx, kh, ph] of [[95, 46, 0], [520, 34, 2], [1180, 52, 4]]) {
-        const swy = Math.sin(this.time * 0.6 + ph) * 5;
-        ctx.strokeStyle = "rgba(90,150,130,.5)"; ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(kx, HORIZON + 6);
-        ctx.quadraticCurveTo(kx + swy * 0.5, HORIZON - kh * 0.5, kx + swy, HORIZON - kh);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(kx + 7, HORIZON + 6);
-        ctx.quadraticCurveTo(kx + 7 + swy * 0.4, HORIZON - kh * 0.35, kx + 7 + swy * 0.8, HORIZON - kh * 0.7);
-        ctx.stroke();
-      }
+      // 気泡・海藻・コースティクス・深海の影は drawAbyss7(毎フレーム)で描く(paintBackgroundはキャッシュ=this.timeが凍結するため)
       // 水底: 真珠色の貝と丸石(静かな床)
       for (let i = 0; i < 7; i++) {
         const x = rand() * W, y = groundY();
@@ -2046,6 +2026,46 @@ const Render = {
       ctx.fillStyle = `rgba(255,128,128,${e.a * (0.45 + pr * 0.5)})`;
       ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 0.26, 0, 7); ctx.fill();
     }
+  },
+
+  // ---- ID7水中都市: 静寂の水(気泡/海藻/コースティクス)+深海を横切る巨大な影(引き算の気配) ----
+  // 静的な都(耐圧ドーム/通路/貝)はpaintBackground(キャッシュ)。ここは"生きた静けさ"だけを毎フレーム重ねる。
+  drawAbyss7(ctx) {
+    const calm = window.Motion && Motion.reduced;
+    // 深海の水柱をゆっくり横切る巨大な影(何かがいる=説明しない・引き算で極薄)。都の背後(HORIZONより上の水)
+    {
+      const t = calm ? 0.34 : ((this.time * 0.007) % 1); // 極めて遅い(1周≒140s)
+      const lx = -320 + t * (W + 640), ly = HORIZON * 0.5;
+      const g = ctx.createRadialGradient(lx, ly, 16, lx, ly, 230);
+      g.addColorStop(0, "rgba(14,30,40,.26)"); g.addColorStop(1, "rgba(14,30,40,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(lx, ly, 230, 46, 0.05, 0, 7); ctx.fill();
+      ctx.fillStyle = "rgba(10,24,32,.16)"; // 頭部の気配(かすかな輪郭)
+      ctx.beginPath(); ctx.ellipse(lx + 150, ly - 14, 44, 16, 0.15, 0, 7); ctx.fill();
+    }
+    if (calm) return; // 以下は微動(reduced-motionは静的な床のまま=暗転しない)
+    // 水底のコースティクス(網目の光がゆっくり揺れる・極薄=床/生き物を汚さない)
+    for (const [cx0, ph] of [[300, 0], [700, 2.5], [1050, 5]]) {
+      const dx = Math.sin(this.time * 0.4 + ph) * 30;
+      ctx.fillStyle = "rgba(190,225,240,.04)";
+      ctx.beginPath(); ctx.ellipse(cx0 + dx, HORIZON + 130, 92, 26, 0, 0, 7); ctx.fill();
+    }
+    // 気泡がゆっくり昇る(せわしなくしない)
+    for (const [bx, sp, ph, r] of [[240, 9, 0, 2], [610, 7, 3, 1.6], [1010, 8, 5.4, 2.2], [450, 6, 8, 1.4]]) {
+      const cyc = 34, t = ((this.time * sp / cyc + ph / cyc) % 1);
+      const by = HORIZON + 20 - t * (HORIZON + 40);
+      ctx.strokeStyle = `rgba(200,230,245,${0.35 * (1 - t)})`; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(bx + Math.sin(this.time * 0.8 + ph) * 6, by, r, 0, 7); ctx.stroke();
+    }
+    // 海藻がゆらぐ(やわらかい呼吸)
+    for (const [kx, kh, ph] of [[95, 46, 0], [520, 34, 2], [1180, 52, 4]]) {
+      const swy = Math.sin(this.time * 0.6 + ph) * 5;
+      ctx.strokeStyle = "rgba(90,150,130,.5)"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(kx, HORIZON + 6); ctx.quadraticCurveTo(kx + swy * 0.5, HORIZON - kh * 0.5, kx + swy, HORIZON - kh); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(kx + 7, HORIZON + 6); ctx.quadraticCurveTo(kx + 7 + swy * 0.4, HORIZON - kh * 0.35, kx + 7 + swy * 0.8, HORIZON - kh * 0.7); ctx.stroke();
+    }
+    // 都の窓の灯りが一つ、ゆっくり呼吸(眠る前の家=安寧)
+    const bl = 0.4 + Math.sin(this.time * 0.5) * 0.22;
+    ctx.fillStyle = `rgba(255,214,150,${bl})`; ctx.fillRect(1078, HORIZON - 44, 4, 3);
   },
 
   // ---- ID9廃原子炉: チェレンコフ冷光のゆっくりした呼吸+死にかけの炉の不規則明滅(待機微動) ----
