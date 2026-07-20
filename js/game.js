@@ -288,7 +288,7 @@ const Game = {
     const lv = (s.nest && s.nest.lv) || 1;
     if (lv >= CFG.nestLvMax) return false;
     const cost = this.nestLvUpCost();
-    if (s.coins < cost) { UI.toast("コインが足りない!", true); return false; }
+    if (s.coins < cost) { UI.denyFlash("coins"); return false; }
     s.coins -= cost;
     s.nest.lv = lv + 1;
     this.notice(`すみか Lv${s.nest.lv}`, "外出枠+1・隊列枠が拡張"); // §9-C4
@@ -538,7 +538,7 @@ const Game = {
   convertGold(kind) {
     const rate = kind === "food" ? CFG.goldToFoodRate : CFG.goldToEnergyRate;
     const cost = rate * CFG.convertBatch;
-    if (this.state.coins < cost) { UI.toast("コインが足りない!", true); return false; }
+    if (this.state.coins < cost) { UI.denyFlash("coins"); return false; }
     this.state.coins -= cost;
     this.addRes(kind, CFG.convertBatch);
     UI.toast(`${fmt(cost)}G → ${Icon.svg(resById(kind).icon)}${resById(kind).name}+${CFG.convertBatch} に変換した`);
@@ -562,7 +562,7 @@ const Game = {
     const s = this.state;
     if ((s.devLv || 0) >= CFG.devMaxLv) return false;
     const cost = this.devCost();
-    if (s.coins < cost) { UI.toast("コインが足りない!", true); return false; }
+    if (s.coins < cost) { UI.denyFlash("coins"); return false; }
     s.coins -= cost;
     s.devLv = (s.devLv || 0) + 1;
     this.notice(`惑星開発 Lv${s.devLv}`, "生産+2%・エネルギー増"); // §9-C4
@@ -633,7 +633,7 @@ const Game = {
     lz.hue = sp.hue + rnd(-10, 10); lz.sat = sp.sat; lz.light = sp.light;
     this.registerDex(lz.speciesId, lz.morphId);
     this.flashT = 0.4;
-    UI.toast(`生態データ 突然変異!! ${this.lizardName(lz)} へ姿を変えた!`);
+    this.spawnFx(lz.x, lz.y, lz.hue, true); // §9: 突然変異=その場の登場エフェクト(姿が変わった個体を位置で示す)
     return true;
   },
 
@@ -1105,7 +1105,7 @@ const Game = {
   // 3.11.1: トカゲ売却は廃止(倫理観)。lizardSellPriceは価値評価としてのみ残す(捕食対象の選定等)
 
   healWithGem(lz) {
-    if (this.state.gems < 1) return UI.toast("ジェムが足りない!", true);
+    if (this.state.gems < 1) return UI.denyFlash("gems");
     if (lz.injuredT <= 0) return;
     this.state.gems--;
     lz.injuredT = 0;
@@ -1139,7 +1139,7 @@ const Game = {
     if (!this.canBreed(a) || !this.canBreed(b)) { if (!silent) UI.toast("繁殖できない状態のトカゲがいる", true); return false; }
     if (this.state.eggs.length >= this.eggSlotCap()) { if (!silent) UI.toast("卵スロットがいっぱい!", true); return false; }
     const cost = this.breedCost(a, b);
-    if (this.state.coins < cost) { if (!silent) UI.toast("コインが足りない!", true); return false; }
+    if (this.state.coins < cost) { if (!silent) UI.denyFlash("coins"); return false; }
 
     this.state.coins -= cost;
     const cd = CFG.breedCooldown * Math.max(0.2, 1 - this.nestLv() * CFG.nestBreedCdPerLv) * this.erosionBreedMult(); // §8.12: 繁殖CDは巣Lvで短縮(侵食で効率低下)
@@ -1326,7 +1326,7 @@ const Game = {
   instantHatch(idx) {
     const egg = this.state.eggs[idx];
     if (!egg) return;
-    if (this.state.gems < 1) return UI.toast("ジェムが足りない!", true);
+    if (this.state.gems < 1) return UI.denyFlash("gems");
     this.state.gems--;
     egg.t = 0;
   },
@@ -1441,7 +1441,7 @@ const Game = {
     const f = facilityById(id);
     if (this.facLv(id) >= this.facMax(f)) return;
     const cost = this.facilityCost(id);
-    if (this.state.coins < cost) return UI.toast("コインが足りない!", true);
+    if (this.state.coins < cost) return UI.denyFlash("coins");
     this.state.coins -= cost;
     this.state.facilities[id]++;
     UI.toast(`${f.name} が Lv${this.facLv(id)} になった!`);
@@ -1674,7 +1674,7 @@ const Game = {
       if (r.grabT <= 0) {
         if (this.state.eggs.length > 0) {
           r.stolenEgg = this.state.eggs.shift();
-          UI.toast("オオガラスが卵をくわえた! 逃げられる前に撃墜しろ!", true);
+          this.notice("卵がさらわれる!", "逃げる前に撃墜しろ", "boss"); // §9-C1 盤上のカラス+卵は描画で見える
         } else {
           const loss = Math.floor((this.state.crickets || 0) * 0.1); // V5.2: コオロギ強奪を復活(在庫の10%)
           this.state.crickets -= loss;
@@ -1691,16 +1691,13 @@ const Game = {
     if (r.typeId === "scorpion") {
       const fs = this.fighters().filter((lz) => !(lz.poisonT > 0));
       const n = Math.min(fs.length, 2 + (r.tier || 0));
-      let hit = 0;
       for (let i = 0; i < n; i++) {
         const idx = Math.floor(Math.random() * fs.length);
         const v = fs.splice(idx, 1)[0];
         if (!v) break;
         v.poisonT = CFG.poisonTime * this.poisonDurMult();
-        this.popup(v.x, v.y - 20, "毒!", "#c07ae0");
-        hit++;
+        this.popup(v.x, v.y - 20, "毒!", "#c07ae0"); // §9-C1 毒は個体の紫の明滅+この浮遊表示で見せる(トースト撤廃)
       }
-      if (hit) UI.toast(`毒針! ${hit}匹の攻撃力が半減… (水場Lvで早く抜ける)`, true);
       r.stingN++;
       if (r.stingN % 2 === 0) this.injureLizards(1); // 2回に1回は直接負傷も
       return;
@@ -1743,7 +1740,7 @@ const Game = {
         burnT: burn ? burnBase + i * 3 : 0,
       });
     }
-    UI.toast("ウェブが張られた! タップ連打でほつれる" + (burn ? " (炎で自然に焼ける)" : ""), true);
+    this.notice("巣が張られた", burn ? "炎で焼ける・タップ連打でも" : "タップ連打でほつれる", "boss"); // §9-C1 ウェブは盤上に描画=軽い操作ヒントのみ
   },
 
   updateWebs(r, dt) {

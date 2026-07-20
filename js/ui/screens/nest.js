@@ -24,7 +24,7 @@ Object.assign(UI, {
       btn.innerHTML = `<span class="bicon">${Icon.svg("gem")}</span><span class="lbl">今すぐ孵化<small>ダイヤ1消費（所持 ${Game.state.gems}）</small></span>`;
       if (!canGem) btn.setAttribute("aria-disabled", "true");
       btn.addEventListener("click", () => {
-        if (Game.state.gems < 1) { this.toast("ジェムが足りない!", true); return; }
+        if (Game.state.gems < 1) { UI.denyFlash("gems"); return; }
         const idx = Game.state.eggs.indexOf(egg); // 並びが変わっても同一卵を対象に
         if (idx < 0) { this.closeModal(); return; }
         Game.instantHatch(idx); // ダイヤ1消費→孵化タイマーを0に(空き待ちはゲーム側で処理)

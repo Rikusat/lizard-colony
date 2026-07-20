@@ -293,6 +293,11 @@ button.act .price {
 @keyframes blink { from { opacity: 1; } to { opacity: .45; } }
 /* §9-C5 コオロギ在庫切れ=赤の恒久状態表示(イベント通知でなく状態=見ればいつでも分かる)。reduced-motionで点滅停止 */
 #ui-crickets-top.crk-empty { color: var(--red); animation: blink .7s var(--ease-in-out) infinite alternate; }
+/* §9-C3 操作エラーの即時反応: 不足リソースのピルを赤フラッシュ+微振動(控えめ・reduced-motionで振動停止) */
+.res.deny { animation: deny-shake .38s var(--ease-out); }
+.res.deny b { animation: deny-red .5s var(--ease-out); }
+@keyframes deny-shake { 20% { transform: translateX(-3px); } 45% { transform: translateX(3px); } 70% { transform: translateX(-2px); } 100% { transform: none; } }
+@keyframes deny-red { from { color: var(--red); } }
 #btn-raid-now {
   padding: 5px 12px; border-radius: 8px; font-size: calc(11px * var(--fs-scale, 1));
   background: rgba(30, 18, 14, .66); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
@@ -1859,7 +1864,7 @@ button.holding::after {
 .toast.out { animation: toast-rise var(--dur-base) var(--ease-out) forwards; }
 @keyframes toast-drop { from { transform: translateY(-16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes toast-rise { to { transform: translateY(-10px); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .toast { animation: none; } .toast.out { animation: none; opacity: 0; } #ui-crickets-top.crk-empty { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } .toast.out { animation: none; opacity: 0; } #ui-crickets-top.crk-empty { animation: none; } .res.deny { animation: none; } }
 
 /* ============ ヒーローオーバーレイ(§5.8/§6) ============ */
 #hero-overlay {

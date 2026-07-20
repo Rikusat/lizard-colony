@@ -205,6 +205,15 @@ const UI = {
     if (bar) Motion.play(bar, "rankup");
   },
 
+  // §9-C3 操作エラーのインライン視覚化: 不足リソースのtopbarピルを赤フラッシュ+微振動(「なぜ押せないか」の即時反応・控えめ)
+  denyFlash(kind) {
+    const map = { coins: "ui-coins", gems: "ui-gems", crickets: "ui-crickets-top", stones: "ui-stones" };
+    const id = map[kind]; if (!id) return;
+    const b = document.getElementById(id), pill = b && b.closest(".res");
+    if (!pill) return;
+    pill.classList.remove("deny"); void pill.offsetWidth; pill.classList.add("deny"); // リフローで再生
+  },
+
   // 資源ピルのジュース(§5.1)。quietDelta以下の変動(毎秒の自動収入)は演出しない
   resPill(id, value, quietDelta) {
     const el = this.els[id] || document.getElementById(id);
