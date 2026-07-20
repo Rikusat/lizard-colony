@@ -6,6 +6,7 @@
 Object.assign(UI, {
   // ---------------- 図鑑 ----------------
   openDex() {
+    Game._badgeDex = false; // §9-C4 開いたら新着ドットを消す
     if (!this.dexTab) this.dexTab = "dex";
     this.openModal(`${Icon.svg("dex")} トカゲ図鑑`, (body) => this.buildDex(body));
   },

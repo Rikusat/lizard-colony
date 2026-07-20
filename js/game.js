@@ -977,7 +977,7 @@ const Game = {
     const sp = speciesById(speciesId), mo = morphById(morphId);
     const gems = sp.stars;
     this.state.gems += gems;
-    if (!silent) UI.toast(`図鑑に新登録! ${sp.name}(${mo.name}) +ジェム${gems}`);
+    this._badgeDex = true; // §9-C4 図鑑ボタンに新着ドット(見るまで消えない)。トーストは撤廃=新種は図鑑を開けば分かる
   },
 
   // ---------------- 経済・育成 ----------------
@@ -1412,7 +1412,7 @@ const Game = {
     if (r.cost.orichalcum) this.addOre("orichalcum", -r.cost.orichalcum);
     s.coins -= r.cost.coins || 0;
     s.research[id] = true;
-    UI.toast(`研究力 研究完了「${r.name}」— ${r.desc}(全Stage恒久)`);
+    this._badgeHq = true; // §9-C4 本部ボタンに新着ドット(研究完了・見るまで消えない)
     return true;
   },
 
@@ -2143,7 +2143,7 @@ const Game = {
       if (t.cond(s)) {
         s.titles[t.id] = true;
         if (!s.titleSel) s.titleSel = t.id;
-        UI.toast(`称号を獲得! 「${t.name}」 (統計から変更できる)`);
+        this._badgeStats = true; // §9-C4 統計ボタンに新着ドット(称号解放・見るまで消えない)
       }
     }
   },

@@ -6,6 +6,7 @@
 Object.assign(UI, {
   // ---------------- V4 §3.4: HQ(本部) — 全惑星共通の中枢 ----------------
   openHQ() {
+    Game._badgeHq = false; // §9-C4 開いたら新着ドットを消す
     this.openModal(`${Icon.svg("hq")} HQ(本部) — 惑星ネットワークの中枢`, (body) => {
       const s = Game.state;
       const lvl = Game.hqLevel();

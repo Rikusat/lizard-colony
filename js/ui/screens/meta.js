@@ -65,6 +65,7 @@ Object.assign(UI, {
 
   // ---------------- 統計ダッシュボード (⑨-4/20/23/25) ----------------
   openStats() {
+    Game._badgeStats = false; // §9-C4 開いたら新着ドットを消す
     this.openModal(`${Icon.svg("stats")} 統計ダッシュボード`, (body) => {
       const s = Game.state;
       const p = Game.prestige();

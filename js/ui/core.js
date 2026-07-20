@@ -298,6 +298,11 @@ const UI = {
     // ミッションバッジ
     const claimable = MISSIONS.some((m) => !s.missionsClaimed[m.id] && m.check(s));
     this.els["mission-badge"].classList.toggle("hidden", !claimable);
+    // §9-C4 新着ドット(図鑑/称号/研究の解放=見るまで消えない・黙って消さない)
+    const badge = (id, on) => { const e = document.getElementById(id); if (e) e.classList.toggle("hidden", !on); };
+    badge("dex-badge", !!Game._badgeDex);
+    badge("stats-badge", !!Game._badgeStats);
+    badge("hq-badge", !!Game._badgeHq);
 
     this.updateFeeder();
     this.updateBossHud();
