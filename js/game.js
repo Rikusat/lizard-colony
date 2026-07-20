@@ -153,12 +153,33 @@ const Game = {
   },
   crowdScale() { return this._crowdScale || 1; },
 
-  // ---------------- V3 Phase3: 巣収納(Nest Retreat §4) ----------------
-  // 平時: アダルトは原則巣の中。外出枠(巣Lvで拡張)だけがフィールドに出る。
-  // ベビーは常に外・レア/伝説/ピン留めは外出優先。戦闘時は一斉出撃。
+  // ---------------- V3 Phase3 / §8.13: 巣収納(Nest Retreat) ----------------
+  // 平時: 攻撃力の弱い個体がフィールドに出る(強個体は巣に籠る)。§8.13: 同じ種×モーフは最大 dispPerType(=2)体まで。
+  //   これによりフィールド上限は実質「種×モーフ数 × 2」≒20。ベビーも対象=ボス時は弱い個体(ベビー)が巣へ逃げる(§8.12の対比)。
+  // 表示は"見た目"のみの制限=収入/給餌/XP/繁殖/コオロギ消費などのロジックは籠り個体を含む全個体に従来どおり作用。
   visibleAdultCap() {
-    // 3.12.2: 表示上限を固定数に(平常/ボスとも displayCap)。"表示"のみの制限=ロジックは全個体に作用
-    return CFG.displayCap;
+    return CFG.displayCap; // 安全弁(§8.13の種×モーフ上限と併用)
+  },
+
+  // §8.13: 種×モーフのキー(同種判定=種×モーフ)
+  dispKey(l) { return l.speciesId + "|" + l.morphId; },
+
+  // §8.13: いまフィールドに"出しておくべき"個体のSet。displayScore降順に、種×モーフごと dispPerType まで採用。
+  //   ピン/選択中は種上限を無視して必ず採用。鷹にさらわれ不在(hidden)は対象外。全体上限 displayCap も安全弁で併用。
+  desiredShown() {
+    const pins = (this.state.nest && this.state.nest.pins) || [];
+    const all = this.state.lizards.filter((l) => !this.isHidden(l));
+    all.sort((a, b) => (this.displayScore(b) - this.displayScore(a)) || (a.id - b.id)); // 安定ソート(同点はidで固定=ちらつき防止)
+    const byType = {}; const shown = new Set();
+    for (const l of all) {
+      const forced = l.id === this.selectedId || pins.includes(l.id);
+      const k = this.dispKey(l);
+      if (forced) { shown.add(l.id); byType[k] = (byType[k] || 0) + 1; continue; }
+      if ((byType[k] || 0) < CFG.dispPerType && shown.size < CFG.displayCap) {
+        shown.add(l.id); byType[k] = (byType[k] || 0) + 1;
+      }
+    }
+    return shown;
   },
 
   lizardPrio(l) {
@@ -180,63 +201,56 @@ const Game = {
     return this.raid ? atk : -atk;              // ボス=強い順 / 平常=弱い順
   },
 
-  // 3.12.2: 表示メンバーを"即座に"確定(ロード/新規/惑星切替時)。大コロニーでも一瞬で表示20へ=fps安定。
-  // resting/restedAtは派生状態(保存しない)なので、現況(攻撃力・平常/ボス)から毎回再構築する
+  // §8.13: 表示メンバーを"即座に"確定(ロード/新規/惑星切替時)。desiredShown(種×モーフ×2)へ一括収束=fps安定。
+  // resting/restedAtは派生状態(保存しない)なので現況(攻撃力・平常/ボス)から毎回再構築する
   settleDisplay() {
-    const adults = this.state.lizards.filter((l) => l.stage === "adult");
-    const cap = this.visibleAdultCap();
-    const show = new Set(adults.slice().sort((a, b) => this.displayScore(b) - this.displayScore(a)).slice(0, cap).map((l) => l.id));
+    const show = this.desiredShown();
     for (const l of this.state.lizards) {
-      if (l.stage !== "adult") { l.resting = false; continue; }
+      if (this.isHidden(l)) continue; // 鷹に不在の個体は据え置き
       l.resting = !show.has(l.id);
       if (l.resting) l.restedAt = Date.now();
     }
     this.refreshCrowdScale();
   },
 
-  // 3.12.2: displayScore(平常=弱/ボス=強・ピン/選択優先)に基づき、表示メンバーを漸進的に選抜。
-  // ヒステリシス帯で境界の揺れを無視=成長で順位が僅差で変わってもちらつかない。ロジックは全個体不変。
+  // §8.13: desiredShown(平常=弱/ボス=強・種×モーフ×2・ピン/選択優先)へ表示メンバーを漸進的に寄せる。
+  // 安定ソート(id同点固定)で境界の揺れを抑制。表示は見た目のみ=ロジックは全個体不変。
   updateResting(dt) {
     const s = this.state;
     this._restT = (this._restT || 0) + dt;
     const interval = this.raid ? 0.4 : CFG.restReevalSec; // ボスは速く再選抜/平常はゆっくり(ちらつき防止)
     if (this._restT < interval) return;
     this._restT = 0;
-    for (const l of s.lizards) if (l.stage !== "adult" && l.resting) l.resting = false; // ベビーは常に外
-    const adults = s.lizards.filter((l) => l.stage === "adult");
-    const cap = this.visibleAdultCap();
-    if (adults.length <= cap) { // 総数<=上限: 全員表示(序盤2匹もそのまま・②)
-      for (const l of adults) if (l.resting) this.emergeFromNest(l);
-      return;
+    const show = this.desiredShown();
+    const toEmerge = [], toRetreat = [];
+    for (const l of s.lizards) {
+      if (this.isHidden(l)) continue;
+      const shouldShow = show.has(l.id);
+      if (shouldShow && l.resting) toEmerge.push(l);
+      else if (!shouldShow && !l.resting) toRetreat.push(l);
     }
-    const active = adults.filter((l) => !l.resting);
-    const resting = adults.filter((l) => l.resting);
+    if (!toEmerge.length && !toRetreat.length) return;
+    toEmerge.sort((a, b) => this.displayScore(b) - this.displayScore(a));   // 出る=スコア高い順
+    toRetreat.sort((a, b) => this.displayScore(a) - this.displayScore(b));  // 籠る=スコア低い順
     const swap = this.raid ? CFG.emergeSwapPerSec : CFG.restSwapPerSec;
-    if (active.length > cap) {
-      // 上限超過=ハード上限。表示スコアの低い順に巣へ(必ず20へ収束)。大超過は加速して即収束=fps安定
-      active.sort((a, b) => this.displayScore(a) - this.displayScore(b));
-      const rate = Math.max(swap, Math.ceil((active.length - cap) / 2));
-      for (let i = 0; i < Math.min(rate, active.length - cap); i++) { active[i].resting = true; active[i].restedAt = Date.now(); }
-    } else if (active.length < cap) {
-      // 空き=表示スコアの高い順に這い出す(漸進)
-      resting.sort((a, b) => this.displayScore(b) - this.displayScore(a));
-      for (let i = 0; i < Math.min(swap, cap - active.length); i++) this.emergeFromNest(resting[i]);
-    } else if (resting.length) {
-      // 均衡(==cap): 籠りの上位 vs 表示の下位を、攻撃力差がヒステリシス超のときだけ交代(ちらつき防止)
-      resting.sort((a, b) => this.displayScore(b) - this.displayScore(a)); // 高い順
-      active.sort((a, b) => this.displayScore(a) - this.displayScore(b));   // 低い順
-      for (let i = 0; i < Math.min(swap, resting.length, active.length); i++) {
-        if (this.displayScore(resting[i]) - this.displayScore(active[i]) < CFG.displayHysteresis) break; // ソート済=以降も差は縮む
-        this.emergeFromNest(resting[i]);
-        active[i].resting = true; active[i].restedAt = Date.now();
-      }
-    }
+    const rate = Math.max(swap, Math.ceil((toEmerge.length + toRetreat.length) / 6)); // 大差は加速して即収束
+    for (let i = 0; i < Math.min(rate, toEmerge.length); i++) this.emergeFromNest(toEmerge[i]);
+    for (let i = 0; i < Math.min(rate, toRetreat.length); i++) this.retreatToNest(toRetreat[i]);
   },
 
+  // §8.14(準備): 巣穴の座標(描画側FAC_POS.burrowと共有・実行時参照)。無ければ従来値にフォールバック
+  nestXY() {
+    return (typeof FAC_POS !== "undefined" && FAC_POS.burrow) ? FAC_POS.burrow : { x: 185, y: 322 };
+  },
   emergeFromNest(lz) {
     lz.resting = false;
-    lz.x = 480 + rnd(-30, 30); lz.y = 660 + rnd(-15, 5); // 巣口から出てくる
+    const n = this.nestXY();
+    lz.x = n.x + rnd(-24, 24); lz.y = n.y + rnd(6, 20); // 巣口から出てくる(§8.12で巣は左へ移動)
     lz.tx = lz.homeX; lz.ty = lz.homeY;
+    lz.restedAt = Date.now();
+  },
+  retreatToNest(lz) {
+    lz.resting = true; // §8.13: 表示から外す(§8.14で歩いて巣へ戻る動作に置換予定)
     lz.restedAt = Date.now();
   },
 
@@ -245,7 +259,8 @@ const Game = {
   // ここは即座に再選抜を促し、合図を出すだけ(戦闘計算は従来どおり全個体参加)。
   combatSurge() {
     this._restT = 999; // 次tickで即 updateResting が走る
-    this.popup(480, 640, "強者、出撃!!", "#ffd24c");
+    const n = this.nestXY();
+    this.popup(n.x, n.y - 20, "強者、出撃!!", "#ffd24c");
   },
 
   nestLvUpCost() {
