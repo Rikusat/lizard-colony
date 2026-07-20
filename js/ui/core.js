@@ -239,7 +239,7 @@ const UI = {
     // V5.2: コオロギ在庫はヘッダーのみ(右パネル撤廃)。同一の state.crickets を参照
     const crkText = fmt(Math.floor(s.crickets || 0));
     const crkTop = document.getElementById("ui-crickets-top");
-    if (crkTop) crkTop.textContent = crkText;
+    if (crkTop) { crkTop.textContent = crkText; crkTop.classList.toggle("crk-empty", (s.crickets || 0) < 1); } // §9-C5 在庫切れ=赤明滅の恒久状態表示(見ればいつでも分かる)
     const lotLbl = document.getElementById("cricket-lot-lbl");
     if (lotLbl) { const n = Game.cricketLot(); lotLbl.textContent = `+${fmt(n)}匹 / ${fmt(n * CFG.cricketCost)}G`; }
     // 称号(統計モーダルへ集約・3.10.3)。DOM要素は撤去済のためガード
