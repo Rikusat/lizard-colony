@@ -89,6 +89,7 @@ const Render = {
     if (Game.currentStage().id === 7) this.drawAbyss7(ctx); // 水中都市: 気泡/海藻/コースティクス/深海の影(背景層)
     if (Game.currentStage().id === 6) this.drawJungle6(ctx); // 密林: 篝火の炎/火の粉・御神体の翡翠脈動・緑の木漏れ日(背景層)
     if (Game.currentStage().id === 4) this.drawTomb4(ctx); // 古代古墳: 玄室の金の脈動・燐火(緑の鬼火)・水面のゆらぎ(背景層)
+    if (Game.currentStage().id === 5) this.drawFurnace5(ctx); // 火山: 溶鉱炉の赤熱脈動・火の粉・溶岩の明滅(ふいご・背景層)
     this.drawNest(ctx);
     this.drawFacilities(ctx);
     this.drawSmallFacilities(ctx);
@@ -378,7 +379,52 @@ const Render = {
         ctx.fillStyle = "#6a5636";
         ctx.beginPath(); ctx.ellipse(x + 2, y - 34, 3, 8, 0.2, 0, 7); ctx.fill();
       }
-    } else if (st.id === 5) { // 火山: 溶岩の裂け目・黒岩
+    } else if (st.id === 5) { // 火山: 溶鉱炉文明(金属を鍛えた文明の心臓。神器/クランクはここで生まれた)
+      // 遠景の火山(炉に取り込んだ火の源。クレーターの赤熱・山肌を流れ落ちる溶岩筋)
+      {
+        const vx = 1058;
+        ctx.fillStyle = "#2a2018";
+        ctx.beginPath(); ctx.moveTo(vx - 150, HORIZON); ctx.lineTo(vx - 26, HORIZON - 128); ctx.lineTo(vx + 30, HORIZON - 128); ctx.lineTo(vx + 158, HORIZON); ctx.closePath(); ctx.fill();
+        const cr = ctx.createRadialGradient(vx, HORIZON - 126, 2, vx, HORIZON - 126, 30);
+        cr.addColorStop(0, "rgba(255,120,50,.55)"); cr.addColorStop(1, "rgba(255,120,50,0)");
+        ctx.fillStyle = cr; ctx.fillRect(vx - 30, HORIZON - 150, 60, 42);
+        ctx.strokeStyle = "rgba(255,120,40,.45)"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(vx - 6, HORIZON - 124); ctx.lineTo(vx - 32, HORIZON - 56); ctx.lineTo(vx - 22, HORIZON); ctx.stroke();
+      }
+      // 大溶鉱炉(鋳鉄の高炉・支持架構・リベット・出湯口が赤熱・煙突)
+      {
+        const fx = 372, fb = HORIZON;
+        ctx.strokeStyle = "#241e1a"; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.moveTo(fx - 44, fb); ctx.lineTo(fx - 28, fb - 92); ctx.moveTo(fx + 44, fb); ctx.lineTo(fx + 28, fb - 92); ctx.stroke();
+        ctx.fillStyle = "#3a322c";
+        ctx.beginPath(); ctx.moveTo(fx - 34, fb); ctx.lineTo(fx - 26, fb - 96); ctx.lineTo(fx + 26, fb - 96); ctx.lineTo(fx + 34, fb); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#4a4038"; ctx.fillRect(fx - 30, fb - 108, 60, 14); // 上部の口
+        ctx.fillStyle = "rgba(18,14,10,.6)"; for (let ry = fb - 84; ry < fb - 4; ry += 20) ctx.fillRect(fx - 32, ry, 64, 3); // リベット帯
+        ctx.fillStyle = "rgba(190,160,120,.4)"; for (let rx = fx - 28; rx < fx + 28; rx += 12) { ctx.beginPath(); ctx.arc(rx, fb - 74, 1.2, 0, 7); ctx.fill(); }
+        ctx.fillStyle = "rgba(255,140,50,.45)"; ctx.fillRect(fx - 8, fb - 22, 16, 20); // 出湯口(静的ベース・脈動はdrawFurnace5)
+        ctx.fillStyle = "#241e1a"; ctx.fillRect(fx + 20, fb - 152, 12, 56); // 煙突
+      }
+      // 鋳型の中で半分だけ鋳込まれた大歯車(=御神体/クランクの祖型。金属を神器へ鍛えた文明の匂わせ・説明しない)
+      {
+        const cx2 = 764, cy2 = HORIZON - 4;
+        ctx.fillStyle = "#2c2620"; // 鋳型の台
+        ctx.fillRect(cx2 - 40, cy2 - 6, 80, 6);
+        ctx.save(); ctx.translate(cx2, cy2 - 34); ctx.rotate(-0.12);
+        ctx.strokeStyle = "#3a332c"; ctx.lineWidth = 8; ctx.beginPath(); ctx.arc(0, 0, 26, 0, 7); ctx.stroke(); // 歯車の外環(鋳鉄)
+        ctx.fillStyle = "#3a332c"; for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; ctx.fillRect(Math.cos(a) * 28 - 2.5, Math.sin(a) * 28 - 2.5, 5, 5); } // 歯
+        // 下半分は溶けた金属で満ちる(鋳込み中・静的ベース、輝きの脈動はdrawFurnace5)
+        ctx.fillStyle = "rgba(255,150,60,.5)"; ctx.beginPath(); ctx.arc(0, 0, 22, 0.15, Math.PI - 0.15); ctx.fill();
+        ctx.strokeStyle = "#c9a86a"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(0, 0, 22, 0, 7); ctx.stroke(); // 真鍮色の縁(=真鍮クランクの祖)
+        ctx.restore();
+      }
+      // 溶岩流(中景を横切る溶けた川・へりが赤熱)
+      {
+        const ly = HORIZON + 96;
+        ctx.fillStyle = "#3a1c12";
+        ctx.beginPath(); ctx.moveTo(0, ly); ctx.bezierCurveTo(W * 0.3, ly - 14, W * 0.6, ly + 16, W, ly - 6); ctx.lineTo(W, ly + 22); ctx.bezierCurveTo(W * 0.6, ly + 34, W * 0.3, ly + 8, 0, ly + 26); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "rgba(255,120,40,.35)";
+        ctx.beginPath(); ctx.moveTo(0, ly + 8); ctx.bezierCurveTo(W * 0.3, ly - 2, W * 0.6, ly + 22, W, ly + 4); ctx.lineTo(W, ly + 12); ctx.bezierCurveTo(W * 0.6, ly + 28, W * 0.3, ly + 6, 0, ly + 16); ctx.closePath(); ctx.fill();
+      }
       for (let i = 0; i < 7; i++) {
         let x = rand() * W, y = groundY();
         ctx.strokeStyle = "rgba(255,120,40,.85)"; ctx.lineWidth = 3;
@@ -2016,6 +2062,27 @@ const Render = {
       ctx.fillStyle = `rgba(255,128,128,${e.a * (0.45 + pr * 0.5)})`;
       ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 0.26, 0, 7); ctx.fill();
     }
+  },
+
+  // ---- ID5火山: 溶鉱炉の赤熱の脈動(ふいごの吹き上がり)・火の粉・溶岩流の明滅。金属を鍛える文明の熱 ----
+  // 静的な高炉/鋳型/火山はpaintBackground(キャッシュ)。ここは炉の赤熱と火の粉だけを毎フレーム重ねる。
+  drawFurnace5(ctx) {
+    const calm = window.Motion && Motion.reduced;
+    const breath = calm ? 0.6 : 0.55 + Math.sin(this.time * 1.3) * 0.35; // ふいごの吹き上がり
+    const glow = (gx, gy, r, c, a) => { const g = ctx.createRadialGradient(gx, gy, 1, gx, gy, r); g.addColorStop(0, `rgba(${c},${a})`); g.addColorStop(1, `rgba(${c},0)`); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(gx, gy, r, 0, 7); ctx.fill(); };
+    glow(372, HORIZON - 12, 22, "255,140,50", breath * 0.7); // 高炉の出湯口
+    glow(764, HORIZON - 38, 24, "255,150,60", breath * 0.55); // 鋳型の溶鉄
+    if (calm) return; // 以下は微動(reduced-motionは静的な赤熱ベースのまま)
+    for (const [ex, ey] of [[372, HORIZON - 20], [764, HORIZON - 40], [1058, HORIZON - 126]]) { // 火の粉が昇る
+      for (let k = 0; k < 4; k++) {
+        const et = ((this.time * 0.4 + k * 0.27 + ex * 0.01) % 1);
+        ctx.fillStyle = `rgba(255,${140 + k * 20},70,${0.6 * (1 - et)})`;
+        ctx.beginPath(); ctx.arc(ex + Math.sin(this.time * 2 + k + ex) * 6, ey - et * 46, 1 + (1 - et), 0, 7); ctx.fill();
+      }
+    }
+    const lg = 0.3 + Math.sin(this.time * 0.9) * 0.12; // 溶岩流のへりの明滅
+    ctx.strokeStyle = `rgba(255,150,60,${lg})`; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, HORIZON + 100); ctx.bezierCurveTo(W * 0.3, HORIZON + 90, W * 0.6, HORIZON + 114, W, HORIZON + 98); ctx.stroke();
   },
 
   // ---- ID4古代古墳: 玄室の金の脈動・燐火(緑の鬼火=クランクの緑の先触れ)・水鏡のゆらぎ。悼みの静けさ ----
