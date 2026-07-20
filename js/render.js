@@ -44,12 +44,12 @@ function heatTierInfo(lv) {
   const hitR = tier >= 3 ? beamR * 0.86 : Math.max(58, w * 0.62);
   return { tier, w, h, beamR, hitR };
 }
-// 餌場(餌トラフ→自動給餌機→養殖プラント・上限10/3tier。descの「コオロギ湧き・自動給餌」に対応)
+// 餌場(§8.11 給餌広場・数百匹が一斉に採餌する規模。トラフ列→自動給餌機→養殖プラント・上限10/3tier)
 function feederTierInfo(lv) {
   const { tier, within } = facTier(lv, [3, 6, 10]);
   if (!tier) return { tier: 0, w: 0, hitR: 0 };
-  const w = [0, 108, 132, 158][tier] + within * [0, 10, 12, 14][tier];
-  return { tier, w, hitR: Math.max(60, w * 0.52) };
+  const w = [0, 128, 190, 252][tier] + within * [0, 14, 18, 22][tier];
+  return { tier, w, hitR: Math.max(66, w * 0.48) };
 }
 // 繁殖施設(岩場の巣→繁殖の庭→育種園・上限15/3tier。descの「繁殖CD・変異・伝説」に対応)
 function breedfacTierInfo(lv) {
@@ -1304,42 +1304,71 @@ const Render = {
   },
 
   // Phase8: 餌場をtierで育てる(餌トラフ→自動給餌機→養殖プラント)。中央フィールドゆえ横型でコンパクトに(生き物を埋めない)。
+  // Phase8.11: 餌場 = 給餌広場+コオロギ養殖プラント(数百匹が一斉に採餌する規模)。
+  //   トラフ列(tier1) → 自動給餌機(tier2) → 養殖プラント+分配ガントリー(tier3)。
+  //   §8.5 居場所: 手前に開ける給餌広場(放射状トラフの扇)=群れが並んで採餌する面。
   _drawFeeder(ctx, p, lv) {
     const info = feederTierInfo(lv), tier = info.tier, w = info.w, cx = p.x, ty = p.y, hw = w / 2;
-    ctx.fillStyle = "rgba(0,0,0,.26)"; ctx.beginPath(); ctx.ellipse(cx, ty + 18, hw * 0.92, 11, 0, 0, 7); ctx.fill();
-    // tier3: 貯蔵サイロ(左・食料の蓄え)+パイプ
-    if (tier >= 3) {
-      const sx = cx - hw * 0.82, sTop = ty - 78;
-      ctx.fillStyle = "#7d746a"; rr(ctx, sx - 13, sTop, 26, 62, 5); ctx.fill();
-      ctx.fillStyle = "#8f877c"; rr(ctx, sx - 13, sTop, 8, 62, 5); ctx.fill();
-      ctx.strokeStyle = "rgba(0,0,0,.3)"; ctx.lineWidth = 1; for (const yy of [0.3, 0.6]) { ctx.beginPath(); ctx.moveTo(sx - 13, sTop + 62 * yy); ctx.lineTo(sx + 13, sTop + 62 * yy); ctx.stroke(); }
-      ctx.fillStyle = "#5a5148"; ctx.beginPath(); ctx.moveTo(sx - 15, sTop); ctx.lineTo(sx, sTop - 12); ctx.lineTo(sx + 15, sTop); ctx.closePath(); ctx.fill(); // 屋根
-      ctx.strokeStyle = "#6b5c4a"; ctx.lineWidth = 5; ctx.lineCap = "round"; // パイプ→ホッパー
-      ctx.beginPath(); ctx.moveTo(sx + 12, sTop + 20); ctx.quadraticCurveTo(cx - hw * 0.3, sTop + 8, cx - 6, ty - 44); ctx.stroke();
-    }
-    // tier2+: ホッパー(漏斗式の自動給餌機・上から餌が落ちる)
+    const calm = window.Motion && Motion.reduced, T = calm ? 0 : this.time;
+    // ---- 給餌広場(§8.5 群れが一斉に採餌する面): 手前へ開ける淡い舗装 ----
+    const pr = hw * (tier >= 3 ? 0.98 : tier >= 2 ? 0.86 : 0.72);
+    const pg = ctx.createRadialGradient(cx, ty + 44, 6, cx, ty + 44, pr);
+    pg.addColorStop(0, "rgba(150,140,120,.26)"); pg.addColorStop(0.7, "rgba(150,140,120,.14)"); pg.addColorStop(1, "rgba(150,140,120,0)");
+    ctx.fillStyle = pg; ctx.beginPath(); ctx.ellipse(cx, ty + 44, pr, pr * 0.5, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "rgba(0,0,0,.20)"; ctx.beginPath(); ctx.ellipse(cx, ty + 20, hw * 0.9, 10, 0, 0, 7); ctx.fill(); // 接地影
+
+    // ---- 背後の給餌機構(奥・上へ): サイロ / 培養槽(動くコオロギ) / 分配ガントリー ----
     if (tier >= 2) {
-      const hy = ty - 42;
-      ctx.fillStyle = "#4a3f30"; rr(ctx, cx - 20, hy - 22, 40, 20, 4); ctx.fill(); // ビン
-      ctx.beginPath(); ctx.moveTo(cx - 18, hy - 2); ctx.lineTo(cx + 18, hy - 2); ctx.lineTo(cx + 5, hy + 10); ctx.lineTo(cx - 5, hy + 10); ctx.closePath(); ctx.fill(); // 漏斗
-      ctx.strokeStyle = "#5a4c38"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx - 16, hy + 10); ctx.lineTo(cx - 22, ty - 6); ctx.moveTo(cx + 16, hy + 10); ctx.lineTo(cx + 22, ty - 6); ctx.stroke(); // 脚
-      const ft = (this.time * 1.5 % 1); // 落ちる餌(per-frame)
-      ctx.fillStyle = "#b98a4a"; ctx.beginPath(); ctx.arc(cx, hy + 10 + ft * (ty - hy - 14), 2, 0, 7); ctx.fill();
+      const sx = cx - hw * 0.78, sTop = ty - 84; // 貯蔵サイロ
+      ctx.fillStyle = "#7d746a"; rr(ctx, sx - 14, sTop, 28, 66, 5); ctx.fill();
+      ctx.fillStyle = "#8f877c"; rr(ctx, sx - 14, sTop, 9, 66, 5); ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,.3)"; ctx.lineWidth = 1; for (const yy of [0.3, 0.6]) { ctx.beginPath(); ctx.moveTo(sx - 14, sTop + 66 * yy); ctx.lineTo(sx + 14, sTop + 66 * yy); ctx.stroke(); }
+      ctx.fillStyle = "#5a5148"; ctx.beginPath(); ctx.moveTo(sx - 16, sTop); ctx.lineTo(sx, sTop - 13); ctx.lineTo(sx + 16, sTop); ctx.closePath(); ctx.fill();
+      // 培養槽(tier2=1 / tier3=2・中でコオロギが動く=養殖の可視化)
+      this._feedTank(ctx, cx + hw * 0.5, ty - 30, 34, 42, T, 811);
+      if (tier >= 3) this._feedTank(ctx, cx + hw * 0.78, ty - 24, 28, 34, T, 823);
+      // 分配ガントリー(培養槽→広場へ渡る梁+ノズル。上から餌が落ちる)
+      const gY = ty - 50, gL = cx - hw * 0.5, gR = cx + hw * (tier >= 3 ? 0.7 : 0.5);
+      ctx.strokeStyle = "#5a5148"; ctx.lineWidth = 6; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(gL, gY); ctx.lineTo(gR, gY); ctx.stroke();
+      ctx.fillStyle = "#6b6258"; for (const gx of [gL, cx, gR]) rr(ctx, gx - 2, gY, 4, 10, 1), ctx.fill(); // 吊り金具
+      const nz = tier >= 3 ? 4 : 2; // ノズル+落下する餌
+      for (let i = 0; i < nz; i++) {
+        const nx = gL + (gR - gL) * (i + 0.5) / nz;
+        ctx.fillStyle = "#4a3f30"; ctx.beginPath(); ctx.moveTo(nx - 4, gY + 8); ctx.lineTo(nx + 4, gY + 8); ctx.lineTo(nx, gY + 15); ctx.closePath(); ctx.fill();
+        if (!calm) { const ft = ((T * 1.3 + i * 0.37) % 1); ctx.fillStyle = "#c99a5c"; ctx.beginPath(); ctx.arc(nx, gY + 15 + ft * 24, 1.8, 0, 7); ctx.fill(); }
+      }
     }
-    // トラフ(全tier・木の飼い葉桶)+ 中の餌(コオロギ/種の山)
-    ctx.fillStyle = "#3a2c1e"; rr(ctx, cx - hw * 0.62, ty - 8, hw * 1.24, 20, 7); ctx.fill();
-    ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = 2; rr(ctx, cx - hw * 0.62, ty - 8, hw * 1.24, 20, 7); ctx.stroke();
-    ctx.fillStyle = "#8a6a3c"; for (let i = 0; i < (tier + 2); i++) { const fx = cx - hw * 0.45 + i * (hw * 0.9 / (tier + 2)); ctx.beginPath(); ctx.ellipse(fx, ty, 5, 3, 0, 0, 7); ctx.fill(); }
-    ctx.fillStyle = "#a5814c"; ctx.beginPath(); ctx.ellipse(cx, ty - 1, 4, 2.5, 0, 0, 7); ctx.fill();
-    // tier3: コオロギの養殖ボックス(右・網目に小さなコオロギ)
-    if (tier >= 3) {
-      const bx = cx + hw * 0.66, by = ty - 4;
-      ctx.fillStyle = "#4a3f30"; rr(ctx, bx - 15, by - 22, 30, 24, 3); ctx.fill();
-      ctx.strokeStyle = "rgba(180,190,170,.4)"; ctx.lineWidth = 1; // 網目
-      for (let g = -12; g <= 12; g += 6) { ctx.beginPath(); ctx.moveTo(bx + g, by - 22); ctx.lineTo(bx + g, by); ctx.stroke(); }
-      for (let g = -20; g <= -2; g += 6) { ctx.beginPath(); ctx.moveTo(bx - 15, by + g + 2); ctx.lineTo(bx + 15, by + g + 2); ctx.stroke(); }
-      ctx.fillStyle = "#3a2c1e"; for (const [dx, dy] of [[-6, -6], [5, -14], [8, -4]]) { ctx.beginPath(); ctx.ellipse(bx + dx, by + dy, 2.4, 1.4, 0.3, 0, 7); ctx.fill(); } // コオロギ
+
+    // ---- 放射状トラフの扇(全tier・tierで本数増)= 群れが並ぶ採餌面(§8.5) ----
+    const nT = tier >= 3 ? 5 : tier >= 2 ? 3 : 2;
+    const spread = tier >= 3 ? 0.62 : tier >= 2 ? 0.44 : 0.28;
+    const hubx = cx, huby = ty - 2, len = hw * (tier >= 3 ? 0.94 : tier >= 2 ? 0.86 : 0.78);
+    const fr = lcg(455);
+    for (let i = 0; i < nT; i++) {
+      const a = (nT === 1 ? 0 : (i / (nT - 1) - 0.5) * 2) * spread;
+      const ex = hubx - Math.sin(a) * len, ey = huby + Math.cos(a) * len * 0.55; // 下向き扇+奥行き圧縮
+      ctx.strokeStyle = "#2e2216"; ctx.lineWidth = 13; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(hubx, huby); ctx.lineTo(ex, ey); ctx.stroke(); // 桶の外形
+      ctx.strokeStyle = "#3f2f1e"; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(hubx, huby); ctx.lineTo(ex, ey); ctx.stroke(); // 内壁の陰
+      ctx.fillStyle = "#8a6a3c"; const np = 4; for (let k = 1; k <= np; k++) { const t = k / (np + 1); const px = hubx + (ex - hubx) * t, py = huby + (ey - huby) * t; ctx.beginPath(); ctx.ellipse(px, py, 3.2, 2, 0, 0, 7); ctx.fill(); } // 中の餌
+      ctx.fillStyle = "#a5814c"; ctx.beginPath(); ctx.ellipse((hubx + ex) / 2, (huby + ey) / 2, 2.4, 1.5, 0, 0, 7); ctx.fill();
     }
+    // 中央の分配ホッパー(トラフの起点)
+    ctx.fillStyle = "#4a3f30"; ctx.beginPath(); ctx.moveTo(hubx - 13, huby - 16); ctx.lineTo(hubx + 13, huby - 16); ctx.lineTo(hubx + 6, huby + 2); ctx.lineTo(hubx - 6, huby + 2); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#5a4c38"; rr(ctx, hubx - 14, huby - 24, 28, 10, 2); ctx.fill();
+    if (tier === 1) { ctx.fillStyle = "#b98a4a"; ctx.beginPath(); ctx.ellipse(hubx, huby - 19, 9, 4, 0, 0, 7); ctx.fill(); } // tier1は餌袋の山
+  },
+
+  // 培養槽(コオロギ養殖の可視化・中でコオロギが動く)
+  _feedTank(ctx, x, y, tw, th, T, seed) {
+    ctx.fillStyle = "#3a4234"; rr(ctx, x - tw / 2, y - th, tw, th, 4); ctx.fill(); // 枠
+    ctx.fillStyle = "#242c20"; rr(ctx, x - tw / 2 + 2, y - th + 2, tw - 4, th - 4, 3); ctx.fill();
+    ctx.fillStyle = "rgba(126,176,105,.5)"; rr(ctx, x - tw / 2 + 2, y - th * 0.5, tw - 4, th * 0.5 - 2, 2); ctx.fill(); // 培養液(緑)
+    ctx.save(); ctx.beginPath(); rr(ctx, x - tw / 2 + 2, y - th * 0.5, tw - 4, th * 0.5 - 2, 2); ctx.clip(); // 中で動くコオロギ
+    const cr = lcg(seed); ctx.fillStyle = "#2c2c1e";
+    for (let i = 0; i < 6; i++) { const bx = x - tw / 2 + 4 + cr() * (tw - 8); const by = y - th * 0.5 + 2 + ((cr() * th + T * (9 + i * 3)) % (th * 0.5)); ctx.beginPath(); ctx.ellipse(bx, by, 1.8, 1, cr() * 3, 0, 7); ctx.fill(); }
+    ctx.restore();
+    ctx.strokeStyle = "rgba(0,0,0,.28)"; ctx.lineWidth = 1; ctx.strokeRect(x - tw / 2 + 2, y - th * 0.5, tw - 4, th * 0.5 - 2);
+    ctx.fillStyle = "rgba(255,255,255,.14)"; rr(ctx, x - tw / 2 + 3, y - th + 3, 3, th - 6, 1); ctx.fill(); // ガラスの光
   },
 
   // Phase8: 繁殖施設をtierで育てる(岩場の巣→繁殖の庭→育種園=花咲く聖域)。命が育つ場が豊かになる。
