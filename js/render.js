@@ -14,6 +14,10 @@ const FAC_POS = {
   fenceX: 1218,
 };
 const NEST = { x: 400, y: 512 };  // 卵の巣(§8.12で中央の巨大展望台を避け前景・左下寄りへ)
+// §8.15 スプライトキャッシュ: アニメ位相をこの粒度(phase単位)で量子化して焼き直す=時間スロットル。
+//   小さいほど滑らか(焼き直し頻度up=軽減効果down)、大きいほど軽い(アニメ粗く)。phase=time*8なので 0.28≈2〜3フレームに1回。
+const SPRITE_ANIM_Q = 0.28;
+const LIZ_CACHE_MAX = 80; // キャッシュ上限(可視~20+袖振り合い。超過分はLRUで破棄=メモリ上限を保証)
 
 // Phase 8: 設備の成長表現。tier算出を一元化(二重管理なし)。thresholds=各tierの上限レベルの配列(例 水場[5,10,15,20])。
 // 返り値 tier(1..N・0=未建設) と within(tier内進捗 0..1: そのtierの最初のLv=0/最後のLv=1)。描画と当たり判定で共有。
@@ -143,8 +147,10 @@ const Render = {
     // 3.11.5: 汎用味方の描画は撤去(Phase 6で惑星固有味方を新設)
     this.drawBurrow(ctx);
     // y座標順に描画(奥行き)。さらわれ中・休憩中の個体は描かない
+    this._frameCount = (this._frameCount || 0) + 1; // §8.15 スプライトキャッシュのLRU用
     const sorted = Game.state.lizards.filter((lz) => Game.isVisible(lz)).sort((a, b) => a.y - b.y);
     for (const lz of sorted) this.drawLizard(ctx, lz);
+    this._pruneLizCache();
     if (Game.raid) this.drawBoss(ctx, Game.raid);
     else if (Game.corpse) this.drawCorpse(ctx, Game.corpse);
     if (Game.currentStage().id === 8) this.drawBugSweep(ctx); // 氷の前線: 自動掃討(純演出)
@@ -1640,7 +1646,25 @@ const Render = {
 
   // ---------------- トカゲ(横向き・オオトカゲスタイル) ----------------
   // 参照: 頭を高く上げた立ち姿 / 高く跳ね上がる鞭状の尾 / 爪のある四肢 / 喉のたるみ
-  drawLizard(ctx, lz) {
+  // §8.15 スプライトキャッシュ: 生き物本体(魂)を offscreen に焼いて blit する。
+  //   本体描画は _paintLizardBody(魂・不変)、状態表示(選択/毒/負傷/BABY等・動的)は _paintLizardState に分離。
+  //   drawLizard がキャッシュ経由か直接手続きかを振り分ける(発光/伝説はぼかしのため常に手続き)。
+  drawLizard(ctx, lz, noCache) {
+    const sp = speciesById(lz.speciesId);
+    const glowy = sp.glow || lz.morphId === "legendary";
+    // 発光/伝説=ぼかしのため常に手続き。noCache=拡大描画(ヌシ等・変形ctx内)はキャッシュを迂回。
+    if (glowy || noCache || Render._lizCacheOn === false) {
+      this._paintLizardBody(ctx, lz); // _paintLizardBody が内部で lz.x,lz.y へ translate する
+    } else {
+      this._blitLizardCached(ctx, lz);
+    }
+    this._paintLizardState(ctx, lz);
+  },
+
+  // 生き物本体(魂)。呼び出し側で lz.x,lz.y へ translate 済みの前提はなく、ここで translate する。
+  // ※ this.time を使う動的アニメ(尾のしなり・歩行・アオジタの舌)を含むが、"呼ばれた瞬間の this.time" で描くため
+  //   直接描画でもキャッシュ焼き込みでも、同一時刻なら出力はピクセル一致(キャッシュは焼く/blitの振り分けのみ)。
+  _paintLizardBody(ctx, lz) {
     const sp = speciesById(lz.speciesId);
     const col = this.lizardColor(lz);
     // 群衆スケール: 表示数が多いほど縮小して見通しを確保
@@ -2004,7 +2028,13 @@ const Render = {
     }
 
     ctx.restore();
+  },
 
+  // 状態表示オーバーレイ(選択リング/毒/負傷/BABY/創始者)。動的(明滅・選択)なのでキャッシュせず毎フレーム描画。
+  _paintLizardState(ctx, lz) {
+    const injured = lz.injuredT > 0;
+    const sp = speciesById(lz.speciesId);
+    const L = 105 * sp.size * (lz.stage === "baby" ? 0.5 : 1) * Game.crowdScale();
     // --- 状態表示(反転なし) ---
     ctx.save();
     ctx.translate(lz.x, lz.y);
@@ -2035,6 +2065,50 @@ const Render = {
       ctx.fillText("BABY", 0, -L * 0.52 - 2);
     }
     ctx.restore();
+  },
+
+  // §8.15: 生き物本体をキャッシュ経由で blit。sig(位相ステップ/向き/群衆スケール/歩行/負傷)が変わったときだけ焼き直す。
+  //   焼き込みは _paintLizardBody(魂・不変)そのもの=同一時刻なら手続き描画とピクセル一致。位置は整数へ丸めて等倍・スムージング無効。
+  _blitLizardCached(ctx, lz) {
+    if (!this._lizCache) this._lizCache = new Map();
+    const sp = speciesById(lz.speciesId);
+    const scale = sp.size * (lz.stage === "baby" ? 0.5 : 1) * Game.crowdScale();
+    const L = 105 * scale;
+    const injured = lz.injuredT > 0;
+    const moving = lz.moving && !injured;
+    const face = Math.cos(lz.angle) >= 0 ? 1 : -1;
+    const phaseStep = Math.round((this.time * 8 + lz.id * 1.31) / SPRITE_ANIM_Q);
+    const crowdB = Math.round(Game.crowdScale() * 1000);
+    const sig = phaseStep + "|" + face + "|" + crowdB + "|" + (moving ? 1 : 0) + "|" + (injured ? 1 : 0);
+    // スプライト外接box: 魂の最大範囲(尾先x=-0.80L・鼻先+0.485L、幅/クレスト/脚/デューラップ/尾のしなり)を余裕を持って包む。
+    // 左右反転(face)で尾は±0.80Lに振れるため x は対称に確保。原点(lz基準)=(ox,oyTop)
+    const ox = Math.ceil(L * 0.98) + 3, oyTop = Math.ceil(L * 0.7) + 3, oyBot = Math.ceil(L * 0.3) + 3;
+    const cw = ox * 2, ch = oyTop + oyBot;
+    let e = this._lizCache.get(lz.id);
+    if (!e || e.sig !== sig) {
+      const cv = (e && e.canvas) || document.createElement("canvas");
+      if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
+      const g = cv.getContext("2d");
+      g.clearRect(0, 0, cw, ch);
+      g.save(); g.translate(ox - lz.x, oyTop - lz.y); // _paintLizardBody内部の translate(lz.x,lz.y) と相殺し原点を(ox,oyTop)へ
+      this._paintLizardBody(g, lz);
+      g.restore();
+      e = { canvas: cv, sig, ox, oy: oyTop };
+      this._lizCache.set(lz.id, e);
+    }
+    e.used = this._frameCount || 0;
+    const prev = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(e.canvas, Math.round(lz.x) - e.ox, Math.round(lz.y) - e.oy);
+    ctx.imageSmoothingEnabled = prev;
+  },
+
+  // §8.15: キャッシュのLRU破棄(毎フレーム末に呼ぶ)。上限超過分と長く未使用の個体を捨ててメモリ上限を保証。
+  _pruneLizCache() {
+    const c = this._lizCache;
+    if (!c || c.size <= LIZ_CACHE_MAX) return;
+    const ents = [...c.entries()].sort((a, b) => (a[1].used || 0) - (b[1].used || 0));
+    for (let i = 0; i < ents.length - LIZ_CACHE_MAX; i++) c.delete(ents[i][0]);
   },
 
   // ---------------- ボス共通ディスパッチ (GameExpansion_v2 ①②) ----------------
@@ -2257,7 +2331,7 @@ const Render = {
     f.moving = !e.arrived;
     ctx.save();
     ctx.translate(e.x, e.y); ctx.scale(1.9, 1.9); ctx.translate(-e.x, -e.y);
-    this.drawLizard(ctx, f);
+    this.drawLizard(ctx, f, true); // §8.15: 拡大描画はキャッシュ迂回(変形ctx内でblitすると崩れるため)
     ctx.restore();
     // 威嚇の圧(生産低下中の表示)
     if (e.arrived) {
