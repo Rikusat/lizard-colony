@@ -91,6 +91,7 @@ const Render = {
     if (Game.currentStage().id === 4) this.drawTomb4(ctx); // 古代古墳: 玄室の金の脈動・燐火(緑の鬼火)・水面のゆらぎ(背景層)
     if (Game.currentStage().id === 5) this.drawFurnace5(ctx); // 火山: 溶鉱炉の赤熱脈動・火の粉・溶岩の明滅(ふいご・背景層)
     if (Game.currentStage().id === 3) this.drawForest3(ctx); // 森林: からくり時計の振り子・木漏れ日・蛍(背景層)
+    if (Game.currentStage().id === 1) this.drawDawn1(ctx); // 始まりの地: 朝の光にただよう花粉(希望の粒・背景層)
     this.drawNest(ctx);
     this.drawFacilities(ctx);
     this.drawSmallFacilities(ctx);
@@ -232,7 +233,29 @@ const Render = {
 
   paintDeco(ctx, st, rand) {
     const groundY = () => HORIZON + 50 + rand() * (H - HORIZON - 80);
-    if (st.id === 1) { // 乾燥地帯: サボテン・枯れ草
+    if (st.id === 1) { // 乾燥地帯=始まりの地(素朴で温かい文明の起点。教科書ゆえ賑やかにせず、気配だけ足す)
+      // 遠景のメサ(広い始まりの大地=希望の地平)
+      for (const [mx, mw, mh] of [[210, 170, 30], [1130, 200, 38]]) {
+        ctx.fillStyle = "rgba(176,126,78,.4)";
+        ctx.beginPath(); ctx.moveTo(mx - mw / 2, HORIZON); ctx.lineTo(mx - mw / 2 + 14, HORIZON - mh); ctx.lineTo(mx + mw / 2 - 18, HORIZON - mh); ctx.lineTo(mx + mw / 2, HORIZON); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "rgba(214,164,104,.3)"; ctx.fillRect(mx - mw / 2 + 14, HORIZON - mh, mw - 32, 2); // 頂の朝陽
+      }
+      // 朝の温かい帯(始まりの光・希望)
+      { const dawn = ctx.createLinearGradient(0, HORIZON - 40, 0, HORIZON + 40); dawn.addColorStop(0, "rgba(255,210,140,0)"); dawn.addColorStop(0.5, "rgba(255,205,140,.10)"); dawn.addColorStop(1, "rgba(255,205,140,0)"); ctx.fillStyle = dawn; ctx.fillRect(0, HORIZON - 40, W, 80); }
+      // 原初の給餌機(全ての精巧なクランクの祖=素朴な木と石の手回し装置。ここで物語が始まった・説明しない)
+      {
+        const px = 980, py = HORIZON + 64;
+        ctx.strokeStyle = "#7a5a34"; ctx.lineWidth = 5; ctx.lineCap = "round"; // 木のA字架
+        ctx.beginPath(); ctx.moveTo(px - 22, py); ctx.lineTo(px, py - 34); ctx.lineTo(px + 22, py); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(px - 13, py - 17); ctx.lineTo(px + 13, py - 17); ctx.stroke(); // 貫
+        ctx.fillStyle = "#9a8c74"; ctx.beginPath(); ctx.arc(px, py - 20, 15, 0, 7); ctx.fill(); // 石の車輪(挽き臼のよう)
+        ctx.strokeStyle = "#6f6350"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px, py - 20, 15, 0, 7); ctx.stroke();
+        ctx.fillStyle = "#6f6350"; ctx.beginPath(); ctx.arc(px, py - 20, 3, 0, 7); ctx.fill(); // 軸
+        ctx.strokeStyle = "#7a5a34"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px, py - 20); ctx.lineTo(px + 18, py - 13); ctx.stroke(); // 手回しハンドル(=精巧なクランクの祖形)
+        ctx.fillStyle = "#8a6a3c"; ctx.beginPath(); ctx.arc(px + 18, py - 13, 3, 0, 7); ctx.fill(); // 握り
+        ctx.strokeStyle = "rgba(120,96,60,.6)"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(px, py - 20, 9, 0.5, 4); ctx.stroke(); // 巻かれた縄
+        ctx.fillStyle = "#8f8168"; ctx.beginPath(); ctx.ellipse(px - 6, py, 10, 4, 0, 0, 7); ctx.fill(); // 足元の石
+      }
       for (let i = 0; i < 4; i++) {
         const x = 80 + rand() * (W - 160), y = groundY();
         this.cactus(ctx, x, y, 0.7 + rand() * 0.6);
@@ -2087,6 +2110,18 @@ const Render = {
       ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 1.8, 0, 7); ctx.fill();
       ctx.fillStyle = `rgba(255,128,128,${e.a * (0.45 + pr * 0.5)})`;
       ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 0.26, 0, 7); ctx.fill();
+    }
+  },
+
+  // ---- ID1始まりの地: 朝の光にただよう花粉/塵(素朴で温かい・希望の粒)。教科書ゆえ最小限 ----
+  drawDawn1(ctx) {
+    if (window.Motion && Motion.reduced) return;
+    for (let k = 0; k < 7; k++) {
+      const x = ((k * 197 + this.time * 5) % (W + 40)) - 20;
+      const y = HORIZON - 6 + Math.sin(this.time * 0.5 + k * 1.3) * 26;
+      const a = 0.12 + Math.abs(Math.sin(this.time * 0.8 + k)) * 0.22;
+      ctx.fillStyle = `rgba(255,235,180,${a})`;
+      ctx.beginPath(); ctx.arc(x, y, 1.2, 0, 7); ctx.fill();
     }
   },
 
