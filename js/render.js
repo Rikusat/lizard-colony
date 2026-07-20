@@ -16,24 +16,37 @@ const FAC_POS = {
 };
 const NEST = { x: 430, y: 300 };
 
-// Phase 8: 設備の成長表現。水場のtier(水たまり→池→湖→大湖)と規模を算出。描画と当たり判定で共有(定位置で規模だけ育つ)。
-// レベル上限20を4tierに区切る(1-5/6-10/11-15/16-20)。tier境界で姿が変わり、tier内は微増。
+// Phase 8: 設備の成長表現。tier算出を一元化(二重管理なし)。thresholds=各tierの上限レベルの配列(例 水場[5,10,15,20])。
+// 返り値 tier(1..N・0=未建設) と within(tier内進捗 0..1: そのtierの最初のLv=0/最後のLv=1)。描画と当たり判定で共有。
+function facTier(lv, thresholds) {
+  if (lv <= 0) return { tier: 0, within: 0 };
+  let tier = thresholds.length;
+  for (let i = 0; i < thresholds.length; i++) if (lv <= thresholds[i]) { tier = i + 1; break; }
+  const lo = tier === 1 ? 0 : thresholds[tier - 2], hi = thresholds[tier - 1];
+  const within = (hi - lo) > 1 ? Math.min(1, (lv - lo - 1) / (hi - lo - 1)) : 0;
+  return { tier, within };
+}
+// 水場(水たまり→池→湖→大湖・上限20/4tier)
 function waterTierInfo(lv) {
-  if (lv <= 0) return { tier: 0, rx: 0, ry: 0, hitR: 0 };
-  const tier = Math.min(4, Math.ceil(lv / 5));
-  const baseRx = [0, 58, 86, 114, 142][tier], grow = [0, 9, 12, 14, 15][tier];
-  const within = ((lv - 1) % 5) / 4;           // tier内進捗 0..1
-  const rx = baseRx + within * grow;
+  const { tier, within } = facTier(lv, [5, 10, 15, 20]);
+  if (!tier) return { tier: 0, rx: 0, ry: 0, hitR: 0 };
+  const rx = [0, 58, 86, 114, 142][tier] + within * [0, 9, 12, 14, 15][tier];
   return { tier, rx, ry: rx * 0.42, hitR: rx * 0.98 };
 }
-// Phase8: 保温設備のtier(保温ライト→保温器→温室の骨組み→温室)。descの「ライト・保温器・温室を統合」に対応(上限20/4tier)。
+// 保温設備(保温ライト→保温器→温室の骨組み→温室・上限20/4tier。descの「ライト・保温器・温室を統合」に対応)
 function heatTierInfo(lv) {
-  if (lv <= 0) return { tier: 0, w: 0, h: 0, hitR: 0 };
-  const tier = Math.min(4, Math.ceil(lv / 5));
-  const within = ((lv - 1) % 5) / 4;
+  const { tier, within } = facTier(lv, [5, 10, 15, 20]);
+  if (!tier) return { tier: 0, w: 0, h: 0, hitR: 0 };
   const w = [0, 56, 92, 128, 158][tier] + within * [0, 8, 10, 12, 12][tier];
   const h = [0, 92, 108, 138, 162][tier] + within * [0, 6, 8, 8, 8][tier];
   return { tier, w, h, hitR: Math.max(58, w * 0.62) };
+}
+// 餌場(餌トラフ→自動給餌機→養殖プラント・上限10/3tier。descの「コオロギ湧き・自動給餌」に対応)
+function feederTierInfo(lv) {
+  const { tier, within } = facTier(lv, [3, 6, 10]);
+  if (!tier) return { tier: 0, w: 0, hitR: 0 };
+  const w = [0, 108, 132, 158][tier] + within * [0, 10, 12, 14][tier];
+  return { tier, w, hitR: Math.max(60, w * 0.52) };
 }
 
 // ID8 氷の前線: 浮遊モノリス(上位存在の技術・中景の異物)の共有ジオメトリ。
@@ -1183,6 +1196,45 @@ const Render = {
     }
   },
 
+  // Phase8: 餌場をtierで育てる(餌トラフ→自動給餌機→養殖プラント)。中央フィールドゆえ横型でコンパクトに(生き物を埋めない)。
+  _drawFeeder(ctx, p, lv) {
+    const info = feederTierInfo(lv), tier = info.tier, w = info.w, cx = p.x, ty = p.y, hw = w / 2;
+    ctx.fillStyle = "rgba(0,0,0,.26)"; ctx.beginPath(); ctx.ellipse(cx, ty + 18, hw * 0.92, 11, 0, 0, 7); ctx.fill();
+    // tier3: 貯蔵サイロ(左・食料の蓄え)+パイプ
+    if (tier >= 3) {
+      const sx = cx - hw * 0.82, sTop = ty - 78;
+      ctx.fillStyle = "#7d746a"; rr(ctx, sx - 13, sTop, 26, 62, 5); ctx.fill();
+      ctx.fillStyle = "#8f877c"; rr(ctx, sx - 13, sTop, 8, 62, 5); ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,.3)"; ctx.lineWidth = 1; for (const yy of [0.3, 0.6]) { ctx.beginPath(); ctx.moveTo(sx - 13, sTop + 62 * yy); ctx.lineTo(sx + 13, sTop + 62 * yy); ctx.stroke(); }
+      ctx.fillStyle = "#5a5148"; ctx.beginPath(); ctx.moveTo(sx - 15, sTop); ctx.lineTo(sx, sTop - 12); ctx.lineTo(sx + 15, sTop); ctx.closePath(); ctx.fill(); // 屋根
+      ctx.strokeStyle = "#6b5c4a"; ctx.lineWidth = 5; ctx.lineCap = "round"; // パイプ→ホッパー
+      ctx.beginPath(); ctx.moveTo(sx + 12, sTop + 20); ctx.quadraticCurveTo(cx - hw * 0.3, sTop + 8, cx - 6, ty - 44); ctx.stroke();
+    }
+    // tier2+: ホッパー(漏斗式の自動給餌機・上から餌が落ちる)
+    if (tier >= 2) {
+      const hy = ty - 42;
+      ctx.fillStyle = "#4a3f30"; rr(ctx, cx - 20, hy - 22, 40, 20, 4); ctx.fill(); // ビン
+      ctx.beginPath(); ctx.moveTo(cx - 18, hy - 2); ctx.lineTo(cx + 18, hy - 2); ctx.lineTo(cx + 5, hy + 10); ctx.lineTo(cx - 5, hy + 10); ctx.closePath(); ctx.fill(); // 漏斗
+      ctx.strokeStyle = "#5a4c38"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx - 16, hy + 10); ctx.lineTo(cx - 22, ty - 6); ctx.moveTo(cx + 16, hy + 10); ctx.lineTo(cx + 22, ty - 6); ctx.stroke(); // 脚
+      const ft = (this.time * 1.5 % 1); // 落ちる餌(per-frame)
+      ctx.fillStyle = "#b98a4a"; ctx.beginPath(); ctx.arc(cx, hy + 10 + ft * (ty - hy - 14), 2, 0, 7); ctx.fill();
+    }
+    // トラフ(全tier・木の飼い葉桶)+ 中の餌(コオロギ/種の山)
+    ctx.fillStyle = "#3a2c1e"; rr(ctx, cx - hw * 0.62, ty - 8, hw * 1.24, 20, 7); ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = 2; rr(ctx, cx - hw * 0.62, ty - 8, hw * 1.24, 20, 7); ctx.stroke();
+    ctx.fillStyle = "#8a6a3c"; for (let i = 0; i < (tier + 2); i++) { const fx = cx - hw * 0.45 + i * (hw * 0.9 / (tier + 2)); ctx.beginPath(); ctx.ellipse(fx, ty, 5, 3, 0, 0, 7); ctx.fill(); }
+    ctx.fillStyle = "#a5814c"; ctx.beginPath(); ctx.ellipse(cx, ty - 1, 4, 2.5, 0, 0, 7); ctx.fill();
+    // tier3: コオロギの養殖ボックス(右・網目に小さなコオロギ)
+    if (tier >= 3) {
+      const bx = cx + hw * 0.66, by = ty - 4;
+      ctx.fillStyle = "#4a3f30"; rr(ctx, bx - 15, by - 22, 30, 24, 3); ctx.fill();
+      ctx.strokeStyle = "rgba(180,190,170,.4)"; ctx.lineWidth = 1; // 網目
+      for (let g = -12; g <= 12; g += 6) { ctx.beginPath(); ctx.moveTo(bx + g, by - 22); ctx.lineTo(bx + g, by); ctx.stroke(); }
+      for (let g = -20; g <= -2; g += 6) { ctx.beginPath(); ctx.moveTo(bx - 15, by + g + 2); ctx.lineTo(bx + 15, by + g + 2); ctx.stroke(); }
+      ctx.fillStyle = "#3a2c1e"; for (const [dx, dy] of [[-6, -6], [5, -14], [8, -4]]) { ctx.beginPath(); ctx.ellipse(bx + dx, by + dy, 2.4, 1.4, 0.3, 0, 7); ctx.fill(); } // コオロギ
+    }
+  },
+
   drawFacilities(ctx) {
     const lv = (id) => Game.facLv(id);
     const P = FAC_POS;
@@ -1226,24 +1278,7 @@ const Render = {
       ctx.beginPath(); ctx.ellipse(p.x + 20, p.y + 22, 8, 3, 0, 0, 7); ctx.ellipse(p.x - 12, p.y + 24, 6, 2.5, 0, 0, 7); ctx.fill();
     }
 
-    if (lv("feeder")) { // 餌場(自動給餌トラフ)
-      const p = P.heat;
-      ctx.fillStyle = "rgba(0,0,0,.3)";
-      ctx.beginPath(); ctx.ellipse(p.x, p.y + 18, 62, 12, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = "#33261c";
-      rr(ctx, p.x - 58, p.y - 18, 116, 36, 9); ctx.fill();
-      ctx.strokeStyle = "rgba(0,0,0,.5)"; ctx.lineWidth = 2;
-      rr(ctx, p.x - 58, p.y - 18, 116, 36, 9); ctx.stroke();
-      // コイル(脈動する発光)
-      const pulse = 0.55 + Math.sin(this.time * 4) * 0.3;
-      ctx.shadowColor = `rgba(255,120,40,${pulse})`; ctx.shadowBlur = 10;
-      ctx.strokeStyle = `rgba(255,150,70,${0.55 + pulse * 0.4})`;
-      ctx.lineWidth = 3.5; ctx.lineCap = "round";
-      for (const oy of [-8, 0, 8]) {
-        ctx.beginPath(); ctx.moveTo(p.x - 48, p.y + oy); ctx.lineTo(p.x + 48, p.y + oy); ctx.stroke();
-      }
-      ctx.shadowBlur = 0;
-    }
+    if (lv("feeder")) this._drawFeeder(ctx, P.heat, lv("feeder")); // Phase8: tierで餌トラフ→自動給餌機→養殖プラント
 
     if (lv("fence")) { // 木製フェンス
       const x = P.fenceX;

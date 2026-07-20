@@ -21,7 +21,7 @@ Object.assign(UI, {
       // Phase8: 保温設備は温室化でスケール追従(heatTierInfo共有)。中心はP.light、育つと全体を覆う
       { id: "heat", x: P.light.x, y: P.light.y, r: (typeof heatTierInfo !== "undefined" ? Math.max(60, heatTierInfo(Game.facLv("heat")).hitR) : 62) },
       { id: "breedfac", x: P.rocks.x, y: P.rocks.y, r: 56 },
-      { id: "feeder", x: P.heat.x, y: P.heat.y, r: 64 },        // 餌場(P.heat)
+      { id: "feeder", x: P.heat.x, y: P.heat.y, r: (typeof feederTierInfo !== "undefined" ? Math.max(62, feederTierInfo(Game.facLv("feeder")).hitR) : 64) }, // Phase8: 餌場スケール追従
     ];
     for (const h of hits) {
       if (Game.facLv(h.id) > 0 && Math.hypot(x - h.x, y - h.y) < h.r) return h.id;
