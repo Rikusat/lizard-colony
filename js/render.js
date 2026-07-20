@@ -174,6 +174,7 @@ const Render = {
     this.drawSmallFacilities(ctx);
     // 3.11.5: 汎用味方の描画は撤去(Phase 6で惑星固有味方を新設)
     this.drawBurrow(ctx);
+    this.drawAutotomyTails(ctx); // §9.1 切り離された尾(地面・トカゲの下)
     // y座標順に描画(奥行き)。さらわれ中・休憩中の個体は描かない
     this._frameCount = (this._frameCount || 0) + 1; // §8.15 スプライトキャッシュのLRU用
     const sorted = Game.state.lizards.filter((lz) => Game.isVisible(lz)).sort((a, b) => a.y - b.y);
@@ -1745,6 +1746,11 @@ const Render = {
     const scale = sp.size * (lz.stage === "baby" ? 0.5 : 1) * Game.crowdScale();
     const L = 105 * scale;                    // 体格スケール
     const injured = lz.injuredT > 0;
+    // §9.1 自切/再生: 負傷=尾を切り離す→回復とともに尾が再生。tailRegen(0=断端/直後 … 1=全長)は injuredT からの派生(魂の状態)。
+    //   回復速度は既存の負傷回復(injuredTの減少・保温設備で加速)に自然同期。非負傷=1で従来と完全同一描画。
+    const AUTO_CUT = 0.4; // 尾の自切面(背骨 t。0=尾先/この手前が尾)
+    const tailRegen = injured ? clamp(1 - lz.injuredT / (CFG.injuryTime || 10), 0, 1) : 1;
+    const tailCutStart = AUTO_CUT * (1 - tailRegen); // 尾の生えている根元側の開始t(=断面)
     const moving = lz.moving && !injured;
     const phase = this.time * 8 + lz.id * 1.31;
     const face = Math.cos(lz.angle) >= 0 ? 1 : -1; // 横向きスプライトは左右反転のみ
@@ -1776,16 +1782,18 @@ const Render = {
     const tailAmp = L * (moving ? 0.05 : 0.02);
     for (let i = 0; i <= N; i++) {
       const t = i / N;
-      const k = lizSideSample(t);
+      // §9.1 自切: 再生していない尾先側(t<tailCutStart)は断面(tailCutStart)へ畳む=尾が短い断端に見える
+      const te = (tailRegen < 1 && t < AUTO_CUT) ? Math.max(t, tailCutStart) : t;
+      const k = lizSideSample(te);
       let w = k.w * L;
       let y = k.y * L;
       // 尾のしなり(先端ほど大きく)
-      if (t < 0.42) y += Math.sin(phase * 0.8 - t * 9) * tailAmp * Math.pow((0.42 - t) / 0.42, 1.6);
-      // 種族ごとの体型
-      if (sp.id === "leopa" && t > 0.14 && t < 0.48) w *= 1.8;   // 脂肪を蓄えた太い尾
+      if (te < 0.42) y += Math.sin(phase * 0.8 - te * 9) * tailAmp * Math.pow((0.42 - te) / 0.42, 1.6);
+      // 種族ごとの体型(尾に掛かるものは te=自切反映後のtで判定=断端でも整合)
+      if (sp.id === "leopa" && te > 0.14 && te < 0.48) w *= 1.8;   // 脂肪を蓄えた太い尾
       if (sp.id === "futoago" && t > 0.5 && t < 0.8) w *= 1.18;  // 幅広の胴
       if (sp.id === "komodo") w *= 1.15;                          // 重量級
-      if (sp.id === "kanahebi" && t < 0.48) w *= 0.7;             // 細い尾
+      if (sp.id === "kanahebi" && te < 0.48) w *= 0.7;             // 細い尾
       pts.push({ x: k.x * L, y }); wid.push(w);
     }
     // 平滑化(キーポイント折れ線の角を落とす)
@@ -2106,7 +2114,6 @@ const Render = {
 
   // 状態表示オーバーレイ(選択リング/毒/負傷/BABY/創始者)。動的(明滅・選択)なのでキャッシュせず毎フレーム描画。
   _paintLizardState(ctx, lz) {
-    const injured = lz.injuredT > 0;
     const sp = speciesById(lz.speciesId);
     const L = 105 * sp.size * (lz.stage === "baby" ? 0.5 : 1) * Game.crowdScale();
     // --- 状態表示(反転なし) ---
@@ -2129,10 +2136,7 @@ const Render = {
       ctx.font = "13px sans-serif";
       this.glyphSkull(ctx, 0, -L * 0.52 - 6, 9);
     }
-    if (injured) {
-      ctx.font = "16px sans-serif";
-      this.glyphCross(ctx, 0, -L * 0.52 - 6, 8);
-    } else if (lz.stage === "baby") {
+    if (lz.stage === "baby") { // §9.1 負傷マーカー(赤十字)は撤廃=尾の断端+再生で伝える
       ctx.fillStyle = "rgba(0,0,0,.45)";
       rr(ctx, -19, -L * 0.52 - 13, 38, 15, 7); ctx.fill();
       ctx.fillStyle = "#ffe9b0"; ctx.font = "bold 10px sans-serif";
@@ -2153,7 +2157,9 @@ const Render = {
     const face = Math.cos(lz.angle) >= 0 ? 1 : -1;
     const phaseStep = Math.round((this.time * 8 + lz.id * 1.31) / SPRITE_ANIM_Q);
     const crowdB = Math.round(Game.crowdScale() * 1000);
-    const sig = phaseStep + "|" + face + "|" + crowdB + "|" + (moving ? 1 : 0) + "|" + (injured ? 1 : 0);
+    // §9.1 尾の再生率を sig に含める(負傷個体は再生段階ごとに焼き直し=性能維持しつつ尾が伸びる)
+    const trB = injured ? Math.round(clamp(1 - lz.injuredT / (CFG.injuryTime || 10), 0, 1) * 6) : 6;
+    const sig = phaseStep + "|" + face + "|" + crowdB + "|" + (moving ? 1 : 0) + "|" + (injured ? 1 : 0) + "|" + trB;
     // スプライト外接box: 魂の最大範囲(尾先x=-0.80L・鼻先+0.485L、幅/クレスト/脚/デューラップ/尾のしなり)を余裕を持って包む。
     // 左右反転(face)で尾は±0.80Lに振れるため x は対称に確保。原点(lz基準)=(ox,oyTop)
     const ox = Math.ceil(L * 0.98) + 3, oyTop = Math.ceil(L * 0.7) + 3, oyBot = Math.ceil(L * 0.3) + 3;
@@ -3165,6 +3171,37 @@ const Render = {
         ctx.fillStyle = "rgba(0,0,0,.7)"; ctx.fillText(p.txt, p.x + sh, p.y + sh);
       }
       ctx.fillStyle = p.color; ctx.fillText(p.txt, p.x, p.y);
+    }
+    ctx.globalAlpha = 1;
+  },
+
+  // §9.1 切り離された尾: 地面でくねって捕食者の注意を引き、やがて動きを止めて消える(自切の生物的正しさ)
+  drawAutotomyTails(ctx) {
+    const tails = Game._autoTails; if (!tails || !tails.length) return;
+    for (const T of tails) {
+      const k = T.t / T.max;                 // 1→0
+      const alpha = k > 0.75 ? (1 - k) / 0.25 : Math.min(1, k / 0.2 + 0.2); // 出現→保持→フェード
+      const wig = Math.min(1, k * 1.4);      // 残り少ないほどくねりが弱まる(死んでいく)
+      const seg = 7, len = 34, hue = T.hue;
+      const bodyCol = (T.morphId === "albino") ? "hsl(40,12%,82%)" : (T.morphId === "melanistic") ? `hsl(${hue},20%,18%)` : `hsl(${hue},${T.sat}%,${T.light}%)`;
+      const darkCol = (T.morphId === "albino") ? "hsl(40,10%,62%)" : `hsl(${hue},${Math.min(100, T.sat + 5)}%,${Math.max(8, T.light - 18)}%)`;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, alpha);
+      // 影
+      ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.beginPath(); ctx.ellipse(T.x, T.y + 4, len * 0.5, 4, 0, 0, 7); ctx.fill();
+      ctx.strokeStyle = bodyCol; ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.beginPath();
+      for (let s = 0; s <= seg; s++) {
+        const u = s / seg;                   // 0=切断面, 1=尾先
+        const bend = Math.sin(this.time * 9 - u * 5 + T.seed) * (len * 0.16) * wig * u; // 尾先ほど大きくくねる
+        const px = T.x - u * len, py = T.y + bend;
+        ctx.lineWidth = (1 - u) * 7 + 1.5;   // 切断面が太く尾先が細い
+        if (s === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      // 切断面の赤み(生々しさ・控えめ)
+      ctx.fillStyle = "rgba(150,40,30,.5)"; ctx.beginPath(); ctx.arc(T.x, T.y, 3, 0, 7); ctx.fill();
+      ctx.restore();
     }
     ctx.globalAlpha = 1;
   },

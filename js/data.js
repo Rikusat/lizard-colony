@@ -39,7 +39,9 @@ const CFG = {
   raidInterval: 120,        // 襲撃周期(秒)
   raidDuration: 45,         // 蛇が諦めるまでの秒数
   biteIntervalBase: 8,      // 蛇の噛みつき間隔(秒)
-  injuryTime: 60,           // 負傷回復までの秒数
+  injuryTime: 60,           // 負傷回復までの秒数(尾の再生もこの時間で完了=§9.1)
+  autoTailSec: 3.5,         // §9.1 切り離された尾が地面でくねって消えるまでの秒数
+  autoPanicSec: 1.4,        // §9.1 自切直後の逃走ダッシュ秒数(以後は負傷で鈍足)
   bossEvery: 5,             // n回撃退ごとにボス
   bossCallPerDay: 3,        // 3.11.3: 「今すぐ呼ぶ」の1日あたり回数(端末ローカル日付で回復)
   bossHpMult: 1.0,          // 3.11.5: ボスHPの一時調整枠(味方削除の難化はまず等倍で。きつければ下げる)

@@ -1723,7 +1723,6 @@ const Game = {
     // §8.10: ベビーは常に安全(旧シェルターのベビー保護を「巣の基本仕様」として標準化=無条件)。負傷対象はアダルトのみ
     const targets = this.state.lizards.filter((lz) => lz.injuredT <= 0 && !this.isHidden(lz) && lz.stage === "adult");
     if (targets.length === 0) return;
-    let hit = 0;
     const turtleLv = this.allyLv("turtle");
     for (let i = 0; i < Math.min(count, targets.length); i++) {
       const idx = Math.floor(Math.random() * targets.length);
@@ -1733,10 +1732,8 @@ const Game = {
         continue;
       }
       v.injuredT = CFG.injuryTime;
-      this.popup(v.x, v.y - 20, "負傷!", "#ff5544");
-      hit++;
+      this.autotomize(v); // §9.1: テキスト通知でなく「尾を切って逃げる」で見せる(回復は尾の再生で伝わる)
     }
-    if (hit) UI.toast(`敵の攻撃! ${hit}匹が負傷…`, true);
   },
 
   // クモの巣
@@ -1990,6 +1987,23 @@ const Game = {
       p.ttl -= dt; p.y -= 24 * dt;
       if (p.ttl <= 0) this.popups.splice(i, 1);
     }
+    // §9.1 切り離された尾(くねって消える)の寿命
+    if (this._autoTails) for (let i = this._autoTails.length - 1; i >= 0; i--) {
+      this._autoTails[i].t -= dt;
+      if (this._autoTails[i].t <= 0) this._autoTails.splice(i, 1);
+    }
+  },
+
+  // §9.1 自切: 尾を切り離す(魂の外のエフェクト=くねって注意を引き消える)+ボスと反対へ逃げる
+  autotomize(v) {
+    this._autoTails = this._autoTails || [];
+    const dur = CFG.autoTailSec || 3.5;
+    if (this._autoTails.length < 24) this._autoTails.push({ x: v.x, y: v.y - 2, hue: v.hue, sat: v.sat, light: v.light, morphId: v.morphId, t: dur, max: dur, seed: (v.id * 41) % 997 });
+    const away = (this.raid && this.raid.snake && v.x >= this.raid.snake.x) ? 1 : -1; // 蛇は右=左へ逃げる
+    v.tx = clamp(v.x + away * 260, FIELD.x1, FIELD.x2);
+    v.ty = clamp(v.y + rnd(-24, 24), FIELD.y1, FIELD.y2);
+    v.wanderT = Math.max(v.wanderT || 0, 3); v.moving = true;
+    v.panicT = CFG.autoPanicSec || 1.4; // 直後は速く逃げて尾から離れる→以後は負傷で鈍足
   },
 
   moveLizards(dt) {
@@ -2009,6 +2023,7 @@ const Game = {
         lz.x = clamp(lz.x, 20, W - 20); lz.y = clamp(lz.y, FIELD.y1 - 30, H - 20);
         continue;
       }
+      if (lz.panicT > 0) lz.panicT -= dt; // §9.1 自切直後の逃走ダッシュ
       lz.wanderT -= dt;
       const fighting = snake && lz.stage === "adult" && lz.injuredT <= 0;
       if (fighting) {
@@ -2036,7 +2051,7 @@ const Game = {
         for (const w of webs) {
           if (Math.hypot(lz.x - w.x, lz.y - w.y) < 60) { webMult = CFG.webSlow; break; }
         }
-        const spd = (lz.injuredT > 0 ? 12 : fighting ? 110 : 45) * webMult * dt;
+        const spd = (lz.panicT > 0 ? 105 : lz.injuredT > 0 ? 12 : fighting ? 110 : 45) * webMult * dt;
         lz.x += (dx / dist) * Math.min(spd, dist);
         lz.y += (dy / dist) * Math.min(spd, dist);
         lz.angle = Math.atan2(dy, dx);
