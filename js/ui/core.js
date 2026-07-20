@@ -73,30 +73,12 @@ const UI = {
       const x = (e.clientX - r.left) * (W / r.width);
       const y = (e.clientY - r.top) * (H / r.height);
       const raid = Game.raid;
-      // 巣穴タップ → 巣・探索ビュー (V3)。Phase8: 住居Lvのtierスケールにタップ領域を追従
-      const burrowR = (typeof burrowTierInfo !== "undefined") ? burrowTierInfo((Game.state.nest && Game.state.nest.lv) || 1).hitR : 70;
-      const bpos = (typeof FAC_POS !== "undefined") ? FAC_POS.burrow : { x: 185, y: 322 }; // §8.12で左へ移動
-      if (!raid && Math.hypot(x - bpos.x, y - bpos.y) < burrowR) {
-        this.openNest();
-        return;
-      }
-      // クモのウェブはタップ連打でほつれる
+      // クモのウェブはタップ連打でほつれる(raid中ギミック)
       if (raid && raid.typeId === "spider") {
         const w = raid.webs.find((w2) => w2.hp > 0 && Math.hypot(w2.x - x, w2.y - y) < 55);
-        if (w) {
-          w.hp--;
-          Game.popup(w.x, w.y - 20, w.hp > 0 ? "ほつれた!" : "除去!", "#cfe8ff");
-          return;
-        }
+        if (w) { w.hp--; Game.popup(w.x, w.y - 20, w.hp > 0 ? "ほつれた!" : "除去!", "#cfe8ff"); return; }
       }
-      // 巣の卵タップ → 卵メニュー(ダイヤ即時孵化・#7)。卵はNEST周りに描画
-      if (!raid && typeof NEST !== "undefined") {
-        for (let i = 0; i < Game.state.eggs.length; i++) {
-          const ex = NEST.x - 24 + i * 24, ey = NEST.y + 1;
-          if (Math.hypot(x - ex, y - ey) < 17) { this.openEggMenu(i); return; }
-        }
-      }
-      // 鷹の急降下予告リングをタップ連打で追い払う
+      // 鷹の急降下予告リングをタップ連打で追い払う(raid中ギミック)
       if (raid && raid.typeId === "hawk" && raid.dive) {
         const tgt = Game.state.lizards.find((l) => l.id === raid.dive.targetId);
         if (tgt && Math.hypot(tgt.x - x, tgt.y - y) < 90) {
@@ -105,6 +87,14 @@ const UI = {
           return;
         }
       }
+      // 卵の巣の卵タップ(小・精密) → 卵の小ウィンドウ(⑤)。トカゲより先に精密判定
+      if (!raid && typeof NEST !== "undefined") {
+        for (let i = 0; i < Game.state.eggs.length; i++) {
+          const ex = NEST.x - 24 + i * 24, ey = NEST.y + 1;
+          if (Math.hypot(x - ex, y - ey) < 17) { this.openEggMenu(i); return; }
+        }
+      }
+      // トカゲ選択(③: 巣・設備より優先=周囲のトカゲが巣に取られない)
       let best = null, bestD = Infinity;
       for (const lz of Game.state.lizards) {
         if (!Game.isVisible(lz)) continue;
@@ -117,11 +107,12 @@ const UI = {
         }
       }
       if (best) { Game.selectedId = best.id; this.renderDetail(true); return; }
-      // 3.11.2: トカゲが無ければ設備タップ→個別強化メニュー(建設済みの設備のみ)
-      if (!raid && this.facilityHitId && this.openFacilityMenu) {
-        const fid = this.facilityHitId(x, y);
-        if (fid) { this.openFacilityMenu(fid); return; }
+      // すみか(巣)タップ → 巣ビュー(③: トカゲが無い時のみ・判定は実体に近い小範囲へ縮小)
+      if (!raid && typeof FAC_POS !== "undefined") {
+        const burrowR = (typeof burrowTierInfo !== "undefined") ? burrowTierInfo((Game.state.nest && Game.state.nest.lv) || 1).hitR : 62;
+        if (Math.hypot(x - FAC_POS.burrow.x, y - FAC_POS.burrow.y) < burrowR) { this.openNest(); return; }
       }
+      // ②: フィールドの設備クリックは無反応(飼育槽は"見る場所"。設備強化は左メニューの「設備」ボタンから)
       Game.selectedId = null;
       this.renderDetail(true);
     });

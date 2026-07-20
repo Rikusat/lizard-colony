@@ -81,7 +81,7 @@ const Game = {
       autoBreed: false,    // V4: 繁殖予約
       dial: { auto: false, rate: 1, supply: false }, // Brushup V2: 給餌ダイヤル
       stageWins: 0,        // この惑星での撃退数(Elite周期用)
-      nest: { lv: 1, pins: [] }, // すみか(住居)Lv・ピン留め個体
+      nest: { lv: 1 }, // すみか(住居)Lv・ピン留め個体
       research: {},        // HQ研究
       savedAt: Date.now(),
     };
@@ -167,14 +167,13 @@ const Game = {
   dispKey(l) { return l.speciesId + "|" + l.morphId; },
 
   // §8.13: いまフィールドに"出しておくべき"個体のSet。displayScore降順に、種×モーフごと dispPerType まで採用。
-  //   ピン/選択中は種上限を無視して必ず採用。鷹にさらわれ不在(hidden)は対象外。全体上限 displayCap も安全弁で併用。
+  //   選択中は種上限を無視して必ず採用。鷹にさらわれ不在(hidden)は対象外。全体上限 displayCap も安全弁で併用。
   desiredShown() {
-    const pins = (this.state.nest && this.state.nest.pins) || [];
     const all = this.state.lizards.filter((l) => !this.isHidden(l));
     all.sort((a, b) => (this.displayScore(b) - this.displayScore(a)) || (a.id - b.id)); // 安定ソート(同点はidで固定=ちらつき防止)
     const byType = {}; const shown = new Set();
     for (const l of all) {
-      const forced = l.id === this.selectedId || pins.includes(l.id);
+      const forced = l.id === this.selectedId;
       const k = this.dispKey(l);
       if (forced) { shown.add(l.id); byType[k] = (byType[k] || 0) + 1; continue; }
       if ((byType[k] || 0) < CFG.dispPerType && shown.size < CFG.displayCap) {
@@ -185,20 +184,16 @@ const Game = {
   },
 
   lizardPrio(l) {
-    const pins = (this.state.nest && this.state.nest.pins) || [];
     return (l.id === this.selectedId ? 1e6 : 0)
-      + (pins.includes(l.id) ? 1e5 : 0)
       + (l.founder ? 500 : 0)
       + morphById(l.morphId).mult * 10
       + speciesById(l.speciesId).stars * 2;
   },
 
-  // 3.12.2: 飼育槽に"表示"される優先度(高いほど表示)。ピン/選択中は最優先。
+  // 3.12.2: 飼育槽に"表示"される優先度(高いほど表示)。選択中は最優先。
   //   平常時=攻撃力の弱い個体を表示(強個体は巣に籠る) / ボス時=攻撃力の強い個体が這い出す
   displayScore(l) {
-    const pins = (this.state.nest && this.state.nest.pins) || [];
     if (l.id === this.selectedId) return 1e7;   // 選択中は必ず表示(プレイヤー意図優先)
-    if (pins.includes(l.id)) return 1e6;        // ピン留めも必ず表示
     const atk = this.lizardAtk(l);
     return this.raid ? atk : -atk;              // ボス=強い順 / 平常=弱い順
   },
@@ -781,7 +776,7 @@ const Game = {
     // V5: コオロギは共通在庫(入れ替えない)
     s.raidTimer = tgt.boss.raidTimer; s.nextRaid = tgt.boss.nextRaid;
     s.stageWins = tgt.boss.wins || 0;
-    s.nest = tgt.nest || { lv: 1, pins: [] };
+    s.nest = tgt.nest || { lv: 1 };
     s.exploration = tgt.exploration || null;
     for (const f of FACILITIES) if (s.facilities[f.id] === undefined) s.facilities[f.id] = 0;
     for (const lz of s.lizards) this.ensureRuntime(lz);
@@ -2212,7 +2207,7 @@ const Game = {
       lizards: [], eggs: [],
       facilities: Object.fromEntries(FACILITIES.map((f) => [f.id, 0])),
       boss: { wins: 0, raidTimer: CFG.raidInterval, nextRaid: null },
-      nest: { lv: 1, pins: [] },
+      nest: { lv: 1 },
       devLv: 0, // V4: 惑星開発
     };
   },
@@ -2228,7 +2223,7 @@ const Game = {
       lizards: s.lizards, eggs: s.eggs,
       facilities: s.facilities,
       boss: { wins: s.stageWins || 0, raidTimer: s.raidTimer, nextRaid: s.nextRaid },
-      nest: s.nest || { lv: 1, pins: [] },
+      nest: s.nest || { lv: 1 },
       devLv: s.devLv || 0,
       gotReturnGift: !!s.gotReturnGift, // Phase4: 復帰報酬を受領済みか(無限ループ防止・書き戻しで保持)
     };
@@ -2429,6 +2424,7 @@ const Game = {
   applyWorld(w) {
     if (w.planets && !w.stages) w.stages = w.planets; // V4改名の互換
     if (w.stages && !w.planets) w.planets = w.stages;
+    for (const st of (w.stages || [])) { if (st.nest) delete st.nest.pins; } // ①ピン機能撤廃: 旧セーブの残骸を掃除(非破壊・inert field削除)
     this.world = w;
     this._idSeq = w.idSeq || 1000;
     let active = w.stages.find((st) => st.stageId === w.currentStageId);
@@ -2461,7 +2457,7 @@ const Game = {
       raidTimer: active.boss.raidTimer,
       nextRaid: active.boss.nextRaid,
       stageWins: active.boss.wins || 0,
-      nest: active.nest || { lv: 1, pins: [] },
+      nest: active.nest || { lv: 1 },
       devLv: active.devLv || 0,
       gotReturnGift: !!active.gotReturnGift, // Phase4: 復帰報酬の受領済み(ランタイムへ)
       savedAt: w.savedAt,
@@ -2493,7 +2489,7 @@ const Game = {
         raidTimer: s.raidTimer || CFG.raidInterval,
         nextRaid: s.nextRaid || null,
       },
-      nest: { lv: 1, pins: [] },
+      nest: { lv: 1 },
       exploration: null,
     };
     const stages = STAGES.filter((st) => rank >= st.rank)
@@ -2556,7 +2552,7 @@ const Game = {
         watchtower: Math.min(10, o("watchtower")),
         trap: Math.min(15, o("trapfence") + o("herbs") + o("reflector") + o("bonfire")),
       };
-      p.nest = p.nest || { lv: 1, pins: [] };
+      p.nest = p.nest || { lv: 1 };
       p.nest.lv = Math.min(CFG.nestLvMax, (p.nest.lv || 1) + nestPlus);
       p.invasion = p.invasion || 0;
       p.devLv = p.devLv || 0;

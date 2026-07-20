@@ -66,7 +66,8 @@ function burrowTierInfo(lv) {
   const scale = [1, 1.12, 1.36, 1.6][t] + within * [0, 0.08, 0.1, 0.12][t];
   const entrances = [0, 2, 3, 4][t]; // 入口数(育つほど増える=収容力/動線)
   const gap = 44 * scale;            // 入口の間隔
-  const hitR = Math.max(84, gap * (entrances - 1) / 2 + 46 * scale);
+  // ③ タップ判定は見た目より小さく=実体(中央の入口塊)に近い範囲(旧: 端の入口まで包む193)。トカゲ選択が巣に取られない
+  const hitR = Math.max(56, gap);
   return { tier: t, scale, entrances, gap, hitR };
 }
 // §8.17 防衛設備(ボスは右から来る=右側に迎え撃つ構え。育つほど「守りが堅そう」に見える)

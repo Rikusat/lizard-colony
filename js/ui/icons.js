@@ -93,7 +93,6 @@ const ICONS = {
   meteor: '<circle cx="16" cy="16" r="4.5"/><path d="M3 3l7 7M9 2l4 4M2 9l4 4" fill="none"/>',
   rocket: '<path d="M12 2c3 2 4 6 4 9l-1 6h-6l-1-6c0-3 1-7 4-9z" fill="none"/><circle cx="12" cy="9" r="1.7" fill="none"/><path d="M9 14l-3 3 3 .5M15 14l3 3-3 .5M10.5 17.5 12 22l1.5-4.5" fill="none"/>',
   camera: '<rect x="3" y="7" width="18" height="13" rx="2" fill="none"/><path d="M8 7l2-3h4l2 3" fill="none"/><circle cx="12" cy="13" r="3.5" fill="none"/>',
-  pin: '<path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0C18.5 15 12 21 12 21z" fill="none"/><circle cx="12" cy="10" r="2"/>',
   gift: '<rect x="4" y="10" width="16" height="10" rx="1" fill="none"/><path d="M12 6v14M4 10h16M12 6c-1.5 0-4-.5-4-2.5S11 2 12 6zM12 6c1.5 0 4-.5 4-2.5S13 2 12 6z" fill="none"/>',
   save: '<path d="M5 3h11l3 3v15H5z" fill="none"/><path d="M8 3v5h7V3M8 21v-7h8v7" fill="none"/>',
   calendar: '<rect x="4" y="5" width="16" height="16" rx="2" fill="none"/><path d="M4 10h16M9 3v4M15 3v4" fill="none"/>',

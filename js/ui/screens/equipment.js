@@ -10,47 +10,7 @@ Object.assign(UI, {
     this.openModal(`${Icon.svg("build")} 設備`, (body) => this.buildFacilities(body));
   },
 
-  // 3.11.2: 飼育槽内の設備タップ判定。建設済み(lv>0)の設備の描画中心と半径で当たりを取る
-  facilityHitId(x, y) {
-    if (typeof FAC_POS === "undefined") return null;
-    const P = FAC_POS;
-    const hits = [
-      // Phase8: 水場のタップ領域は育ったtierのスケールに追従(waterTierInfoを描画と共有)
-      { id: "water", x: P.water.x, y: P.water.y, r: (typeof waterTierInfo !== "undefined" ? Math.max(70, waterTierInfo(Game.facLv("water")).hitR) : 78) },
-      // Phase8: 保温設備は温室化でスケール追従(heatTierInfo共有)。中心はP.light、育つと全体を覆う
-      { id: "heat", x: P.light.x, y: P.light.y, r: (typeof heatTierInfo !== "undefined" ? Math.max(60, heatTierInfo(Game.facLv("heat")).hitR) : 62) },
-      { id: "observatory", x: P.observatory.x, y: P.observatory.y, r: (typeof observatoryTierInfo !== "undefined" ? observatoryTierInfo(Game.facLv("observatory")).hitR : 56) }, // §8.12: 展望台=中央・巨大(FAC_POSと共有)
-      // §8.17: 防衛設備もタップ可能+スケール追従(監視塔=塔高/罠=杭列幅)
-      { id: "watchtower", x: P.watchtower.x, y: P.watchtower.y - (typeof watchtowerTierInfo !== "undefined" ? watchtowerTierInfo(Game.facLv("watchtower")).h * 0.5 : 40), r: (typeof watchtowerTierInfo !== "undefined" ? watchtowerTierInfo(Game.facLv("watchtower")).hitR : 60) },
-      { id: "trap", x: P.trap.x, y: P.trap.y, r: (typeof trapTierInfo !== "undefined" ? trapTierInfo(Game.facLv("trap")).hitR : 58) },
-    ];
-    for (const h of hits) {
-      if (Game.facLv(h.id) > 0 && Math.hypot(x - h.x, y - h.y) < h.r) return h.id;
-    }
-    // フェンスは縦帯で判定(建設済みのみ)
-    if (Game.facLv("fence") > 0 && Math.abs(x - P.fenceX) < 30 && y > 200 && y < 700) return "fence";
-    return null;
-  },
-
-  // 3.11.2: 個別設備の強化メニュー(トカゲクリックのウィンドウと同等サイズ=openModal)
-  openFacilityMenu(id) {
-    const f = facilityById(id);
-    if (!f) return;
-    this.openModal(`${Icon.svg(f.icon)} ${f.name}`, (body) => {
-      const render = () => {
-        const lv = Game.facLv(f.id), fmax = Game.facMax(f), maxed = lv >= fmax, cost = Game.facilityCost(f.id);
-        body.innerHTML =
-          `<div class="list-row"><span class="fic">${Icon.svg(f.icon)}</span>` +
-          `<div class="grow"><b>${f.name}</b> <span class="lv">Lv${lv}/${fmax}</span>` +
-          `<div class="desc">${f.desc}</div></div></div>` +
-          `<button id="fm-up" style="width:100%;margin-top:10px" ${maxed ? "disabled" : ""}>${maxed ? "MAX" : Icon.svg("build") + " 強化 " + fmt(cost) + "G"}</button>` +
-          `<button id="fm-all" style="width:100%;margin-top:8px">${Icon.svg("build")} 設備一覧を開く</button>`;
-        if (!maxed) body.querySelector("#fm-up").addEventListener("click", () => { Game.buyFacility(f.id); render(); });
-        body.querySelector("#fm-all").addEventListener("click", () => this.openFacilities());
-      };
-      render();
-    });
-  },
+  // ②: フィールドの設備タップ判定/個別強化メニューは撤廃。設備強化は左メニューの「設備」ボタン(openFacilities)が唯一の導線。
 
   buildFacilities(body) {
     body.innerHTML = `

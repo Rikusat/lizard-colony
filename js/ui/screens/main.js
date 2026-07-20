@@ -116,7 +116,6 @@ Object.assign(UI, {
         <button data-act="feed">${Icon.svg("cricket")} 餌やり</button>
         ${Game.canBreed(lz) ? `<button data-act="breed" class="cta">${Icon.svg("breed")} 繁殖相手を選ぶ</button>` : ""}
         ${lz.injuredT > 0 ? `<button data-act="heal">${Icon.svg("gem")}1 回復</button>` : ""}
-        <button data-act="pin">${Icon.svg("pin")}${(Game.state.nest.pins || []).includes(lz.id) ? "解除" : "ピン"}</button>
         ${Game.stageSpecificSpecies().length && Game.res("bio") >= CFG.mutateBioCost && speciesById(lz.speciesId).stage !== Game.currentStage().id
           ? `<button data-act="mutate">${Icon.svg("bio")} 変異(${CFG.mutateBioCost})</button>` : ""}
         <button data-act="close">閉じる</button>
@@ -132,13 +131,6 @@ Object.assign(UI, {
       case "feed": Game.feed(lz); break;
       case "heal": Game.healWithGem(lz); break;
       case "mutate": Game.mutateLizard(lz); break;
-      case "pin": {
-        const pins = Game.state.nest.pins || (Game.state.nest.pins = []);
-        if (pins.includes(lz.id)) Game.state.nest.pins = pins.filter((id) => id !== lz.id);
-        else if (pins.length < 5) pins.push(lz.id);
-        else this.toast("ピン留めは5匹まで", true);
-        break;
-      }
       case "breed": this.openBreedPicker(lz); return; // 3.11.4: 相手選択ウィンドウへ
       case "close": Game.selectedId = null; break;
     }
