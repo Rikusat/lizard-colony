@@ -1516,10 +1516,10 @@ const Game = {
       dive: null, recoverT: 0, animT: 0, fleeing: false, stolenEgg: null,
     };
     const label = `${nr.elite ? "Elite " : ""}${type.name}${nr.tier ? " T" + nr.tier : ""}`;
-    if (this.raid.cutinT > 0 && UI.heroBossIn && UI.heroBossIn(this.raid)) {
-      this.raid.heroShown = true; // Canvasカットイン・トーストは出さない(§6: 器を一本化)
-    } else {
-      UI.toast(nr.boss || nr.tier ? ` BOSS襲来!! ${label} — ${type.threat}!` : ` ${this.raid.snakeTier.name}が襲来した! コロニーを守れ!`, true);
+    // §9.2: ボス出現の全画面カットイン/トーストを撤廃。飼育槽中央の軽い通知のみ(タップ不要・自動フェード)
+    if (typeof Render !== "undefined" && Render.showCenterNotice) {
+      const boss = nr.boss || nr.tier;
+      Render.showCenterNotice(boss ? `${label} 襲来` : `${this.raid.snakeTier.name} 襲来`, boss ? (type.threat || "コロニーを守れ") : "コロニーを守れ", "boss");
     }
     this.combatSurge(); // V3: 巣から全軍一斉出撃
   },

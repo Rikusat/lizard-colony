@@ -190,7 +190,7 @@ const Render = {
       this.centerLabel(ctx, `${Game.event.def.name} 残り${Math.ceil(Game.event.t)}秒 — ${Game.event.def.desc}`,
         W / 2, H - 26, "rgba(60,40,10,.7)", "#ffe9b0");
     }
-    if (Game.raid && Game.raid.cutinT > 0 && !Game.raid.heroShown) this.drawCutin(ctx, Game.raid);
+    this.drawCenterNotice(ctx); // §9.2 飼育槽中央の軽い通知(ボス出現ほか・タップ不要・全画面カットイン撤廃)
     // 伝説誕生などのフラッシュ
     if (Game.flashT > 0) {
       ctx.fillStyle = `rgba(255,250,230,${Math.min(0.85, Game.flashT)})`;
@@ -2295,19 +2295,29 @@ const Render = {
 
 
   // 登場カットイン (T2+)
-  drawCutin(ctx, raid) {
-    const a = clamp(raid.cutinT / 1.2, 0, 1);
-    ctx.fillStyle = `rgba(0,0,0,${0.45 * a})`;
-    ctx.fillRect(0, 0, W, H);
-    const slide = (1 - a) * 60;
-    ctx.fillStyle = `rgba(120,20,10,${0.85 * a})`;
-    ctx.fillRect(0, H / 2 - 52, W, 104);
-    ctx.fillStyle = `rgba(255,235,210,${a})`;
-    ctx.font = "bold 42px sans-serif"; ctx.textAlign = "center";
-    ctx.fillText(`${raid.elite ? "ELITE " : ""}${raid.type.name}`, W / 2 + slide, H / 2 + 2);
-    ctx.font = "bold 17px sans-serif";
-    ctx.fillStyle = `rgba(255,180,150,${a})`;
-    ctx.fillText(`BOSS TIER ${raid.tier} — ${raid.type.threat}`, W / 2 + slide, H / 2 + 34);
+  // §9.2 飼育槽中央の軽い通知(ボス出現ほか)。タップ不要・全画面暗転なし・時間で自動フェード。
+  //   accent: "boss"=赤系(襲来) / "info"=既定。sub=副題。
+  showCenterNotice(text, sub, accent) {
+    this._notice = { text: text || "", sub: sub || "", t0: this.time, dur: 2.0, accent: accent || "info" };
+  },
+  drawCenterNotice(ctx) {
+    const n = this._notice; if (!n) return;
+    const e = this.time - n.t0;
+    if (e > n.dur) { this._notice = null; return; }
+    const k = e / n.dur; // 0..1: フェードイン(〜0.15)→保持→フェードアウト(0.72〜)
+    const alpha = k < 0.15 ? k / 0.15 : k > 0.72 ? Math.max(0, (1 - k) / 0.28) : 1;
+    const cx = W / 2, cy = 150, slide = (1 - Math.min(1, k / 0.15)) * 16;
+    const boss = n.accent === "boss";
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.textAlign = "center";
+    ctx.font = "bold 26px sans-serif";
+    const w = Math.max(220, ctx.measureText(n.text).width + 64), h = n.sub ? 56 : 42, x0 = cx - w / 2, y0 = cy - 26;
+    ctx.fillStyle = boss ? "rgba(34,10,8,.6)" : "rgba(18,16,12,.56)"; rr(ctx, x0, y0, w, h, 11); ctx.fill();
+    ctx.strokeStyle = boss ? "rgba(230,90,70,.55)" : "rgba(200,180,140,.4)"; ctx.lineWidth = 2; rr(ctx, x0, y0, w, h, 11); ctx.stroke();
+    ctx.fillStyle = boss ? "#ffcbb6" : "#f2e6c8"; ctx.fillText(n.text, cx + slide, cy);
+    if (n.sub) { ctx.font = "13px sans-serif"; ctx.fillStyle = boss ? "rgba(255,200,180,.85)" : "rgba(240,225,190,.8)"; ctx.fillText(n.sub, cx, cy + 20); }
+    ctx.restore();
   },
 
   // ---------------- 新ボス (GameExpansion_v2 ②) ----------------

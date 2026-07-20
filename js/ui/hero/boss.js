@@ -5,19 +5,7 @@
 // =============================================================
 
 Object.assign(UI, {
-  // 襲来(1.2秒 = raid.cutinT と同期。既存のCanvasカットインを置換)
-  heroBossIn(r) {
-    const t = r.type;
-    return Hero.show({
-      cls: "hero-boss",
-      main: `<div class="boss-face">${Icon.svg(t.icon)}</div>`,
-      info: `<div class="hero-stamp boss">${r.elite ? "ELITE BOSS" : "BOSS"}</div>
-        <div class="hero-name">${t.name}${r.tier ? " T" + r.tier : ""}</div>
-        <div class="hero-reward">${t.threat}!</div>`,
-      total: 1200,
-    });
-  },
-
+  // §9.2: ボス襲来の全画面カットインは撤廃(Render.showCenterNotice=飼育槽中央の軽い通知に置換)。
   // 撃破(msg=リザルト詳細をそのまま掲示)
   heroBossDown(r, msg) {
     const t = r.type;

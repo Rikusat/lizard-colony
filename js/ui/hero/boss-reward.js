@@ -128,7 +128,7 @@ Object.assign(UI, {
     this._brUpdateTray();
     if (this._brState === "firing" && !Roulette.rewardActive()) {
       this._brState = "tally";
-      this._brTallyT = Motion.reduced ? 1.0 : (CFG.roulRewardTallySec || 2.4);
+      this._brTallyT = CFG.roulRewardTallySec || 0.5; // §9.2 余韻短縮(reduced-motionも同値)
       this._brShowTally();
     } else if (this._brState === "tally") {
       this._brTallyT -= 1 / 60;
@@ -165,7 +165,7 @@ Object.assign(UI, {
     let g = 0;
     while (Roulette.rewardRemaining() > 0 && g < 5000) { Roulette.fireRewardBall(); g++; }
     g = 0; while (Roulette.rewardActive() && g < 200000) { Roulette.advance(CFG.roulFixedDt * 8); g++; }
-    this._brState = "tally"; this._brTallyT = 1.0; this._brShowTally();
+    this._brState = "tally"; this._brTallyT = CFG.roulRewardTallySec || 0.5; this._brShowTally();
   },
 
   closeBossReward() {
