@@ -91,11 +91,15 @@ Object.assign(UI, {
     ctx.beginPath(); ctx.arc(cx, cy, Math.max(1.6, R * 0.028), 0, 7);
     ctx.fillStyle = `rgba(226,168,192,${0.4 + align * 0.4})`; ctx.fill();
 
-    // 張り付いた失敗の痕跡(内側=惜しいほど明るく大きく=静かな殿堂)。どのリングに何個あるか一目で読める明るさ
+    // 張り付いた失敗の痕跡(内側=惜しいほど明るく大きく=静かな殿堂)。寿命は到達の深さ別(§④)。
+    const now = (typeof Render !== "undefined") ? Render.time : 0;
     for (const s of Slit.stuck) {
       const [x, y] = pt(s.r, s.theta);
       const depth = (s.ring + 1) / N;               // 0..1 内側ほど大
-      const fade = Math.min(1, s.life / 6);          // 消える前に薄く
+      const life0 = s.life0 || 6;
+      let fade = Math.min(1, s.life / Math.min(1.5, life0 * 0.5)); // 消える前に薄く(短寿命でも見える)
+      // 点滅(§④・控えめ=線のみの世界を乱さない): 残り<1sで淡く明滅。lane2(寿命1s)は全体が呼吸/lane3・4は最後だけ
+      if (!calm && s.life < 1.0) fade *= 0.5 + 0.5 * (0.5 + 0.5 * Math.sin(now * 13));
       const rad = (2.0 + depth * 2.8) * sc;
       const a = (0.5 + depth * 0.45) * fade;
       ctx.beginPath(); ctx.arc(x, y, rad, 0, 7);

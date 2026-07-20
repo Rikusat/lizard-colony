@@ -104,11 +104,12 @@ const Slit = {
     }
   },
 
-  // 失敗球を張り付ける。§9.5: 最外周(ring=0)で弾かれた球は残さない=1枚以上潜り抜けた球のみ記録(残る点=「ここまで行けた」証拠)。
+  // 失敗球を張り付ける。§④: 寿命は到達の深さ(ring)別=CFG.slitStickSec[ring]。0(=最外lane1)は記録せず即消滅。
   // 最大数超過時は「より外側(=浅い)・古い」球から消す=内側(惜しい)記録を優先して残す
   _addStuck(r, theta, ring, miss) {
-    if (ring < 1) return;
-    this.stuck.push({ r, theta, ring, life: CFG.slitStickSec, miss, id: this._stuckSeq++ });
+    const life = CFG.slitStickSec[ring] || 0;
+    if (life <= 0) return; // lane1(最外)=即消滅=記録に残さない
+    this.stuck.push({ r, theta, ring, life, life0: life, miss, id: this._stuckSeq++ });
     while (this.stuck.length > CFG.slitStickMax) {
       let worst = 0;
       for (let k = 1; k < this.stuck.length; k++) {

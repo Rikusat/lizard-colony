@@ -66,8 +66,8 @@ main { flex: 1 1 auto; min-height: 0; width: 100%; }
    全数値=等幅数字(tabular-nums)+inline-block+最大桁を見込んだmin-width予約。桁が増減しても各数値ボックスの
    幅が変わらない→後続ピル(コオロギ/ジェム/賢者の石)や秒レートが横に動かない。予約はfs-scale追従のemで。 */
 #topbar .res b, #topbar .res small { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; display: inline-block; }
-#topbar #ui-coins { min-width: 5em; text-align: right; }            /* Gold値: 省略記法(最大 "9999.99B"=兆級まで) */
-#topbar #ui-cps { min-width: 8.4em; text-align: left; }             /* 秒レート: 生値 "+9999999.9/秒" 級(左寄せ=値に隣接) */
+#topbar #ui-coins { min-width: 4.2em; text-align: right; }          /* Gold値: 省略記法の実運用最大 "999.99B"(十億台) */
+#topbar #ui-cps { min-width: 7em; text-align: left; }               /* 秒レート: 実運用最大 "+9999999.9/秒"(7桁=1千万/秒)。左寄せ=値に隣接 */
 #topbar #ui-crickets-top { min-width: 3.4em; text-align: right; }
 #topbar #ui-gems { min-width: 3.0em; text-align: right; }
 #topbar #ui-stones { min-width: 2.0em; text-align: right; }
@@ -92,7 +92,7 @@ main { flex: 1 1 auto; min-height: 0; width: 100%; }
 .ricon.cricket { background: radial-gradient(circle at 35% 30%, #b9d97a, #6f9436 65%, #4a681f); }
 .ricon.gem { background: radial-gradient(circle at 35% 30%, #b7e6ff, #4f9fd9 60%, #2a5f96); }
 /* 賢者の石(3.15): 錬金の"赤い石"=深紅が完成形。沈んだワインレッドで神秘と不吉さを同居(§②)。トークンで調整可 */
-.ricon.stone { background: radial-gradient(circle at 35% 30%, var(--stone-hi), var(--stone-mid) 55%, var(--stone-deep)); color: #fff; box-shadow: 0 0 8px var(--stone-glow); }
+.ricon.stone { background: radial-gradient(circle at 50% 44%, var(--stone-deep), var(--stone-mid) 42%, var(--stone-hi)); color: #9a2233; box-shadow: 0 0 8px var(--stone-glow); }
 
 #topbar nav { margin-left: auto; display: flex; gap: 10px; }
 /* 3.11.3: ボス襲来中の暗転(マップ移動禁止・今すぐ呼ぶ不可)。給餌クランクも操作不可に */
@@ -2144,6 +2144,15 @@ button.holding::after {
 }
 /* ヘッダー内は上に出すと見切れるため下向きへ反転 */
 #topbar [data-tip]::after { bottom: auto; top: calc(100% + 8px); }
+/* 3.16 ①: トップバーのツールチップが画面外に出ないための共通ルール(個別対応でなく構造)。
+   ・折返し可+コンパクト幅=長文でも横に伸びすぎない(旧nowrapで520px級に伸び右端で見切れていた)
+   ・右端の要素(=最後の資源ピル)は左寄せ展開(右端=要素の右端に固定)=右へはみ出さない
+   ・左端の要素は右寄せ展開=左へはみ出さない */
+#topbar [data-tip]::after { white-space: normal; width: max-content; max-width: 240px; }
+/* 右側の資源ピル(gems・stones=最後の2つ)は左寄せ展開=右端をピル右端に固定して右へはみ出さない */
+#topbar .res:nth-last-of-type(-n+2)[data-tip]::after { left: auto; right: 0; transform: translateX(0) translateY(3px); }
+#topbar .res:nth-last-of-type(-n+2)[data-tip]:hover::after,
+#topbar .res:nth-last-of-type(-n+2)[data-tip]:focus-visible::after { transform: translateX(0) translateY(0); }
 
 
 /* ============ Phase 6: モーション横断 ============ */
