@@ -3108,9 +3108,11 @@ const Render = {
   // 「間抜けな土管」の姿(ずんぐり・環節・鈍い頭)なのに神出鬼没=登場の驚き。
   drawDoronumaWorm(ctx, raid) {
     const s = raid.snake;
+    const P = (typeof SIG_PAL !== "undefined" && SIG_PAL.doronumaWorm) || { skin: "#7a6647", skinDk: "#4e3d28", band: "#94805c", saddle: "#ad9c7e", sand: "#8f7850", maw: "#2e1d10", bossScale: 1.72, girth: 19 };
     const tier = snakeTierFor(Game.state.rank);
-    const scale = tier.scale * (raid.boss ? 1.4 : 1.05);
-    const skin = "#9c6f4a", skinDk = "#6a4630", band = "#c39a70", saddle = "#c9b088", maw = "#341f12", sand = "#b79362";
+    const scale = tier.scale * (raid.boss ? P.bossScale : 1.15); // 土中突き上げの巨大な脅威=スケール増
+    const skin = P.skin, skinDk = P.skinDk, band = P.band, saddle = P.saddle, maw = P.maw, sand = P.sand;
+    const G = P.girth;
 
     // 背骨: 砂山(埋没端)から立ち上がり、鈍い頭を上へ突き上げる弧
     const segs = 16, segLen = 15 * scale;
@@ -3124,8 +3126,8 @@ const Render = {
       const reach = t * segs * segLen * 0.62;
       const crawl = Math.sin(this.time * 3.2 - i * 0.7) * 2.2 * scale * Math.min(1, i / 2); // 蠕動の波
       pts.push({ x: bx + Math.cos(ang) * reach, y: by + Math.sin(ang) * reach - t * 8 * scale + bob * t + crawl });
-      // 太い胴・両端だけ細る(ミミズ=ほぼ均一の寸胴)
-      const w = (t < 0.12 ? 6 + (t / 0.12) * 10 : t > 0.86 ? 16 - ((t - 0.86) / 0.14) * 7 : 16) * scale;
+      // 太い胴・両端だけ細る(ミミズ=ほぼ均一の寸胴)。girth=G(SIG_PALで太さ調整可)
+      const w = (t < 0.12 ? G * 0.4 + (t / 0.12) * (G * 0.6) : t > 0.86 ? G - ((t - 0.86) / 0.14) * (G * 0.44) : G) * scale;
       wid.push(Math.max(2, w));
     }
     const nrm = [];

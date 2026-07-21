@@ -653,6 +653,8 @@ const SIG_PAL = {
   falcon: { body: "#5f7391", edge: "#a6f4ff", cyan: "#9df2fd", glow: 0.26, glowR: 27, eyeR: 1.5 },
   // ID8 グラキス バガー親個体: ガラスのヒビは槽面(右壁)へ・親個体の証=卵嚢(brood sac)
   baggerParent: { crack: "220,228,240", crackAlpha: 0.34, sac: "#6a4a86", sacEgg: "#c9a8e6", sacGlow: "#b070e0" },
+  // ID1 アリド ドロヌマ・ワーム: 桃色寄り→土気色へ濁す＋スケール増で"巨大な脅威"を立てる
+  doronumaWorm: { skin: "#7a6647", skinDk: "#4e3d28", band: "#94805c", saddle: "#ad9c7e", sand: "#8f7850", maw: "#2e1d10", bossScale: 1.72, girth: 19 },
 };
 
 // 味方 (GameExpansion_v2 ⑩) — 繁殖不可・常駐・素材でLvアップ
