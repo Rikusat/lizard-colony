@@ -3514,6 +3514,46 @@ const Render = {
     ctx.restore();
   },
 
+  // Phase6 ID4 トムライ・ホタルジャコ(新arch・効果は今後): 地味な小鳥+緑の鬼火(燐火)。
+  drawFireflyBird(ctx, lv) {
+    const spots = [[300, 455], [360, 478]], n = Math.min(2, 1 + Math.floor((lv || 1) / 3));
+    for (let i = 0; i < n; i++) this._fireflyBird(ctx, spots[i][0], spots[i][1], i % 2 ? 1 : -1);
+  },
+  _fireflyBird(ctx, x, y, dir) {
+    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
+    const drab = "#5a5348", drabL = "#726a5a";
+    const gp = 0.5 + Math.sin(this.time * 2.4) * 0.4, fx = -12, fy = -14 - Math.sin(this.time * 1.6) * 3;
+    const g = ctx.createRadialGradient(fx, fy, 0, fx, fy, 11); g.addColorStop(0, `rgba(143,224,160,${gp})`); g.addColorStop(1, "rgba(143,224,160,0)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(fx, fy, 11, 0, 7); ctx.fill(); // 鬼火
+    ctx.fillStyle = "#8fe0a0"; ctx.globalAlpha = gp; ctx.beginPath(); ctx.arc(fx, fy, 2.4, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.fillStyle = "rgba(0,0,0,.2)"; ctx.beginPath(); ctx.ellipse(0, 8, 10, 3, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = drab; ctx.beginPath(); ctx.ellipse(0, 0, 9, 7, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = drabL; ctx.beginPath(); ctx.ellipse(-1, 1, 6, 4, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = drab; ctx.beginPath(); ctx.moveTo(-2, -2); ctx.quadraticCurveTo(-12, 0, -8, 4); ctx.fill(); // 翼
+    ctx.beginPath(); ctx.arc(7, -3, 4, 0, 7); ctx.fill(); // 頭
+    ctx.fillStyle = "#c0a030"; ctx.beginPath(); ctx.moveTo(10, -3); ctx.lineTo(14, -2); ctx.lineTo(10, -1); ctx.fill(); // くちばし
+    ctx.fillStyle = "#1a140c"; ctx.beginPath(); ctx.arc(8, -4, 1, 0, 7); ctx.fill();
+    ctx.restore();
+  },
+
+  // Phase6 ID5 カジ・モグラ(新arch・効果は今後): 頭が金床の不格好なモグラ。
+  drawAnvilMole(ctx, lv) { this._allySquad(ctx, lv, (c, x, y, dir) => this._anvilMole(c, x, y, dir)); },
+  _anvilMole(ctx, x, y, dir) {
+    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
+    const fur = "#4a4038", furL = "#5e5248", iron = "#6a6e74", ironD = "#3e4247";
+    ctx.fillStyle = "rgba(0,0,0,.24)"; ctx.beginPath(); ctx.ellipse(0, 10, 14, 4, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = fur; ctx.beginPath(); ctx.ellipse(-2, 2, 13, 9, 0, 0, 7); ctx.fill(); // 胴
+    ctx.fillStyle = furL; ctx.beginPath(); ctx.ellipse(-3, 1, 9, 6, 0, 0, 7); ctx.fill();
+    // 掘る前脚(大きな爪)
+    ctx.fillStyle = "#c9b088"; ctx.beginPath(); ctx.moveTo(6, 6); ctx.lineTo(14, 8); ctx.lineTo(12, 12); ctx.lineTo(6, 10); ctx.fill();
+    // 頭=金床(アンビル)
+    ctx.fillStyle = iron; ctx.beginPath(); ctx.moveTo(6, -6); ctx.lineTo(20, -8); ctx.lineTo(20, -2); ctx.lineTo(14, 0); ctx.lineTo(14, 4); ctx.lineTo(8, 4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = ironD; ctx.fillRect(8, 3, 6, 3); // 金床の脚
+    ctx.fillStyle = "rgba(255,255,255,.18)"; ctx.beginPath(); ctx.moveTo(8, -6); ctx.lineTo(18, -7); ctx.lineTo(18, -5); ctx.lineTo(8, -4); ctx.fill(); // 金床のハイライト
+    ctx.fillStyle = "#1a140c"; ctx.beginPath(); ctx.arc(10, -1, 1, 0, 7); ctx.fill(); // 目(小)
+    ctx.restore();
+  },
+
   // ---------------- Phase6 惑星固有の味方 ----------------
   // 現在の惑星の味方をコロニー側(左)に描画。owned(state.allies)があるときのみ。惑星ごとに描画分岐を足す。
   drawPlanetAllies(ctx) {
