@@ -3588,6 +3588,42 @@ const Render = {
     ctx.restore();
   },
 
+  // Phase6 ID8 ジャンク・ペンギン・サーボ隊(eagle型): 軍用サーボを背負ったペンギン。
+  drawServoPenguin(ctx, lv) { this._allySquad(ctx, lv, (c, x, y, dir) => this._penguin(c, x, y, dir)); },
+  _penguin(ctx, x, y, dir) {
+    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
+    const black = "#2a2e34", white = "#e8ecf0", beak = "#d8a030", steel = "#6a6e74", red = "#ff4030";
+    ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.beginPath(); ctx.ellipse(0, 13, 11, 3.5, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = black; ctx.beginPath(); ctx.ellipse(0, 2, 10, 13, 0, 0, 7); ctx.fill(); // 体
+    ctx.fillStyle = white; ctx.beginPath(); ctx.ellipse(-1, 4, 6, 9, 0, 0, 7); ctx.fill(); // 腹
+    ctx.fillStyle = beak; ctx.beginPath(); ctx.moveTo(-5, 14); ctx.lineTo(-1, 14); ctx.lineTo(-3, 10); ctx.fill(); ctx.beginPath(); ctx.moveTo(2, 14); ctx.lineTo(6, 14); ctx.lineTo(4, 10); ctx.fill(); // 足
+    ctx.fillStyle = black; ctx.beginPath(); ctx.arc(0, -10, 7, 0, 7); ctx.fill(); // 頭
+    ctx.fillStyle = beak; ctx.beginPath(); ctx.moveTo(6, -10); ctx.lineTo(11, -9); ctx.lineTo(6, -8); ctx.fill(); // くちばし
+    ctx.fillStyle = white; ctx.beginPath(); ctx.arc(3, -12, 1.6, 0, 7); ctx.fill(); ctx.fillStyle = "#1a1418"; ctx.beginPath(); ctx.arc(3.4, -12, 0.9, 0, 7); ctx.fill();
+    ctx.strokeStyle = steel; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-8, -2); ctx.lineTo(-16, -8); ctx.lineTo(-10, -14); ctx.stroke(); // サーボアーム
+    ctx.fillStyle = steel; ctx.fillRect(-14, -16, 8, 4);
+    ctx.fillStyle = red; ctx.beginPath(); ctx.arc(-6, -15, 1.4, 0, 7); ctx.fill(); // 赤単眼(照準)
+    ctx.restore();
+  },
+  // Phase6 ID9 ジャンク・ラクーン整備班(gecko型): 応急テープだらけのアライグマ。※代替=廃炉山椒魚(姿は後で個別修正可)。
+  drawRaccoon(ctx, lv) { this._allySquad(ctx, lv, (c, x, y, dir) => this._raccoon(c, x, y, dir)); },
+  _raccoon(ctx, x, y, dir) {
+    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
+    const fur = "#6a6e74", furL = "#868a90", mask = "#24282d", tape = "#d8c828";
+    ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.beginPath(); ctx.ellipse(0, 11, 12, 3.5, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = fur; ctx.lineWidth = 5; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(-8, 4); ctx.quadraticCurveTo(-18, 2, -18, -8); ctx.stroke(); // 尾
+    ctx.strokeStyle = mask; ctx.lineWidth = 1.6; for (const ty of [-6, -1, 3]) { ctx.beginPath(); ctx.moveTo(-20, ty); ctx.lineTo(-15, ty + 1); ctx.stroke(); } // 縞
+    ctx.fillStyle = fur; ctx.beginPath(); ctx.ellipse(-1, 3, 10, 9, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = furL; ctx.beginPath(); ctx.ellipse(-2, 3, 6, 6, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = tape; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-6, 4); ctx.lineTo(2, 7); ctx.stroke(); // 黄テープ補修
+    ctx.fillStyle = furL; ctx.beginPath(); ctx.arc(4, -6, 6, 0, 7); ctx.fill(); // 頭
+    ctx.fillStyle = mask; ctx.beginPath(); ctx.ellipse(4, -6, 6, 2.6, 0, 0, 7); ctx.fill(); // マスク
+    ctx.fillStyle = "#e8ecf0"; ctx.beginPath(); ctx.arc(2, -6, 1, 0, 7); ctx.arc(7, -6, 1, 0, 7); ctx.fill();
+    ctx.fillStyle = furL; ctx.beginPath(); ctx.arc(1, -11, 2.2, 0, 7); ctx.arc(8, -11, 2.2, 0, 7); ctx.fill(); // 耳
+    ctx.fillStyle = mask; ctx.beginPath(); ctx.moveTo(9, -6); ctx.lineTo(13, -5); ctx.lineTo(9, -4); ctx.fill(); // 鼻先
+    ctx.restore();
+  },
+
   // ---------------- Phase6 惑星固有の味方 ----------------
   // 現在の惑星の味方をコロニー側(左)に描画。owned(state.allies)があるときのみ。惑星ごとに描画分岐を足す。
   drawPlanetAllies(ctx) {
