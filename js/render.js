@@ -16,6 +16,12 @@ const FAC_POS = {
   trap: { x: 1128, y: 470 },        // §8.17 罠(右のボス進入路=迎え撃つ。ルーレット盤/右端UIを避け y=470 のボスレーンへ)
 };
 const NEST = { x: 400, y: 512 };  // 卵の巣(§8.12で中央の巨大展望台を避け前景・左下寄りへ)
+// Phase6 惑星署名ボス(phase6_design.md v1.1): stageId -> { threat: 既存脅威型, draw: 描画メソッド名 }。
+//   raid.boss かつ その惑星に居て 脅威型が一致するときだけ「その惑星の主」を固有の姿で描く(通常襲来は既存脅威型のまま)。
+//   脅威メカニクス(勝敗ロジック)は不変=描画の差し替えのみ。惑星ごとに1エントリ+1描画メソッドを追加する。
+const PLANET_BOSS = {
+  1: { threat: "snake", draw: "drawDoronumaWorm" }, // アリド: ドロヌマ・ワーム(泥沼蟲)
+};
 // §8.15 スプライトキャッシュ: アニメ位相をこの粒度(phase単位)で量子化して焼き直す=時間スロットル。
 //   小さいほど滑らか(焼き直し頻度up=軽減効果down)、大きいほど軽い(アニメ粗く)。phase=time*8なので 0.28≈2〜3フレームに1回。
 const SPRITE_ANIM_Q = 0.28;
@@ -2291,6 +2297,14 @@ const Render = {
     }
   },
 
+  // Phase6: 現在の惑星の署名ボス描画メソッド名を返す。raid.boss かつ 脅威型が一致するときのみ(通常襲来/不一致はnull=既存描画)。
+  planetBossDraw(raid) {
+    if (!raid.boss) return null;
+    const st = Game.currentStage && Game.currentStage();
+    const pb = st && PLANET_BOSS[st.id];
+    return (pb && raid.typeId === pb.threat && typeof this[pb.draw] === "function") ? pb.draw : null;
+  },
+
   drawBoss(ctx, raid) {
     const e = raid.snake;
     const k = this.bossScale(raid);
@@ -2317,19 +2331,17 @@ const Render = {
       ctx.fillStyle = g;
       ctx.beginPath(); ctx.arc(e.x, e.y, 130, 0, 7); ctx.fill();
     }
-    switch (raid.typeId) {
+    // Phase6 惑星署名ボス: raid.boss時のみ、その惑星の脅威型が一致すれば固有の姿で描画(通常襲来/不一致は既存脅威型のまま)
+    const sig = this.planetBossDraw(raid);
+    if (sig) this[sig](ctx, raid);
+    else switch (raid.typeId) {
       case "hawk": this.drawHawk(ctx, raid); break;
       case "crow": this.drawCrow(ctx, raid); break;
       case "monitor": this.drawMonitor(ctx, raid); break;
       case "scorpion": this.drawScorpion(ctx, raid); break;
       case "spider": this.drawSpider(ctx, raid); break;
       case "bugger": this.drawBugger(ctx, raid); break;
-      default: {
-        // Phase6 ID1 アリド: snake脅威をドロヌマ・ワーム(泥沼蟲)として描画(惑星ゲート・描画のみ差替)
-        const st = Game.currentStage && Game.currentStage();
-        if (st && st.id === 1) this.drawDoronumaWorm(ctx, raid);
-        else this.drawSnake(ctx, raid);
-      }
+      default: this.drawSnake(ctx, raid);
     }
     // Elite金縁
     if (raid.elite) {

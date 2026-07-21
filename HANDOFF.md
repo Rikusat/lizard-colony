@@ -1589,8 +1589,10 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
 - **`render.js: drawDoronumaWorm(ctx, raid)`** 新設: 砂まみれの巨大ミミズ（環節リング・クリテルム帯・鈍い頭＋放射状の円い口＝土管・砂山から立ち上がる弧・蠕動アニメ this.time）。手描きSVG・絵文字なし・`snakeTierFor`でscale同期・`lcg`/`rnd`決定論。
 - **`render.js: drawBoss` ディスパッチにID1ゲート**: `Game.currentStage().id===1` かつ snake脅威型のとき drawSnake→drawDoronumaWorm へ差替（他惑星は従来の蛇のまま＝漏れなし）。**snake脅威（噛みつき負傷=自切）は不変＝描画のみ差替**。
 - **検証**: render.js `node --check` OK／scratchpardハーネスでID1描画＝ワーム表示・console0／**stage2は従来の蛇のまま（ゲート非漏れ）を実画像で確認**／純血59/0／index.htmlブートconsole0・スクショ正常。セーブ非接触・魂不変。
-- **Ric実機確認待ち**: ワームの見た目・登場の手触り（OKなら Step B＝味方スナホリ・アルマジロ＋allyLvRaw移行 v13→v14 案A へ）。
 - index.html cache-bust(render.js)更新。デプロイなし。
+- **②方式へ修正＋再利用ディスパッチ確立（Ric確定 2026-07-21）**: 署名ボスは**`raid.boss`時のみ**固有の姿／通常襲来は既存脅威型のまま（毎回出ると特別感が薄れるため）。`render.js` に `const PLANET_BOSS = { stageId: {threat, draw} }` と `planetBossDraw(raid)`（raid.boss かつ 脅威型一致のときのみ描画名を返す）を新設。以降の全惑星はこの型で1エントリ+1描画メソッドを足すだけ。**実画像で ID1 boss=ワーム / ID1 非boss=蛇 / stage2=蛇 を確認（ゲート非漏れ・②方式）**。
+- **後で個別修正（Ricデザイン一括レビュー用・基準未達点）**: ワームがやや小柄・寸胴でミミズ度は出たが「巨大ボス」の迫力は控えめ／色がやや桃色寄り（土気色をもう少し濁らせる余地）／土中突き上げの"予兆→噴出"アニメは未実装（現状は静的な弧＋蠕動のみ）。
+- **署名ボスの出現頻度（記録・データ調整はRic判断）**: 署名脅威型は各惑星の想定rankで抽選可能だが `stage.bosses`（×2優遇）に含めていない惑星では base weight でしか出ない（ID2 scorpion=R48+/ID4 monitor=R45+ 等は高rankでのみ・頻度低め）。**出現頻度を上げるには各惑星の `stage.bosses` に署名脅威型を追加する案があるが、出現頻度=gameplayのためRic判断（本自律では描画のみ・data.bosses非変更）**。
 
 ### 6. 現在の保留・未着手(次編以降)
 - **Phase 5** 惑星背景の本格実装(**モノリス最優先**) / **Phase 6** 惑星固有の敵・味方＋命名(創作・Ric承認要) / **Phase 7** 味方のステージ固有化・ボスLv連動強化(6依存) / ルーレットの惑星別意匠(`docs/roulette_rules.md`) / 特性システム(`docs/trait_system.md`・寝かせ中)。
