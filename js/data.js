@@ -657,6 +657,8 @@ const SIG_PAL = {
   doronumaWorm: { skin: "#7a6647", skinDk: "#4e3d28", band: "#94805c", saddle: "#ad9c7e", sand: "#8f7850", maw: "#2e1d10", bossScale: 1.72, girth: 19 },
   // 味方の底上げ(ID1/3/4/5/10=小型/背景同化): 倍率＋輪郭の影(縁)で存在感を上げる。良好な味方(ID6/7/8)は非対象
   allyBoost: { edge: "rgba(0,0,0,.5)", edgeBlur: 2.6, armadillo: 1.24, dormouse: 1.44, firefly: 1.5, mole: 1.42, anole: 1.42 },
+  // ID3 シルヴァ クロノ・マンティス: 緑複眼が森林背景と同色域→琥珀へ(殺気=わずかに発光)
+  chronoMantis: { eye: "#eca63a", eyeGlow: 5 },
 };
 
 // 味方 (GameExpansion_v2 ⑩) — 繁殖不可・常駐・素材でLvアップ

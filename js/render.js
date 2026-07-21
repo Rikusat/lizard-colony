@@ -3232,7 +3232,8 @@ const Render = {
   // Phase6 ID3 シルヴァ: クロノ・マンティス(時計蟷螂)。木製歯車のカマキリ・胸に文字盤(snake脅威=緩急)。
   drawChronoMantis(ctx, raid) {
     const e = raid.snake, s = 1.35 * (raid.boss ? 1.15 : 1);
-    const wood = "#6e5230", woodL = "#8a6a40", brass = "#b8955a", eye = "#7fd08a", dark = "#3e2e18";
+    const MP = (typeof SIG_PAL !== "undefined" && SIG_PAL.chronoMantis) || { eye: "#eca63a", eyeGlow: 5 };
+    const wood = "#6e5230", woodL = "#8a6a40", brass = "#b8955a", eye = MP.eye, dark = "#3e2e18";
     ctx.save(); ctx.translate(e.x, e.y); ctx.scale(-1, 1); ctx.lineJoin = "round"; ctx.lineCap = "round"; // 左(コロニー)向き
     ctx.fillStyle = "rgba(0,0,0,.26)"; ctx.beginPath(); ctx.ellipse(0, 20 * s, 40 * s, 9 * s, 0, 0, 7); ctx.fill();
     const sway = Math.sin(this.time * 1.6) * 0.06; ctx.rotate(sway); // ゆっくり揺れる(等時性)
@@ -3254,7 +3255,8 @@ const Render = {
     ctx.strokeStyle = dark; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx + Math.cos(ga * 2) * gr * 0.5, gy + Math.sin(ga * 2) * gr * 0.5); ctx.moveTo(gx, gy); ctx.lineTo(gx + Math.cos(-ga) * gr * 0.35, gy + Math.sin(-ga) * gr * 0.35); ctx.stroke();
     // 頭(三角+複眼)
     ctx.fillStyle = wood; ctx.beginPath(); ctx.moveTo(-8 * s, -34 * s); ctx.lineTo(-20 * s, -40 * s); ctx.lineTo(-10 * s, -44 * s); ctx.lineTo(-2 * s, -38 * s); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = eye; ctx.beginPath(); ctx.arc(-16 * s, -41 * s, 3.4 * s, 0, 7); ctx.arc(-7 * s, -40 * s, 3 * s, 0, 7); ctx.fill();
+    ctx.save(); ctx.shadowColor = eye; ctx.shadowBlur = MP.eyeGlow || 5;
+    ctx.fillStyle = eye; ctx.beginPath(); ctx.arc(-16 * s, -41 * s, 3.4 * s, 0, 7); ctx.arc(-7 * s, -40 * s, 3 * s, 0, 7); ctx.fill(); ctx.restore();
     ctx.fillStyle = dark; ctx.beginPath(); ctx.arc(-16 * s, -41 * s, 1.3 * s, 0, 7); ctx.fill();
     // 触角
     ctx.strokeStyle = dark; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-14 * s, -44 * s); ctx.quadraticCurveTo(-24 * s, -54 * s, -30 * s, -50 * s); ctx.stroke();
