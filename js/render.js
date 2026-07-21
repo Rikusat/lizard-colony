@@ -3497,6 +3497,23 @@ const Render = {
     ctx.restore();
   },
 
+  // Phase6 ID3 ゼンマイ・ヤマネ部隊(新arch・効果は今後): 眠そうなヤマネ+背にゼンマイの鍵。
+  drawDormouse(ctx, lv) { this._allySquad(ctx, lv, (c, x, y, dir) => this._dormouse(c, x, y, dir)); },
+  _dormouse(ctx, x, y, dir) {
+    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
+    const fur = "#8a6a44", furL = "#a8865a", brass = "#b8955a";
+    ctx.fillStyle = "rgba(0,0,0,.2)"; ctx.beginPath(); ctx.ellipse(0, 9, 13, 4, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = fur; ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(-8, 4); ctx.quadraticCurveTo(-18, 0, -16, -8); ctx.stroke(); // 尾
+    ctx.fillStyle = fur; ctx.beginPath(); ctx.ellipse(0, 2, 11, 9, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = furL; ctx.beginPath(); ctx.ellipse(-1, 1, 8, 6, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = brass; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(2, -9, 3, 0, 7); ctx.moveTo(2, -9); ctx.lineTo(2, -3); ctx.stroke(); // ゼンマイの鍵
+    ctx.fillStyle = fur; ctx.beginPath(); ctx.arc(9, -1, 6, 0, 7); ctx.fill(); // 頭
+    ctx.beginPath(); ctx.arc(7, -7, 2.4, 0, 7); ctx.fill(); // 耳
+    ctx.strokeStyle = "#241a10"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(10, -2); ctx.lineTo(13, -2); ctx.stroke(); // 寝ぼけ半目
+    ctx.fillStyle = "#3a2418"; ctx.beginPath(); ctx.arc(14, 0, 1.2, 0, 7); ctx.fill(); // 鼻
+    ctx.restore();
+  },
+
   // ---------------- Phase6 惑星固有の味方 ----------------
   // 現在の惑星の味方をコロニー側(左)に描画。owned(state.allies)があるときのみ。惑星ごとに描画分岐を足す。
   drawPlanetAllies(ctx) {
