@@ -3476,6 +3476,27 @@ const Render = {
     ctx.restore();
   },
 
+  // Phase6 ID2 電脳ファルコン(owl型): 廃基板を纏う隼。上空を舞う(1-2羽)。※姿は後で個別修正可。
+  drawFalcon(ctx, lv) {
+    const n = Math.min(2, 1 + Math.floor((lv || 1) / 3));
+    const air = [[330, 250], [240, 300]];
+    for (let i = 0; i < n; i++) { const t = this.time * 1.4 + i * 2.2, bx = air[i][0], by = air[i][1]; this._falcon(ctx, bx + Math.sin(t) * 34, by + Math.sin(t * 1.3) * 12, Math.sin(t) >= 0 ? 1 : -1); }
+  },
+  _falcon(ctx, x, y, dir) {
+    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
+    const body = "#3a4657", cyan = "#5fccd9"; const flap = Math.sin(this.time * 9) * 0.6;
+    ctx.fillStyle = "rgba(95,204,217,.12)"; ctx.beginPath(); ctx.ellipse(0, 0, 20, 8, 0, 0, 7); ctx.fill(); // 視認用の薄いグロー
+    ctx.fillStyle = body;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-16, -6 - flap * 12, -26, 0); ctx.quadraticCurveTo(-14, 3, 0, 3); ctx.fill(); // 後翼
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(12, -6 - flap * 12, 22, 0); ctx.quadraticCurveTo(12, 3, 0, 3); ctx.fill(); // 前翼
+    ctx.beginPath(); ctx.ellipse(3, 1, 8, 4, 0, 0, 7); ctx.fill(); // 胴
+    ctx.beginPath(); ctx.moveTo(-6, 1); ctx.lineTo(-15, 4); ctx.lineTo(-6, 4); ctx.fill(); // 尾
+    ctx.beginPath(); ctx.arc(10, 0, 3.2, 0, 7); ctx.fill(); // 頭
+    ctx.beginPath(); ctx.moveTo(13, 0); ctx.lineTo(17, 1); ctx.lineTo(13, 2); ctx.fill(); // くちばし
+    ctx.fillStyle = cyan; ctx.beginPath(); ctx.arc(11, -1, 1, 0, 7); ctx.fill(); ctx.fillRect(-1, 0, 4, 1); // サイバー目+基板
+    ctx.restore();
+  },
+
   // ---------------- Phase6 惑星固有の味方 ----------------
   // 現在の惑星の味方をコロニー側(左)に描画。owned(state.allies)があるときのみ。惑星ごとに描画分岐を足す。
   drawPlanetAllies(ctx) {
