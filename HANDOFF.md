@@ -1674,6 +1674,7 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
   - `tests/phase6_regression.js`(新規・恒久): 署名ボス率≥80%・②方式ゲート(署名のみ描画/非署名null/非bossnull)・sigBossChance連動・**引き連れUI文言なし(ソース走査)**・**開拓=固有2種のみ(founderIds無視)**。55 PASS。
   - `test-integration.html`(新規・dev用・.vercelignore): **実UI/実DOM/実Roulette経路**で 報酬フロー(討伐→#boss-reward DOM+球+エラーなし)・署名描画・引き連れUI撤去 を検証。headless実測 **9/9 PASS**。node stubで見逃した領域を固定。
 - 検証: 全JS構文OK・純血59/0(スリット/ルーレット確率不変)・Phase6回帰55/0・移行16/0・味方65/0・効果16/0・ブートconsole0。セーブ非接触(SAVE_VERSION v14据え置き)・確率(ルーレット/スリット)/物理/純血/魂 不変。
+- **本番再デプロイ(2026-07-21・コミット`aadef20`)**: `dpl_36jFcqwsRa7fGP1bWbWeokPzN8DA`/ready。本番検証: 全asset hash 本番=ローカル一致・**本番デプロイ済みコードで統合テスト9/9 PASS**(症状1署名描画/ゲート・症状2引き連れUI撤去・症状3報酬フロー正常)・**本番署名率 ID6=87%/ID9=88%/ID10=88%**(旧14-19%→改善)・test-integration.html=404除外・console0。→ 症状1/2は本番で解消。症状3はコード正常のためRicのハードリロードで解消見込み。
 
 ### 5x. 本番デプロイ — Phase 6一式＋移行v14（2026-07-21・成功）
 QA（重大0/軽微0＝回帰なし）通過後にデプロイ。反映コミット **`aa97f32`**。
