@@ -1586,6 +1586,50 @@ const Render = {
     return pts;
   },
 
+  // §8.5 トカゲの居場所(スポット)レジストリ ★モーションの下ごしらえ(2026-07-21)。
+  //   各設備が形状に確保した「居場所」の live world 座標を、既存の tierInfo/FAC_POS/burrowEntrances
+  //   から重複なく算出して返す(台帳=docs/facility_spots.md をコード化した単一の真実)。
+  //   純粋な読み取り専用=描画ループから呼ばれず挙動を一切変えない(=不活性)。
+  //   【未実装】個体の割当(capacityに応じた安定配置=nestEntryForの一般化)と実アニメーション(drink/bask/wade/lookout)。
+  //   将来のモーション実装はこの座標を消費して各個体に spot を割り当てる(docs/facility_spots.md §割当設計)。
+  //   返り値: [{ id, facility, action, posture, capacity, facing, center:{x,y}, radius, tier }]
+  //   facing: 'right'|'left'|'both'|'up' / posture: 姿勢名(将来のmotion名の目安) / capacity: 同時に居られる目安人数。
+  facilitySpots() {
+    const G = (typeof Game !== "undefined") ? Game : null;
+    if (!G) return [];
+    const spots = [];
+    const push = (id, facility, action, posture, capacity, facing, cx, cy, radius, tier) =>
+      spots.push({ id, facility, action, posture, capacity, facing, center: { x: Math.round(cx), y: Math.round(cy) }, radius: Math.round(radius), tier });
+
+    // 水場: tier1-3=手前の縁で水を飲む / tier4=浅瀬で水浴び
+    const w = waterTierInfo(G.facLv("water"));
+    if (w.tier) {
+      push("water-drink", "water", "水を飲む", "drink", 3, "both", FAC_POS.water.x, FAC_POS.water.y + w.ry * 0.85, w.rx * 0.5, w.tier);
+      if (w.tier >= 4) push("water-wade", "water", "水浴び/水遊び", "wade", 5, "left", 300, 600, 55, w.tier); // 岸の浅瀬帯(代表座標)
+    }
+    // 保温設備: tier1-2=温床/ランプ直下 / tier3-4=空中ビームの広い光面(群れのバスキング面)
+    const h = heatTierInfo(G.facLv("heat"));
+    if (h.tier) {
+      if (h.tier >= 3) push("heat-bask", "heat", "暖をとる(群れ)", "bask", 8, "up", FAC_POS.light.x, FAC_POS.light.y, h.beamR, h.tier);
+      else push("heat-bask", "heat", "暖をとる", "bask", 2, "up", FAC_POS.light.x, FAC_POS.light.y + 44, Math.max(20, h.w * 0.4), h.tier);
+    }
+    // 展望台: 手前の観測広場で空を見上げる(群れ) / tier3=塔上バルコニーで見張る(1匹)
+    const o = observatoryTierInfo(G.facLv("observatory"));
+    if (o.tier) {
+      push("obs-lookup", "observatory", "空を見上げる(群れ)", "lookup", 8, "up", FAC_POS.observatory.x, FAC_POS.observatory.y + 16, o.w * 0.33, o.tier);
+      if (o.tier >= 3) push("obs-lookout", "observatory", "塔上で見張る", "lookout", 1, "up", FAC_POS.observatory.x + (o.w / 2) * 0.72, FAC_POS.observatory.y - o.h * 0.92, 14, o.tier);
+    }
+    // すみか: 複数の入口(既存 burrowEntrances を再利用=二重管理なし)。各入口が出入り/日向ぼっこのスポット
+    const nlv = G.nestLv();
+    const ents = this.burrowEntrances(nlv), bt = burrowTierInfo(nlv);
+    ents.forEach((e, i) => push("burrow-entry-" + i, "burrow", "入口の出入り/日向ぼっこ", "emerge", 2, "both", e.x, e.y, Math.max(16, bt.gap * 0.4), bt.tier));
+    // 監視塔: 塔上の見張り台(1匹・高所)
+    const wt = watchtowerTierInfo(G.facLv("watchtower"));
+    if (wt.tier) push("watch-lookout", "watchtower", "塔上で見張る(ボス側)", "lookout", 1, "right", FAC_POS.watchtower.x, FAC_POS.watchtower.y - wt.h, 14, wt.tier);
+    // フェンス/罠は構造物=居場所なし(スポット無し)
+    return spots;
+  },
+
   // すみか(§8.16): 多数が暮らす集合住居/ワレン。大きな盛り土に複数の入口=群れの避難・籠りの動線が詰まらない。
   drawBurrow(ctx) {
     const resting = Game.state.lizards.filter((l) => l.resting).length;

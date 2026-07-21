@@ -1533,5 +1533,13 @@ Phase 9＋6点(ピン撤廃他)完了後の本番デプロイ前QA。**コード
 - **バランス方針**: 新ボス/味方は既存アーキタイプに載せ新バランス面を増やさない。味方復活で有利に振れるため実装時 `bossHpMult` 再点検（詰み回避KPIは死守）。
 - セーブ非接触・コード非接触（ドキュメントのみ）。**Ric承認後に1惑星ずつ実装**（描画→既存機構接続→allyLvRaw移送マイグレーション冪等/バックアップ→KPIテスト→実機確認）。
 
+### 5k. トカゲモーションの下ごしらえ（自律ラン 2026-07-21・アニメは未実装）
+指針=Ricサブタスク1「土台と設計に留める・実アニメーションはRic実機判定が要るので実装しない」。
+- **座標のコード化（確定・記録）** [render.js]: `Render.facilitySpots()` を新設。各設備の居場所スポットの live world 座標を、既存の `waterTierInfo`/`heatTierInfo`/`observatoryTierInfo`/`burrowTierInfo`/`watchtowerTierInfo`＋`FAC_POS`＋`burrowEntrances` から**重複なく算出**（`docs/facility_spots.md` の台帳をコード化＝単一の真実）。返り値=`{id,facility,action,posture,capacity,facing,center,radius,tier}`。**純粋な読み取り専用＝描画ループから呼ばれず挙動を一切変えない（不活性・モーションの接続点）**。手本=既存 `burrowEntrances`（描画と動線で共有される純関数）。
+- **割り当て機構の設計**（未実装）: `docs/facility_spots.md` v0.2 に記載。`nestEntryFor` の一般化（id ハッシュ＋capacity で決定論的に安定割当）／`lz.spot`・`lz.spotPhase` の空フック契約（既定null＝非干渉）／表現層のidle行動（数値に無影響・純装飾）／魂不変・スプライトキャッシュ sig に posture 追加の整合。
+- **検証**: `node --check` OK／vmサンドボックス（data+game+render実コード）で `facilitySpots()` を実行=新規2/MAX10スポット・全座標が盤内(1280×720)・tier追従（巣入口Lv1:2→Lv8:4／heat群れ光面r190cap8／water浅瀬wade出現）・**呼出でGame.state不変（不活性）**を確認／headless Chromeブート=exit0・console0・スクショ同等（非破壊）。
+- **次の一歩（motionを載せる手順）**: ①`spotFor(lz)`割当追加 ②`lz.spot`/`lz.spotPhase`フック用意 ③既存歩行流用でスポットへ歩く（ワープ禁止§8.14）④到達後の姿勢アニメを`_paintLizardState`へ（魂不変・sig拡張）⑤reduced-motion停止 ⑥**Ric実機判定（手触り・間・capacity/確率のCFG調整）**。**下ごしらえは①の直前＝座標レジストリまで**で停止（以降は目視が要る）。
+- コード変更は render.js に不活性アクセサ1個の追加のみ（セーブ非接触・魂不変・既存挙動不変）。
+
 ### 6. 現在の保留・未着手(次編以降)
 - **Phase 5** 惑星背景の本格実装(**モノリス最優先**) / **Phase 6** 惑星固有の敵・味方＋命名(創作・Ric承認要) / **Phase 7** 味方のステージ固有化・ボスLv連動強化(6依存) / ルーレットの惑星別意匠(`docs/roulette_rules.md`) / 特性システム(`docs/trait_system.md`・寝かせ中)。
