@@ -140,10 +140,20 @@ const Game = {
   nestLv() { return (this.state.nest && this.state.nest.lv) || 1; }, // §8.12: 巣Lv(繁殖/給餌効果の統合先。最低1)
   // §9-C4: 進行マイルストーンは飼育槽中央の軽い通知へ(トースト非使用)。1件・短時間・古いものは捨てる(Render側)
   notice(text, sub, accent) { if (typeof Render !== "undefined" && Render.showCenterNotice) Render.showCenterNotice(text, sub || "", accent || "info"); },
-  // 3.11.5: 汎用味方は削除(Phase 6で惑星固有味方を新設)。効果・戦闘計算からは常に0で外す。
-  // ただし state.allies のLvデータは消さず休眠保持=Phase 6で資産として振替する(残骸ではない)
-  allyLv() { return 0; },
-  allyLvRaw(id) { return (this.state.allies[id] && this.state.allies[id].lv) || 0; }, // Phase6資産参照用
+  // Phase6: 味方効果はアーキタイプ(meerkat/owl/turtle/ferret/eagle/gecko)で呼ばれる。
+  //   現在の惑星の味方がそのarchなら、その味方Lvを返す=惑星ゲート(他惑星へ効果が漏れない)。未実装惑星は常に0。
+  allyLv(arch) {
+    const st = this.currentStage && this.currentStage();
+    const a = st && planetAllyOf(st.id);
+    return (a && a.arch === arch && this.state.allies[a.id] && this.state.allies[a.id].lv) || 0;
+  },
+  allyLvRaw(id) { return (this.state.allies[id] && this.state.allies[id].lv) || 0; }, // ally id 基準の生Lv(育成/移送用)
+  // Phase6: 現在の惑星の固有味方を自動加入(Lv1)。移送で高Lvを引き継いだ個体はそのまま。未実装惑星は何もしない。
+  checkAllies() {
+    const st = this.currentStage && this.currentStage();
+    const a = st && planetAllyOf(st.id);
+    if (a && !this.state.allies[a.id]) this.state.allies[a.id] = { lv: 1 };
+  },
   isHidden(lz) { return lz.hiddenT > 0; }, // 鷹にさらわれて一時不在
   isAway(lz) { return lz.hiddenT > 0; }, // フィールド外(鷹にさらわれ一時不在)。V5.2: 探索(exploring)はV4.1で撤去済のため参照しない(残留フラグで個体が永久away=給餌/emit不能になるバグ根治)
   isVisible(lz) { return !this.isAway(lz) && !lz.resting; }, // フィールドに描画される個体
@@ -1412,7 +1422,7 @@ const Game = {
   },
 
   // ---------------- 味方 (GameExpansion_v2 ⑩) ----------------
-  allyLvUpCost(id) { return this.allyLv(id) * CFG.allyLvBioCost; }, // V4: 生態データで育成
+  allyLvUpCost(id) { return this.allyLvRaw(id) * CFG.allyLvBioCost; }, // 生態データで育成(ally id 基準の現Lv×コスト)
   allyLvUp(id) {
     const a = this.state.allies[id];
     if (!a || a.lv >= CFG.allyMaxLv) return false;
@@ -1423,7 +1433,8 @@ const Game = {
     }
     this.addRes("bio", -cost);
     a.lv++;
-    UI.toast(`${allyById(id).name} が Lv${a.lv} に成長した!`);
+    const def = planetAllyById(id) || allyById(id);
+    UI.toast(`${def ? def.name : "味方"} が Lv${a.lv} に成長した!`);
     return true;
   },
 
@@ -1959,6 +1970,7 @@ const Game = {
     if (this._nestT >= 1) {
       this._nestT = 0;
       this.checkNestWeb(false);
+      this.checkAllies(); // Phase6: 現在の惑星の固有味方を自動加入(Lv1・未実装惑星は無操作)
     }
 
     this.updateResting(dt);
@@ -2421,6 +2433,27 @@ const Game = {
     return w;
   },
 
+  // v13→v14: Phase6 惑星固有味方への1:1移送(案A・損失ゼロ)。旧汎用味方Lvを新・惑星味方idへ読み替える。
+  //   allies は world 直下のグローバル {id:{lv}}。冪等: 版ゲート+旧キー削除+Math.max(二重加算しない)。
+  migrateV13to14(w) {
+    if ((w.version || 0) >= 14) return w;
+    const MAP = { meerkat: "armadillo", owl: "falcon", ferret: "mangoose", turtle: "octopus", eagle: "penguin", gecko: "raccoon" };
+    w.allies = w.allies || {};
+    const moved = {};
+    for (const oldId in MAP) {
+      const newId = MAP[oldId], oldA = w.allies[oldId];
+      if (oldA && (oldA.lv || 0) > 0) {
+        const cur = (w.allies[newId] && w.allies[newId].lv) || 0;
+        w.allies[newId] = { lv: Math.max(cur, oldA.lv) }; // 冪等: 既に移送済みでも最大維持=二重加算しない
+        moved[oldId] = { to: newId, lv: oldA.lv };
+      }
+      delete w.allies[oldId]; // 旧キー除去(冪等: 2回目は既に無い)
+    }
+    if (Object.keys(moved).length) w._migrV14 = { moved }; // 通知用(保存されない)
+    w.version = 14;
+    return w;
+  },
+
   applyWorld(w) {
     if (w.planets && !w.stages) w.stages = w.planets; // V4改名の互換
     if (w.stages && !w.planets) w.planets = w.stages;
@@ -2630,6 +2663,8 @@ const Game = {
         if (data.version === 11) { try { localStorage.setItem(CFG.saveBackupKeyV12, raw); } catch (e) { /* noop */ } }
         // v12セーブ → v13移行(餌場/繁殖撤廃+効果を巣へ統合+Gold払戻。退避=ロールバック可)
         if (data.version === 12) { try { localStorage.setItem(CFG.saveBackupKeyV13, raw); } catch (e) { /* noop */ } }
+        // v13セーブ → v14移行(Phase6 惑星味方への旧味方Lv移送。退避=ロールバック可)
+        if (data.version === 13) { try { localStorage.setItem(CFG.saveBackupKeyV14, raw); } catch (e) { /* noop */ } }
         world = data; // 実移行は下の共通ゲートで(冪等)
       } else if (data.version === 8) {
         // V8セーブ → V9移行(純血化=破壊的。必ず全文バックアップを退避=ロールバック可能に)
@@ -2685,7 +2720,7 @@ const Game = {
         setTimeout(() => UI.toast("セーブを最新形式へ移行しました。旧データはバックアップ済み"), 900);
       }
       // 共通ゲート(全チェーンの最終段・各段は冪等)。v8→v9=純血化(破壊的) / v9→v10=混入個体の再掃除
-      world = this.migrateV12to13(this.migrateV11to12(this.migrateV10to11(this.migrateV9to10(this.migrateV8to9(this.migrateV7to8(this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world)))))))));
+      world = this.migrateV13to14(this.migrateV12to13(this.migrateV11to12(this.migrateV10to11(this.migrateV9to10(this.migrateV8to9(this.migrateV7to8(this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world))))))))));
       if (world._purifyV9 && (world._purifyV9.lizards > 0 || world._purifyV9.eggs > 0)) {
         const p9 = world._purifyV9;
         setTimeout(() => UI.toast(`${Icon.svg("planet")} 純血化: 各惑星は固有種のみになりました(他惑星種 ${p9.lizards}匹${p9.eggs > 0 ? "・卵" + p9.eggs : ""}が去った。設定からロールバック可)`, true), 900);
@@ -2789,6 +2824,15 @@ const Game = {
     let raw;
     try { raw = localStorage.getItem(CFG.saveBackupKeyV13); } catch (e) { raw = null; }
     if (!raw) { UI.toast("餌場/繁殖施設 撤廃前のバックアップが見つからない", true); return false; }
+    localStorage.setItem(CFG.saveKey, raw);
+    location.reload();
+    return true;
+  },
+
+  restoreV14Backup() {
+    let raw;
+    try { raw = localStorage.getItem(CFG.saveBackupKeyV14); } catch (e) { raw = null; }
+    if (!raw) { UI.toast("惑星味方 移行前のバックアップが見つからない", true); return false; }
     localStorage.setItem(CFG.saveKey, raw);
     location.reload();
     return true;

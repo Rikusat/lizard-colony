@@ -179,7 +179,7 @@ const Render = {
     this.drawNest(ctx);
     this.drawFacilities(ctx);
     this.drawSmallFacilities(ctx);
-    // 3.11.5: 汎用味方の描画は撤去(Phase 6で惑星固有味方を新設)
+    this.drawPlanetAllies(ctx); // Phase6: 現在の惑星の固有味方(コロニー側に常駐・観賞/戦力)
     this.drawBurrow(ctx);
     this.drawAutotomyTails(ctx); // §9.1 切り離された尾(地面・トカゲの下)
     // y座標順に描画(奥行き)。さらわれ中・休憩中の個体は描かない
@@ -3164,6 +3164,58 @@ const Render = {
     for (let a = 0; a < 8; a++) { const an = a / 8 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(hp.x + Math.cos(an) * hw * 0.44, hp.y + Math.sin(an) * hw * 0.44); ctx.lineTo(hp.x + Math.cos(an) * hw * 0.62, hp.y + Math.sin(an) * hw * 0.62); ctx.stroke(); }
     // 頭の照り
     ctx.fillStyle = "rgba(255,240,210,.18)"; ctx.beginPath(); ctx.arc(hp.x - hw * 0.3, hp.y - hw * 0.35, hw * 0.3, 0, 7); ctx.fill();
+  },
+
+  // ---------------- Phase6 惑星固有の味方 ----------------
+  // 現在の惑星の味方をコロニー側(左)に描画。owned(state.allies)があるときのみ。惑星ごとに描画分岐を足す。
+  drawPlanetAllies(ctx) {
+    const st = Game.currentStage && Game.currentStage();
+    const a = st && planetAllyOf(st.id);
+    if (!a) return;
+    const owned = Game.state.allies[a.id];
+    if (!owned) return;
+    if (a.id === "armadillo") this.drawArmadilloSquad(ctx, owned.lv);
+  },
+  // スナホリ・アルマジロ部隊(ID1): Lvで頭数が増える。コロニー左手前でのんびり掘る/歩く。
+  drawArmadilloSquad(ctx, lv) {
+    const n = Math.min(3, 1 + Math.floor((lv || 1) / 2)); // Lv1-2=1,3-4=2,5=3
+    const spot = [[300, 452], [232, 486], [368, 470]];
+    for (let i = 0; i < n; i++) {
+      const bx = spot[i][0], by = spot[i][1];
+      const t = this.time * 0.8 + i * 2.1;
+      this.drawArmadillo(ctx, bx + Math.sin(t) * 9, by - Math.abs(Math.sin(t * 2)) * 2, i % 2 === 0 ? 1 : -1);
+    }
+  },
+  drawArmadillo(ctx, x, y, dir) {
+    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
+    const shell = "#a58a5f", shellDk = "#6f5a38", skin = "#8a7350";
+    // 影
+    ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.beginPath(); ctx.ellipse(0, 11, 21, 5.5, 0, 0, 7); ctx.fill();
+    // 脚(前後2対の短い脚)
+    ctx.fillStyle = skin;
+    for (const lx of [-11, -4, 6, 12]) { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx, 6, 3.4, 8, 1.5) : ctx.rect(lx, 6, 3.4, 8); ctx.fill(); }
+    // 尾(細く後ろへ)
+    ctx.strokeStyle = shellDk; ctx.lineWidth = 3; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-16, 2); ctx.quadraticCurveTo(-26, 0, -30, -6); ctx.stroke();
+    // 甲羅(丸い背)
+    ctx.fillStyle = shell; ctx.beginPath(); ctx.ellipse(0, 0, 19, 13, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = "#b89a6a"; ctx.beginPath(); ctx.ellipse(-2, -2, 15, 10, 0, Math.PI, 0); ctx.fill(); // 上面ハイライト
+    // 甲羅のバンド(装甲の帯)
+    ctx.strokeStyle = shellDk; ctx.lineWidth = 1.6;
+    for (let i = -2; i <= 3; i++) { const bx = i * 5.5; ctx.beginPath(); ctx.moveTo(bx, 1); ctx.lineTo(bx + (i > 0 ? 2 : -2), -12 + Math.abs(i) * 0.6); ctx.stroke(); }
+    // 前縁と後縁の帯(頭側・尾側の板)
+    ctx.strokeStyle = shellDk; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(0, 0, 19, 13, 0, Math.PI * 0.86, Math.PI * 1.14); ctx.stroke();
+    // 腹の縁
+    ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(0, 1, 19, 3, 0, 0, Math.PI); ctx.fill();
+    // 頭(前=右)+鼻先
+    ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(19, 1, 7, 6, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(24, -1); ctx.lineTo(30, 1); ctx.lineTo(24, 4); ctx.closePath(); ctx.fill(); // 尖った鼻先
+    // 耳
+    ctx.fillStyle = shellDk; ctx.beginPath(); ctx.ellipse(17, -6, 2, 4, -0.3, 0, 7); ctx.fill();
+    // 目
+    ctx.fillStyle = "#241a10"; ctx.beginPath(); ctx.arc(20, 0, 1.3, 0, 7); ctx.fill();
+    ctx.restore();
   },
 
   // ---------------- 蛇(コロニーランクに同期した階級・背骨ベース描画) ----------------

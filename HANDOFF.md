@@ -1594,5 +1594,18 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
 - **後で個別修正（Ricデザイン一括レビュー用・基準未達点）**: ワームがやや小柄・寸胴でミミズ度は出たが「巨大ボス」の迫力は控えめ／色がやや桃色寄り（土気色をもう少し濁らせる余地）／土中突き上げの"予兆→噴出"アニメは未実装（現状は静的な弧＋蠕動のみ）。
 - **署名ボスの出現頻度（記録・データ調整はRic判断）**: 署名脅威型は各惑星の想定rankで抽選可能だが `stage.bosses`（×2優遇）に含めていない惑星では base weight でしか出ない（ID2 scorpion=R48+/ID4 monitor=R45+ 等は高rankでのみ・頻度低め）。**出現頻度を上げるには各惑星の `stage.bosses` に署名脅威型を追加する案があるが、出現頻度=gameplayのためRic判断（本自律では描画のみ・data.bosses非変更）**。
 
+### 5p. Phase 6 実装 — ID1 Step B（味方＋allyLvRaw移行の型確立・セーブ影響・2026-07-21）
+**移行の型を確立**（Ricレビュー後に横展開＝Step Bは他惑星へ進めず一旦停止）。SAVE_VERSION 13→14。
+- **味方データモデル（`data.js: PLANET_ALLIES`）**: `{id, planet, arch, name, icon, desc}`。arch=既存効果アーキタイプ。ID1=`{id:"armadillo", planet:1, arch:"meerkat"}`（スナホリ・アルマジロ部隊）。`planetAllyById`/`planetAllyOf(stageId)`。
+- **効果の惑星ゲート（`game.js: allyLv(arch)`）**: 「現在の惑星の味方がそのarchなら、その味方Lvを返す／他は0」＝既存効果サイト（`allyLv("meerkat")`等）を触らず、アリドで meerkat型先制だけ復活・他惑星へ漏れない。`allyLvRaw(id)`=id基準の生Lv（育成/移送用）。`allyLvUpCost`をid基準へ修正。
+- **自動加入（`game.js: checkAllies()`・毎tick）**: 現在の惑星の固有味方が未加入ならLv1で加入（移送で高Lv引継ぎ済みはそのまま／未実装惑星は無操作）。
+- **移行（`game.js: migrateV13to14`・案A全6 1:1移送）**: MAP={meerkat→armadillo, owl→falcon, ferret→mangoose, turtle→octopus, eagle→penguin, gecko→raccoon}。旧Lv>0を新idへ`Math.max`でコピー＋旧キー削除。**冪等**（版ゲート＋旧キー削除＋Math.maxで二重加算なし）。`saveBackupKeyV14`退避＋load連鎖配線＋`restoreV14Backup()`＋設定に復元ボタン。
+- **味方UI（`meta.js: openAllies`）**: PLANET_ALLIES対応（惑星名表示・強化ボタン・未加入は「その惑星に移住すると加わる」）。
+- **味方描画（`render.js: drawPlanetAllies/drawArmadilloSquad/drawArmadillo`）**: 現在の惑星の味方をコロニー左手前に常駐描画。アルマジロ=Lvで頭数1-3・バンド甲羅/鼻先/脚/尾・のんびり歩く微動。
+- **検証（node実測21 PASS/0 FAIL）**: **損失ゼロ**（合計Lv保持）・**冪等**（2回目で不変）・**二重付与なし**（版強制巻戻し再実行でLv不変）・部分/Lv0データ処理・**allyLv惑星ゲート**（ID1でmeerkat=Lv/owl=0/ID2で0）・**checkAllies自動加入**・**load実チェーン**（v13→v14移行＋V14バックアップ退避）。＋render/data/game/meta構文OK・純血59/0・index.htmlブートconsole0・アルマジロ描画を実画像確認（4倍拡大でバンド甲羅視認）。
+- **bossHpMult＝据え置き（保留・Ric実機バランス確認待ち）**: 味方復活でアリドはやや易化。**味方実装済み惑星は後で「味方あり/なし」の勝率を測ってCFG調整**（今は既定1.0のまま）。
+- **後で個別修正（Ricデザインレビュー用）**: アルマジロがフィールドで砂地に馴染み小さめ（存在感を上げる余地）／描画位置は左手前の固定spot（将来モーション下ごしらえ facilitySpots と統合余地）。
+- **★Step B横展開は保留**: 移行の型はこのID1で確立。他惑星の味方＋移送は**Ricレビュー後**（本セッションでは進めない）。SAVE_VERSIONは他惑星味方を足しても**v14のまま**（PLANET_ALLIES追加＋MAPは既に全6対応済＝追加のbump不要）で済む見込み。
+
 ### 6. 現在の保留・未着手(次編以降)
 - **Phase 5** 惑星背景の本格実装(**モノリス最優先**) / **Phase 6** 惑星固有の敵・味方＋命名(創作・Ric承認要) / **Phase 7** 味方のステージ固有化・ボスLv連動強化(6依存) / ルーレットの惑星別意匠(`docs/roulette_rules.md`) / 特性システム(`docs/trait_system.md`・寝かせ中)。

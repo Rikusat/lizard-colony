@@ -3,7 +3,7 @@
 // トカゲコロニー: マスターデータ / バランス定数
 // ============================================================
 
-const SAVE_VERSION = 13; // v13: 餌場・繁殖施設を撤廃し効果を巣(nest.lv)へ統合(§8.12)。投資済みLvはGold全額払戻(v12→v13・非破壊/資産プラス)
+const SAVE_VERSION = 14; // v14: Phase6 惑星固有味方を新設。旧汎用味方Lvを新・惑星味方idへ1:1移送(案A・損失ゼロ・冪等)。v13→v14
 
 const CFG = {
   saveKey: "lizardColonySaveV1",
@@ -19,6 +19,7 @@ const CFG = {
   saveBackupKeyV11: "lizardColonyV11Backup", // V10→V11移行前のバックアップ(賢者の石追加=非破壊だが方針どおり退避)
   saveBackupKeyV12: "lizardColonyV12Backup", // V11→V12移行前のバックアップ(シェルター撤廃+Gold払戻。方針どおり退避=ロールバック可)
   saveBackupKeyV13: "lizardColonyV13Backup", // V12→V13移行前のバックアップ(餌場/繁殖撤廃+効果を巣へ統合+Gold払戻。ロールバック可)
+  saveBackupKeyV14: "lizardColonyV14Backup", // V13→V14移行前のバックアップ(Phase6 惑星味方への旧味方Lv移送。ロールバック可)
   startCoins: 500,
   startStones: 0,           // 賢者の石(四重スリット装置のレア報酬・保有のみ・用途は後日)。新規は0
 
@@ -625,6 +626,16 @@ const ALLIES = [
     desc: "上空を制圧しオオタカの急降下を妨害(20%+5%/Lv)" },
 ];
 const allyById = (id) => ALLIES.find((a) => a.id === id);
+
+// Phase6 惑星固有の味方(phase6_design.md v1.1)。arch=既存の効果アーキタイプ(meerkat/owl/turtle/ferret/eagle/gecko/新規)。
+//   state.allies は ally id 基準。allyLv(arch) は「現在の惑星の味方がそのarchなら発動」=惑星ゲート。1惑星ずつ有効化する。
+//   旧汎用味方のLvは migrateV13to14 で id を読み替えて移送(案A・損失ゼロ)。
+const PLANET_ALLIES = [
+  { id: "armadillo", planet: 1, arch: "meerkat", name: "スナホリ・アルマジロ部隊", icon: "paw",
+    desc: "掘削でベビーを地中退避＋先制時間を稼ぐ(先制+1.5秒/Lv・ヌシ居座り短縮)。転がるだけに見えて最速の土木工兵。" },
+];
+const planetAllyById = (id) => PLANET_ALLIES.find((a) => a.id === id);
+const planetAllyOf = (stageId) => PLANET_ALLIES.find((a) => a.planet === stageId);
 
 // 蛇の階級(コロニーランクに同期して見た目と強さが変化)
 const SNAKE_TIERS = [
