@@ -25,6 +25,7 @@ const PLANET_BOSS = {
   3: { threat: "snake", draw: "drawChronoMantis" },   // シルヴァ: クロノ・マンティス(時計蟷螂)
   4: { threat: "monitor", draw: "drawHaniwaGolem" },  // パルス: ハニワ・ゴーレム/墳王
   5: { threat: "snake", draw: "drawSlagHydra" },      // イグニス: スラグ・ヒドラ(鉱滓の多頭竜)
+  6: { threat: "monitor", draw: "drawSkullAnaconda" },// ユンガ: ドクロ・アナコンダ/贄蛇
 };
 // §8.15 スプライトキャッシュ: アニメ位相をこの粒度(phase単位)で量子化して焼き直す=時間スロットル。
 //   小さいほど滑らか(焼き直し頻度up=軽減効果down)、大きいほど軽い(アニメ粗く)。phase=time*8なので 0.28≈2〜3フレームに1回。
@@ -3304,6 +3305,44 @@ const Render = {
     const g = lcg(77); ctx.fillStyle = glow;
     for (let i = 0; i < 8; i++) { const a = (this.time * 0.6 + g() * 6) % 1; ctx.globalAlpha = (1 - a) * 0.6; ctx.beginPath(); ctx.arc((-30 + g() * 60) * s, (10 - a * 50) * s, 1.4 * s, 0, 7); ctx.fill(); }
     ctx.globalAlpha = 1;
+    ctx.restore();
+  },
+
+  // Phase6 ID6 ユンガ: ドクロ・アナコンダ/贄蛇。トカゲ髑髏の首飾りを巻いた大蛇(monitor脅威=居座り)。
+  drawSkullAnaconda(ctx, raid) {
+    const e = raid.snake, s = 1.4 * (raid.boss ? 1.15 : 1);
+    const body = "#46603a", belly = "#8a9a58", dark = "#26331e", bone = "#dccdb0", jade = "#2fa98a";
+    ctx.save(); ctx.translate(e.x, e.y); ctx.lineJoin = "round"; ctx.lineCap = "round";
+    ctx.fillStyle = "rgba(0,0,0,.3)"; ctx.beginPath(); ctx.ellipse(0, 22 * s, 52 * s, 12 * s, 0, 0, 7); ctx.fill();
+    // とぐろ(太い胴の重なり)
+    ctx.fillStyle = dark; ctx.beginPath(); ctx.ellipse(6 * s, 8 * s, 46 * s, 20 * s, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = body; ctx.beginPath(); ctx.ellipse(6 * s, 4 * s, 44 * s, 17 * s, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = dark; ctx.beginPath(); ctx.ellipse(14 * s, 2 * s, 30 * s, 11 * s, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = body; ctx.beginPath(); ctx.ellipse(18 * s, 0, 24 * s, 8 * s, 0, 0, 7); ctx.fill();
+    // 鱗の斑(暗い菱形)
+    ctx.fillStyle = dark; for (let i = -3; i <= 3; i++) { ctx.beginPath(); ctx.ellipse(6 * s + i * 12 * s, 4 * s, 4 * s, 6 * s, 0, 0, 7); ctx.fill(); }
+    // 首を持ち上げて頭(左=コロニー向き)
+    const wob = Math.sin(this.time * 1.8) * 6 * s;
+    ctx.strokeStyle = body; ctx.lineWidth = 15 * s;
+    ctx.beginPath(); ctx.moveTo(-24 * s, 0); ctx.quadraticCurveTo(-44 * s, -14 * s + wob, -50 * s, -34 * s + wob); ctx.stroke();
+    // 頭
+    const hx = -50 * s, hy = -38 * s + wob;
+    ctx.fillStyle = body; ctx.beginPath(); ctx.ellipse(hx, hy, 12 * s, 8 * s, -0.5, 0, 7); ctx.fill();
+    ctx.fillStyle = belly; ctx.beginPath(); ctx.ellipse(hx - 4 * s, hy + 2 * s, 8 * s, 4 * s, -0.5, 0, 7); ctx.fill();
+    ctx.fillStyle = "#d0b020"; ctx.beginPath(); ctx.arc(hx - 3 * s, hy - 4 * s, 2.4 * s, 0, 7); ctx.fill(); // 目
+    ctx.fillStyle = dark; ctx.fillRect(hx - 4 * s, hy - 5 * s, 1 * s, 3 * s); // 縦瞳
+    // 舌(二又)
+    ctx.strokeStyle = "#c04040"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(hx - 10 * s, hy); ctx.lineTo(hx - 20 * s, hy - 2 * s); ctx.moveTo(hx - 16 * s, hy - 1.4 * s); ctx.lineTo(hx - 22 * s, hy - 5 * s); ctx.moveTo(hx - 16 * s, hy - 1.4 * s); ctx.lineTo(hx - 22 * s, hy + 1 * s); ctx.stroke();
+    // トカゲの髑髏の首飾り(胴に沿って数珠)
+    const skulls = [[-26, -4], [-8, -8], [10, -6], [28, -3], [-40, -20]];
+    for (const [sx, sy] of skulls) {
+      const x = sx * s, y = sy * s;
+      ctx.fillStyle = bone; ctx.beginPath(); ctx.ellipse(x, y, 4.4 * s, 3.8 * s, 0, 0, 7); ctx.fill(); // 頭骨
+      ctx.beginPath(); ctx.moveTo(x - 2 * s, y + 2 * s); ctx.lineTo(x, y + 6 * s); ctx.lineTo(x + 2 * s, y + 2 * s); ctx.fill(); // 顎
+      ctx.fillStyle = dark; ctx.beginPath(); ctx.arc(x - 1.6 * s, y - 0.5 * s, 1.2 * s, 0, 7); ctx.arc(x + 1.6 * s, y - 0.5 * s, 1.2 * s, 0, 7); ctx.fill(); // 眼窩
+    }
+    // 紐(翡翠の玉=神使への冒涜の対比)
+    ctx.strokeStyle = jade; ctx.globalAlpha = 0.7; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(-40 * s, -20 * s); for (const [sx, sy] of [[-26, -4], [-8, -8], [10, -6], [28, -3]]) ctx.lineTo(sx * s, sy * s); ctx.stroke(); ctx.globalAlpha = 1;
     ctx.restore();
   },
 
