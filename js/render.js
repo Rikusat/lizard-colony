@@ -28,6 +28,7 @@ const PLANET_BOSS = {
   6: { threat: "monitor", draw: "drawSkullAnaconda" },// ユンガ: ドクロ・アナコンダ/贄蛇
   7: { threat: "snake", draw: "drawMagmaShark" },     // メアリス: マグマ・シャーク/熔鮫
   8: { threat: "bugger", draw: "drawBaggerParent" },  // グラキス: ヌシ・バガー/親個体(既存bagger流用のelite変種)
+  9: { threat: "scorpion", draw: "drawMeltGolem" },   // ヴォルタ: メルト・ゴーレム/臨界獣
 };
 // §8.15 スプライトキャッシュ: アニメ位相をこの粒度(phase単位)で量子化して焼き直す=時間スロットル。
 //   小さいほど滑らか(焼き直し頻度up=軽減効果down)、大きいほど軽い(アニメ粗く)。phase=time*8なので 0.28≈2〜3フレームに1回。
@@ -3398,6 +3399,46 @@ const Render = {
     const cx = e.x - 84, cy = e.y - 26;
     for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + 0.4; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * (14 + i * 5), cy + Math.sin(a) * (14 + i * 5)); ctx.stroke(); }
     ctx.beginPath(); ctx.arc(cx, cy, 5, 0, 7); ctx.stroke();
+    ctx.restore();
+  },
+
+  // Phase6 ID9 ヴォルタ: メルト・ゴーレム/臨界獣。廃炉パーツの寄せ集め+熱暴走ゲージ(scorpion脅威=範囲弱体)。
+  drawMeltGolem(ctx, raid) {
+    const e = raid.snake, s = 1.35 * (raid.boss ? 1.15 : 1);
+    const junk = "#464b50", junkD = "#2b2f33", junkL = "#5e646a", core = "#7affd0", heat = "#ff5424", tape = "#d8c828";
+    ctx.save(); ctx.translate(e.x, e.y); ctx.lineJoin = "round"; ctx.lineCap = "round";
+    ctx.fillStyle = "rgba(0,0,0,.32)"; ctx.beginPath(); ctx.ellipse(0, 30 * s, 46 * s, 11 * s, 0, 0, 7); ctx.fill();
+    // 脚(不揃いのパーツ)
+    ctx.fillStyle = junkD; ctx.fillRect(-22 * s, 12 * s, 14 * s, 22 * s); ctx.fillRect(8 * s, 14 * s, 16 * s, 20 * s);
+    // 胴(いびつな寄せ集めの塊)
+    ctx.fillStyle = junk; ctx.beginPath();
+    ctx.moveTo(-30 * s, -18 * s); ctx.lineTo(-8 * s, -30 * s); ctx.lineTo(22 * s, -24 * s); ctx.lineTo(32 * s, -2 * s); ctx.lineTo(26 * s, 18 * s); ctx.lineTo(-24 * s, 16 * s); ctx.lineTo(-34 * s, -2 * s); ctx.closePath(); ctx.fill();
+    // パネルの継ぎ目(色違いプラ/金属)
+    ctx.fillStyle = junkL; ctx.fillRect(-6 * s, -26 * s, 24 * s, 14 * s);
+    ctx.fillStyle = junkD; ctx.fillRect(-28 * s, -6 * s, 16 * s, 18 * s);
+    ctx.strokeStyle = "rgba(0,0,0,.5)"; ctx.lineWidth = 1.4; ctx.strokeRect(-6 * s, -26 * s, 24 * s, 14 * s);
+    // 剥き出しの配線(3色)
+    for (const [c, oy] of [["#c04040", -8], ["#3a6ad0", -2], ["#d0b030", 4]]) { ctx.strokeStyle = c; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(24 * s, oy * s); ctx.quadraticCurveTo(34 * s, (oy + 6) * s, 30 * s, (oy + 12) * s); ctx.stroke(); }
+    // 臨界コア(胸で脈動する発光)
+    const pc = 0.55 + Math.sin(this.time * 3) * 0.35;
+    const cg = ctx.createRadialGradient(0, -2 * s, 1, 0, -2 * s, 16 * s);
+    cg.addColorStop(0, `rgba(122,255,208,${pc})`); cg.addColorStop(1, "rgba(122,255,208,0)");
+    ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(0, -2 * s, 16 * s, 0, 7); ctx.fill();
+    ctx.fillStyle = core; ctx.globalAlpha = pc; ctx.beginPath(); ctx.arc(0, -2 * s, 6 * s, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+    // 腕(不格好・片方は応急テープ)
+    ctx.strokeStyle = junk; ctx.lineWidth = 8 * s; ctx.beginPath(); ctx.moveTo(-28 * s, -8 * s); ctx.lineTo(-40 * s, 8 * s); ctx.stroke();
+    ctx.strokeStyle = junk; ctx.beginPath(); ctx.moveTo(28 * s, -6 * s); ctx.lineTo(42 * s, 10 * s); ctx.stroke();
+    ctx.strokeStyle = tape; ctx.lineWidth = 3 * s; ctx.beginPath(); ctx.moveTo(-34 * s, 0); ctx.lineTo(-38 * s, 6 * s); ctx.stroke(); // 黄テープ補修
+    // 頭(小・単眼)
+    ctx.fillStyle = junkD; ctx.fillRect(-8 * s, -40 * s, 16 * s, 12 * s);
+    ctx.fillStyle = heat; ctx.globalAlpha = pc; ctx.beginPath(); ctx.arc(0, -34 * s, 3 * s, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+    // 熱暴走ゲージ(雑に斜めに貼られた温度ストリップ)
+    ctx.save(); ctx.translate(30 * s, -20 * s); ctx.rotate(0.22);
+    ctx.fillStyle = "#1a1a1a"; ctx.fillRect(0, 0, 7 * s, 30 * s);
+    const hl = (0.4 + Math.sin(this.time * 0.8) * 0.4); // メラメラ上昇(演出)
+    ctx.fillStyle = heat; ctx.fillRect(1 * s, 30 * s - 28 * s * hl, 5 * s, 28 * s * hl);
+    ctx.strokeStyle = tape; ctx.lineWidth = 1.5; ctx.strokeRect(0, 0, 7 * s, 30 * s);
+    ctx.restore();
     ctx.restore();
   },
 
