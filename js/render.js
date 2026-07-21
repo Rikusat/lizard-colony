@@ -20,7 +20,8 @@ const NEST = { x: 400, y: 512 };  // 卵の巣(§8.12で中央の巨大展望台
 //   raid.boss かつ その惑星に居て 脅威型が一致するときだけ「その惑星の主」を固有の姿で描く(通常襲来は既存脅威型のまま)。
 //   脅威メカニクス(勝敗ロジック)は不変=描画の差し替えのみ。惑星ごとに1エントリ+1描画メソッドを追加する。
 const PLANET_BOSS = {
-  1: { threat: "snake", draw: "drawDoronumaWorm" }, // アリド: ドロヌマ・ワーム(泥沼蟲)
+  1: { threat: "snake", draw: "drawDoronumaWorm" },   // アリド: ドロヌマ・ワーム(泥沼蟲)
+  2: { threat: "scorpion", draw: "drawCyberScorpio" }, // ネオヴェルデ: サイバー・スコルピオ(電脳蠍)
 };
 // §8.15 スプライトキャッシュ: アニメ位相をこの粒度(phase単位)で量子化して焼き直す=時間スロットル。
 //   小さいほど滑らか(焼き直し頻度up=軽減効果down)、大きいほど軽い(アニメ粗く)。phase=time*8なので 0.28≈2〜3フレームに1回。
@@ -3164,6 +3165,39 @@ const Render = {
     for (let a = 0; a < 8; a++) { const an = a / 8 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(hp.x + Math.cos(an) * hw * 0.44, hp.y + Math.sin(an) * hw * 0.44); ctx.lineTo(hp.x + Math.cos(an) * hw * 0.62, hp.y + Math.sin(an) * hw * 0.62); ctx.stroke(); }
     // 頭の照り
     ctx.fillStyle = "rgba(255,240,210,.18)"; ctx.beginPath(); ctx.arc(hp.x - hw * 0.3, hp.y - hw * 0.35, hw * 0.3, 0, 7); ctx.fill();
+  },
+
+  // Phase6 ID2 ネオヴェルデ: サイバー・スコルピオ(電脳蠍)。スマートグラス+尾のレーザー照準(scorpion脅威)。
+  drawCyberScorpio(ctx, raid) {
+    const e = raid.snake, s = 1.5 * (raid.boss ? 1.15 : 1);
+    const body = "#26243a", plate = "#33324e", cyan = "#5fccd9", red = "#ff4360";
+    ctx.save(); ctx.translate(e.x, e.y); ctx.lineJoin = "round"; ctx.lineCap = "round";
+    ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.beginPath(); ctx.ellipse(6 * s, 17 * s, 48 * s, 11 * s, 0, 0, 7); ctx.fill();
+    // 脚8本(機械的な段付き)
+    ctx.strokeStyle = "#181828"; ctx.lineWidth = 3.2 * s;
+    for (let i = 0; i < 4; i++) { const a0 = -0.8 + i * 0.5, st = Math.sin(this.time * 6 + i) * 0.1; for (const sd of [1, -1]) { const a = sd * (a0 + st), kx = -4 * s + Math.cos(a) * 24 * s, ky = Math.sin(a) * 24 * s; ctx.beginPath(); ctx.moveTo(-4 * s, 0); ctx.lineTo(kx, ky - sd * 7 * s); ctx.lineTo(kx + 3 * s, ky + sd * 13 * s); ctx.stroke(); } }
+    // 腹部(装甲プレートの節)
+    ctx.fillStyle = body; ctx.strokeStyle = "rgba(0,0,0,.5)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(12 * s, 0, 24 * s, 16 * s, 0, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = plate; for (let i = -1; i <= 2; i++) { ctx.beginPath(); ctx.ellipse(12 * s + i * 8 * s, -1 * s, 5 * s, 12 * s, 0, 0, 7); ctx.fill(); }
+    // 頭胸部
+    ctx.fillStyle = body; ctx.beginPath(); ctx.ellipse(-16 * s, 0, 14 * s, 11 * s, 0, 0, 7); ctx.fill(); ctx.stroke();
+    // ハサミ(前方=左)
+    ctx.strokeStyle = body; ctx.lineWidth = 6 * s;
+    for (const sd of [1, -1]) { ctx.beginPath(); ctx.moveTo(-24 * s, sd * 6 * s); ctx.lineTo(-38 * s, sd * 10 * s); ctx.stroke(); ctx.fillStyle = plate; ctx.beginPath(); ctx.ellipse(-42 * s, sd * 11 * s, 7 * s, 4 * s, sd * 0.5, 0, 7); ctx.fill(); }
+    // スマートグラス(頭部のシアンのバイザー=気取り)
+    ctx.fillStyle = cyan; ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-26 * s, -6 * s, 18 * s, 7 * s, 3 * s) : ctx.rect(-26 * s, -6 * s, 18 * s, 7 * s); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = "#0a1a1e"; ctx.lineWidth = 1; ctx.stroke();
+    // 尾(背中を越えて弧・節)+毒針
+    ctx.strokeStyle = body; ctx.lineWidth = 9 * s;
+    ctx.beginPath(); ctx.moveTo(30 * s, -4 * s); ctx.quadraticCurveTo(52 * s, -30 * s, 34 * s, -44 * s); ctx.stroke();
+    ctx.fillStyle = plate; for (let i = 0; i < 4; i++) { const t = i / 4; ctx.beginPath(); ctx.arc(30 * s + Math.sin(t * 2) * 14 * s, -4 * s - t * 34 * s, 4.5 * s, 0, 7); ctx.fill(); }
+    // 針=レーザーポインタ(赤の照準ビーム+ロックオンのレティクル)
+    const tx = 34 * s, ty = -46 * s, gx = -80 * s, gy = 40 * s;
+    ctx.strokeStyle = "rgba(255,67,96,.55)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(gx, gy); ctx.stroke();
+    ctx.fillStyle = red; ctx.beginPath(); ctx.arc(tx, ty, 3.5 * s, 0, 7); ctx.fill();
+    ctx.strokeStyle = red; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(gx, gy, 8, 0, 7); ctx.moveTo(gx - 12, gy); ctx.lineTo(gx + 12, gy); ctx.moveTo(gx, gy - 12); ctx.lineTo(gx, gy + 12); ctx.stroke();
+    ctx.restore();
   },
 
   // ---------------- Phase6 惑星固有の味方 ----------------
