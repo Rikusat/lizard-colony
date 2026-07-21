@@ -1664,6 +1664,14 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
   - ID1〜ID9 [済] / **ID10 記録係アノール[本]**: 石板を抱えた学者肌の小トカゲ+金の刻印の脈動(1-2体)。※新arch=戦闘効果は今後。
   - **★全10惑星の味方描画 完成**（ID1〜ID10）。移送先id味方(ID2/6/7/8/9)=既存効果型を再有効化／新arch味方(ID3/4/5/10)=可視・育成のみ(効果は今後)。後修正候補: ID2-5・ID10がやや小型・背景と同化気味(存在感up余地)／ID9はラクーンか廃炉山椒魚か(Ric選択)。
 
+### 5x. 本番デプロイ — Phase 6一式＋移行v14（2026-07-21・成功）
+QA（重大0/軽微0＝回帰なし）通過後にデプロイ。反映コミット **`aa97f32`**。
+- **QA自動ゲート全PASS**: 全JS構文30/30・純血59/0(スリット決定論/ルーレット生成含む)・移行チェーン16/0・味方包括65/0・新arch効果16/0・署名頻度21/0・新規セーブ(v14/アダルト2匹/固有種/stage1)・cache-bust32/32・ブートconsole0。
+- **構造的非回帰**: クランク/スリット/ルーレット系(feeder/slit/roulette.js)は前回デプロイ以降**0行変更**＝#spin-proof・幾何・確率は不変。レイアウト/当たり判定/報酬フロー(style.css/core.js/equipment.js/boss-reward.js)も**未変更**＝保持。変更は data/game/render/meta の4コードのみ。
+- **デプロイ**: `dpl_AhKYBhWSVJxiemmFdhPssMmeBNMM` / READY / production。本番 https://lizardcolony.vercel.app (alias) / deployment https://lizardcolony-4ebf7zcva-memoriacarsystem.vercel.app 。
+- **本番検証(公開物=検証物)**: index=200・**全asset hash 本番=ローカル一致**(render/game/data/meta/tokens/style)＝ローカル検証済みの全10ボス/10味方/migrateV13to14/効果が**そのまま本番稼働**。dev用(test-field/test-v3/dev-log)=404除外・console0・game-asset 4xxなし(favicon除く)・静的サイト=ビルド警告なし。
+- **本番コードで直接検証**: 本番httpsのjsを読むハーネスで **`ver=14 boss=monitor(ID6署名=ドクロ・アナコンダ描画) migLoss=0 migOK=true`**（本番game.jsで v13セーブの旧6味方が新id へ損失ゼロ移送=armadillo/octopus等・旧キー消滅）＋本番render.jsで署名ボス＋マングース味方の描画を実画像確認。初回ロードでルーレット盤描画(canvas自己修復)・背景/設備/飼育槽サイズ正常。
+
 ### 5w. ★帰還後サマリ — Phase 6 実装(進めれるだけ)スプリント（2026-07-21）
 
 **実装した全効果（全push済・三者同期 c4c12c1・clean）**
