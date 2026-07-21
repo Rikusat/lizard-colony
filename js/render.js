@@ -24,6 +24,7 @@ const PLANET_BOSS = {
   2: { threat: "scorpion", draw: "drawCyberScorpio" }, // ネオヴェルデ: サイバー・スコルピオ(電脳蠍)
   3: { threat: "snake", draw: "drawChronoMantis" },   // シルヴァ: クロノ・マンティス(時計蟷螂)
   4: { threat: "monitor", draw: "drawHaniwaGolem" },  // パルス: ハニワ・ゴーレム/墳王
+  5: { threat: "snake", draw: "drawSlagHydra" },      // イグニス: スラグ・ヒドラ(鉱滓の多頭竜)
 };
 // §8.15 スプライトキャッシュ: アニメ位相をこの粒度(phase単位)で量子化して焼き直す=時間スロットル。
 //   小さいほど滑らか(焼き直し頻度up=軽減効果down)、大きいほど軽い(アニメ粗く)。phase=time*8なので 0.28≈2〜3フレームに1回。
@@ -3267,6 +3268,42 @@ const Render = {
     ctx.beginPath(); ctx.arc(-8 * s, -40 * s, 1.8 * s, 0, 7); ctx.arc(8 * s, -40 * s, 1.8 * s, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
     // 頭頂の冠(前方後円の意匠・小)
     ctx.fillStyle = gold; ctx.beginPath(); ctx.ellipse(0, -52 * s, 7 * s, 3 * s, 0, 0, 7); ctx.fill();
+    ctx.restore();
+  },
+
+  // Phase6 ID5 イグニス: スラグ・ヒドラ(鉱滓の多頭竜)。溶鉄スラグの多頭・炉熱で再生(snake脅威=多頭)。
+  drawSlagHydra(ctx, raid) {
+    const e = raid.snake, s = 1.35 * (raid.boss ? 1.15 : 1);
+    const slag = "#2a1c16", molten = "#ff6a24", glow = "#ffb24a", crust = "#392620";
+    ctx.save(); ctx.translate(e.x, e.y); ctx.lineJoin = "round"; ctx.lineCap = "round";
+    ctx.fillStyle = "rgba(0,0,0,.3)"; ctx.beginPath(); ctx.ellipse(0, 26 * s, 48 * s, 11 * s, 0, 0, 7); ctx.fill();
+    // 溶岩溜まりの土台(本体)
+    ctx.fillStyle = slag; ctx.beginPath(); ctx.ellipse(0, 12 * s, 40 * s, 20 * s, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = crust; ctx.beginPath(); ctx.ellipse(0, 14 * s, 40 * s, 8 * s, 0, 0, 7); ctx.fill();
+    // 溶けた割れ目(下から発光)
+    const pmol = 0.6 + Math.sin(this.time * 3) * 0.25; ctx.strokeStyle = molten; ctx.globalAlpha = pmol; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(-24 * s, 12 * s); ctx.lineTo(-10 * s, 4 * s); ctx.moveTo(6 * s, 14 * s); ctx.lineTo(22 * s, 6 * s); ctx.stroke(); ctx.globalAlpha = 1;
+    // 3本の首(セグメントの蛇状)+頭
+    const necks = [{ bx: -20, ph: 0 }, { bx: 2, ph: 2.1 }, { bx: 22, ph: 4.2 }];
+    for (const nk of necks) {
+      const wob = Math.sin(this.time * 2.4 + nk.ph) * 8 * s;
+      const hx = nk.bx * s + wob, hy = -40 * s;
+      // 首(下から頭へ)
+      ctx.strokeStyle = slag; ctx.lineWidth = 11 * s;
+      ctx.beginPath(); ctx.moveTo(nk.bx * s, 8 * s); ctx.quadraticCurveTo(nk.bx * s + wob * 0.5, -18 * s, hx, hy); ctx.stroke();
+      // 首の溶接目(発光)
+      ctx.strokeStyle = molten; ctx.globalAlpha = 0.5 * pmol; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(nk.bx * s, 8 * s); ctx.quadraticCurveTo(nk.bx * s + wob * 0.5, -18 * s, hx, hy); ctx.stroke(); ctx.globalAlpha = 1;
+      // 頭(角ばったスラグ塊)
+      ctx.fillStyle = crust; ctx.beginPath(); ctx.moveTo(hx - 10 * s, hy); ctx.lineTo(hx - 14 * s, hy - 8 * s); ctx.lineTo(hx - 2 * s, hy - 10 * s); ctx.lineTo(hx + 12 * s, hy - 4 * s); ctx.lineTo(hx + 8 * s, hy + 6 * s); ctx.lineTo(hx - 6 * s, hy + 6 * s); ctx.closePath(); ctx.fill();
+      // 口の中(溶鉄の輝き)
+      ctx.fillStyle = glow; ctx.globalAlpha = pmol; ctx.beginPath(); ctx.ellipse(hx - 2 * s, hy, 4 * s, 2.4 * s, 0, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+      // 目(溶けた点)
+      ctx.fillStyle = molten; ctx.beginPath(); ctx.arc(hx + 2 * s, hy - 4 * s, 1.8 * s, 0, 7); ctx.fill();
+    }
+    // 火の粉
+    const g = lcg(77); ctx.fillStyle = glow;
+    for (let i = 0; i < 8; i++) { const a = (this.time * 0.6 + g() * 6) % 1; ctx.globalAlpha = (1 - a) * 0.6; ctx.beginPath(); ctx.arc((-30 + g() * 60) * s, (10 - a * 50) * s, 1.4 * s, 0, 7); ctx.fill(); }
+    ctx.globalAlpha = 1;
     ctx.restore();
   },
 
