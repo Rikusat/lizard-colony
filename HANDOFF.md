@@ -1525,5 +1525,13 @@ Phase 9＋6点(ピン撤廃他)完了後の本番デプロイ前QA。**コード
 - **デプロイ実施結果(2026-07-21・成功)**: `dpl_3doMKQDeQd2LJpqP5kEYpgDn4DXY` / readyState=READY / target=production。本番 https://lizardcolony.vercel.app (alias) / deployment https://lizardcolony-nxt0f0y0p-memoriacarsystem.vercel.app 。
   - **本番検証**: index `/`=HTTP200・`game.js?v=c96fa391` が本番=ローカルで一致(公開物=検証物) / dev用(dev-history/dev-log/test-field/test-bench)=cleanUrls追跡後すべて**HTTP404で除外確認** / headless Chromeで本番URL実ブート=exit0・**console エラー0**・スクショ目視でローカルと同一描画(アリドID1)。
 
+### 5j. Phase 6 設計（自律ラン 2026-07-21・実装なし/設計のみ）
+指針=Ric がV5.md末尾に追記した §Phase6（設計フェーズ・自律可）。**実装は一切せず** `docs/phase6_design.md`（v1.0）を新規作成。前身 `docs/Phase6_enemies_allies_proposal.md`（v0.1・創作核）を統合し、§6.3 の拡張項目（通常/大ボス差・allyLvRaw引き継ぎ・戦闘バランス見立て）を各惑星に追加。
+- **接地（実コード確認）**: elite=`(wins+1)%bossEvery(5)`／HP×1.5・atkMult×1.2・報酬×2・XP120(60)・elite=虹ポケット(新種)/通常=レア卵ポケット／`BOSS_TIERS`T1-T6(R30+)・T5+enrage／`bossHpMult=1.0`調整枠。脅威型=snake(負傷)/hawk(さらう)/crow(卵泥棒)/monitor(生産妨害)/scorpion(毒)/spider(ウェブ)。`allyLvRaw(id)`=旧6味方(turtle/gecko/owl/meerkat/ferret/eagle)のLv休眠保持を参照。
+- **allyLvRaw引き継ぎ=推奨案A（役割マッチ1:1移送・損失ゼロ・冪等）**: turtle→ID7碩学蛸/gecko→ID9整備ラクーン/owl→ID2電脳ファルコン/meerkat→ID1アルマジロ/ferret→ID6マングース/eagle→ID8ペンギン。非振替4惑星(ID3/4/5/10)はLv0新規＝旧Lvは1も破棄しない。代替案B=プール還元(配分UI要・予備)。
+- **Lore整合の指摘（3件）**: ①**惑星名drift**=HANDOFF V4節の「ヴェルデ/カヴム」は stale、コード正典(data.js:417)は「ネオヴェルデ/ヴォルタ」。本書/roulette.js/feeder-skins.js は全てコード表記で一致（実装影響なし・注記のみ）。②**ID8署名ボス=バガー親個体**は既存グローバルbaggerと役割重複→名前付きelite変種として差別化・侵食連動は別スプリント（Ric確認項目）。③ID4継承/ID10問答/ID6髑髏HPは既存tier/elite/居座りの枠内の演出変数として設計（新勝敗ルールを足さない）＝実装時にFSM/テスト先行。
+- **バランス方針**: 新ボス/味方は既存アーキタイプに載せ新バランス面を増やさない。味方復活で有利に振れるため実装時 `bossHpMult` 再点検（詰み回避KPIは死守）。
+- セーブ非接触・コード非接触（ドキュメントのみ）。**Ric承認後に1惑星ずつ実装**（描画→既存機構接続→allyLvRaw移送マイグレーション冪等/バックアップ→KPIテスト→実機確認）。
+
 ### 6. 現在の保留・未着手(次編以降)
 - **Phase 5** 惑星背景の本格実装(**モノリス最優先**) / **Phase 6** 惑星固有の敵・味方＋命名(創作・Ric承認要) / **Phase 7** 味方のステージ固有化・ボスLv連動強化(6依存) / ルーレットの惑星別意匠(`docs/roulette_rules.md`) / 特性システム(`docs/trait_system.md`・寝かせ中)。
