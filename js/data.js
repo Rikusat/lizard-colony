@@ -656,9 +656,11 @@ const SIG_PAL = {
   // ID1 アリド ドロヌマ・ワーム: 桃色寄り→土気色へ濁す＋スケール増で"巨大な脅威"を立てる
   doronumaWorm: { skin: "#7a6647", skinDk: "#4e3d28", band: "#94805c", saddle: "#ad9c7e", sand: "#8f7850", maw: "#2e1d10", bossScale: 1.72, girth: 19 },
   // 味方の底上げ(ID1/3/4/5/10=小型/背景同化): 倍率＋輪郭の影(縁)で存在感を上げる。良好な味方(ID6/7/8)は非対象
-  allyBoost: { edge: "rgba(0,0,0,.5)", edgeBlur: 2.6, armadillo: 1.24, dormouse: 1.44, firefly: 1.5, mole: 1.42, anole: 1.42 },
+  allyBoost: { edge: "rgba(0,0,0,.5)", edgeBlur: 2.6, armadillo: 1.24, dormouse: 1.44, firefly: 1.5, mole: 1.42, anole: 1.42, salamander: 1.28 },
   // ID3 シルヴァ クロノ・マンティス: 緑複眼が森林背景と同色域→琥珀へ(殺気=わずかに発光)
   chronoMantis: { eye: "#eca63a", eyeGlow: 5 },
+  // ID9 ヴォルタ 廃炉山椒魚(ラクーンから差し替え): 被曝白化の再生両生類(ウーパールーパー系)。役割/引き継ぎ(gecko)は不変=姿のみ
+  hairoSalamander: { body: "#e6e0d6", bodyL: "#f2eee6", belly: "#f0dcd8", gill: "#e2909a", gillL: "#f0b0b6", tape: "#d8c828", glow: "#8fe0c0", regen: "rgba(232,226,216,.5)" },
 };
 
 // 味方 (GameExpansion_v2 ⑩) — 繁殖不可・常駐・素材でLvアップ
@@ -700,8 +702,8 @@ const PLANET_ALLIES = [
     desc: "8本腕で耐圧ハッチを操り津波を防潮壁で受け流す(全体防御・ヌシ妨害半減)。理屈屋タコが都市防衛システム。" },
   { id: "penguin", planet: 8, arch: "eagle", name: "ジャンク・ペンギン・サーボ隊", icon: "eagle", draw: "drawServoPenguin",
     desc: "借り物の軍用サーボの自動照準で淡々と一掃(掃討火力・急降下妨害)。ずんぐりペンギンが最精密の掃討兵。" },
-  { id: "raccoon", planet: 9, arch: "gecko", name: "ジャンク・ラクーン整備班", icon: "gecko", draw: "drawRaccoon",
-    desc: "壊れても即・別パーツで戦線復帰(自動処理/持続・ウェブ切除)。※代替案=廃炉山椒魚(再生両生類)・姿は後で個別修正可。" },
+  { id: "raccoon", planet: 9, arch: "gecko", name: "廃炉山椒魚", icon: "gecko", draw: "drawHairoSalamander",
+    desc: "廃炉の冷却管に棲む被曝白化の再生両生類。四肢を失っても即・再生して戦線復帰(自動処理/持続・ウェブ切除)。" },
   { id: "anole", planet: 10, arch: "anole", name: "記録係アノール", icon: "paw", draw: "drawArchivistAnole",
     desc: "過去全惑星の敵の弱点を閲覧し味方に伝える(情報バフ)。内気な記録係が全戦術情報の要。※戦闘効果は今後(承認後)。" },
 ];

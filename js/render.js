@@ -3641,21 +3641,35 @@ const Render = {
     ctx.restore();
   },
   // Phase6 ID9 ジャンク・ラクーン整備班(gecko型): 応急テープだらけのアライグマ。※代替=廃炉山椒魚(姿は後で個別修正可)。
-  drawRaccoon(ctx, lv) { this._allySquad(ctx, lv, (c, x, y, dir) => this._raccoon(c, x, y, dir)); },
-  _raccoon(ctx, x, y, dir) {
+  // Phase6 ID9 ヴォルタ: 廃炉山椒魚(ラクーンから差し替え)。被曝白化の再生両生類(ウーパールーパー系)。
+  //   四肢を失っても即再生(=1本を半透明の再生肢で表現)。黄テープ意匠は尾に残す。役割/引き継ぎ(gecko)は不変=姿のみ。
+  drawHairoSalamander(ctx, lv) { const k = this._allyK("salamander", 1.28); this._allySquad(ctx, lv, (c, x, y, dir) => this._allyBoost(c, x, y, k, () => this._hairoSalamander(c, 0, 0, dir))); },
+  _hairoSalamander(ctx, x, y, dir) {
     ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
-    const fur = "#6a6e74", furL = "#868a90", mask = "#24282d", tape = "#d8c828";
-    ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.beginPath(); ctx.ellipse(0, 11, 12, 3.5, 0, 0, 7); ctx.fill();
-    ctx.strokeStyle = fur; ctx.lineWidth = 5; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(-8, 4); ctx.quadraticCurveTo(-18, 2, -18, -8); ctx.stroke(); // 尾
-    ctx.strokeStyle = mask; ctx.lineWidth = 1.6; for (const ty of [-6, -1, 3]) { ctx.beginPath(); ctx.moveTo(-20, ty); ctx.lineTo(-15, ty + 1); ctx.stroke(); } // 縞
-    ctx.fillStyle = fur; ctx.beginPath(); ctx.ellipse(-1, 3, 10, 9, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = furL; ctx.beginPath(); ctx.ellipse(-2, 3, 6, 6, 0, 0, 7); ctx.fill();
-    ctx.strokeStyle = tape; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-6, 4); ctx.lineTo(2, 7); ctx.stroke(); // 黄テープ補修
-    ctx.fillStyle = furL; ctx.beginPath(); ctx.arc(4, -6, 6, 0, 7); ctx.fill(); // 頭
-    ctx.fillStyle = mask; ctx.beginPath(); ctx.ellipse(4, -6, 6, 2.6, 0, 0, 7); ctx.fill(); // マスク
-    ctx.fillStyle = "#e8ecf0"; ctx.beginPath(); ctx.arc(2, -6, 1, 0, 7); ctx.arc(7, -6, 1, 0, 7); ctx.fill();
-    ctx.fillStyle = furL; ctx.beginPath(); ctx.arc(1, -11, 2.2, 0, 7); ctx.arc(8, -11, 2.2, 0, 7); ctx.fill(); // 耳
-    ctx.fillStyle = mask; ctx.beginPath(); ctx.moveTo(9, -6); ctx.lineTo(13, -5); ctx.lineTo(9, -4); ctx.fill(); // 鼻先
+    const S = (typeof SIG_PAL !== "undefined" && SIG_PAL.hairoSalamander) || { body: "#e6e0d6", bodyL: "#f2eee6", belly: "#f0dcd8", gill: "#e2909a", gillL: "#f0b0b6", tape: "#d8c828", glow: "#8fe0c0", regen: "rgba(232,226,216,.5)" };
+    ctx.fillStyle = "rgba(0,0,0,.2)"; ctx.beginPath(); ctx.ellipse(0, 10, 13, 3.5, 0, 0, 7); ctx.fill();
+    // 被曝適応の淡い冷光(わずか)
+    const gp = 0.14 + Math.sin(this.time * 1.8) * 0.06; const gg = ctx.createRadialGradient(0, 2, 2, 0, 2, 20); gg.addColorStop(0, `rgba(143,224,192,${gp})`); gg.addColorStop(1, "rgba(143,224,192,0)"); ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(0, 2, 20, 0, 7); ctx.fill();
+    // 尾(ひれ付き)＋黄テープの目印
+    ctx.fillStyle = S.body; ctx.beginPath(); ctx.moveTo(-6, 2); ctx.quadraticCurveTo(-22, -4, -24, 3); ctx.quadraticCurveTo(-18, 8, -6, 6); ctx.fill(); // 尾ひれ
+    ctx.strokeStyle = S.tape; ctx.lineWidth = 2.2; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(-16, 1); ctx.lineTo(-13, 5); ctx.stroke();
+    // 後脚(片方は半透明=再生中の四肢)
+    ctx.strokeStyle = S.body; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.moveTo(-3, 8); ctx.lineTo(-6, 13); ctx.stroke();
+    ctx.strokeStyle = S.regen; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.moveTo(3, 8); ctx.lineTo(5, 12); ctx.stroke(); // 再生肢(淡い)
+    // 胴(ずんぐり両生類)
+    ctx.fillStyle = S.body; ctx.beginPath(); ctx.ellipse(-1, 3, 11, 8, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = S.belly; ctx.beginPath(); ctx.ellipse(-1, 5, 8, 4.5, 0, 0, 7); ctx.fill(); // 腹
+    ctx.fillStyle = "rgba(255,255,255,.4)"; ctx.beginPath(); ctx.ellipse(-3, 0, 5, 2.4, 0, 0, 7); ctx.fill(); // 湿った照り
+    // 前脚
+    ctx.strokeStyle = S.body; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(6, 7); ctx.lineTo(9, 12); ctx.stroke();
+    // 幅広の頭
+    ctx.fillStyle = S.bodyL; ctx.beginPath(); ctx.ellipse(9, -1, 8, 6, 0, 0, 7); ctx.fill();
+    // 外鰓(ウーパールーパーの羽状の鰓=3本×上下)
+    ctx.lineCap = "round";
+    for (const sd of [-1, 1]) { for (let i = 0; i < 3; i++) { const gy = -1 + sd * (2 + i * 2.4); ctx.strokeStyle = i === 1 ? S.gillL : S.gill; ctx.lineWidth = 2.2 - i * 0.3; ctx.beginPath(); ctx.moveTo(6, -1); ctx.quadraticCurveTo(10, gy, 15 + i, gy + sd * 2); ctx.stroke(); } }
+    // 目(小・つぶら)＋のんびりした口
+    ctx.fillStyle = "#2a2620"; ctx.beginPath(); ctx.arc(11, -3, 1.2, 0, 7); ctx.arc(14, -2, 1.2, 0, 7); ctx.fill();
+    ctx.strokeStyle = "rgba(140,110,110,.6)"; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(12, 2); ctx.quadraticCurveTo(15, 3, 17, 1.5); ctx.stroke();
     ctx.restore();
   },
 
