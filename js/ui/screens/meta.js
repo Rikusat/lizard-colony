@@ -171,6 +171,8 @@ Object.assign(UI, {
       body.innerHTML = `
         <div class="list-row"><div class="grow"><b>セーブ</b><div class="desc">10秒ごとに自動保存されます</div></div>
           <button id="set-save">今すぐ保存</button></div>
+        <div class="list-row"><div class="grow"><b>惑星の混入チェック（純血化プレビュー・非破壊）</b><div class="desc">Phase10: 各惑星に他惑星種が混入していないか診断（消えない・数を見るだけ）。自動移行バグで焼き付いた汚染の消失予定数を確認できる</div></div>
+          <button id="set-purify-preview">診断</button></div>
         <div class="list-row"><div class="grow"><b>惑星味方 移行前のバックアップから復元</b><div class="desc">Phase6 惑星固有味方への旧味方Lv移送(v14)前のセーブへ巻き戻す(旧味方のLvデータが移送前の状態に戻る)</div></div>
           <button id="set-rollbackV14">復元</button></div>
         <div class="list-row"><div class="grow"><b>餌場・繁殖施設 撤廃前のバックアップから復元</b><div class="desc">餌場/繁殖の巣への統合(v13)前のセーブへ巻き戻す(両施設と投資Lvが戻り、払い戻しGoldは無くなる)</div></div>
@@ -196,6 +198,22 @@ Object.assign(UI, {
         </div>`;
       body.querySelector("#set-save").addEventListener("click", () => {
         Game.save(); this.toast(`${Icon.svg("save")} セーブしました`);
+      });
+      body.querySelector("#set-purify-preview").addEventListener("click", () => {
+        const p = Game.purifyPreview(); // 非破壊(読み取り専用)
+        this.openModal(`${Icon.svg("planet")} 純血化プレビュー（非破壊・診断のみ）`, (b) => {
+          let html = `<p style="font-size:calc(13px * var(--fs-scale,1));color:var(--sub);margin-bottom:10px">
+            全惑星で 残る <b style="color:var(--gold)">${p.totalKeep}</b> / <b style="color:var(--red)">消える ${p.totalLose}</b>（他惑星種の混入）。
+            <br>※これは<b>診断のみ</b>。実際の削除は行いません（本適用はRic承認後）。</p>`;
+          const dirty = p.planets.filter((pl) => pl.lose > 0);
+          if (!dirty.length) html += `<p style="color:var(--life-400)">混入なし。全惑星が固有種のみです（汚染なし）。</p>`;
+          for (const pl of dirty) {
+            html += `<div class="list-row"><div class="grow"><b>${pl.planet}</b>
+              <div class="desc">固有=${pl.endemic}／消える: <span style="color:var(--red)">${pl.消える}</span>／残る: ${pl.残る}</div></div>
+              <span class="lv" style="color:var(--red)">-${pl.lose}</span></div>`;
+          }
+          b.innerHTML = html;
+        });
       });
       body.querySelector("#set-rollbackV14").addEventListener("click", () => {
         if (confirm("惑星味方への移行前のバックアップへ巻き戻しますか? 旧味方(カメ/ヤモリ等)のLvデータが移送前の状態に戻ります。")) Game.restoreV14Backup();
