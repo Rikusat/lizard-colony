@@ -118,6 +118,7 @@ const CFG = {
   // Phase3.13: ルーレットはボス討伐後の報酬(給餌連動の常時発射は撤廃・roulette.md §1.2 v4)
   roulRewardEmitInterval: 0.35, // 報酬モードの球射出間隔(秒・長押し/スキップの自動発射ペース)
   roulRewardBalls: { 0: 8, 1: 10, 2: 16, 3: 22, 4: 28, 5: 34, 6: 40 }, // ボスTier別の報酬球数(見届けた強敵ほど厚い)
+  roulRewardEliteBonus: 12, // Phase10.3: 大ボス(elite)は出球が増える(報酬が厚い)。★たたき台=Ric調整可
   roulRewardOverflowGold: 40, // 卵オーバーフロー(スロット満杯+収容枠も満杯)時に1卵→Gold換算する額
   // §1.2.2 中央ポケットの景品(盤geometryは共通・景品のみボス格で差替): 通常ボス=レア卵 / 大ボス(elite)=虹(新種)
   roulRareMorphChance: 0.5, // レア卵(通常ボスの中央): 非normalモーフ(albino/mela/golden)になる確率

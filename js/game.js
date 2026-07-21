@@ -64,7 +64,7 @@ const Game = {
       autoSupply: false,
       allies: {},          // { allyId: { lv } }
       nextRaid: null,      // 次の襲撃の予告情報
-      stageSel: null,      // 手動選択ステージ(null=常に最新)
+      stageSel: 1,         // Phase10: 明示選択ステージ(既定=アリド)。★自動で最新へジャンプしない(自動移行廃止)
       titles: {},          // 獲得済み称号 { titleId: true }
       titleSel: null,      // 表示中の称号
       daily: { last: "", streak: 0 }, // デイリーボーナス
@@ -709,14 +709,11 @@ const Game = {
     return STAGES.filter((st) => this.state.rank >= st.rank);
   },
   currentStage() {
-    // 手動選択があればそれ、なければ解放済みの最新ステージ
-    if (this.state.stageSel) {
-      const sel = STAGES.find((st) => st.id === this.state.stageSel);
-      if (sel && this.state.rank >= sel.rank) return sel;
-    }
-    let st = STAGES[0];
-    for (const s of STAGES) if (this.state.rank >= s.rank) st = s;
-    return st;
+    // Phase10: 明示選択(stageSel)の惑星のみ。★自動で最新へジャンプしない(自動移行=遺伝子汚染の根源を除去)。
+    //   移動はプレイヤーがマップから selectStage で行う(colony正しく入替・引き継ぎなし)。既定=アリド(STAGES[0])。
+    const sel = STAGES.find((st) => st.id === this.state.stageSel);
+    if (sel && this.state.rank >= sel.rank) return sel;
+    return STAGES[0];
   },
   // ---------------- V3 Phase2: Stage独立コロニーの切替 ----------------
   // 「引っ越し」ではなく「拠点を増やす」: 各Stageは独立コロニーとして併存する
@@ -1101,7 +1098,8 @@ const Game = {
   beginBossReward(tier, isElite) {
     if (typeof Roulette === "undefined" || !Roulette.startReward) return false;
     const t = tier | 0;
-    const count = (CFG.roulRewardBalls && CFG.roulRewardBalls[t]) || CFG.roulRewardBalls[0];
+    let count = (CFG.roulRewardBalls && CFG.roulRewardBalls[t]) || CFG.roulRewardBalls[0];
+    if (isElite) count += (CFG.roulRewardEliteBonus || 0); // Phase10.3: 大ボスは出球が増える(報酬が厚い)
     // §1.2.2: 大ボス(elite)=虹レアポケット(新種) / 通常ボス=レアポケット(レア卵)。盤geometryは共通
     const mode = isElite ? "rainbow" : "rare";
     Roulette.startReward(count, this.rouletteRepGene(), mode);
@@ -1394,12 +1392,17 @@ const Game = {
         this.notice("自動補給 解禁", "ショップのトグルでON");
       }
     }
-    if (this.currentStage().id !== prevStage) {
-      this.notice(`「${this.currentStage().name}」へ拡大`, "新種族が解放", "boss");
-    } else if (this.unlockedStages().length > prevUnlocked) {
+    // Phase10: 新惑星は自動移行しない。解放を通知しマップに新着バッジ(移動はプレイヤーがマップから手動)
+    void prevStage;
+    if (this.unlockedStages().length > prevUnlocked) {
       const st = this.unlockedStages().slice(-1)[0];
-      this.notice(`新ステージ「${st.name}」解放`, "ステージ欄から移住");
+      this.notice(`新惑星「${st.name}」解放`, "マップから移住できる(自動では移動しない)", "boss");
     }
+  },
+
+  // Phase10: 未開拓の解放済み惑星があるか(マップの新着バッジ用。data駆動=常に正確・見るまで消えない)
+  hasUnvisitedPlanet() {
+    return this.unlockedStages().some((st) => { const d = this.stageData(st.id); return !d || !d.pioneered; });
   },
 
   // ---------------- V3 Phase7: 本部研究の購入 ----------------

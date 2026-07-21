@@ -117,6 +117,37 @@ for (let S = 1; S <= 10; S++) {
   ok("症状A: アリド tier0(低rank)でも報酬ルーレット起動", Game.beginBossReward(0, false) === true);
 }
 
+// === Phase10: 惑星独立・自動移行なし・引き継ぎなし(currentStageが自動ジャンプしない) ===
+{
+  Game.newGame();
+  ok("Phase10: newGameでstageSel=1(アリド明示・null廃止)", Game.state.stageSel === 1);
+  Game.state.rank = 50; // 複数惑星の解放ランク
+  ok("Phase10: rank上昇でcurrentStageが自動ジャンプしない(アリドのまま)", Game.currentStage().id === 1, "id=" + Game.currentStage().id);
+  ok("Phase10: 引き継ぎ汚染なし(個体はアリド固有のまま)", Game.state.lizards.every((l) => Game.endemicSpecies(1).includes(l.speciesId)));
+  // 手動selectStageは固有種のみで正しく入替(引き継ぎなし)
+  Game.selectStage(6);
+  ok("Phase10: 手動selectStage(6)=固有種emeraldのみ(引き継ぎなし)", Game.currentStage().id === 6 && Game.state.lizards.every((l) => Game.endemicSpecies(6).includes(l.speciesId)));
+  // toWorldで他惑星に混入が焼き付かない
+  Game.newGame(); Game.state.rank = 90;
+  const w = Game.toWorld();
+  const dirty = (w.stages || []).filter((s) => (s.lizards || []).some((l) => !Game.endemicSpecies(s.stageId).includes(l.speciesId)));
+  ok("Phase10: toWorldで全惑星に混入の焼き付きなし(汚染セーブを生まない)", dirty.length === 0, "混入stage=" + dirty.map((s) => s.stageId));
+  // マップ新着バッジ(未開拓の解放済み惑星)
+  Game.newGame(); Game.state.rank = 50;
+  ok("Phase10: hasUnvisitedPlanet=true(未開拓の解放済み惑星あり=マップ新着)", Game.hasUnvisitedPlanet() === true);
+  Game.newGame(); Game.state.rank = 1;
+  ok("Phase10: rank1(アリドのみ解放・開拓済)ではバッジなし", Game.hasUnvisitedPlanet() === false);
+}
+
+// === Phase10.3: 大ボス(elite)は出球が増える ===
+{
+  Game.newGame(); Game.state.stageSel = 6; Game.state.rank = 320;
+  Game.beginBossReward(6, false); const normalBalls = Game.bossReward.count;
+  Game.beginBossReward(6, true); const eliteBalls = Game.bossReward.count;
+  ok("Phase10.3: elite討伐は出球が増える(通常<elite)", eliteBalls > normalBalls, `通常=${normalBalls} elite=${eliteBalls}`);
+  ok("Phase10.3: elite加算=CFG.roulRewardEliteBonus", eliteBalls - normalBalls === CFG.roulRewardEliteBonus);
+}
+
 console.log(`\n=== Phase6 回帰テスト結果: ${pass} PASS / ${fail} FAIL ===`);
 if (fail) { console.log("FAILED:\n - " + fails.join("\n - ")); process.exit(1); }
 console.log("すべてPASS(署名ボス率>=80%/②方式ゲート漏れなし/sigBossChance連動/引き連れUI撤去/開拓=固有2種のみ)");

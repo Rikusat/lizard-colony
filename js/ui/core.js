@@ -303,6 +303,7 @@ const UI = {
     badge("dex-badge", !!Game._badgeDex);
     badge("stats-badge", !!Game._badgeStats);
     badge("hq-badge", !!Game._badgeHq);
+    badge("map-badge", !!(Game.hasUnvisitedPlanet && Game.hasUnvisitedPlanet())); // Phase10: 未開拓の解放済み惑星=マップに新着
 
     this.updateFeeder();
     this.updateBossHud();

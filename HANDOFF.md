@@ -1664,6 +1664,17 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
   - ID1〜ID9 [済] / **ID10 記録係アノール[本]**: 石板を抱えた学者肌の小トカゲ+金の刻印の脈動(1-2体)。※新arch=戦闘効果は今後。
   - **★全10惑星の味方描画 完成**（ID1〜ID10）。移送先id味方(ID2/6/7/8/9)=既存効果型を再有効化／新arch味方(ID3/4/5/10)=可視・育成のみ(効果は今後)。後修正候補: ID2-5・ID10がやや小型・背景と同化気味(存在感up余地)／ID9はラクーンか廃炉山椒魚か(Ric選択)。
 
+### 5bb. Phase 10 — 惑星の完全独立(A: 自動移行の停止・2026-07-21・セーブ非接触)
+指針=`GameExpansion_V5.md §Phase10`。Ric承認済(A/B)。**(A)=自動移行の停止(根本原因除去)を先行実装・デプロイ**。(B)再純血化は別途プレビュー後。
+- **根本原因(実測)**: `stageSel=null`(「常に最新」)時 `currentStage()` が**最高解放ステージを自動返却**→rank閾値ごとに自動ジャンプ。だが runtime個体(kanahebi等)は入替わらず、`activeStageData().stageId=currentStage().id`＋`toWorld`で**通過した全惑星のコロニーに焼き付く**＝自動移行+引き継ぎ+セーブ汚染。**症状A(アリド報酬)も rank≥5でcurrentStageがID1でなくなる=アリドに実質いられない、で説明**。
+- **(A)根治** [game.js/core.js/index.html・セーブ形式非接触]:
+  - `currentStage()`=**明示stageSelの惑星のみ・既定アリド(STAGES[0])・自動ジャンプ廃止**。`newGame`の`stageSel: null→1`(アリド明示)。既存セーブは`applyWorld`で`stageSel=active.stageId`(最後の惑星)に設定済=null化しない。
+  - 新惑星解放=**通知(§9-C4中央通知)＋マップボタンに新着バッジ**(`hasUnvisitedPlanet()`=未開拓の解放済み惑星・data駆動)。移動はプレイヤーが**マップから手動selectStage**(spawnPurePair・固有2種・引き継ぎなし)。
+  - 旧・自動移行通知(currentStage変化で「へ拡大」)を撤去。
+- **Phase10.3(同梱)**: `beginBossReward`で**大ボス(elite)は出球+`CFG.roulRewardEliteBonus(12)`**(報酬が厚い)。全惑星・全ボスで必ず報酬起動は実測済(§5aa)。
+- **検証(実測)**: newGame→rank50でcurrentStage=1のまま(自動ジャンプなし)・個体はアリド固有のまま(引き継ぎ汚染なし)・selectStage(6)=emerald固有のみ・toWorld混入0(汚染セーブを生まない)・hasUnvisitedPlanet動作・elite出球>通常。回帰**79 PASS**・純血59/0(確率不変)・移行16/0・統合10/10・ブートconsole0。
+- **(B)再純血化は次段**: purifyPreview(非破壊)でRicが本番セーブの惑星別・種別消失数を確認→承認→migrateV14to15本適用。
+
 ### 5aa. 本番実機2症状の調査・根治（2026-07-21・バグ修正プロトコル）
 - **症状B(重大: クランク非稼働でGoldが減る)=実バグ・根治** [game.js]: **実測再現**——クランク非稼働(`dial.auto=false`)でtickを300秒回すと、**巣の自動給餌(§8.12・毎秒)が `feed()`→`acquireFeedUnit` を呼び、コオロギ枯渇後にGold換算補充(`coins -= feedGoldCost`)を発動**(t=56sでコオロギ0→以降Gold消費)。根本原因=巣の自動給餌がクランクと同じ経路を通り、`stopOnEmpty=false`(クランクの切れ時トグル)のGold消費を誤って発動。→ 根治: `acquireFeedUnit(silent, cricketOnly)`/`feed(lz, silent, cricketOnly)` に `cricketOnly` を追加し、**巣の自動給餌はコオロギ切れでGoldを引かず停止**(Gold換算補充は「クランク稼働時のプレイヤーの選択」のみ)。実測: 非稼働300秒でGold消費**0回**(500→2405純増)。
 - **症状A(アリドで報酬ルーレットが出ない)=コード上は再現せず**: beginBossReward導線を全rank(1/29/30/320)・実UI(アリドtier0/tier6・ワーム署名)・全10惑星で実測 → **全てで報酬DOM生成・球8-40・エラーなし**。`rouletteRepGene`もアリドの個体から遺伝子を返す(null問題なし)。→ **報酬は全惑星(アリド含む)で起動する**ことを実証。Arid固有の失敗はコードで再現不能=**古いタブ(要ハードリロード)** or **低rank時の仕様(rank<30のアリドはボスが5回に1回=報酬もその時のみ)** が有力。※要件「全惑星で報酬起動」は実測で充足。
