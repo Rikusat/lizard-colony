@@ -1664,6 +1664,12 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
   - ID1〜ID9 [済] / **ID10 記録係アノール[本]**: 石板を抱えた学者肌の小トカゲ+金の刻印の脈動(1-2体)。※新arch=戦闘効果は今後。
   - **★全10惑星の味方描画 完成**（ID1〜ID10）。移送先id味方(ID2/6/7/8/9)=既存効果型を再有効化／新arch味方(ID3/4/5/10)=可視・育成のみ(効果は今後)。後修正候補: ID2-5・ID10がやや小型・背景と同化気味(存在感up余地)／ID9はラクーンか廃炉山椒魚か(Ric選択)。
 
+### 5aa. 本番実機2症状の調査・根治（2026-07-21・バグ修正プロトコル）
+- **症状B(重大: クランク非稼働でGoldが減る)=実バグ・根治** [game.js]: **実測再現**——クランク非稼働(`dial.auto=false`)でtickを300秒回すと、**巣の自動給餌(§8.12・毎秒)が `feed()`→`acquireFeedUnit` を呼び、コオロギ枯渇後にGold換算補充(`coins -= feedGoldCost`)を発動**(t=56sでコオロギ0→以降Gold消費)。根本原因=巣の自動給餌がクランクと同じ経路を通り、`stopOnEmpty=false`(クランクの切れ時トグル)のGold消費を誤って発動。→ 根治: `acquireFeedUnit(silent, cricketOnly)`/`feed(lz, silent, cricketOnly)` に `cricketOnly` を追加し、**巣の自動給餌はコオロギ切れでGoldを引かず停止**(Gold換算補充は「クランク稼働時のプレイヤーの選択」のみ)。実測: 非稼働300秒でGold消費**0回**(500→2405純増)。
+- **症状A(アリドで報酬ルーレットが出ない)=コード上は再現せず**: beginBossReward導線を全rank(1/29/30/320)・実UI(アリドtier0/tier6・ワーム署名)・全10惑星で実測 → **全てで報酬DOM生成・球8-40・エラーなし**。`rouletteRepGene`もアリドの個体から遺伝子を返す(null問題なし)。→ **報酬は全惑星(アリド含む)で起動する**ことを実証。Arid固有の失敗はコードで再現不能=**古いタブ(要ハードリロード)** or **低rank時の仕様(rank<30のアリドはボスが5回に1回=報酬もその時のみ)** が有力。※要件「全惑星で報酬起動」は実測で充足。
+- **再発防止テスト**: `tests/phase6_regression.js`に追加(70 PASS): **症状B(非稼働300秒Gold消費0・cricketOnly経路はGold不消費・対照でクランク経路は消費)**・**症状A(全10惑星+アリドtier0でbeginBossReward=true)**。`test-integration.html`(実UI)に**アリド報酬DOM**を追加(10/10 PASS)。
+- 検証: 全JS構文OK・純血59/0(スリット/ルーレット確率不変)・Phase6回帰70/0・移行16/0・味方65/0・効果16/0・ブートconsole0。セーブ非接触(v14)・確率/物理/純血/魂 不変。
+
 ### 5z. 本番実機3症状の根治（2026-07-21・バグ修正プロトコル 再現→仮説→検証）
 本番でRicが検出した3症状。自動QA(logic-only/node stub)がUI・実描画・実Roulette経路を非カバーだった乖離(fable2)を是正。
 - **実測診断（推測せず再現）**: game.jsの前回デプロイ差分を精査→`endRaid/beginBossReward/selectStage`・boss-reward.js・roulette.js・planet-map.jsは**未変更**。統合ハーネス(全script+実UI/Roulette)で報酬フローは全経路(直接/raid/移行セーブ)で**正常動作・エラーなし**を実測。

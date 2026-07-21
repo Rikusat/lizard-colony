@@ -1004,23 +1004,26 @@ const Game = {
 
   // 1回の給餌に必要な「餌」を確保。コオロギ在庫を優先し、切れたら切れ時トグルに従う:
   //   stopOnEmpty=ON → 確保できず給餌停止(安全装置) / OFF → Gold換算で1匹補充して継続
-  acquireFeedUnit(silent) {
+  //   cricketOnly=true(巣の自動給餌など非クランク経路): コオロギ切れならGoldを使わず停止。
+  //     ★Gold換算補充は「クランク稼働時のプレイヤーの選択(切れ時トグルOFF)」のみ=自動給餌でGoldを引かない(バグ根治)
+  acquireFeedUnit(silent, cricketOnly) {
     if ((this.state.crickets || 0) >= 1) { this.state.crickets -= 1; return true; }
+    if (cricketOnly) return false; // 非クランク自動給餌: コオロギ切れ=Gold消費せず停止
     const d = this.ensureDial();
     if (d.stopOnEmpty || this.state.coins < CFG.feedGoldCost) {
       if (!silent) UI.toast(d.stopOnEmpty ? "コオロギ切れ(自動停止中)。購入するか切れ時トグルをOFFに" : "Goldが足りない!", true);
       return false;
     }
-    this.state.coins -= CFG.feedGoldCost; // OFF: Gold換算補充(在庫±0で1匹ぶん消費)
+    this.state.coins -= CFG.feedGoldCost; // OFF: Gold換算補充(在庫±0で1匹ぶん消費)。クランク稼働時のみ
     return true;
   },
 
-  feed(lz, silent) {
+  feed(lz, silent, cricketOnly) {
     if (lz.injuredT > 0) {
       if (!silent) UI.toast("負傷中は食べられない…", true);
       return false;
     }
-    if (!this.acquireFeedUnit(silent)) return false; // V5.2: コオロギ(or 切れ時Gold換算)を1消費
+    if (!this.acquireFeedUnit(silent, cricketOnly)) return false; // V5.2: コオロギ(or 切れ時Gold換算=クランクのみ)を1消費
     this.state.stats.fed++;
     // v2ルーレット: 球放出はfeed(個体ごと)でなくfeedAll(給餌1回=クランク1動作)単位で1発(§7.1)
     this.addRes("bio", CFG.resBioPerFeed); // V4: 育成から生態データが生まれる
@@ -1920,7 +1923,7 @@ const Game = {
         for (const lz of s.lizards) {
           if (n >= feedN || this.res("food") < CFG.autoFeedFoodCost) break;
           if (lz.injuredT > 0 || this.isHidden(lz)) continue;
-          if (!this.feed(lz, true)) break; // 餌切れ(停止 or Gold尽き)で止まる
+          if (!this.feed(lz, true, true)) break; // cricketOnly: コオロギ切れで停止(Goldは引かない=クランク非稼働で資産が減らない)
           this.addRes("food", -CFG.autoFeedFoodCost);
           n++;
         }

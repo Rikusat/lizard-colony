@@ -88,6 +88,35 @@ for (const S of [6, 8, 10]) {
   ok(`症状2: ID${S}開拓は固有種のみ根付く(founderIds無視・他惑星種混入なし)`, allEndemic, "種=" + [...new Set(liz.map((l) => l.speciesId))].join(","));
 }
 
+// === 症状B(重大): クランク非稼働時にGoldが減らない(巣の自動給餌はコオロギ切れでGold消費せず停止) ===
+{
+  Game.newGame(); Game.ensureDial().auto = false; // クランク非稼働(オートOFF)
+  let goldSpends = 0; const origAcq = Game.acquireFeedUnit.bind(Game);
+  Game.acquireFeedUnit = function (s, c) { const b = Game.state.coins; const r = origAcq(s, c); if (Game.state.coins < b) goldSpends++; return r; };
+  const startCoins = Game.state.coins;
+  for (let i = 0; i < 300; i++) Game.tick(1); // 5分間・給餌操作は一切しない(コオロギは途中で枯渇)
+  Game.acquireFeedUnit = origAcq;
+  ok("症状B: クランク非稼働で300秒 Gold消費0回(自動給餌はGoldを引かない)", goldSpends === 0, "Gold消費回数=" + goldSpends);
+  ok("症状B: クランク非稼働でcoinsが減少しない(純増のみ)", Game.state.coins >= startCoins, `${startCoins}->${Math.floor(Game.state.coins)}`);
+  // 対照: クランク相当(cricketOnly=false)+コオロギ0+切れ時トグルOFF ならGold消費する(=クランク稼働時の正しい挙動)
+  Game.newGame(); Game.state.crickets = 0; Game.ensureDial().stopOnEmpty = false; const c0 = Game.state.coins;
+  Game.acquireFeedUnit(true, false); // クランク経路(cricketOnly無し)
+  ok("対照: クランク経路(切れ時OFF)はコオロギ0でGold消費する(仕様)", Game.state.coins < c0);
+  Game.newGame(); Game.state.crickets = 0; const c1 = Game.state.coins;
+  Game.acquireFeedUnit(true, true); // 自動給餌経路(cricketOnly)
+  ok("症状B: 自動給餌経路(cricketOnly)はコオロギ0でもGold消費しない", Game.state.coins === c1);
+}
+
+// === 症状A要件: 全10惑星でボス討伐→報酬ルーレットが起動する(beginBossReward=true・アリド含む・低tierも) ===
+for (let S = 1; S <= 10; S++) {
+  Game.newGame(); Game.state.stageSel = S; Game.state.rank = 320;
+  ok(`症状A: ID${S} ボス討伐で報酬ルーレット起動(beginBossReward=true)`, Game.beginBossReward(6, false) === true);
+}
+{
+  Game.newGame(); Game.state.stageSel = 1; Game.state.rank = 1; // アリド最弱・tier0
+  ok("症状A: アリド tier0(低rank)でも報酬ルーレット起動", Game.beginBossReward(0, false) === true);
+}
+
 console.log(`\n=== Phase6 回帰テスト結果: ${pass} PASS / ${fail} FAIL ===`);
 if (fail) { console.log("FAILED:\n - " + fails.join("\n - ")); process.exit(1); }
 console.log("すべてPASS(署名ボス率>=80%/②方式ゲート漏れなし/sigBossChance連動/引き連れUI撤去/開拓=固有2種のみ)");

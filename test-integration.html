@@ -52,6 +52,13 @@ window.__err=null; window.addEventListener("error",e=>{window.__err=(window.__er
  }
  function run(){
   try{
+   // (0) 症状A: アリド(ID1)でもボス討伐→報酬DOMが出る(実UI)。低tierでも起動
+   if(UI.closeBossReward)UI.closeBossReward();
+   var aridKilled=killBoss(1,"snake"); // アリド署名=ワーム(snake)
+   setTimeout(function(){
+    ok("症状A: アリド(ID1)でボス討伐→報酬DOMが出る", !!document.getElementById("boss-reward"));
+    if(UI.closeBossReward)UI.closeBossReward();
+
    // (1) 症状3: 実UI/実Roulette経路で「ボス討伐→報酬ルーレット」がDOM生成・球が用意される
    var killed=killBoss(6,"monitor");
    var brSet=!!Game.bossReward;
@@ -80,6 +87,7 @@ window.__err=null; window.addEventListener("error",e=>{window.__err=(window.__er
     document.getElementById("itest").innerHTML="<b>統合テスト: "+pass+" PASS / "+fail+" FAIL</b><br>"+R.join("");
     document.title=(fail?"FAIL":"PASS")+" "+pass+"/"+(pass+fail);
    },2600);
+   },2000); // 外側(症状Aアリド報酬)のsetTimeoutを閉じる
   }catch(e){ document.getElementById("itest").innerHTML="ERR: "+e.message; document.title="ERR:"+e.message; }
  }
  window.addEventListener("load",function(){ setTimeout(run,700); });
