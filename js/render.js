@@ -16,21 +16,7 @@ const FAC_POS = {
   trap: { x: 1128, y: 470 },        // §8.17 罠(右のボス進入路=迎え撃つ。ルーレット盤/右端UIを避け y=470 のボスレーンへ)
 };
 const NEST = { x: 400, y: 512 };  // 卵の巣(§8.12で中央の巨大展望台を避け前景・左下寄りへ)
-// Phase6 惑星署名ボス(phase6_design.md v1.1): stageId -> { threat: 既存脅威型, draw: 描画メソッド名 }。
-//   raid.boss かつ その惑星に居て 脅威型が一致するときだけ「その惑星の主」を固有の姿で描く(通常襲来は既存脅威型のまま)。
-//   脅威メカニクス(勝敗ロジック)は不変=描画の差し替えのみ。惑星ごとに1エントリ+1描画メソッドを追加する。
-const PLANET_BOSS = {
-  1: { threat: "snake", draw: "drawDoronumaWorm" },   // アリド: ドロヌマ・ワーム(泥沼蟲)
-  2: { threat: "scorpion", draw: "drawCyberScorpio" }, // ネオヴェルデ: サイバー・スコルピオ(電脳蠍)
-  3: { threat: "snake", draw: "drawChronoMantis" },   // シルヴァ: クロノ・マンティス(時計蟷螂)
-  4: { threat: "monitor", draw: "drawHaniwaGolem" },  // パルス: ハニワ・ゴーレム/墳王
-  5: { threat: "snake", draw: "drawSlagHydra" },      // イグニス: スラグ・ヒドラ(鉱滓の多頭竜)
-  6: { threat: "monitor", draw: "drawSkullAnaconda" },// ユンガ: ドクロ・アナコンダ/贄蛇
-  7: { threat: "snake", draw: "drawMagmaShark" },     // メアリス: マグマ・シャーク/熔鮫
-  8: { threat: "bugger", draw: "drawBaggerParent" },  // グラキス: ヌシ・バガー/親個体(既存bagger流用のelite変種)
-  9: { threat: "scorpion", draw: "drawMeltGolem" },   // ヴォルタ: メルト・ゴーレム/臨界獣
-  10: { threat: "monitor", draw: "drawRelicSphinx" }, // オリジン: レリック・スフィンクス/守墓像
-};
+// Phase6 惑星署名ボス(PLANET_BOSS)は data.js へ移設(単一の真実)。roll(game.js)と描画(render.js)の両方が参照する。
 // §8.15 スプライトキャッシュ: アニメ位相をこの粒度(phase単位)で量子化して焼き直す=時間スロットル。
 //   小さいほど滑らか(焼き直し頻度up=軽減効果down)、大きいほど軽い(アニメ粗く)。phase=time*8なので 0.28≈2〜3フレームに1回。
 const SPRITE_ANIM_Q = 0.28;

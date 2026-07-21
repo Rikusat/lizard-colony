@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>統合テスト(開発用・実UI/実描画経路)</title>
+<!-- Phase6 実機3症状の再発防止。node stub では通らない「実UI/実DOM/実Roulette」経路を通す統合テスト。
+     使い方: このファイルをブラウザで開く(repoルート基準・相対パス) or headless Chrome で file:// 指定。
+     結果は画面 と document.title(PASS n/FAIL m) に出る。本番デプロイには含めない(.vercelignore)。 -->
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="style.css">
+<style>#itest{position:fixed;inset:0;z-index:99999;background:#0d0a06;color:#cde;font:14px monospace;padding:20px;overflow:auto}#itest .ok{color:#7bd986}#itest .ng{color:#ff6a6a}</style>
+</head>
+<body>
+<div id="itest">統合テスト実行中…</div>
+<!-- 本体DOM(UI.initが配線する要素。省略なしで index.html 準拠) -->
+<header id="topbar"><div id="brand"></div>
+  <div class="res"><b id="ui-coins">0</b><small id="ui-cps"></small></div>
+  <div class="res"><b id="ui-crickets-top">0</b></div><div class="res"><b id="ui-gems">0</b></div><div class="res"><b id="ui-stones">0</b></div>
+  <nav><button id="btn-map"></button><button id="btn-hq"></button><span id="hq-badge"></span><button id="btn-dex"></button><span id="dex-badge"></span>
+  <button id="btn-missions"></button><span id="mission-badge"></span><button id="btn-stats"></button><span id="stats-badge"></span><button id="btn-settings"></button></nav>
+</header>
+<div id="hq-bar"><div id="rank-bar"></div><span id="hq-bar-label"><b id="ui-rank">1</b></span></div>
+<main><aside id="left"><div class="card"><button id="btn-cricket"><span id="cricket-lot-lbl"></span></button><button id="btn-fac"></button></div>
+  <div id="slit-device"><canvas id="slit-canvas"></canvas></div></aside>
+  <section id="center"><div id="frame"><canvas id="game" width="1280" height="720"></canvas>
+    <div id="raid-hud"><div class="rh-line"><span id="raid-timer"></span></div><div id="next-boss" class="hidden"></div><button id="btn-raid-now"></button></div>
+    <div id="toasts"></div></div><div id="raid-banner" class="hidden"></div><div id="detail" class="hidden"></div></section></main>
+<div id="modal" class="hidden"><div id="modal-box"><header><h2 id="modal-title"></h2><button id="modal-close">×</button></header><div id="modal-body"></div></div></div>
+
+<script src="js/data.js"></script><script src="js/game.js"></script><script src="js/render.js"></script>
+<script src="js/roulette.js"></script><script src="js/slit.js"></script>
+<script src="js/ui/core.js"></script><script src="js/ui/icons.js"></script><script src="js/ui/components.js"></script><script src="js/ui/motion.js"></script>
+<script src="js/ui/hero/hero.js"></script><script src="js/ui/hero/nest-reveal.js"></script><script src="js/ui/hero/boss.js"></script>
+<script src="js/ui/hero/meteorite.js"></script><script src="js/ui/hero/rocket.js"></script><script src="js/ui/hero/legend.js"></script>
+<script src="js/ui/hero/species-reveal.js"></script><script src="js/ui/hero/boss-reward.js"></script>
+<script src="js/ui/screens/main.js"></script><script src="js/ui/screens/feeder-skins.js"></script><script src="js/ui/screens/feeder.js"></script>
+<script src="js/ui/screens/roulette.js"></script><script src="js/ui/screens/slit.js"></script><script src="js/ui/screens/breeding.js"></script>
+<script src="js/ui/screens/equipment.js"></script><script src="js/ui/screens/planet-map.js"></script><script src="js/ui/screens/nest.js"></script>
+<script src="js/ui/screens/hq.js"></script><script src="js/ui/screens/dex.js"></script><script src="js/ui/screens/meta.js"></script><script src="js/ui/boot.js"></script>
+<script>
+window.__err=null; window.addEventListener("error",e=>{window.__err=(window.__err||"")+e.message+" | ";});
+(function(){
+ var R=[],pass=0,fail=0;
+ function ok(n,c,e){ if(c){pass++;R.push('<div class="ok">PASS '+n+'</div>');} else {fail++;R.push('<div class="ng">FAIL '+n+(e?" :: "+e:"")+'</div>');} }
+ function killBoss(stage,typeId){
+   Game.newGame(); Game.state.rank=200; Game.state.stageSel=stage; Game.state.stageWins=4;
+   Game.rollNextRaid(); Game.startRaid();
+   if(Game.raid){ if(typeId){Game.raid.typeId=typeId;Game.raid.type=bossTypeById(typeId);} Game.raid.boss=true;
+     if(!Game.raid.tier){Game.raid.tier=6;Game.raid.tierDef=BOSS_TIERS[5];} Game.raid.snake.hp=1; Game.raid.snake.arrived=true; }
+   for(var i=0;i<200&&Game.raid;i++){ Game.updateRaid(0.1); if(!Game.raid) return true; }
+   return !Game.raid;
+ }
+ function run(){
+  try{
+   // (1) 症状3: 実UI/実Roulette経路で「ボス討伐→報酬ルーレット」がDOM生成・球が用意される
+   var killed=killBoss(6,"monitor");
+   var brSet=!!Game.bossReward;
+   setTimeout(function(){
+    var relDom=!!document.getElementById("boss-reward");
+    var rem=(typeof Roulette!=="undefined"&&Roulette.rewardRemaining)?Roulette.rewardRemaining():0;
+    ok("症状3: ボス討伐でbeginBossReward発火", brSet);
+    ok("症状3: 報酬ルーレットDOM(#boss-reward)がせり上がる", relDom);
+    ok("症状3: ルーレットに球が用意される(rewardRemaining>0)", rem>0, "rem="+rem);
+    ok("症状3: 討伐処理でJSエラーなし", !window.__err, window.__err||"");
+
+    // (2) 症状1: 署名惑星でボスraidが署名描画(planetBossDraw)に載る
+    Game.state.stageSel=6;
+    var sigDraw=Render.planetBossDraw({boss:true,typeId:"monitor"});
+    ok("症状1: ID6のmonitorボスが署名描画(drawSkullAnaconda)", sigDraw==="drawSkullAnaconda", "="+sigDraw);
+    ok("症状1: ID6のsnakeボス(非署名)は署名描画されない(null)", Render.planetBossDraw({boss:true,typeId:"snake"})===null);
+
+    // (3) 症状2: buildPioneer(開拓UI)に引き連れ選択が存在しない・開拓ボタンのみ
+    var div=document.createElement("div");
+    UI.buildPioneer(div, 6);
+    var html=div.innerHTML;
+    ok("症状2: 開拓UIに引き連れ文言なし(創始者の卵)", html.indexOf("創始者の卵")<0);
+    ok("症状2: 開拓UIに個体選択グリッドなし(founder-list)", html.indexOf("founder-list")<0);
+    ok("症状2: 開拓ボタンは存在(開拓する)", html.indexOf("開拓する")>=0);
+
+    document.getElementById("itest").innerHTML="<b>統合テスト: "+pass+" PASS / "+fail+" FAIL</b><br>"+R.join("");
+    document.title=(fail?"FAIL":"PASS")+" "+pass+"/"+(pass+fail);
+   },2600);
+  }catch(e){ document.getElementById("itest").innerHTML="ERR: "+e.message; document.title="ERR:"+e.message; }
+ }
+ window.addEventListener("load",function(){ setTimeout(run,700); });
+})();
+</script>
+</body>
+</html>

@@ -254,6 +254,9 @@ const CFG = {
   fireflyGraceFloor: 0.4,   // 負傷時間短縮の下限(下げ過ぎ防止)
   // Phase6 ボスHPの惑星別たたき台(味方が全惑星に入った分の調整枠)。★全てたたき台=Ric実機で最終調整。既定=1.0倍(未指定は1)。
   bossHpMultByStage: { 1: 1.0, 2: 1.05, 3: 1.1, 4: 1.05, 5: 1.1, 6: 1.15, 7: 1.1, 8: 1.1, 9: 1.1, 10: 1.15 },
+  // Phase6 署名ボス出現率: ボス選定時、この確率でその惑星の署名脅威型(=固有ボス)にする。残りは汎用脅威型で変化(毒/強奪/妨害等)。
+  //   ★たたき台=Ric実機で最終調整(1.0=毎回署名 / 0=従来の重み抽選)。署名脅威型がrank未達の惑星は従来抽選へフォールバック。
+  sigBossChance: 0.85,
   // V4: フロンティア誘導 (§2.2)
   frontierIncomeMult: 1.5,  // 最新惑星の生産倍率
   frontierRaidMult: 1.5,    // 最新惑星の襲撃報酬倍率
@@ -617,6 +620,22 @@ const BOSS_TYPES = [
   { id: "bugger",   name: "バガー",         icon: "bugger", minRank: 30, weight: 3, flying: false, dur: 45, threat: "惑星を侵食する外来種", bugger: true },
 ];
 const bossTypeById = (id) => BOSS_TYPES.find((b) => b.id === id);
+
+// Phase6 惑星署名ボス(単一の真実): stageId -> { threat: 既存脅威型, draw: render.jsの描画メソッド名 }。
+//   roll(game.js rollNextRaid)=ボスをこの署名脅威型にする / 描画(render.js planetBossDraw)=署名脅威型の姿に差替。
+//   脅威メカニクス(勝敗ロジック)自体は既存のまま=描画と"どの脅威型をボスに選ぶか"のみ。惑星ごとに1エントリ+1描画メソッド。
+const PLANET_BOSS = {
+  1: { threat: "snake", draw: "drawDoronumaWorm" },   // アリド: ドロヌマ・ワーム(泥沼蟲)
+  2: { threat: "scorpion", draw: "drawCyberScorpio" }, // ネオヴェルデ: サイバー・スコルピオ(電脳蠍)
+  3: { threat: "snake", draw: "drawChronoMantis" },   // シルヴァ: クロノ・マンティス(時計蟷螂)
+  4: { threat: "monitor", draw: "drawHaniwaGolem" },  // パルス: ハニワ・ゴーレム/墳王
+  5: { threat: "snake", draw: "drawSlagHydra" },      // イグニス: スラグ・ヒドラ(鉱滓の多頭竜)
+  6: { threat: "monitor", draw: "drawSkullAnaconda" },// ユンガ: ドクロ・アナコンダ/贄蛇
+  7: { threat: "snake", draw: "drawMagmaShark" },     // メアリス: マグマ・シャーク/熔鮫
+  8: { threat: "bugger", draw: "drawBaggerParent" },  // グラキス: ヌシ・バガー/親個体(既存bagger流用のelite変種)
+  9: { threat: "scorpion", draw: "drawMeltGolem" },   // ヴォルタ: メルト・ゴーレム/臨界獣
+  10: { threat: "monitor", draw: "drawRelicSphinx" }, // オリジン: レリック・スフィンクス/守墓像
+};
 
 // 味方 (GameExpansion_v2 ⑩) — 繁殖不可・常駐・素材でLvアップ
 const ALLIES = [

@@ -1465,13 +1465,23 @@ const Game = {
       return;
     }
     const elite = (wins + 1) % CFG.bossEvery === 0;
-    // ステージの専用敵は抽選重み×2 (GameExpansion_v2 ③)
-    const stBosses = this.currentStage().bosses || [];
-    const pool = BOSS_TYPES.filter((b) => s.rank >= b.minRank)
-      .map((b) => ({ id: b.id, w: b.weight * (stBosses.includes(b.id) ? 2 : 1) }));
-    let r = Math.random() * pool.reduce((a, b) => a + b.w, 0);
-    let typeId = "snake";
-    for (const b of pool) { r -= b.w; if (r <= 0) { typeId = b.id; break; } }
+    const stage = this.currentStage();
+    let typeId = null;
+    // Phase6: ボスは高確率でその惑星の署名脅威型(=固有ボス。Ric方針「ボスのときだけ固有敵」)。★sigBossChanceはたたき台
+    const pb = (typeof PLANET_BOSS !== "undefined") && PLANET_BOSS[stage.id];
+    if (pb && Math.random() < (CFG.sigBossChance != null ? CFG.sigBossChance : 1)) {
+      const sigType = bossTypeById(pb.threat);
+      if (sigType && s.rank >= sigType.minRank) typeId = pb.threat; // rank未達ならフォールバック
+    }
+    if (!typeId) {
+      // 残りの確率 or 署名rank未達: 従来の重み抽選(汎用脅威型=毒/強奪/妨害等の変化)。ステージ専用敵は重み×2
+      const stBosses = stage.bosses || [];
+      const pool = BOSS_TYPES.filter((b) => s.rank >= b.minRank)
+        .map((b) => ({ id: b.id, w: b.weight * (stBosses.includes(b.id) ? 2 : 1) }));
+      let r = Math.random() * pool.reduce((a, b) => a + b.w, 0);
+      typeId = "snake";
+      for (const b of pool) { r -= b.w; if (r <= 0) { typeId = b.id; break; } }
+    }
     s.nextRaid = { typeId, boss: true, elite, tier: tierDef.tier };
   },
 

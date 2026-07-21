@@ -41,8 +41,7 @@ Object.assign(UI, {
     });
   },
 
-  // 切替(未開拓なら創始者の卵を選ぶ §9.4)
-
+  // 切替(未開拓は「開拓する」確認のみ)。Phase4純血: 引き連れ(創始者)は撤廃済=各星は固有2種のみが根付く(生態系を守る)
   confirmSwitch(stageId) {
     const data = Game.stageData(stageId);
     if (data && data.pioneered) {
@@ -51,51 +50,25 @@ Object.assign(UI, {
       return;
     }
     const st = stageById(stageId);
-    const max = CFG.founderCount;
-    this.founderPicks = [];
     this.openModal(`${Icon.svg("build")} ${Icon.svg(st.icon)}「${st.name}」を開拓する`, (body) => this.buildPioneer(body, stageId));
   },
 
+  // Phase4純血: 引き連れ選択は撤廃。開拓すると その星の固有2種の純血ペアが根付く(selectStageはfounders不使用)
   buildPioneer(body, stageId) {
-    const max = CFG.founderCount;
-    const picks = this.founderPicks;
-    const founders = Game.state.lizards.filter((lz) => Game.canFound(lz, stageId));
+    const st = stageById(stageId);
+    const endemic = Game.endemicSpecies(stageId).map((id) => (speciesById(id) || {}).name || id);
     body.innerHTML = `
-      <p style="font-size:calc(13px * var(--fs-scale, 1));color:var(--sub);margin-bottom:10px">
-        新しい土地の開拓には本部Lv${Game.hqLevel()}の支援(コオロギ・資金・水場/シェルター無償)が付く。<br>
-        <b style="color:var(--gold)">創始者の卵</b>: 今のコロニーから血統を最大${max}匹まで連れて行ける(繁殖できるよう2匹推奨。個体自体は移動しない)。</p>
-      <div class="breed-filters" style="margin-bottom:10px">
-        <button id="pioneer-go" class="primary">${picks.length ? `${Icon.svg("crown")} ${picks.length}匹連れて開拓する` : "この2匹を選んで開拓"}</button>
-        <button id="pioneer-skip">連れずに開拓</button>
-      </div>
-      <div class="breed-grid" id="founder-list" style="max-height:44vh"></div>`;
+      <p style="font-size:calc(13px * var(--fs-scale, 1));color:var(--sub);margin-bottom:12px">
+        新しい土地の開拓には本部Lv${Game.hqLevel()}の支援(コオロギ・資金・水場無償)が付く。<br>
+        この星には <b style="color:var(--gold)">${st.name}固有の2種</b>(${endemic.join("・")})の純血ペアが根付く。
+        <span style="color:var(--sub)">※ 各星の生態系を守るため、他の星から個体を引き連れることはできません。</span></p>
+      <div class="breed-filters">
+        <button id="pioneer-go" class="primary">${Icon.svg("build")} 開拓する</button>
+      </div>`;
     body.querySelector("#pioneer-go").addEventListener("click", () => {
-      Game.selectStage(stageId, picks.slice());
+      Game.selectStage(stageId); // 引き連れなし(§Phase4純血): 固有種の純血ペアのみ
       this.closeModal();
     });
-    body.querySelector("#pioneer-skip").addEventListener("click", () => {
-      Game.selectStage(stageId, []);
-      this.closeModal();
-    });
-    const list = body.querySelector("#founder-list");
-    for (const lz of founders.slice(0, 60)) {
-      const col = Render.lizardColor(lz);
-      const sel = picks.includes(lz.id);
-      const cell = document.createElement("div");
-      cell.className = "breed-cell" + (sel ? " sel" : "");
-      cell.innerHTML = `<span class="sw" style="background:${col.css}"></span>
-        <div class="nm">${Game.lizardName(lz)}</div>
-        <div class="mo">Lv${lz.level}${lz.founder ? " " + Icon.svg("crown") : ""}</div>`;
-      cell.addEventListener("click", () => {
-        const i = picks.indexOf(lz.id);
-        if (i >= 0) picks.splice(i, 1);
-        else if (picks.length < max) picks.push(lz.id);
-        else this.toast(`連れて行けるのは${max}匹まで`, true);
-        this.buildPioneer(this.els["modal-body"], stageId);
-      });
-      list.appendChild(cell);
-    }
-    if (!founders.length) list.innerHTML = `<p style="color:var(--sub);grid-column:1/-1">持ち込めるアダルトがいない(固有種は持ち出せない)</p>`;
   },
 
   // ---------------- V4 §4-1: 惑星マップ+宇宙船トランジション ----------------
