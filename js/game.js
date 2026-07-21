@@ -1492,7 +1492,8 @@ const Game = {
     if (nr.typeId === "monitor") hp *= 1.6;       // タンク
     hp *= this.erosionBossMult();                 // V4.1: 侵食が高いとボスが強い
     if (type.flying) hp *= 0.8;                   // 飛行系は柔らかめ
-    hp *= CFG.bossHpMult;                         // 3.11.5: 味方削除の難化調整枠(既定1.0・CFGで即調整)
+    hp *= CFG.bossHpMult;                         // 3.11.5: 全体調整枠(既定1.0・CFGで即調整)
+    hp *= (CFG.bossHpMultByStage && CFG.bossHpMultByStage[this.currentStage().id]) || 1; // Phase6: 惑星別たたき台(味方が入った分)。★Ric実機で最終調整
 
     this.raid = {
       typeId: nr.typeId, type, boss: nr.boss, elite: nr.elite,
@@ -1534,6 +1535,10 @@ const Game = {
       + this.researchBonus("atk");                          // HQ研究
     if (r.typeId === "scorpion" && this.allyLv("ferret")) dps *= 1.16 + this.allyLv("ferret") * 0.04;
     if (r.typeId === "spider") dps *= Math.max(0.5, 1 - r.webs.filter((w) => w.hp > 0).length * CFG.webDpsPenalty);
+    // Phase6 新arch味方の火力系(既存DPS枠に加算・惑星ゲートで各自の惑星のみ非0)。全てたたき台CFG。
+    if (this.allyLv("dormouse")) dps *= 1 + this.allyLv("dormouse") * CFG.dormouseDps; // ID3 斉射(火力)
+    if (this.allyLv("mole")) dps *= 1 + this.allyLv("mole") * CFG.moleAtkBuff;         // ID5 全軍バフ
+    if (this.allyLv("anole")) dps *= 1 + this.allyLv("anole") * CFG.anoleDps;          // ID10 情報バフ(弱点閲覧=与ダメ+)
     return dps;
   },
 
@@ -1726,7 +1731,8 @@ const Game = {
         this.popup(v.x, v.y - 20, "ブロック!", "#8fd0ff");
         continue;
       }
-      v.injuredT = CFG.injuryTime;
+      // Phase6 ID4 ホタルジャコ回復猶予(支援): 負傷時間を短縮(既存の負傷時間枠・惑星ゲート・たたき台CFG)
+      v.injuredT = CFG.injuryTime * Math.max(CFG.fireflyGraceFloor, 1 - this.allyLv("firefly") * CFG.fireflyGrace);
       this.autotomize(v); // §9.1: テキスト通知でなく「尾を切って逃げる」で見せる(回復は尾の再生で伝わる)
     }
   },
