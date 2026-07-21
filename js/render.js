@@ -3414,11 +3414,20 @@ const Render = {
     ctx.save(); ctx.translate(e.x, e.y); ctx.scale(1.5, 1.5); ctx.translate(-e.x, -e.y);
     this.drawBugger(ctx, raid);
     ctx.restore();
-    // ガラスを内側から叩くヒビ(コロニー側の空間=メタ・薄く不穏に)
-    ctx.save(); ctx.strokeStyle = `rgba(220,228,240,${0.3 + Math.sin(this.time * 6) * 0.18})`; ctx.lineWidth = 1.3;
-    const cx = e.x - 84, cy = e.y - 26;
-    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + 0.4; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * (14 + i * 5), cy + Math.sin(a) * (14 + i * 5)); ctx.stroke(); }
-    ctx.beginPath(); ctx.arc(cx, cy, 5, 0, 7); ctx.stroke();
+    const BP = (typeof SIG_PAL !== "undefined" && SIG_PAL.baggerParent) || { crack: "220,228,240", crackAlpha: 0.34, sac: "#6a4a86", sacEgg: "#c9a8e6", sacGlow: "#b070e0" };
+    // 親個体固有の意匠=卵嚢(brood sac): 体の下に半透明のゼリー嚢＋透ける卵。親個体の"格"を立てる
+    ctx.save(); ctx.translate(e.x - 18, e.y + 30);
+    const ps = 0.6 + Math.sin(this.time * 2.2) * 0.25;
+    const sg = ctx.createRadialGradient(0, 0, 2, 0, 0, 30); sg.addColorStop(0, `rgba(176,112,224,${0.22 * ps})`); sg.addColorStop(1, "rgba(176,112,224,0)");
+    ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(0, 0, 30, 0, 7); ctx.fill();
+    ctx.fillStyle = BP.sac; ctx.globalAlpha = 0.72; ctx.beginPath(); ctx.ellipse(0, 4, 24, 15, 0, 0, 7); ctx.fill(); ctx.globalAlpha = 1; // ゼリー嚢
+    ctx.fillStyle = BP.sacEgg; for (const [ex, ey] of [[-13, 2], [-4, 6], [6, 3], [14, 7], [-8, -3], [3, -2], [11, -4]]) { ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.arc(ex, ey, 3.2, 0, 7); ctx.fill(); ctx.globalAlpha = 0.5; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(ex - 1, ey - 1, 1, 0, 7); ctx.fill(); ctx.fillStyle = BP.sacEgg; } // 透ける卵+ハイライト
+    ctx.globalAlpha = 1; ctx.restore();
+    // ガラスを内側から叩くヒビ=槽面(右のガラス壁)に固定。空中に浮かせない(§8.12 ボスは右=外へ抜けようと叩く)
+    ctx.save(); ctx.strokeStyle = `rgba(${BP.crack},${BP.crackAlpha + Math.sin(this.time * 6) * 0.16})`; ctx.lineWidth = 1.4; ctx.lineCap = "round";
+    const cx = FIELD.x2 - 3, cy = clamp(e.y - 10, FIELD.y1 + 50, FIELD.y2 - 50); // 右のガラス壁の一点(槽面)
+    for (let i = 0; i < 6; i++) { const a = Math.PI + (i / 6 * Math.PI - Math.PI / 2) * 0.9; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * (12 + i * 5), cy + Math.sin(a) * (12 + i * 5)); ctx.stroke(); } // 内側(左)へ放射するヒビ
+    ctx.beginPath(); ctx.arc(cx, cy, 4, 0, 7); ctx.stroke(); // 打撃点
     ctx.restore();
   },
 
