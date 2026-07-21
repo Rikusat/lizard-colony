@@ -262,6 +262,18 @@ const Game = {
     }
     return this.nestXY();
   },
+  // モーション(§8.5): この個体の「居場所(スポット)」を決定論的に割当(nestEntryForの一般化)。
+  // Render.facilitySpots() の capacity に比例させ id ハッシュで安定配分=同じ個体は同じスポット(ちらつき防止・決定論=Fable2/Math.random不使用)。
+  // 純装飾のidle行動=生産/戦闘/繁殖の数値には一切影響しない(Fable1 表現層)。設備スポットが無ければ null(=従来どおり自由徘徊)。
+  spotFor(lz) {
+    if (typeof Render === "undefined" || !Render.facilitySpots) return null;
+    const spots = Render.facilitySpots();
+    if (!spots || !spots.length) return null;
+    let total = 0; for (const s of spots) total += Math.max(1, s.capacity || 1);
+    let k = ((lz.id * 2654435761) >>> 0) % total; // capacityぶん展開したスロットをidハッシュで1つ選ぶ(広い面ほど集まる=群れ表現)
+    for (const s of spots) { k -= Math.max(1, s.capacity || 1); if (k < 0) return s; }
+    return spots[spots.length - 1];
+  },
   emergeFromNest(lz) {
     lz.resting = false;
     const n = this.nestEntryFor(lz);
