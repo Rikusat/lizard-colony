@@ -29,6 +29,7 @@ const PLANET_BOSS = {
   7: { threat: "snake", draw: "drawMagmaShark" },     // メアリス: マグマ・シャーク/熔鮫
   8: { threat: "bugger", draw: "drawBaggerParent" },  // グラキス: ヌシ・バガー/親個体(既存bagger流用のelite変種)
   9: { threat: "scorpion", draw: "drawMeltGolem" },   // ヴォルタ: メルト・ゴーレム/臨界獣
+  10: { threat: "monitor", draw: "drawRelicSphinx" }, // オリジン: レリック・スフィンクス/守墓像
 };
 // §8.15 スプライトキャッシュ: アニメ位相をこの粒度(phase単位)で量子化して焼き直す=時間スロットル。
 //   小さいほど滑らか(焼き直し頻度up=軽減効果down)、大きいほど軽い(アニメ粗く)。phase=time*8なので 0.28≈2〜3フレームに1回。
@@ -3439,6 +3440,39 @@ const Render = {
     ctx.fillStyle = heat; ctx.fillRect(1 * s, 30 * s - 28 * s * hl, 5 * s, 28 * s * hl);
     ctx.strokeStyle = tape; ctx.lineWidth = 1.5; ctx.strokeRect(0, 0, 7 * s, 30 * s);
     ctx.restore();
+    ctx.restore();
+  },
+
+  // Phase6 ID10 オリジン: レリック・スフィンクス/守墓像。渾天儀の遺構に宿った石の守護像(monitor脅威=居座り)。
+  drawRelicSphinx(ctx, raid) {
+    const e = raid.snake, s = 1.4 * (raid.boss ? 1.15 : 1);
+    const stone = "#8a8072", stoneD = "#5f574c", stoneL = "#a49a8a", gold = "#c9a84e", moss = "#6a7a4a", glow = "#ffcf6a";
+    ctx.save(); ctx.translate(e.x, e.y); ctx.lineJoin = "round";
+    ctx.fillStyle = "rgba(0,0,0,.3)"; ctx.beginPath(); ctx.ellipse(0, 28 * s, 54 * s, 12 * s, 0, 0, 7); ctx.fill();
+    // 台座
+    ctx.fillStyle = stoneD; ctx.fillRect(-46 * s, 22 * s, 92 * s, 10 * s);
+    // うずくまる獅子身(石)
+    ctx.fillStyle = stone; ctx.beginPath(); ctx.moveTo(-46 * s, 22 * s); ctx.lineTo(-40 * s, -6 * s); ctx.quadraticCurveTo(-10 * s, -16 * s, 30 * s, -6 * s); ctx.lineTo(40 * s, 22 * s); ctx.closePath(); ctx.fill();
+    // 前脚(前方=左へ伸ばす)
+    ctx.fillStyle = stoneL; ctx.fillRect(-48 * s, 8 * s, 40 * s, 14 * s);
+    ctx.strokeStyle = stoneD; ctx.lineWidth = 1.6; for (const lx of [-44, -34, -24]) { ctx.beginPath(); ctx.moveTo(lx * s, 12 * s); ctx.lineTo(lx * s, 22 * s); ctx.stroke(); } // 爪の彫り
+    // 風化のひび+苔
+    ctx.strokeStyle = "rgba(40,34,26,.5)"; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.moveTo(-20 * s, -8 * s); ctx.lineTo(-14 * s, 10 * s); ctx.moveTo(10 * s, -6 * s); ctx.lineTo(16 * s, 16 * s); ctx.stroke();
+    ctx.fillStyle = moss; ctx.globalAlpha = 0.5; for (const [mx, my] of [[-30, 18], [24, 16], [-6, 20]]) { ctx.beginPath(); ctx.ellipse(mx * s, my * s, 6 * s, 2.4 * s, 0, 0, 7); ctx.fill(); } ctx.globalAlpha = 1;
+    // 頭(守護像の顔・幅広)+ネメス頭巾風の金の帯
+    ctx.fillStyle = stone; ctx.beginPath(); ctx.ellipse(-30 * s, -22 * s, 18 * s, 17 * s, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = gold; ctx.beginPath(); ctx.moveTo(-46 * s, -30 * s); ctx.quadraticCurveTo(-30 * s, -42 * s, -14 * s, -30 * s); ctx.lineTo(-16 * s, -22 * s); ctx.quadraticCurveTo(-30 * s, -30 * s, -44 * s, -22 * s); ctx.closePath(); ctx.fill(); // 頭巾
+    ctx.strokeStyle = stoneD; ctx.lineWidth = 1.4; for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(-30 * s + i * 6 * s, -34 * s); ctx.lineTo(-30 * s + i * 5 * s, -26 * s); ctx.stroke(); }
+    // 顔の彫り(鼻・口)
+    ctx.strokeStyle = stoneD; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(-40 * s, -22 * s); ctx.lineTo(-44 * s, -18 * s); ctx.moveTo(-42 * s, -14 * s); ctx.lineTo(-34 * s, -14 * s); ctx.stroke();
+    // 光る眼(「問い」=最後の理性・静かに脈動)
+    const pe = 0.5 + Math.sin(this.time * 1.6) * 0.4; ctx.fillStyle = glow; ctx.globalAlpha = pe;
+    ctx.beginPath(); ctx.ellipse(-34 * s, -22 * s, 2.6 * s, 3.4 * s, 0, 0, 7); ctx.ellipse(-24 * s, -22 * s, 2.6 * s, 3.4 * s, 0, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+    // 背後に渾天儀の環(遺構・ゆっくり回る金の環)
+    ctx.save(); ctx.translate(20 * s, -36 * s); ctx.strokeStyle = gold; ctx.globalAlpha = 0.8; ctx.lineWidth = 2;
+    ctx.rotate(this.time * 0.2); ctx.beginPath(); ctx.ellipse(0, 0, 20 * s, 8 * s, 0, 0, 7); ctx.stroke();
+    ctx.rotate(1.1); ctx.beginPath(); ctx.ellipse(0, 0, 8 * s, 20 * s, 0, 0, 7); ctx.stroke();
+    ctx.fillStyle = gold; ctx.beginPath(); ctx.arc(0, 0, 3 * s, 0, 7); ctx.fill(); ctx.restore();
     ctx.restore();
   },
 
