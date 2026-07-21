@@ -1664,6 +1664,15 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
   - ID1〜ID9 [済] / **ID10 記録係アノール[本]**: 石板を抱えた学者肌の小トカゲ+金の刻印の脈動(1-2体)。※新arch=戦闘効果は今後。
   - **★全10惑星の味方描画 完成**（ID1〜ID10）。移送先id味方(ID2/6/7/8/9)=既存効果型を再有効化／新arch味方(ID3/4/5/10)=可視・育成のみ(効果は今後)。後修正候補: ID2-5・ID10がやや小型・背景と同化気味(存在感up余地)／ID9はラクーンか廃炉山椒魚か(Ric選択)。
 
+### 5dd. ★本番デプロイ — 再純血化 migrateV14to15 本適用(2026-07-21・成功/本番実証済)
+Ric最終指示「プレビュー数字は確認不要・何匹消えても構わない・be1e311を本番デプロイして本適用」。`node tools/bump-cache.mjs`(コード差分なし=be1e311で整合)→ commit済 → `npx vercel --prod` = **`dpl_FRYh5Tr7HsnChnMALy81JMRcdZaW` / ready**。事前ゲート: phase6_regression **86 PASS/0**・純血 **59 PASS/0**。
+- **三者同期**: HEAD=`be1e311` = origin/main=`be1e311` = 本番デプロイ。asset hash **本番=ローカル一致**(game`0acd77fe`/data`58888871`/meta`2c3ab8f6`/core`1f56cb06`)。本番起動 title正常・**console0/4xx0**。
+- **本番コード実証(汚染v14→load→v15)**: 本番js(https://lizardcolony.vercel.app/js/*)を実際に読み込み、汚染セーブ(全10惑星にkanahebi×3混入・ID6にemerald高Lvレア×2・通貨/鉱石/味方/設備入り)をload → `load=true ver=15`。**全惑星が固有種のみ(foreign=0/混入0・引き継ぎなし)**。**固有種は1匹も失わない**(ID1 kanahebi×3残る・ID6 emerald高Lvレア×2残る)。**空惑星に固有#1純血ペア再配置**(ID2=leopa純血ペア確認・reseeded=16=8惑星×2)。**通貨/鉱石/設備Lv/味方Lv 完全一致**(coins777777・gems321・amber7・armadillo4・octopus5・water8 = assetOK)。`stageSel=1`(アリド補正)。**V15バックアップ退避=true**(復元ボタン+消失数トースト有効=ロールバック保証)。
+- **惑星別消失数(実測・証跡)**: ID1=0(固有kanahebi保全) / **ID2〜ID10=各3匹** / **合計27匹除去・16匹再配置**。※このテストセーブの規模。実Ricセーブはrank分だけ規模が異なるが挙動は同一。
+- **currentStage自動ジャンプなし(本番実証)**: `stageSel=1,rank90 → currentStage=1`(最新へ飛ばさない)・`stageSel=6 → 6`(選択尊重)。新惑星解放は**通知+マップバッジのみ・手動移動**(addRankXpは移行通知を廃止・hasUnvisitedPlanetでバッジ)。移行チェーン**v10→…→v15で資産保全**(node実測済)。
+- 症状A(アリドで報酬ルーレット)=根本原因のcurrentStage自動ジャンプ(stage1到達不能)を除去済み=本番でcs@sel1=1を実証。報酬描画自体はバイト同一資産(hash一致)上で統合テスト10/10で担保。
+- **確率/物理/純血/魂 不変**・セーブ資産(固有種/通貨/味方Lv)保全。ロールバック=設定の復元ボタン(saveBackupKeyV15)。
+
 ### 5cc. Phase 10-B — 再純血化 migrateV14to15(実装・検証済/デプロイはRicのプレビュー数字確認後)
 Ric承認済(再配置=空惑星に固有ペア・アリド既定)。**実装＋ローカル検証まで完了・コミット済だが未デプロイ**(現prod=d6cec6dはプレビューのみ)。Ricが本番プレビューで消失数確認→伝達→デプロイ。
 - **SAVE_VERSION 14→15**。`migrateV14to15(w)`: 各惑星から**非固有種を除去(固有種は1匹も失わない)** ＋ **空になった開拓済み惑星に固有種#1の純血ペア2匹を再配置**(Phase4 spawnPurePairと同一=正しい固有種・詰み回避) ＋ **stageSel→アリド(既定)**。冪等(版ゲート+固有種のみ残す)。
