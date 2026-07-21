@@ -26,6 +26,7 @@ const PLANET_BOSS = {
   4: { threat: "monitor", draw: "drawHaniwaGolem" },  // パルス: ハニワ・ゴーレム/墳王
   5: { threat: "snake", draw: "drawSlagHydra" },      // イグニス: スラグ・ヒドラ(鉱滓の多頭竜)
   6: { threat: "monitor", draw: "drawSkullAnaconda" },// ユンガ: ドクロ・アナコンダ/贄蛇
+  7: { threat: "snake", draw: "drawMagmaShark" },     // メアリス: マグマ・シャーク/熔鮫
 };
 // §8.15 スプライトキャッシュ: アニメ位相をこの粒度(phase単位)で量子化して焼き直す=時間スロットル。
 //   小さいほど滑らか(焼き直し頻度up=軽減効果down)、大きいほど軽い(アニメ粗く)。phase=time*8なので 0.28≈2〜3フレームに1回。
@@ -3343,6 +3344,39 @@ const Render = {
     }
     // 紐(翡翠の玉=神使への冒涜の対比)
     ctx.strokeStyle = jade; ctx.globalAlpha = 0.7; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(-40 * s, -20 * s); for (const [sx, sy] of [[-26, -4], [-8, -8], [10, -6], [28, -3]]) ctx.lineTo(sx * s, sy * s); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.restore();
+  },
+
+  // Phase6 ID7 メアリス: マグマ・シャーク/熔鮫。溶岩泥を纏い津波に乗って突進する巨大鮫(snake脅威=突進)。
+  drawMagmaShark(ctx, raid) {
+    const e = raid.snake, s = 1.45 * (raid.boss ? 1.15 : 1);
+    const shark = "#33454c", belly = "#769097", mud = "#b5502a", molten = "#ff6a28", teeth = "#ece4d6";
+    ctx.save(); ctx.translate(e.x, e.y); ctx.lineJoin = "round"; ctx.lineCap = "round";
+    const lunge = Math.sin(this.time * 2) * 6 * s;
+    ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(6 * s, 22 * s, 54 * s, 10 * s, 0, 0, 7); ctx.fill();
+    // 尾びれ(右)
+    ctx.fillStyle = shark; ctx.beginPath(); ctx.moveTo(44 * s, 0); ctx.lineTo(64 * s, -18 * s); ctx.lineTo(56 * s, 0); ctx.lineTo(64 * s, 16 * s); ctx.closePath(); ctx.fill();
+    // 胴(流線・左が頭)
+    ctx.fillStyle = shark; ctx.beginPath(); ctx.moveTo(-52 * s + lunge, 0); ctx.quadraticCurveTo(-20 * s, -22 * s, 46 * s, -6 * s); ctx.quadraticCurveTo(50 * s, 0, 46 * s, 6 * s); ctx.quadraticCurveTo(-20 * s, 20 * s, -52 * s + lunge, 0); ctx.closePath(); ctx.fill();
+    // 腹(明色)
+    ctx.fillStyle = belly; ctx.beginPath(); ctx.moveTo(-40 * s + lunge, 6 * s); ctx.quadraticCurveTo(0, 18 * s, 40 * s, 5 * s); ctx.quadraticCurveTo(0, 12 * s, -40 * s + lunge, 6 * s); ctx.fill();
+    // 背びれ
+    ctx.fillStyle = shark; ctx.beginPath(); ctx.moveTo(4 * s, -14 * s); ctx.lineTo(16 * s, -34 * s); ctx.lineTo(22 * s, -12 * s); ctx.closePath(); ctx.fill();
+    // 胸びれ
+    ctx.beginPath(); ctx.moveTo(-12 * s, 10 * s); ctx.lineTo(-4 * s, 26 * s); ctx.lineTo(6 * s, 12 * s); ctx.closePath(); ctx.fill();
+    // 溶土化(背側後半に溶岩泥の殻+発光する割れ目)
+    ctx.fillStyle = mud; ctx.beginPath(); ctx.moveTo(6 * s, -13 * s); ctx.quadraticCurveTo(30 * s, -18 * s, 46 * s, -5 * s); ctx.quadraticCurveTo(30 * s, -2 * s, 8 * s, -4 * s); ctx.closePath(); ctx.fill();
+    const pm = 0.6 + Math.sin(this.time * 3.5) * 0.3; ctx.strokeStyle = molten; ctx.globalAlpha = pm; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(14 * s, -12 * s); ctx.lineTo(22 * s, -6 * s); ctx.moveTo(30 * s, -12 * s); ctx.lineTo(36 * s, -6 * s); ctx.stroke(); ctx.globalAlpha = 1;
+    // 頭部・エラ
+    ctx.strokeStyle = "rgba(20,30,34,.6)"; ctx.lineWidth = 1.4; for (const gx of [-28, -24, -20]) { ctx.beginPath(); ctx.moveTo((gx) * s + lunge, -6 * s); ctx.lineTo((gx) * s + lunge, 6 * s); ctx.stroke(); }
+    // 口(大きく開く+歯)
+    const mx = -52 * s + lunge;
+    ctx.fillStyle = "#1a0d0a"; ctx.beginPath(); ctx.moveTo(mx, 2 * s); ctx.quadraticCurveTo(mx + 16 * s, 14 * s, mx + 26 * s, 8 * s); ctx.lineTo(mx + 22 * s, 2 * s); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = teeth; for (let i = 0; i < 6; i++) { const tx = mx + 4 * s + i * 3.6 * s; ctx.beginPath(); ctx.moveTo(tx, 5 * s); ctx.lineTo(tx + 1.6 * s, 9 * s); ctx.lineTo(tx + 3.2 * s, 5 * s); ctx.fill(); }
+    // 目
+    ctx.fillStyle = "#0a0e10"; ctx.beginPath(); ctx.arc(mx + 14 * s, -4 * s, 2.6 * s, 0, 7); ctx.fill();
+    ctx.fillStyle = molten; ctx.globalAlpha = pm; ctx.beginPath(); ctx.arc(mx + 14 * s, -4 * s, 1.2 * s, 0, 7); ctx.fill(); ctx.globalAlpha = 1; // 溶けた眼光
     ctx.restore();
   },
 
