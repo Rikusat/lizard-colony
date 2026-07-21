@@ -1,6 +1,6 @@
 # facility_spots.md — 設備の「トカゲの居場所（スポット）」レジストリ
 
-- 版: **0.2**（2026-07-21・モーションの下ごしらえ＝座標のコード化＋割り当て機構の設計を追記）／0.1（2026-07-20・Phase 8.5 で新設）
+- 版: **0.3**（2026-07-21・モーション本体①〜⑤を実装＝spotFor割当/歩いて到達/姿勢の揺れ。⑥手触りCFGはRic実機）／0.2（2026-07-21・下ごしらえ＝座標コード化＋割当設計）／0.1（2026-07-20・Phase 8.5 新設）
 - 位置づけ: 各設備が持つ**トカゲの居場所（スポット）**の座標・向き・想定姿勢を記録する（`GameExpansion_V5.md §8.5`）。
   **モーション（drink/bask/wade/lookout の実アニメーション）は未実装。** ここは「形状の設計時点で確保したスポット」の台帳＋割り当て設計であり、将来モーション実装時に参照する。
 - **座標の単一の真実（v0.2でコード化）**: 下記のスポット座標は `Render.facilitySpots()`（`js/render.js`）が**現在の設備Lvから live に算出**する。本ドキュメントは意図・姿勢・確保方針を記し、**具体座標は関数が正**（二重管理を避ける）。関数は純粋な読み取り専用＝描画ループから呼ばれず挙動を変えない（不活性・モーションの接続点）。
@@ -83,14 +83,18 @@
 - **状態フックの契約（実装時に用意する空フック）**: 個体に `lz.spot`（割当先スポットid or null）と `lz.spotPhase`（姿勢アニメの位相 0..1）を持たせる想定。**現在は未定義＝全個体 spot なし（=従来どおり自由徘徊）**。motion 実装時にここへ書き込む。魂（`_paintLizardBody`）は不変を保ち、姿勢は `_paintLizardState` 相当の状態レイヤーで加える（スプライトキャッシュ sig に posture を足す＝§8.15 整合）。
 - **表現層の規律（Fable1）**: スポットへ歩く/留まる/姿勢をとる、はルール層のイベント購読ではなく**表現層の idle 行動**（生産/戦闘/繁殖の数値には一切影響しない・純装飾）。`facilitySpots()` は座標を供給するのみ。
 
-## モーション実装の「次の一歩」（この下ごしらえの続き）
+## モーション実装（①〜⑤ 実装済・2026-07-21／⑥ 手触りは Ric 実機）
 
-1. `Game.spotFor(lz)`（or `Render` 側の idle 割当）を追加＝`facilitySpots()` の座標＋capacity で個体を安定割当（`nestEntryFor` を内部で包含 or 一般化）。
-2. `lz.spot`/`lz.spotPhase` フックを個体に用意（既定 null＝非干渉）。可視かつ非戦闘・非帰巣の個体の一部を、確率/距離で最寄りスポットへ割り当て。
-3. スポットへ**歩く動線**（既存 `moveLizards`/`retreatToNest` の歩行を流用＝ワープ禁止・§8.14）。
-4. 到達後の**姿勢アニメ**（drink=頭を下げる/bask=伏せる/wade=尾で水を跳ねる/lookout=見上げる）を `_paintLizardState` 側に追加（魂不変・キャッシュ sig に posture 追加）。
-5. `reduced-motion`/`fx0` で姿勢アニメ停止（静的スポット滞在は残す）。
-6. **Ric 実機判定**: 手触り・"間"・どのスポットにどれだけ集まると気持ちよいか（capacity/確率のCFG調整）。→ **ここから先は Ric の目視が要るため、下ごしらえは 1 の直前（座標レジストリ）まで。**
+**①〜⑤を実装した（C1〜C4）。⑥（手触り・振幅・"間"のCFG調整）だけ Ric の実機判定を残す。**
+
+1. ✅ **`Game.spotFor(lz)`**（`nestEntryFor` の一般化）＝`facilitySpots()` の capacity に比例させ id ハッシュで**決定論的に安定割当**（Math.random不使用・同個体は同スポット＝ちらつき防止）。純装飾＝数値非干渉。設備スポットが無ければ null（従来どおり自由徘徊）。
+2. ✅ **`lz.spot`/`lz._toSpot`/`lz._spotFacing`/`lz._spotPosture` フック**（既定 undefined＝非干渉）。徘徊の再設定時に `CFG.spotVisitChance` で最寄りではなく**割当スポット**へ向かう（面の中は id で決定論オフセット＝固まらない）。戦闘・帰巣・負傷・ロード（`settleDisplay`）で解除＝stale姿勢なし。
+3. ✅ **歩く動線**＝既存 `moveLizards` の徘徊移動を流用（`lz.tx/ty` をスポットへ向ける）＝**ワープ禁止（§8.14）**。到達（`dist<=4`）で `lz.spot` 確定＋`spot.facing` へ向き付け。
+4. ✅ **姿勢の揺れ `Render._poseBob(lz)`**（drink=水面へ頭を沈める上下/bask=呼吸/wade=尾で水を跳ねる左右/lookup・lookout=見上げて浮く/emerge=入口の日向ぼっこ）。**魂ピクセル不変を厳守＝配置トランスフォーム（整数 px の bob）のみ**（doc案の「キャッシュ sig に posture 追加＝焼き込み」ではなく、**より強い保証**＝魂の焼きスプライトは一切変えずキャッシュ無効化もなし・crisp維持）。`drawLizard` で body+state を一体に translate。`CFG.poseBobPx/poseBobSpeed`。
+5. ✅ **`reduced-motion` で姿勢停止**（`_poseBob` が null＝静的スポット滞在は残る＝暗転しない）。※本作の reduced-motion は `Motion.reduced`（`fx0` の別トグルは無し＝これで担保）。
+6. ⏳ **Ric 実機判定（⑥・未確定）**: 手触り・"間"・振幅（`CFG.poseBobPx/poseBobSpeed`）・どのスポットにどれだけ集まると気持ちよいか（`CFG.spotVisitChance/spotDwellMin/Max`・`facilitySpots().capacity`）。**強いポーズ（実際の頭下げ・伏せの体形変化）は魂geometryに触れるため、許容するか＝Ric判断で別途**（現状は魂不変の整数bobで"生きている"を表現）。
+
+- 検証: 恒久 `tests/motion_regression.js` **22 PASS**（C1割当:決定論/capacity比例/状態非干渉/null・C2配線:到達/ワープなし/戦闘・帰巣・負傷・ロードで解除/数値非干渉・C3姿勢:整数bob/null条件/決定論）。実canvas描画6姿勢0err・純血59・phase6 86・boot console0。fps影響=軽微（16匹draw換算 pose ON 5580 / OFF 6027fps＝両者60fps遥か上）。
 
 ---
 

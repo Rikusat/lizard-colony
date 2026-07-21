@@ -1664,6 +1664,16 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
   - ID1〜ID9 [済] / **ID10 記録係アノール[本]**: 石板を抱えた学者肌の小トカゲ+金の刻印の脈動(1-2体)。※新arch=戦闘効果は今後。
   - **★全10惑星の味方描画 完成**（ID1〜ID10）。移送先id味方(ID2/6/7/8/9)=既存効果型を再有効化／新arch味方(ID3/4/5/10)=可視・育成のみ(効果は今後)。後修正候補: ID2-5・ID10がやや小型・背景と同化気味(存在感up余地)／ID9はラクーンか廃炉山椒魚か(Ric選択)。
 
+### 5ff. トカゲモーション 実装(①〜⑤・2026-07-21・⑥手触りはRic実機)
+Ric選択=「トカゲモーション(推奨)」。下ごしらえ(facilitySpots §5k)を土台に、`docs/facility_spots.md §次の一歩` の①〜⑤を実装。**⑥(手触り・振幅・"間"のCFG)だけRic実機判定を残す**。純装飾=生産/戦闘/繁殖の数値には無影響(Fable1)・魂ピクセル不変・可逆。分割4コミット:
+- **C1 `Game.spotFor(lz)`** [6b2b4e1]: `nestEntryFor`の一般化。`Render.facilitySpots()`のcapacityに比例させidハッシュで**決定論割当**(Math.random不使用=同個体は同スポット・ちらつき防止)。設備スポット皆無でnull=挙動不変(未配線=inert)。verify_spotfor 9 PASS。
+- **C2 moveLizards配線** [d2f4b58]: 徘徊再設定時に`CFG.spotVisitChance`で割当スポットへ向かい、**歩いて到達(§8.14ワープ禁止・既存移動流用)**で`lz.spot`確定。戦闘・帰巣・負傷・ロード(`settleDisplay`)で解除=stale姿勢なし。CFG=spotVisitChance(0.35)/spotDwellMin(3)/Max(8)。verify_spotmove 9 PASS。
+- **C3 姿勢の揺れ `Render._poseBob`** [54e7677]: drink/bask/wade/lookup/lookout/emerge。**魂ピクセル不変を厳守=配置トランスフォーム(整数bob)のみ**(doc案の焼き込みsig拡張ではなく=より強い保証・キャッシュ無効化なし・crisp維持)。到達時に`spot.facing`へ向き付け。reduced-motion/移動中/非スポットで停止。CFG=poseBobPx(3)/poseBobSpeed(1.2)。verify_pose 21 PASS・実canvas6姿勢0err。
+- **C4 総仕上げ**: reduced-motion(`Motion.reduced`・fx0別トグルは無し)・CFG外部化はC2/C3で完了。恒久 `tests/motion_regression.js` **22 PASS**新設。fps実測=軽微(16匹draw換算 pose ON 5580 / OFF 6027fps=両者60fps遥か上)。純血59/phase6 86/boot console0。
+- **設計判断(fable0記録)**: doc案「キャッシュsigにposture追加(焼き込み)」を採らず**整数bobの配置トランスフォーム**を採用。理由=魂body不変が硬い不変条件で、ピクセル完全一致(魂の焼きスプライトを一切変えない)の方が保証が強くキャッシュも無効化しない。docより強い=構造の一貫性を損なわず正直(fable0優先順位)。facility_spots.md v0.3へ反映。
+- **★Ric実機判定(⑥・残)**: 振幅/速さ(poseBobPx/Speed)・訪問確率/滞在秒(spotVisitChance/spotDwell)・スポットcapacityの手触り。**強いポーズ(実際の頭下げ・伏せの体形変化)は魂geometryに触れるため許容可否はRic判断**(現状は魂不変の整数bob)。
+- セーブ非接触(lz.spot等は既存runtime同様に保存されるがload時settleDisplayでクリア)。デプロイなし(実機体感後にRic GO)。
+
 ### 5ee. ★残タスク最新棚卸し(Phase10後・§5sを更新・2026-07-21)
 セッション再開時にfable群＋設計doc一式＋コード実体を実測し、§5s(Phase6期チェックポイント＝古い)を最新化。**§5s以降にPhase 8/9/10が実装・デプロイ済**と判明したため、以下が現在の真実。
 **完了(実装+本番反映済)**: V5 Phase1-6(敵味方全10惑星描画・署名ボス②方式・移行v13→v14・新arch4味方効果/bossHpMult/署名頻度=全たたき台) / **Phase8**(設備tier成長=水場/保温/展望台/防衛・シェルター撤廃v11→v12・餌場/繁殖撤廃統合v12→v13・配置再構成・同種2体制限・ワープ禁止・スプライトキャッシュ・すみか多入口・防衛tier化) / **Phase9**(通知撤廃→視覚化=自切/登場エフェクト/中央通知/状態表示/新着ドット) / **Phase10**(惑星完全独立=自動移行停止+再純血化v15) / モーション下ごしらえ(facilitySpots座標) / ルーレット惑星別skin p1-p10。
