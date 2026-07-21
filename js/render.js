@@ -23,6 +23,7 @@ const PLANET_BOSS = {
   1: { threat: "snake", draw: "drawDoronumaWorm" },   // アリド: ドロヌマ・ワーム(泥沼蟲)
   2: { threat: "scorpion", draw: "drawCyberScorpio" }, // ネオヴェルデ: サイバー・スコルピオ(電脳蠍)
   3: { threat: "snake", draw: "drawChronoMantis" },   // シルヴァ: クロノ・マンティス(時計蟷螂)
+  4: { threat: "monitor", draw: "drawHaniwaGolem" },  // パルス: ハニワ・ゴーレム/墳王
 };
 // §8.15 スプライトキャッシュ: アニメ位相をこの粒度(phase単位)で量子化して焼き直す=時間スロットル。
 //   小さいほど滑らか(焼き直し頻度up=軽減効果down)、大きいほど軽い(アニメ粗く)。phase=time*8なので 0.28≈2〜3フレームに1回。
@@ -3234,6 +3235,38 @@ const Render = {
     ctx.strokeStyle = woodL; ctx.lineWidth = 4.5 * s;
     const scy = Math.sin(this.time * 1.6 + 1) * 0.1;
     for (const o of [0, 3]) { ctx.save(); ctx.translate(-4 * s + o * s, -30 * s); ctx.rotate(scy); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-16 * s, 6 * s); ctx.stroke(); ctx.strokeStyle = brass; ctx.lineWidth = 3 * s; ctx.beginPath(); ctx.moveTo(-16 * s, 6 * s); ctx.lineTo(-6 * s, 16 * s); ctx.stroke(); ctx.restore(); ctx.strokeStyle = woodL; ctx.lineWidth = 4.5 * s; }
+    ctx.restore();
+  },
+
+  // Phase6 ID4 パルス: ハニワ・ゴーレム/墳王。埴輪が積み上がった土偶の巨人・うつろな目(monitor脅威=居座り)。
+  drawHaniwaGolem(ctx, raid) {
+    const e = raid.snake, s = 1.3 * (raid.boss ? 1.2 : 1);
+    const clay = "#b07a50", clayD = "#7a4e30", clayL = "#c89468", hollow = "#241408", gold = "#c9a84e", life = "#8fe0a0";
+    ctx.save(); ctx.translate(e.x, e.y); ctx.lineJoin = "round";
+    ctx.fillStyle = "rgba(0,0,0,.3)"; ctx.beginPath(); ctx.ellipse(0, 34 * s, 44 * s, 11 * s, 0, 0, 7); ctx.fill();
+    const cyl = (cx, cy, w, h, col) => { ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(cx, cy + h / 2, w / 2, w * 0.16, 0, 0, 7); ctx.fill(); ctx.fillRect(cx - w / 2, cy - h / 2, w, h); ctx.beginPath(); ctx.ellipse(cx, cy - h / 2, w / 2, w * 0.16, 0, 0, 7); ctx.fill(); };
+    // 脚(2本の埴輪筒)
+    cyl(-14 * s, 24 * s, 16 * s, 24 * s, clayD); cyl(14 * s, 24 * s, 16 * s, 24 * s, clayD);
+    // 胴(大きな埴輪の重なり)
+    cyl(0, 0, 52 * s, 40 * s, clay);
+    ctx.strokeStyle = clayD; ctx.lineWidth = 2; for (const yy of [-8, 6]) { ctx.beginPath(); ctx.ellipse(0, yy * s, 26 * s, 4.2 * s, 0, 0, 7); ctx.stroke(); } // 積み目
+    // 金の帯(玄室の金・墳王の証)
+    ctx.strokeStyle = gold; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(0, -2 * s, 26 * s, 4.2 * s, 0, 0, 7); ctx.stroke();
+    // ひび
+    ctx.strokeStyle = "rgba(40,20,10,.5)"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-8 * s, -16 * s); ctx.lineTo(-4 * s, -2 * s); ctx.lineTo(-10 * s, 12 * s); ctx.stroke();
+    // 肩+腕(埴輪筒)
+    cyl(-34 * s, -8 * s, 15 * s, 30 * s, clay); cyl(34 * s, -8 * s, 15 * s, 30 * s, clay);
+    ctx.fillStyle = clayL; ctx.beginPath(); ctx.arc(-34 * s, 10 * s, 8 * s, 0, 7); ctx.arc(34 * s, 10 * s, 8 * s, 0, 7); ctx.fill(); // こぶし
+    // 頭(埴輪の頭・うつろな目と口)
+    cyl(0, -38 * s, 26 * s, 26 * s, clayL);
+    ctx.fillStyle = hollow; // うつろな目(縦長の穴)
+    ctx.beginPath(); ctx.ellipse(-8 * s, -40 * s, 3.6 * s, 6 * s, 0, 0, 7); ctx.ellipse(8 * s, -40 * s, 3.6 * s, 6 * s, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, -30 * s, 4 * s, 3 * s, 0, 0, 7); ctx.fill(); // 口
+    // 目の奥の燐火(悼む魂・かすかに揺れる)
+    const g = 0.4 + Math.sin(this.time * 2) * 0.3; ctx.fillStyle = life; ctx.globalAlpha = g;
+    ctx.beginPath(); ctx.arc(-8 * s, -40 * s, 1.8 * s, 0, 7); ctx.arc(8 * s, -40 * s, 1.8 * s, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+    // 頭頂の冠(前方後円の意匠・小)
+    ctx.fillStyle = gold; ctx.beginPath(); ctx.ellipse(0, -52 * s, 7 * s, 3 * s, 0, 0, 7); ctx.fill();
     ctx.restore();
   },
 
