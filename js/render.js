@@ -2324,7 +2324,12 @@ const Render = {
       case "scorpion": this.drawScorpion(ctx, raid); break;
       case "spider": this.drawSpider(ctx, raid); break;
       case "bugger": this.drawBugger(ctx, raid); break;
-      default: this.drawSnake(ctx, raid);
+      default: {
+        // Phase6 ID1 アリド: snake脅威をドロヌマ・ワーム(泥沼蟲)として描画(惑星ゲート・描画のみ差替)
+        const st = Game.currentStage && Game.currentStage();
+        if (st && st.id === 1) this.drawDoronumaWorm(ctx, raid);
+        else this.drawSnake(ctx, raid);
+      }
     }
     // Elite金縁
     if (raid.elite) {
@@ -3067,6 +3072,87 @@ const Render = {
   // ---------------- 味方 (3.11.5で撤去) ----------------
   // 汎用味方(ヤモリ/カメ/ミーアキャット/フクロウ/フェレット/ワシ)の描画は撤去。
   // Phase 6で惑星固有味方を新設予定。state.alliesのLvは休眠保持(Game.allyLvRawで参照可・資産振替用)。
+
+  // ---------------- Phase6 ID1 アリド: ドロヌマ・ワーム(泥沼蟲) ----------------
+  // 敵ボス=砂まみれの巨大ミミズ。地中から突き上げて現れる(snake脅威を再利用・描画のみ差替)。
+  // 「間抜けな土管」の姿(ずんぐり・環節・鈍い頭)なのに神出鬼没=登場の驚き。
+  drawDoronumaWorm(ctx, raid) {
+    const s = raid.snake;
+    const tier = snakeTierFor(Game.state.rank);
+    const scale = tier.scale * (raid.boss ? 1.4 : 1.05);
+    const skin = "#9c6f4a", skinDk = "#6a4630", band = "#c39a70", saddle = "#c9b088", maw = "#341f12", sand = "#b79362";
+
+    // 背骨: 砂山(埋没端)から立ち上がり、鈍い頭を上へ突き上げる弧
+    const segs = 16, segLen = 15 * scale;
+    const bx = s.x + 34 * scale, by = s.y + 14 * scale; // 埋没端(砂山の中)
+    const bob = Math.sin(this.time * 2.2 + s.phase) * 3 * scale; // ゆっくりうねる(蠕動)
+    const pts = [], wid = [];
+    for (let i = 0; i <= segs; i++) {
+      const t = i / segs;
+      // 弧: 右下の砂山から、左上へ鈍く反り返る(頭=突き上げ)
+      const ang = Math.PI * 1.15 - t * Math.PI * 0.62;
+      const reach = t * segs * segLen * 0.62;
+      const crawl = Math.sin(this.time * 3.2 - i * 0.7) * 2.2 * scale * Math.min(1, i / 2); // 蠕動の波
+      pts.push({ x: bx + Math.cos(ang) * reach, y: by + Math.sin(ang) * reach - t * 8 * scale + bob * t + crawl });
+      // 太い胴・両端だけ細る(ミミズ=ほぼ均一の寸胴)
+      const w = (t < 0.12 ? 6 + (t / 0.12) * 10 : t > 0.86 ? 16 - ((t - 0.86) / 0.14) * 7 : 16) * scale;
+      wid.push(Math.max(2, w));
+    }
+    const nrm = [];
+    for (let i = 0; i <= segs; i++) {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(segs, i + 1)];
+      const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
+      nrm.push({ x: -dy / d, y: dx / d });
+    }
+
+    // 砂山(掘り出し口)+接地影
+    ctx.fillStyle = "rgba(0,0,0,.26)";
+    ctx.beginPath(); ctx.ellipse(bx, by + 10 * scale, 40 * scale, 12 * scale, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = sand;
+    ctx.beginPath(); ctx.ellipse(bx, by + 4 * scale, 38 * scale, 18 * scale, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = "rgba(0,0,0,.14)";
+    ctx.beginPath(); ctx.ellipse(bx, by, 20 * scale, 8 * scale, 0, 0, 7); ctx.fill(); // 掘り穴の陰
+
+    // 胴体(寸胴チューブ)
+    const body = new Path2D();
+    body.moveTo(pts[0].x + nrm[0].x * wid[0], pts[0].y + nrm[0].y * wid[0]);
+    for (let i = 0; i <= segs; i++) body.lineTo(pts[i].x + nrm[i].x * wid[i], pts[i].y + nrm[i].y * wid[i]);
+    for (let i = segs; i >= 0; i--) body.lineTo(pts[i].x - nrm[i].x * wid[i], pts[i].y - nrm[i].y * wid[i]);
+    body.closePath();
+    ctx.fillStyle = skin; ctx.fill(body);
+
+    ctx.save(); ctx.clip(body);
+    // 背側の陰・腹側の照り
+    ctx.strokeStyle = skinDk; ctx.globalAlpha = 0.5; ctx.lineWidth = 10 * scale;
+    ctx.beginPath(); for (let i = 0; i <= segs; i++) { const m = i ? "lineTo" : "moveTo"; ctx[m](pts[i].x + nrm[i].x * wid[i] * 0.5, pts[i].y + nrm[i].y * wid[i] * 0.5); } ctx.stroke();
+    ctx.globalAlpha = 1;
+    // 環節(ミミズの体節リング)=法線方向の横筋
+    ctx.strokeStyle = "rgba(60,38,22,.4)"; ctx.lineWidth = 2 * scale;
+    for (let i = 2; i < segs - 1; i++) {
+      const p = pts[i], n = nrm[i], w = wid[i];
+      ctx.beginPath(); ctx.moveTo(p.x - n.x * w, p.y - n.y * w); ctx.lineTo(p.x + n.x * w, p.y + n.y * w); ctx.stroke();
+    }
+    // 環帯(クリテルム=ミミズの淡い鞍状の帯・ミミズの証)
+    const si = Math.round(segs * 0.5);
+    ctx.fillStyle = saddle; ctx.globalAlpha = 0.7;
+    for (let i = si - 1; i <= si + 1; i++) { const p = pts[i], n = nrm[i], w = wid[i]; ctx.beginPath(); ctx.ellipse(p.x, p.y, w * 0.5, w * 1.02, Math.atan2(n.y, n.x), 0, 7); ctx.fill(); }
+    ctx.globalAlpha = 1;
+    // 砂粒(乾いた大地をまとう)
+    const g = lcg(41);
+    for (let i = 0; i < 26; i++) { const p = pts[Math.floor(g() * segs)]; ctx.fillStyle = g() < 0.5 ? "rgba(210,180,130,.5)" : "rgba(50,32,18,.3)"; ctx.beginPath(); ctx.arc(p.x + rnd(-8, 8) * scale, p.y + rnd(-8, 8) * scale, (0.8 + g() * 1.4) * scale, 0, 7); ctx.fill(); }
+    ctx.restore();
+
+    // 鈍い頭(土管)+放射状の口
+    const hp = pts[segs], hw = wid[segs] * 1.15;
+    ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(hp.x, hp.y, hw, 0, 7); ctx.fill();
+    ctx.fillStyle = skinDk; ctx.beginPath(); ctx.arc(hp.x, hp.y, hw * 0.62, 0, 7); ctx.fill(); // 口の縁の陰
+    ctx.fillStyle = maw; ctx.beginPath(); ctx.arc(hp.x, hp.y, hw * 0.44, 0, 7); ctx.fill();     // 円い口(土管)
+    // 放射状の口ヒダ
+    ctx.strokeStyle = "rgba(20,10,6,.6)"; ctx.lineWidth = 1.5 * scale;
+    for (let a = 0; a < 8; a++) { const an = a / 8 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(hp.x + Math.cos(an) * hw * 0.44, hp.y + Math.sin(an) * hw * 0.44); ctx.lineTo(hp.x + Math.cos(an) * hw * 0.62, hp.y + Math.sin(an) * hw * 0.62); ctx.stroke(); }
+    // 頭の照り
+    ctx.fillStyle = "rgba(255,240,210,.18)"; ctx.beginPath(); ctx.arc(hp.x - hw * 0.3, hp.y - hw * 0.35, hw * 0.3, 0, 7); ctx.fill();
+  },
 
   // ---------------- 蛇(コロニーランクに同期した階級・背骨ベース描画) ----------------
   drawSnake(ctx, raid) {

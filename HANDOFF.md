@@ -1584,5 +1584,13 @@ Phase 9＋6点(ピン撤廃他)完了後の本番デプロイ前QA。**コード
 - **実装方針（承認済・未着手）**: Ricが実機確認できる時に**1惑星ずつ**。セーブ影響=退避＋冪等＋承認先行、allyLvRaw引き継ぎ案A（役割マッチ1:1移送）、bossHpMult段階検証。今は設計確定まで。
 - 変更はドキュメント（phase6_design.md）のみ＝コード・セーブ非接触。
 
+### 5o. Phase 6 実装 — ID1 アリド Step A（ドロヌマ・ワーム描画・2026-07-21）
+Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の初手＝ID1のwalking skeleton。**Step A＝ボス描画スキン（非セーブ）**を実装。
+- **`render.js: drawDoronumaWorm(ctx, raid)`** 新設: 砂まみれの巨大ミミズ（環節リング・クリテルム帯・鈍い頭＋放射状の円い口＝土管・砂山から立ち上がる弧・蠕動アニメ this.time）。手描きSVG・絵文字なし・`snakeTierFor`でscale同期・`lcg`/`rnd`決定論。
+- **`render.js: drawBoss` ディスパッチにID1ゲート**: `Game.currentStage().id===1` かつ snake脅威型のとき drawSnake→drawDoronumaWorm へ差替（他惑星は従来の蛇のまま＝漏れなし）。**snake脅威（噛みつき負傷=自切）は不変＝描画のみ差替**。
+- **検証**: render.js `node --check` OK／scratchpardハーネスでID1描画＝ワーム表示・console0／**stage2は従来の蛇のまま（ゲート非漏れ）を実画像で確認**／純血59/0／index.htmlブートconsole0・スクショ正常。セーブ非接触・魂不変。
+- **Ric実機確認待ち**: ワームの見た目・登場の手触り（OKなら Step B＝味方スナホリ・アルマジロ＋allyLvRaw移行 v13→v14 案A へ）。
+- index.html cache-bust(render.js)更新。デプロイなし。
+
 ### 6. 現在の保留・未着手(次編以降)
 - **Phase 5** 惑星背景の本格実装(**モノリス最優先**) / **Phase 6** 惑星固有の敵・味方＋命名(創作・Ric承認要) / **Phase 7** 味方のステージ固有化・ボスLv連動強化(6依存) / ルーレットの惑星別意匠(`docs/roulette_rules.md`) / 特性システム(`docs/trait_system.md`・寝かせ中)。
