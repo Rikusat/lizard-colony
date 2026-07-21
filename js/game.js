@@ -2086,7 +2086,7 @@ const Game = {
           const ang = (off % 628) / 100, rad = (goSpot.radius || 12) * (0.15 + (off % 70) / 100);
           lz.tx = clamp(goSpot.center.x + Math.cos(ang) * rad, FIELD.x1, FIELD.x2);
           lz.ty = clamp(goSpot.center.y + Math.sin(ang) * rad, FIELD.y1 - 10, FIELD.y2);
-          lz._toSpot = goSpot.id; lz._spotFacing = goSpot.facing;
+          lz._toSpot = goSpot.id; lz._spotFacing = goSpot.facing; lz._spotPosture = goSpot.posture;
           lz.wanderT = rnd(CFG.spotDwellMin || 3, CFG.spotDwellMax || 8); // 到着後この間は留まる
         } else { // 通常の徘徊: 自分の縄張り周辺をうろつく
           lz.spot = null; lz._toSpot = null;
@@ -2114,7 +2114,11 @@ const Game = {
         lz.moving = true;
       } else {
         lz.moving = false;
-        if (lz._toSpot) lz.spot = lz._toSpot; // 居場所へ到達=姿勢に入る(C3で描画)。向きはspot.facingへ寄せる
+        if (lz._toSpot) { // 居場所へ到達=姿勢に入る(C3で描画)。向きはspot.facingへ寄せる
+          lz.spot = lz._toSpot;
+          if (lz._spotFacing === "left") lz.angle = Math.PI;
+          else if (lz._spotFacing === "right") lz.angle = 0;
+        }
       }
       lz.x = clamp(lz.x, 20, W - 20);
       lz.y = clamp(lz.y, FIELD.y1 - 30, H - 20);

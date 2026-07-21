@@ -1774,6 +1774,9 @@ const Render = {
   drawLizard(ctx, lz, noCache) {
     const sp = speciesById(lz.speciesId);
     const glowy = sp.glow || lz.morphId === "legendary";
+    // モーション(§8.5): 居場所で留まる個体に姿勢の"揺れ"を付ける。魂ピクセルは不変=配置トランスフォーム(整数bob)のみ。
+    const pb = this._poseBob(lz);
+    if (pb) { ctx.save(); ctx.translate(pb.dx, pb.dy); }
     // 発光/伝説=ぼかしのため常に手続き。noCache=拡大描画(ヌシ等・変形ctx内)はキャッシュを迂回。
     if (glowy || noCache || Render._lizCacheOn === false) {
       this._paintLizardBody(ctx, lz); // _paintLizardBody が内部で lz.x,lz.y へ translate する
@@ -1781,6 +1784,26 @@ const Render = {
       this._blitLizardCached(ctx, lz);
     }
     this._paintLizardState(ctx, lz);
+    if (pb) ctx.restore();
+  },
+
+  // モーション(§8.5): 居場所(lz.spot)で静止中の姿勢の揺れを整数px平行移動で表現(魂ピクセル不変・crisp維持・キャッシュ無効化なし)。
+  //   posture別に drink=水面へ頭を沈める上下 / bask=ゆっくり呼吸 / wade=尾で水を跳ねる左右 / lookup/lookout=見上げてわずかに浮く / emerge=入口で軽い上下。
+  //   reduced-motion/移動中/非スポットでは null(静止)=fable1(reduced-motion停止・静的滞在は残る)。★Ric実機で振幅/速さ(CFG)を調整。
+  _poseBob(lz) {
+    if (!lz.spot || lz.moving) return null;
+    if (window.Motion && Motion.reduced) return null;
+    const amp = CFG.poseBobPx || 3, sp = CFG.poseBobSpeed || 1.2;
+    const t = this.time * sp + (lz.id % 100) * 0.137; // idで位相をずらす(群れが揃って動かない)
+    const p = lz._spotPosture;
+    let dx = 0, dy = 0;
+    if (p === "drink") dy = Math.max(0, Math.sin(t)) * Math.max(0, Math.sin(t)) * amp;      // 周期的に頭を水面へ沈める(下)
+    else if (p === "bask") dy = 1 + Math.sin(t * 0.8) * amp * 0.5;                            // 伏せて呼吸(わずかに沈む+上下)
+    else if (p === "wade") { dx = Math.sin(t * 1.4) * amp; dy = Math.abs(Math.sin(t)) * amp * 0.4; } // 尾で水を跳ねる左右+軽い上下
+    else if (p === "lookup" || p === "lookout") dy = -1 - Math.abs(Math.sin(t * 0.7)) * amp * 0.4; // 見上げてわずかに浮く
+    else if (p === "emerge") dy = Math.sin(t * 0.9) * amp * 0.5;                              // 入口で軽い日向ぼっこの上下
+    else dy = Math.sin(t * 0.8) * amp * 0.4;                                                  // 既定=穏やかな呼吸
+    return { dx: Math.round(dx), dy: Math.round(dy) };
   },
 
   // 生き物本体(魂)。呼び出し側で lz.x,lz.y へ translate 済みの前提はなく、ここで translate する。
