@@ -630,9 +630,29 @@ const allyById = (id) => ALLIES.find((a) => a.id === id);
 // Phase6 惑星固有の味方(phase6_design.md v1.1)。arch=既存の効果アーキタイプ(meerkat/owl/turtle/ferret/eagle/gecko/新規)。
 //   state.allies は ally id 基準。allyLv(arch) は「現在の惑星の味方がそのarchなら発動」=惑星ゲート。1惑星ずつ有効化する。
 //   旧汎用味方のLvは migrateV13to14 で id を読み替えて移送(案A・損失ゼロ)。
+// arch が既存効果型(meerkat/owl/turtle/ferret/eagle/gecko)の味方は、その惑星でその効果を再有効化(データ駆動・新規ロジックなし)。
+// arch が新規(dormouse/firefly/mole/anole)の味方は「可視・育成可能だが戦闘効果は今後(新ロジック=Ric承認後)」= 効果サイト無し=0。
 const PLANET_ALLIES = [
-  { id: "armadillo", planet: 1, arch: "meerkat", name: "スナホリ・アルマジロ部隊", icon: "paw",
+  { id: "armadillo", planet: 1, arch: "meerkat", name: "スナホリ・アルマジロ部隊", icon: "paw", draw: "drawArmadilloSquad",
     desc: "掘削でベビーを地中退避＋先制時間を稼ぐ(先制+1.5秒/Lv・ヌシ居座り短縮)。転がるだけに見えて最速の土木工兵。" },
+  { id: "falcon", planet: 2, arch: "owl", name: "電脳ファルコン", icon: "owl", draw: "drawFalcon",
+    desc: "ネオンをハックして敵の照準をジャミング(妨害/カラス逃走減速)。みすぼらしい隼が電子戦の名手。" },
+  { id: "dormouse", planet: 3, arch: "dormouse", name: "ゼンマイ・ヤマネ部隊", icon: "paw", draw: "drawDormouse",
+    desc: "等時の拍で連射する木製ボウガン隊(火力)。寝ぼけヤマネが正確無比の斉射。※戦闘効果は今後(新ロジック=承認後)。" },
+  { id: "firefly", planet: 4, arch: "firefly", name: "トムライ・ホタルジャコ", icon: "paw", draw: "drawFireflyBird",
+    desc: "緑の鬼火で足止め＋負傷の魂を仮に繋ぐ(支援/回復猶予)。弔いの小鳥が戦場の生命線。※戦闘効果は今後(承認後)。" },
+  { id: "mole", planet: 5, arch: "mole", name: "カジ・モグラ", icon: "paw", draw: "drawAnvilMole",
+    desc: "味方の牙爪を打ち直し軍全体を強化(攻撃力バフ)。金床頭の不格好モグラ。※戦闘効果は今後(承認後)。" },
+  { id: "mangoose", planet: 6, arch: "ferret", name: "クロスボウ・マングース部隊", icon: "ferret", draw: "drawMangooseSquad",
+    desc: "弩の一斉射で大蛇を怯ませ群れで仕留める(対ボス火力+回収)。小マングースが大蛇を制する。" },
+  { id: "octopus", planet: 7, arch: "turtle", name: "碩学蛸", icon: "turtle", draw: "drawOctopus",
+    desc: "8本腕で耐圧ハッチを操り津波を防潮壁で受け流す(全体防御・ヌシ妨害半減)。理屈屋タコが都市防衛システム。" },
+  { id: "penguin", planet: 8, arch: "eagle", name: "ジャンク・ペンギン・サーボ隊", icon: "eagle", draw: "drawServoPenguin",
+    desc: "借り物の軍用サーボの自動照準で淡々と一掃(掃討火力・急降下妨害)。ずんぐりペンギンが最精密の掃討兵。" },
+  { id: "raccoon", planet: 9, arch: "gecko", name: "ジャンク・ラクーン整備班", icon: "gecko", draw: "drawRaccoon",
+    desc: "壊れても即・別パーツで戦線復帰(自動処理/持続・ウェブ切除)。※代替案=廃炉山椒魚(再生両生類)・姿は後で個別修正可。" },
+  { id: "anole", planet: 10, arch: "anole", name: "記録係アノール", icon: "paw", draw: "drawArchivistAnole",
+    desc: "過去全惑星の敵の弱点を閲覧し味方に伝える(情報バフ)。内気な記録係が全戦術情報の要。※戦闘効果は今後(承認後)。" },
 ];
 const planetAllyById = (id) => PLANET_ALLIES.find((a) => a.id === id);
 const planetAllyOf = (stageId) => PLANET_ALLIES.find((a) => a.planet === stageId);

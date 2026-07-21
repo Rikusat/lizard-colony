@@ -3484,7 +3484,13 @@ const Render = {
     if (!a) return;
     const owned = Game.state.allies[a.id];
     if (!owned) return;
-    if (a.id === "armadillo") this.drawArmadilloSquad(ctx, owned.lv);
+    if (a.draw && typeof this[a.draw] === "function") this[a.draw](ctx, owned.lv); // データ駆動(PLANET_ALLIES.draw)
+  },
+  // 味方の共通配置: コロニー左手前の3スポットに Lv で頭数(1-3)。fn(ctx,x,y,dir,i) で1体描く。
+  _allySquad(ctx, lv, fn) {
+    const n = Math.min(3, 1 + Math.floor((lv || 1) / 2));
+    const spot = [[300, 452], [232, 486], [368, 470]];
+    for (let i = 0; i < n; i++) { const t = this.time * 0.8 + i * 2.1; fn(ctx, spot[i][0] + Math.sin(t) * 8, spot[i][1] - Math.abs(Math.sin(t * 2)) * 2, i % 2 === 0 ? 1 : -1, i); }
   },
   // スナホリ・アルマジロ部隊(ID1): Lvで頭数が増える。コロニー左手前でのんびり掘る/歩く。
   drawArmadilloSquad(ctx, lv) {

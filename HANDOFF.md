@@ -1654,6 +1654,13 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
 
 **検出した揺らぎ**: なし（実装中に色定義の不正記述2件(slag/shark)を実装時に自己修正済。設計揺らぎ・回帰なし）。
 
+### 5t. Phase 6 Step B 横展開 — 残り9惑星の味方（2026-07-21・セーブ影響なし/データ+描画のみ）
+**SAVE_VERSION判断＝据え置き v14（新バンプ不要）**。理由: `migrateV13to14` の MAP は**最初から全6対応**(meerkat→armadillo/owl→falcon/ferret→mangoose/turtle→octopus/eagle→penguin/gecko→raccoon)で、旧6味方Lvの移送はID1コミット(0a0b9ed)で**既に完了・検証済**。よって(a)v14→v15新バンプも(b)移行拡張も不要＝**残り9惑星は PLANET_ALLIES データ追加＋描画のみでセーブ形式に一切触れない**(最も安全・fable2「保存変更は最小限」)。既存v14セーブも既に全6移送済＝追加処理不要。
+- **基盤 [本コミット]**: `data.js: PLANET_ALLIES` を全10惑星ぶんに拡張(id/planet/arch/name/icon/**draw**/desc)。`render.js: drawPlanetAllies` を **draw フィールド駆動**へ(draw未定義の味方は安全にスキップ)＋共通配置ヘルパ `_allySquad`。
+- **効果の安全境界**: 移送先id味方(falcon/octopus/mangoose/penguin/raccoon)=既存効果型(owl/turtle/ferret/eagle/gecko)を**データで再有効化**(既存ロジック・新規なし=許可範囲)。非振替の**新arch味方(dormouse/firefly/mole/anole=ID3/4/5/10)は戦闘効果の新規ロジックを書かず**、可視・育成可能な味方として追加(効果サイト無し=0)。戦闘効果は今後(新ロジック=Ric承認後)。
+- **包括検証 node実測 65 PASS/0 FAIL**: 全6移送(損失ゼロ/冪等/二重付与なし/移送先id整合)・全10惑星のallyLv惑星ゲート解決・checkAllies自動加入・他惑星漏れなし・既存Lv維持・load実チェーン(v13全6→v14)資産保全・V14バックアップ退避。＋純血59/0・ブートconsole0。
+- 各惑星の味方描画は続くコミットで1体ずつ追加(姿は基準未達でも可・後修正候補は都度列挙)。
+
 ### 5s. ★Ricレビュー待ちタスク一覧（2026-07-21・すべて実装せず記録のみ＝Ric実機判定が要る）
 一区切り。以下はすべて**Ricの実機確認・判断が要る**ため自律では進めない（記録のみ）。
 1. **Step B（味方＋allyLvRaw移行）の残り9惑星への横展開** — 型は確立済（`migrateV13to14`・案A・冪等・損失ゼロ・node21 PASS）。**RicがID1の味方(アルマジロ)を実機確認→承認後**に横展開。SAVE_VERSIONはv14のまま（MAPは全6対応済＝追加bump不要）。
