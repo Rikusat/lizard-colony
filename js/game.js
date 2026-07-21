@@ -1255,7 +1255,7 @@ const Game = {
         if (this.bossReward) this.bossReward.rainbows++;
         return true;
       }
-      // 全8枠コンプ=フォールバックでレジェンダリー個体(apex・§1.2.2③)。孵化時に既存のheroLegendBirth演出
+      // 全8枠コンプ=フォールバックでレジェンダリー個体(apex・§1.2.2③)。孵化時は二重の虹リングの登場エフェクト(§9・_hatchEggObject)。旧heroLegendBirth全画面はPhase9で撤去済(legend.jsは開発プレビューtest-v3のみ参照)
       const egg = this._legendaryRewardEgg(hatchMult);
       this._grantRewardEgg(egg);
       UI.toast(`${Icon.svg("spark")} 図鑑を極めし者へ — レジェンダリー個体の卵が生まれた!`);
