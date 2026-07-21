@@ -22,6 +22,7 @@ const NEST = { x: 400, y: 512 };  // 卵の巣(§8.12で中央の巨大展望台
 const PLANET_BOSS = {
   1: { threat: "snake", draw: "drawDoronumaWorm" },   // アリド: ドロヌマ・ワーム(泥沼蟲)
   2: { threat: "scorpion", draw: "drawCyberScorpio" }, // ネオヴェルデ: サイバー・スコルピオ(電脳蠍)
+  3: { threat: "snake", draw: "drawChronoMantis" },   // シルヴァ: クロノ・マンティス(時計蟷螂)
 };
 // §8.15 スプライトキャッシュ: アニメ位相をこの粒度(phase単位)で量子化して焼き直す=時間スロットル。
 //   小さいほど滑らか(焼き直し頻度up=軽減効果down)、大きいほど軽い(アニメ粗く)。phase=time*8なので 0.28≈2〜3フレームに1回。
@@ -3197,6 +3198,42 @@ const Render = {
     ctx.strokeStyle = "rgba(255,67,96,.55)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(gx, gy); ctx.stroke();
     ctx.fillStyle = red; ctx.beginPath(); ctx.arc(tx, ty, 3.5 * s, 0, 7); ctx.fill();
     ctx.strokeStyle = red; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(gx, gy, 8, 0, 7); ctx.moveTo(gx - 12, gy); ctx.lineTo(gx + 12, gy); ctx.moveTo(gx, gy - 12); ctx.lineTo(gx, gy + 12); ctx.stroke();
+    ctx.restore();
+  },
+
+  // Phase6 ID3 シルヴァ: クロノ・マンティス(時計蟷螂)。木製歯車のカマキリ・胸に文字盤(snake脅威=緩急)。
+  drawChronoMantis(ctx, raid) {
+    const e = raid.snake, s = 1.35 * (raid.boss ? 1.15 : 1);
+    const wood = "#6e5230", woodL = "#8a6a40", brass = "#b8955a", eye = "#7fd08a", dark = "#3e2e18";
+    ctx.save(); ctx.translate(e.x, e.y); ctx.scale(-1, 1); ctx.lineJoin = "round"; ctx.lineCap = "round"; // 左(コロニー)向き
+    ctx.fillStyle = "rgba(0,0,0,.26)"; ctx.beginPath(); ctx.ellipse(0, 20 * s, 40 * s, 9 * s, 0, 0, 7); ctx.fill();
+    const sway = Math.sin(this.time * 1.6) * 0.06; ctx.rotate(sway); // ゆっくり揺れる(等時性)
+    // 後脚2対(接地)
+    ctx.strokeStyle = dark; ctx.lineWidth = 3.4 * s;
+    for (const o of [8, 20]) { ctx.beginPath(); ctx.moveTo(o * s, 6 * s); ctx.lineTo((o + 14) * s, 18 * s); ctx.lineTo((o + 8) * s, 22 * s); ctx.stroke(); }
+    // 腹部(後方へ反る節)
+    ctx.fillStyle = wood; ctx.strokeStyle = dark; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(6 * s, 6 * s); ctx.quadraticCurveTo(40 * s, 2 * s, 46 * s, -20 * s); ctx.quadraticCurveTo(34 * s, -8 * s, 8 * s, -2 * s); ctx.closePath(); ctx.fill(); ctx.stroke();
+    for (let i = 1; i <= 4; i++) { const t = i / 5; ctx.strokeStyle = "rgba(40,28,12,.4)"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(6 * s + t * 34 * s, 4 * s - t * 4 * s); ctx.lineTo(8 * s + t * 30 * s, -6 * s - t * 12 * s); ctx.stroke(); }
+    // 胸(立ち上がる長い前胸)+埋め込みの木歯車(文字盤)
+    ctx.fillStyle = woodL; ctx.beginPath(); ctx.moveTo(2 * s, 2 * s); ctx.lineTo(-8 * s, -34 * s); ctx.lineTo(-2 * s, -36 * s); ctx.lineTo(8 * s, -2 * s); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // 木歯車(胸の機構)
+    const gx = -3 * s, gy = -16 * s, gr = 9 * s, ga = this.time * 0.8;
+    ctx.fillStyle = brass; ctx.beginPath(); ctx.arc(gx, gy, gr, 0, 7); ctx.fill();
+    ctx.strokeStyle = dark; ctx.lineWidth = 1.4; for (let i = 0; i < 8; i++) { const a = ga + i / 8 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(gx + Math.cos(a) * gr, gy + Math.sin(a) * gr); ctx.lineTo(gx + Math.cos(a) * (gr + 2.5 * s), gy + Math.sin(a) * (gr + 2.5 * s)); ctx.stroke(); }
+    ctx.fillStyle = woodL; ctx.beginPath(); ctx.arc(gx, gy, gr * 0.6, 0, 7); ctx.fill();
+    // 時計の針(文字盤=クロノ)
+    ctx.strokeStyle = dark; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx + Math.cos(ga * 2) * gr * 0.5, gy + Math.sin(ga * 2) * gr * 0.5); ctx.moveTo(gx, gy); ctx.lineTo(gx + Math.cos(-ga) * gr * 0.35, gy + Math.sin(-ga) * gr * 0.35); ctx.stroke();
+    // 頭(三角+複眼)
+    ctx.fillStyle = wood; ctx.beginPath(); ctx.moveTo(-8 * s, -34 * s); ctx.lineTo(-20 * s, -40 * s); ctx.lineTo(-10 * s, -44 * s); ctx.lineTo(-2 * s, -38 * s); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = eye; ctx.beginPath(); ctx.arc(-16 * s, -41 * s, 3.4 * s, 0, 7); ctx.arc(-7 * s, -40 * s, 3 * s, 0, 7); ctx.fill();
+    ctx.fillStyle = dark; ctx.beginPath(); ctx.arc(-16 * s, -41 * s, 1.3 * s, 0, 7); ctx.fill();
+    // 触角
+    ctx.strokeStyle = dark; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-14 * s, -44 * s); ctx.quadraticCurveTo(-24 * s, -54 * s, -30 * s, -50 * s); ctx.stroke();
+    // 鎌の前脚(折り畳んで構える)
+    ctx.strokeStyle = woodL; ctx.lineWidth = 4.5 * s;
+    const scy = Math.sin(this.time * 1.6 + 1) * 0.1;
+    for (const o of [0, 3]) { ctx.save(); ctx.translate(-4 * s + o * s, -30 * s); ctx.rotate(scy); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-16 * s, 6 * s); ctx.stroke(); ctx.strokeStyle = brass; ctx.lineWidth = 3 * s; ctx.beginPath(); ctx.moveTo(-16 * s, 6 * s); ctx.lineTo(-6 * s, 16 * s); ctx.stroke(); ctx.restore(); ctx.strokeStyle = woodL; ctx.lineWidth = 4.5 * s; }
     ctx.restore();
   },
 
