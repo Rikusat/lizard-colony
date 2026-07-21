@@ -1664,6 +1664,14 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
   - ID1〜ID9 [済] / **ID10 記録係アノール[本]**: 石板を抱えた学者肌の小トカゲ+金の刻印の脈動(1-2体)。※新arch=戦闘効果は今後。
   - **★全10惑星の味方描画 完成**（ID1〜ID10）。移送先id味方(ID2/6/7/8/9)=既存効果型を再有効化／新arch味方(ID3/4/5/10)=可視・育成のみ(効果は今後)。後修正候補: ID2-5・ID10がやや小型・背景と同化気味(存在感up余地)／ID9はラクーンか廃炉山椒魚か(Ric選択)。
 
+### 5gg. ★本番デプロイ — トカゲモーション(①〜⑤)本適用(2026-07-22・成功/本番実証済)
+Ric指示「CFGは暫定で良し・push→本番デプロイ」。5コミット(motion C1〜C4＋棚卸し)を push(be1e311..1965709)→ QA全通過 → `node tools/bump-cache.mjs`(index.html無変更=整合)→ `npx vercel --prod` = **`dpl_5T7gs8rtLSUZpz4DroHRaCLAmFqZ` / READY / production**。
+- **QA(重大0/軽微0)**: motion 22・純血 59・phase6 86・移行チェーン(v13→v14&v10→v14資産保全)・味方65・v15再純血化・全JS構文30/0・boot console0/4xx0・**解像度4種(1920/1600/1366/1280)であふれ0=1画面固定**・slit(#spin-proof)/game盤OK・fps(16匹draw換算 pose ON 5580/OFF 6027)。**#spin-proof/レイアウト/当たり判定=roulette.js/slit.js/core.js/equipment.js/style.css/tokens.css は be1e311以降0行変更＝構造的非回帰**(変更は data/game/render の3ファイルのみ)。
+- **三者同期**: HEAD=origin=本番デプロイ=`1965709`。asset hash **本番=ローカル一致**(game`48d992a7`/data`3e17c47d`/render`13473c95`)。index200・dev(test-integration)404除外。
+- **本番コード実証(https jsを実読み込み)**: `spotFor有/_poseBob有`(motion本番稼働)・**決定論OK・状態非干渉OK**(spotFor純関数)・**歩いて到達OK・ワープなしOK(1step 4.5px)・数値非干渉OK**(coins/xp/level不変=純装飾)・**姿勢整数bob OK・reduced-motion停止OK**・**既存セーブload OK(v15・coins保全)**。本番起動 console0/4xx0・描画=ローカルと同一(スクショ確認)・本番fps5581(>>60)。
+- **確率/物理/純血/魂 不変**・セーブ資産保全(lz.spot等はload時settleDisplayでクリア=stale姿勢なし)。魂ピクセル不変(整数bob配置トランスフォーム)。
+- **★残(⑥・Ric実機)**: poseBobPx/Speed・spotVisitChance・spotDwellMin/Max・capacity の手触り調整(CFGで即動く)。頭下げ・伏せの魂geometry変化は今回入れず保留(Ric実機判断)。
+
 ### 5ff. トカゲモーション 実装(①〜⑤・2026-07-21・⑥手触りはRic実機)
 Ric選択=「トカゲモーション(推奨)」。下ごしらえ(facilitySpots §5k)を土台に、`docs/facility_spots.md §次の一歩` の①〜⑤を実装。**⑥(手触り・振幅・"間"のCFG)だけRic実機判定を残す**。純装飾=生産/戦闘/繁殖の数値には無影響(Fable1)・魂ピクセル不変・可逆。分割4コミット:
 - **C1 `Game.spotFor(lz)`** [6b2b4e1]: `nestEntryFor`の一般化。`Render.facilitySpots()`のcapacityに比例させidハッシュで**決定論割当**(Math.random不使用=同個体は同スポット・ちらつき防止)。設備スポット皆無でnull=挙動不変(未配線=inert)。verify_spotfor 9 PASS。
