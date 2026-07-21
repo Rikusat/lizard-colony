@@ -645,6 +645,14 @@ const PLANET_BOSS = {
   10: { threat: "monitor", draw: "drawRelicSphinx" }, // オリジン: レリック・スフィンクス/守墓像
 };
 
+// Phase6 署名生成物(敵ボス/惑星味方)の調整可パレット＝Ricが濃さ/視認性を実機で詰める単一の真実(描画専用・魂/確率/物理に無影響)。
+// 惑星背景に沈まないよう明度と縁(edge=シルエットのリム光)を持たせる。1体ずつ修正するたびにここへエントリを足す。
+const SIG_PAL = {
+  // ID2 ネオヴェルデ(暗い青紫の夜景=最優先の視認性): 明度up＋シアンのリム縁＋主張するレティクル
+  cyberScorpio: { body: "#433f68", plate: "#5a5690", head: "#4b4775", cyan: "#8bf0fb", edge: "#a6f4ff", edgeW: 2.4, red: "#ff5f7c", reticleR: 12, reticleW: 2.6, visorGlow: 8, rim: 0.5 },
+  falcon: { body: "#5f7391", edge: "#a6f4ff", cyan: "#9df2fd", glow: 0.26, glowR: 27, eyeR: 1.5 },
+};
+
 // 味方 (GameExpansion_v2 ⑩) — 繁殖不可・常駐・素材でLvアップ
 const ALLIES = [
   { id: "turtle",  name: "カメ",           icon: "turtle", unlock: { rank: 45 }, unlockText: "ランク45到達",

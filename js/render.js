@@ -3187,33 +3187,43 @@ const Render = {
   // Phase6 ID2 ネオヴェルデ: サイバー・スコルピオ(電脳蠍)。スマートグラス+尾のレーザー照準(scorpion脅威)。
   drawCyberScorpio(ctx, raid) {
     const e = raid.snake, s = 1.5 * (raid.boss ? 1.15 : 1);
-    const body = "#26243a", plate = "#33324e", cyan = "#5fccd9", red = "#ff4360";
+    const P = (typeof SIG_PAL !== "undefined" && SIG_PAL.cyberScorpio) || { body: "#433f68", plate: "#5a5690", head: "#4b4775", cyan: "#8bf0fb", edge: "#a6f4ff", edgeW: 2.4, red: "#ff5f7c", reticleR: 12, reticleW: 2.6, visorGlow: 8, rim: 0.5 };
     ctx.save(); ctx.translate(e.x, e.y); ctx.lineJoin = "round"; ctx.lineCap = "round";
     ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.beginPath(); ctx.ellipse(6 * s, 17 * s, 48 * s, 11 * s, 0, 0, 7); ctx.fill();
-    // 脚8本(機械的な段付き)
-    ctx.strokeStyle = "#181828"; ctx.lineWidth = 3.2 * s;
+    // 脚8本(機械的な段付き)。夜景で沈まないよう脚もやや明るい鋼色
+    ctx.strokeStyle = "#2b2b45"; ctx.lineWidth = 3.2 * s;
     for (let i = 0; i < 4; i++) { const a0 = -0.8 + i * 0.5, st = Math.sin(this.time * 6 + i) * 0.1; for (const sd of [1, -1]) { const a = sd * (a0 + st), kx = -4 * s + Math.cos(a) * 24 * s, ky = Math.sin(a) * 24 * s; ctx.beginPath(); ctx.moveTo(-4 * s, 0); ctx.lineTo(kx, ky - sd * 7 * s); ctx.lineTo(kx + 3 * s, ky + sd * 13 * s); ctx.stroke(); } }
-    // 腹部(装甲プレートの節)
-    ctx.fillStyle = body; ctx.strokeStyle = "rgba(0,0,0,.5)"; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.ellipse(12 * s, 0, 24 * s, 16 * s, 0, 0, 7); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = plate; for (let i = -1; i <= 2; i++) { ctx.beginPath(); ctx.ellipse(12 * s + i * 8 * s, -1 * s, 5 * s, 12 * s, 0, 0, 7); ctx.fill(); }
+    // 腹部(装甲プレートの節)。縁=シアンのリム光でシルエットを夜景から浮かせる
+    ctx.fillStyle = P.body; ctx.strokeStyle = P.edge; ctx.lineWidth = P.edgeW * s; ctx.globalAlpha = P.rim;
+    ctx.beginPath(); ctx.ellipse(12 * s, 0, 24 * s, 16 * s, 0, 0, 7); ctx.fill(); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.fillStyle = P.plate; for (let i = -1; i <= 2; i++) { ctx.beginPath(); ctx.ellipse(12 * s + i * 8 * s, -1 * s, 5 * s, 12 * s, 0, 0, 7); ctx.fill(); }
     // 頭胸部
-    ctx.fillStyle = body; ctx.beginPath(); ctx.ellipse(-16 * s, 0, 14 * s, 11 * s, 0, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = P.head; ctx.strokeStyle = P.edge; ctx.lineWidth = P.edgeW * s; ctx.globalAlpha = P.rim;
+    ctx.beginPath(); ctx.ellipse(-16 * s, 0, 14 * s, 11 * s, 0, 0, 7); ctx.fill(); ctx.stroke(); ctx.globalAlpha = 1;
     // ハサミ(前方=左)
-    ctx.strokeStyle = body; ctx.lineWidth = 6 * s;
-    for (const sd of [1, -1]) { ctx.beginPath(); ctx.moveTo(-24 * s, sd * 6 * s); ctx.lineTo(-38 * s, sd * 10 * s); ctx.stroke(); ctx.fillStyle = plate; ctx.beginPath(); ctx.ellipse(-42 * s, sd * 11 * s, 7 * s, 4 * s, sd * 0.5, 0, 7); ctx.fill(); }
-    // スマートグラス(頭部のシアンのバイザー=気取り)
-    ctx.fillStyle = cyan; ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-26 * s, -6 * s, 18 * s, 7 * s, 3 * s) : ctx.rect(-26 * s, -6 * s, 18 * s, 7 * s); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = P.head; ctx.lineWidth = 6 * s;
+    for (const sd of [1, -1]) { ctx.beginPath(); ctx.moveTo(-24 * s, sd * 6 * s); ctx.lineTo(-38 * s, sd * 10 * s); ctx.stroke(); ctx.fillStyle = P.plate; ctx.beginPath(); ctx.ellipse(-42 * s, sd * 11 * s, 7 * s, 4 * s, sd * 0.5, 0, 7); ctx.fill(); }
+    // スマートグラス(頭部のシアンのバイザー=気取り)。発光を強めて視認の要に
+    ctx.save(); ctx.shadowColor = P.cyan; ctx.shadowBlur = P.visorGlow;
+    ctx.fillStyle = P.cyan; ctx.globalAlpha = 0.95; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-27 * s, -7 * s, 20 * s, 8 * s, 3 * s) : ctx.rect(-27 * s, -7 * s, 20 * s, 8 * s); ctx.fill(); ctx.globalAlpha = 1; ctx.restore();
     ctx.strokeStyle = "#0a1a1e"; ctx.lineWidth = 1; ctx.stroke();
-    // 尾(背中を越えて弧・節)+毒針
-    ctx.strokeStyle = body; ctx.lineWidth = 9 * s;
+    // 尾(背中を越えて弧・節)+毒針。縁シアンで尾も浮かせる
+    ctx.strokeStyle = P.body; ctx.lineWidth = 9 * s;
     ctx.beginPath(); ctx.moveTo(30 * s, -4 * s); ctx.quadraticCurveTo(52 * s, -30 * s, 34 * s, -44 * s); ctx.stroke();
-    ctx.fillStyle = plate; for (let i = 0; i < 4; i++) { const t = i / 4; ctx.beginPath(); ctx.arc(30 * s + Math.sin(t * 2) * 14 * s, -4 * s - t * 34 * s, 4.5 * s, 0, 7); ctx.fill(); }
-    // 針=レーザーポインタ(赤の照準ビーム+ロックオンのレティクル)
+    ctx.strokeStyle = P.edge; ctx.lineWidth = 1.4 * s; ctx.globalAlpha = P.rim; ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.fillStyle = P.plate; for (let i = 0; i < 4; i++) { const t = i / 4; ctx.beginPath(); ctx.arc(30 * s + Math.sin(t * 2) * 14 * s, -4 * s - t * 34 * s, 4.5 * s, 0, 7); ctx.fill(); }
+    // 針=レーザーポインタ(赤の照準ビーム+ロックオンのレティクル)。主張=脈動グロー+外環+回転十字
     const tx = 34 * s, ty = -46 * s, gx = -80 * s, gy = 40 * s;
-    ctx.strokeStyle = "rgba(255,67,96,.55)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(gx, gy); ctx.stroke();
-    ctx.fillStyle = red; ctx.beginPath(); ctx.arc(tx, ty, 3.5 * s, 0, 7); ctx.fill();
-    ctx.strokeStyle = red; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(gx, gy, 8, 0, 7); ctx.moveTo(gx - 12, gy); ctx.lineTo(gx + 12, gy); ctx.moveTo(gx, gy - 12); ctx.lineTo(gx, gy + 12); ctx.stroke();
+    const pulse = 0.55 + 0.45 * Math.sin(this.time * 5);
+    ctx.strokeStyle = "rgba(255,95,124,.7)"; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(gx, gy); ctx.stroke();
+    ctx.save(); ctx.shadowColor = P.red; ctx.shadowBlur = 6; ctx.fillStyle = P.red; ctx.beginPath(); ctx.arc(tx, ty, 3.8 * s, 0, 7); ctx.fill(); ctx.restore();
+    ctx.save(); ctx.translate(gx, gy); ctx.shadowColor = P.red; ctx.shadowBlur = 5 + pulse * 6;
+    ctx.strokeStyle = P.red; ctx.lineWidth = P.reticleW; const rr2 = P.reticleR;
+    ctx.globalAlpha = 0.5 + pulse * 0.5; ctx.beginPath(); ctx.arc(0, 0, rr2 + pulse * 3, 0, 7); ctx.stroke(); // 脈動する外環
+    ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(0, 0, rr2 * 0.6, 0, 7); ctx.stroke();
+    ctx.rotate(this.time * 0.8); ctx.beginPath(); ctx.moveTo(-rr2 - 4, 0); ctx.lineTo(rr2 + 4, 0); ctx.moveTo(0, -rr2 - 4); ctx.lineTo(0, rr2 + 4); ctx.stroke(); // 回転十字
+    ctx.fillStyle = P.red; ctx.beginPath(); ctx.arc(0, 0, 1.6, 0, 7); ctx.fill();
+    ctx.restore();
     ctx.restore();
   },
 
@@ -3493,16 +3503,19 @@ const Render = {
   },
   _falcon(ctx, x, y, dir) {
     ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
-    const body = "#3a4657", cyan = "#5fccd9"; const flap = Math.sin(this.time * 9) * 0.6;
-    ctx.fillStyle = "rgba(95,204,217,.12)"; ctx.beginPath(); ctx.ellipse(0, 0, 20, 8, 0, 0, 7); ctx.fill(); // 視認用の薄いグロー
-    ctx.fillStyle = body;
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-16, -6 - flap * 12, -26, 0); ctx.quadraticCurveTo(-14, 3, 0, 3); ctx.fill(); // 後翼
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(12, -6 - flap * 12, 22, 0); ctx.quadraticCurveTo(12, 3, 0, 3); ctx.fill(); // 前翼
+    const P = (typeof SIG_PAL !== "undefined" && SIG_PAL.falcon) || { body: "#5f7391", edge: "#a6f4ff", cyan: "#9df2fd", glow: 0.26, glowR: 27, eyeR: 1.5 };
+    const flap = Math.sin(this.time * 9) * 0.6;
+    // 夜空で沈まないよう視認グローを強める(半径/濃さCFG化)
+    const rgb = "157,242,253"; ctx.fillStyle = `rgba(${rgb},${P.glow})`; ctx.beginPath(); ctx.ellipse(0, 0, P.glowR, P.glowR * 0.35, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = P.body; ctx.strokeStyle = P.edge; ctx.lineWidth = 1; ctx.globalAlpha = 0.6;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-16, -6 - flap * 12, -26, 0); ctx.quadraticCurveTo(-14, 3, 0, 3); ctx.fill(); ctx.stroke(); // 後翼(縁シアン)
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(12, -6 - flap * 12, 22, 0); ctx.quadraticCurveTo(12, 3, 0, 3); ctx.fill(); ctx.stroke(); // 前翼(縁シアン)
+    ctx.globalAlpha = 1;
     ctx.beginPath(); ctx.ellipse(3, 1, 8, 4, 0, 0, 7); ctx.fill(); // 胴
     ctx.beginPath(); ctx.moveTo(-6, 1); ctx.lineTo(-15, 4); ctx.lineTo(-6, 4); ctx.fill(); // 尾
     ctx.beginPath(); ctx.arc(10, 0, 3.2, 0, 7); ctx.fill(); // 頭
     ctx.beginPath(); ctx.moveTo(13, 0); ctx.lineTo(17, 1); ctx.lineTo(13, 2); ctx.fill(); // くちばし
-    ctx.fillStyle = cyan; ctx.beginPath(); ctx.arc(11, -1, 1, 0, 7); ctx.fill(); ctx.fillRect(-1, 0, 4, 1); // サイバー目+基板
+    ctx.save(); ctx.shadowColor = P.cyan; ctx.shadowBlur = 5; ctx.fillStyle = P.cyan; ctx.beginPath(); ctx.arc(11, -1, P.eyeR, 0, 7); ctx.fill(); ctx.fillRect(-1, 0, 5, 1.2); ctx.restore(); // サイバー目(発光)+基板
     ctx.restore();
   },
 
