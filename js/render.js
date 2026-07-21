@@ -27,6 +27,7 @@ const PLANET_BOSS = {
   5: { threat: "snake", draw: "drawSlagHydra" },      // イグニス: スラグ・ヒドラ(鉱滓の多頭竜)
   6: { threat: "monitor", draw: "drawSkullAnaconda" },// ユンガ: ドクロ・アナコンダ/贄蛇
   7: { threat: "snake", draw: "drawMagmaShark" },     // メアリス: マグマ・シャーク/熔鮫
+  8: { threat: "bugger", draw: "drawBaggerParent" },  // グラキス: ヌシ・バガー/親個体(既存bagger流用のelite変種)
 };
 // §8.15 スプライトキャッシュ: アニメ位相をこの粒度(phase単位)で量子化して焼き直す=時間スロットル。
 //   小さいほど滑らか(焼き直し頻度up=軽減効果down)、大きいほど軽い(アニメ粗く)。phase=time*8なので 0.28≈2〜3フレームに1回。
@@ -3377,6 +3378,26 @@ const Render = {
     // 目
     ctx.fillStyle = "#0a0e10"; ctx.beginPath(); ctx.arc(mx + 14 * s, -4 * s, 2.6 * s, 0, 7); ctx.fill();
     ctx.fillStyle = molten; ctx.globalAlpha = pm; ctx.beginPath(); ctx.arc(mx + 14 * s, -4 * s, 1.2 * s, 0, 7); ctx.fill(); ctx.globalAlpha = 1; // 溶けた眼光
+    ctx.restore();
+  },
+
+  // Phase6 ID8 グラキス: ヌシ・バガー/親個体。既存bagger描画を流用した大型のelite変種(bugger脅威)。
+  //   設計=名前付きelite変種。"外側へ抜けようと飼育槽のガラスを内側から叩く"メタの気配を薄く添える(侵食連動は別スプリント)。
+  drawBaggerParent(ctx, raid) {
+    const e = raid.snake, p = 0.4 + Math.sin(this.time * 4) * 0.2;
+    // 親個体の圧=強い紫のオーラ
+    const g = ctx.createRadialGradient(e.x, e.y, 10, e.x, e.y, 150);
+    g.addColorStop(0, `rgba(150,70,200,${0.2 * p + 0.08})`); g.addColorStop(1, "rgba(150,70,200,0)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(e.x, e.y, 150, 0, 7); ctx.fill();
+    // 大型化して既存bagger描画を再利用(=elite変種・視覚言語を継承)
+    ctx.save(); ctx.translate(e.x, e.y); ctx.scale(1.5, 1.5); ctx.translate(-e.x, -e.y);
+    this.drawBugger(ctx, raid);
+    ctx.restore();
+    // ガラスを内側から叩くヒビ(コロニー側の空間=メタ・薄く不穏に)
+    ctx.save(); ctx.strokeStyle = `rgba(220,228,240,${0.3 + Math.sin(this.time * 6) * 0.18})`; ctx.lineWidth = 1.3;
+    const cx = e.x - 84, cy = e.y - 26;
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + 0.4; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * (14 + i * 5), cy + Math.sin(a) * (14 + i * 5)); ctx.stroke(); }
+    ctx.beginPath(); ctx.arc(cx, cy, 5, 0, 7); ctx.stroke();
     ctx.restore();
   },
 
