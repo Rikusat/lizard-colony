@@ -148,6 +148,32 @@ for (let S = 1; S <= 10; S++) {
   ok("Phase10.3: elite加算=CFG.roulRewardEliteBonus", eliteBalls - normalBalls === CFG.roulRewardEliteBonus);
 }
 
+// === Phase10-B: migrateV14to15(再純血化)=固有種保持/非固有除去/空惑星に正しい固有ペア/資産不変/冪等 ===
+{
+  Game.newGame(); Game.state.rank = 90; const w0 = Game.toWorld(); w0.version = 14;
+  w0.wallet = { coins: 12345, gems: 67, crickets: 8, stones: 2 };
+  w0.rareWallet = { amethyst: 3, iridium: 5, amber: 7, meteorite: 2, orichalcum: 4, titanium: 6 };
+  w0.allies = { armadillo: { lv: 4 } };
+  let id = 81000;
+  for (const st of w0.stages) {
+    st.pioneered = true; st.facilities = Object.assign({}, st.facilities, { water: 9 }); st.lizards = []; st.eggs = [];
+    for (let i = 0; i < 3; i++) st.lizards.push({ id: id++, speciesId: "kanahebi", morphId: "normal", hue: 1, sat: 1, light: 1, pattern: "none", stage: "adult", xp: 0, level: 1 });
+    if (st.stageId === 6) st.lizards.push({ id: id++, speciesId: "emerald", morphId: "golden", hue: 100, sat: 60, light: 55, pattern: "none", stage: "adult", xp: 40, level: 7 });
+  }
+  w0.idSeq = id;
+  const m = Game.migrateV14to15(JSON.parse(JSON.stringify(w0)));
+  let foreign = 0; for (const st of m.stages) for (const l of (st.lizards || [])) if (!Game.endemicSpecies(st.stageId).includes(l.speciesId)) foreign++;
+  ok("Phase10-B: 再純血化で非固有0(全惑星が固有種のみ)", foreign === 0, "残=" + foreign);
+  ok("Phase10-B: 固有種は失わない(ID1 kanahebi×3・ID6 emerald×1 残る)", (m.stages.find((s) => s.stageId === 1).lizards.filter((l) => l.speciesId === "kanahebi").length === 3) && (m.stages.find((s) => s.stageId === 6).lizards.filter((l) => l.speciesId === "emerald").length === 1));
+  const st2 = m.stages.find((s) => s.stageId === 2), sp2id = Game.endemicSpecies(2)[0];
+  ok("Phase10-B: 空惑星ID2に固有種#1(" + sp2id + ")の純血ペア2匹を再配置", st2.lizards.length === 2 && st2.lizards.every((l) => l.speciesId === sp2id));
+  ok("Phase10-B: 通貨/鉱石/味方Lv/設備Lv 不変", m.wallet.coins === 12345 && m.rareWallet.amber === 7 && m.allies.armadillo.lv === 4 && m.stages.find((s) => s.stageId === 6).facilities.water === 9);
+  ok("Phase10-B: stageSel→アリド(既定)", m.stageSel === 1 && m.currentStageId === 1);
+  ok("Phase10-B: version=15", m.version === 15);
+  const m2 = Game.migrateV14to15(m);
+  ok("Phase10-B: 冪等(2回目 stages不変)", JSON.stringify(m2.stages) === JSON.stringify(m.stages));
+}
+
 console.log(`\n=== Phase6 回帰テスト結果: ${pass} PASS / ${fail} FAIL ===`);
 if (fail) { console.log("FAILED:\n - " + fails.join("\n - ")); process.exit(1); }
 console.log("すべてPASS(署名ボス率>=80%/②方式ゲート漏れなし/sigBossChance連動/引き連れUI撤去/開拓=固有2種のみ)");

@@ -173,6 +173,8 @@ Object.assign(UI, {
           <button id="set-save">今すぐ保存</button></div>
         <div class="list-row"><div class="grow"><b>惑星の混入チェック（純血化プレビュー・非破壊）</b><div class="desc">Phase10: 各惑星に他惑星種が混入していないか診断（消えない・数を見るだけ）。自動移行バグで焼き付いた汚染の消失予定数を確認できる</div></div>
           <button id="set-purify-preview">診断</button></div>
+        <div class="list-row"><div class="grow"><b>惑星の完全独立(再純血化)前のバックアップから復元</b><div class="desc">Phase10 再純血化(v15・自動移行で混入した他惑星種の除去+空惑星への固有ペア再配置)前のセーブへ巻き戻す</div></div>
+          <button id="set-rollbackV15">復元</button></div>
         <div class="list-row"><div class="grow"><b>惑星味方 移行前のバックアップから復元</b><div class="desc">Phase6 惑星固有味方への旧味方Lv移送(v14)前のセーブへ巻き戻す(旧味方のLvデータが移送前の状態に戻る)</div></div>
           <button id="set-rollbackV14">復元</button></div>
         <div class="list-row"><div class="grow"><b>餌場・繁殖施設 撤廃前のバックアップから復元</b><div class="desc">餌場/繁殖の巣への統合(v13)前のセーブへ巻き戻す(両施設と投資Lvが戻り、払い戻しGoldは無くなる)</div></div>
@@ -214,6 +216,9 @@ Object.assign(UI, {
           }
           b.innerHTML = html;
         });
+      });
+      body.querySelector("#set-rollbackV15").addEventListener("click", () => {
+        if (confirm("惑星の完全独立(再純血化)前のバックアップへ巻き戻しますか? 除去された他惑星種が戻ります(その後また掃除されます)。")) Game.restoreV15Backup();
       });
       body.querySelector("#set-rollbackV14").addEventListener("click", () => {
         if (confirm("惑星味方への移行前のバックアップへ巻き戻しますか? 旧味方(カメ/ヤモリ等)のLvデータが移送前の状態に戻ります。")) Game.restoreV14Backup();

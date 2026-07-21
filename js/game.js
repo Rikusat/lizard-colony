@@ -2476,6 +2476,39 @@ const Game = {
     return w;
   },
 
+  // v14→v15: Phase10 再純血化。自動移行バグ(stageSel=null時のcurrentStage自動ジャンプ)で
+  //   各惑星のコロニーに焼き付いた「他惑星種」を除去し、空になった開拓済み惑星に固有種#1の純血ペア2匹を再配置
+  //   (Phase4の初期状態=詰み回避)。固有種は1匹も失わない(その惑星の固有種は残す)。通貨/鉱石/設備/味方Lvは非接触。
+  //   stageSelはアリド(既定)へ補正。冪等: 版ゲート+固有種のみ残す(再実行しても混入は既に無い)。
+  migrateV14to15(w) {
+    if ((w.version || 0) >= 15) return w;
+    let idSeq = w.idSeq || 1000;
+    let lizRemoved = 0, eggRemoved = 0, reseeded = 0; const detail = [];
+    for (const st of (w.stages || [])) {
+      const endemic = this.endemicSpecies(st.stageId);
+      const bl = (st.lizards || []).length, be = (st.eggs || []).length;
+      st.lizards = (st.lizards || []).filter((l) => endemic.includes(l.speciesId)); // 固有種のみ残す
+      st.eggs = (st.eggs || []).filter((e) => endemic.includes(e.speciesId));
+      const rl = bl - st.lizards.length, re = be - st.eggs.length;
+      lizRemoved += rl; eggRemoved += re;
+      // 空になった開拓済み惑星に固有種#1の純血ペア2匹(Phase4 spawnPurePairと同じ=正しい固有種)
+      if (st.pioneered && st.lizards.length === 0) {
+        const sp = SPECIES.filter((s) => s.stage === st.stageId)[0];
+        if (sp) {
+          for (let i = 0; i < 2; i++) st.lizards.push({ id: idSeq++, speciesId: sp.id, morphId: "normal", hue: sp.hue, sat: sp.sat, light: sp.light, pattern: "none", stage: "adult", xp: 0, level: 1, injuredT: 0, breedCd: 0, native: true });
+          reseeded += 2;
+        }
+      }
+      if (rl || re) detail.push({ stageId: st.stageId, removedLiz: rl, removedEgg: re });
+    }
+    w.idSeq = idSeq;
+    w.stageSel = 1; w.currentStageId = 1; // Phase10: 移行後はアリド(既定・自然)に配置
+    w.planets = w.stages;
+    w._purifyV15 = { lizards: lizRemoved, eggs: eggRemoved, reseeded, detail }; // 通知用(保存されない)
+    w.version = 15;
+    return w;
+  },
+
   applyWorld(w) {
     if (w.planets && !w.stages) w.stages = w.planets; // V4改名の互換
     if (w.stages && !w.planets) w.planets = w.stages;
@@ -2742,7 +2775,9 @@ const Game = {
         setTimeout(() => UI.toast("セーブを最新形式へ移行しました。旧データはバックアップ済み"), 900);
       }
       // 共通ゲート(全チェーンの最終段・各段は冪等)。v8→v9=純血化(破壊的) / v9→v10=混入個体の再掃除
-      world = this.migrateV13to14(this.migrateV12to13(this.migrateV11to12(this.migrateV10to11(this.migrateV9to10(this.migrateV8to9(this.migrateV7to8(this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world))))))))));
+      // Phase10: 再純血化(v14→v15)は個体を除去しうる。混入の有無に関わらず、purify前を必ず退避(全版共通=ロールバック保証)
+      if ((data.version || 0) < 15) { try { localStorage.setItem(CFG.saveBackupKeyV15, raw); } catch (e) { /* noop */ } }
+      world = this.migrateV14to15(this.migrateV13to14(this.migrateV12to13(this.migrateV11to12(this.migrateV10to11(this.migrateV9to10(this.migrateV8to9(this.migrateV7to8(this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world)))))))))));
       if (world._purifyV9 && (world._purifyV9.lizards > 0 || world._purifyV9.eggs > 0)) {
         const p9 = world._purifyV9;
         setTimeout(() => UI.toast(`${Icon.svg("planet")} 純血化: 各惑星は固有種のみになりました(他惑星種 ${p9.lizards}匹${p9.eggs > 0 ? "・卵" + p9.eggs : ""}が去った。設定からロールバック可)`, true), 900);
@@ -2759,6 +2794,15 @@ const Game = {
           }
         } catch (e) { /* noop */ }
         setTimeout(() => UI.toast(`${Icon.svg("planet")} 純血化の追補: 混入していた他惑星種 ${p10.lizards}匹${p10.eggs > 0 ? "・卵" + p10.eggs : ""}を掃除しました(生成側も根治済み・設定からロールバック可)`, true), 950);
+      }
+      // Phase10 再純血化(v14→v15): 自動移行汚染の除去+空惑星の固有ペア再配置を報告
+      if (world._purifyV15 && (world._purifyV15.lizards > 0 || world._purifyV15.eggs > 0 || world._purifyV15.reseeded > 0)) {
+        const p15 = world._purifyV15;
+        try {
+          console.log("=== Phase10 再純血化 監査: 惑星別の除去/再配置 ===");
+          for (const d of (p15.detail || [])) { const st = stageById(d.stageId) || {}; console.log(`${st.pname || ""} ${st.name || ("stage" + d.stageId)}: 除去 個体${d.removedLiz}・卵${d.removedEgg}`); }
+        } catch (e) { /* noop */ }
+        setTimeout(() => UI.toast(`${Icon.svg("planet")} 惑星の完全独立: 自動移行で混入した他惑星種 ${p15.lizards}匹${p15.eggs > 0 ? "・卵" + p15.eggs : ""}を掃除${p15.reseeded > 0 ? `・空いた惑星に固有種の純血ペアを${p15.reseeded}匹配置` : ""}(自動移行は根治済み・設定からロールバック可)`, true), 1000);
       }
       if (world._refundV12 && world._refundV12.gold > 0) {
         const r12 = world._refundV12;
@@ -2855,6 +2899,15 @@ const Game = {
     let raw;
     try { raw = localStorage.getItem(CFG.saveBackupKeyV14); } catch (e) { raw = null; }
     if (!raw) { UI.toast("惑星味方 移行前のバックアップが見つからない", true); return false; }
+    localStorage.setItem(CFG.saveKey, raw);
+    location.reload();
+    return true;
+  },
+
+  restoreV15Backup() {
+    let raw;
+    try { raw = localStorage.getItem(CFG.saveBackupKeyV15); } catch (e) { raw = null; }
+    if (!raw) { UI.toast("再純血化(Phase10)前のバックアップが見つからない", true); return false; }
     localStorage.setItem(CFG.saveKey, raw);
     location.reload();
     return true;

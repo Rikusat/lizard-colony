@@ -3,7 +3,7 @@
 // トカゲコロニー: マスターデータ / バランス定数
 // ============================================================
 
-const SAVE_VERSION = 14; // v14: Phase6 惑星固有味方を新設。旧汎用味方Lvを新・惑星味方idへ1:1移送(案A・損失ゼロ・冪等)。v13→v14
+const SAVE_VERSION = 15; // v15: Phase10 惑星の完全独立。自動移行バグで焼き付いた他惑星種を除去(再純血化)+空惑星に固有ペア再配置。v14→v15
 
 const CFG = {
   saveKey: "lizardColonySaveV1",
@@ -20,6 +20,7 @@ const CFG = {
   saveBackupKeyV12: "lizardColonyV12Backup", // V11→V12移行前のバックアップ(シェルター撤廃+Gold払戻。方針どおり退避=ロールバック可)
   saveBackupKeyV13: "lizardColonyV13Backup", // V12→V13移行前のバックアップ(餌場/繁殖撤廃+効果を巣へ統合+Gold払戻。ロールバック可)
   saveBackupKeyV14: "lizardColonyV14Backup", // V13→V14移行前のバックアップ(Phase6 惑星味方への旧味方Lv移送。ロールバック可)
+  saveBackupKeyV15: "lizardColonyV15Backup", // V14→V15移行前のバックアップ(Phase10 再純血化=自動移行汚染の除去+空惑星再配置。ロールバック可)
   startCoins: 500,
   startStones: 0,           // 賢者の石(四重スリット装置のレア報酬・保有のみ・用途は後日)。新規は0
 
