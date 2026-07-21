@@ -1521,7 +1521,9 @@ Phase 9＋6点(ピン撤廃他)完了後の本番デプロイ前QA。**コード
 - **実ブート煙テスト**: headless Chrome(`--headless=new`)でindex.htmlをブート → exit0・**console エラー0**・スクショ目視で正常描画(アリドID1背景/トカゲ/すみか/卵の巣/ルーレット盤/巣ネットミニマップ/全topbar)。
 - **QA所見→対処(Ric承認)**: `dev-history.html`(開発履歴)・`dev-log.txt`(コミットログ)が`.vercelignore`未記載で本番直リンク公開される状態だった(秘密情報なし・孤立ページ)。**両ファイルを`.vercelignore`へ追加して除外**(可逆・diff最小)。既存構成の指摘で6点変更とは無関係。
 - **spin-proof10/10・全惑星fps**は各コミット時に検証済み(本デプロイでコード不変のため再走不要と判断)。
-- デプロイ手順: `node tools/bump-cache.mjs`(index.html無変更=既に整合) → commit → `npx vercel --prod`。**Ric明示GO済**。
+- デプロイ手順: `node tools/bump-cache.mjs`(index.html無変更=既に整合) → commit(`29a773b`) → `npx vercel --prod`。**Ric明示GO済**。
+- **デプロイ実施結果(2026-07-21・成功)**: `dpl_3doMKQDeQd2LJpqP5kEYpgDn4DXY` / readyState=READY / target=production。本番 https://lizardcolony.vercel.app (alias) / deployment https://lizardcolony-nxt0f0y0p-memoriacarsystem.vercel.app 。
+  - **本番検証**: index `/`=HTTP200・`game.js?v=c96fa391` が本番=ローカルで一致(公開物=検証物) / dev用(dev-history/dev-log/test-field/test-bench)=cleanUrls追跡後すべて**HTTP404で除外確認** / headless Chromeで本番URL実ブート=exit0・**console エラー0**・スクショ目視でローカルと同一描画(アリドID1)。
 
 ### 6. 現在の保留・未着手(次編以降)
 - **Phase 5** 惑星背景の本格実装(**モノリス最優先**) / **Phase 6** 惑星固有の敵・味方＋命名(創作・Ric承認要) / **Phase 7** 味方のステージ固有化・ボスLv連動強化(6依存) / ルーレットの惑星別意匠(`docs/roulette_rules.md`) / 特性システム(`docs/trait_system.md`・寝かせ中)。
