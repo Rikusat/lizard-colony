@@ -3554,6 +3554,40 @@ const Render = {
     ctx.restore();
   },
 
+  // Phase6 ID6 クロスボウ・マングース部隊(ferret型): 弩を構える小柄な兵団。
+  drawMangooseSquad(ctx, lv) { this._allySquad(ctx, lv, (c, x, y, dir) => this._mangoose(c, x, y, dir)); },
+  _mangoose(ctx, x, y, dir) {
+    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
+    const fur = "#9a8258", furL = "#b09a70", wood = "#6e5230";
+    ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.beginPath(); ctx.ellipse(0, 12, 11, 3.5, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = fur; ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(-6, 6); ctx.quadraticCurveTo(-17, 4, -17, -6); ctx.stroke(); // 尾
+    ctx.fillStyle = fur; ctx.beginPath(); ctx.ellipse(-1, 3, 8, 10, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = furL; ctx.beginPath(); ctx.ellipse(-2, 4, 5, 7, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = fur; ctx.fillRect(-4, 11, 3, 4); ctx.fillRect(2, 11, 3, 4); // 後脚
+    ctx.beginPath(); ctx.arc(2, -8, 5, 0, 7); ctx.fill(); // 頭
+    ctx.beginPath(); ctx.moveTo(6, -8); ctx.lineTo(11, -7); ctx.lineTo(6, -6); ctx.fill(); // 鼻先
+    ctx.fillStyle = "#1a140c"; ctx.beginPath(); ctx.arc(4, -9, 1, 0, 7); ctx.fill();
+    ctx.strokeStyle = wood; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(4, 0); ctx.lineTo(15, -2); ctx.stroke(); // 弩の台
+    ctx.beginPath(); ctx.moveTo(15, -6); ctx.lineTo(15, 2); ctx.stroke(); // 弓
+    ctx.strokeStyle = "#d8cbb0"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(15, -6); ctx.lineTo(7, -2); ctx.lineTo(15, 2); ctx.stroke(); // 弦
+    ctx.restore();
+  },
+  // Phase6 ID7 碩学蛸(turtle型): 眼鏡+錨を巻いた理屈屋タコ。
+  drawOctopus(ctx, lv) { const n = Math.min(2, 1 + Math.floor((lv || 1) / 3)), sp = [[300, 468], [362, 452]]; for (let i = 0; i < n; i++) this._octopus(ctx, sp[i][0], sp[i][1], i % 2 ? 1 : -1); },
+  _octopus(ctx, x, y, dir) {
+    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
+    const skin = "#8a5a7a", skinL = "#a87696", glass = "#cfe6ee", anchor = "#8a8f96";
+    ctx.strokeStyle = skin; ctx.lineWidth = 3.5; ctx.lineCap = "round";
+    for (let i = 0; i < 5; i++) { const a = -1.2 + i * 0.6, w = Math.sin(this.time * 2 + i) * 4; ctx.beginPath(); ctx.moveTo(0, 4); ctx.quadraticCurveTo(Math.cos(a) * 14, 11 + w, Math.cos(a) * 20, 17); ctx.stroke(); } // 触腕
+    ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(0, -4, 14, 15, 0, 0, 7); ctx.fill(); // マント
+    ctx.fillStyle = skinL; ctx.beginPath(); ctx.ellipse(-2, -8, 8, 8, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#2a2e33"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(-4, -2, 3.4, 0, 7); ctx.arc(5, -2, 3.4, 0, 7); ctx.moveTo(-0.6, -2); ctx.lineTo(1.6, -2); ctx.stroke(); // 眼鏡
+    ctx.fillStyle = glass; ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(-4, -2, 3, 0, 7); ctx.arc(5, -2, 3, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.fillStyle = "#1a1418"; ctx.beginPath(); ctx.arc(-4, -2, 1.2, 0, 7); ctx.arc(5, -2, 1.2, 0, 7); ctx.fill();
+    ctx.strokeStyle = anchor; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-16, 2); ctx.lineTo(-16, 14); ctx.moveTo(-20, 10); ctx.quadraticCurveTo(-16, 18, -12, 10); ctx.moveTo(-20, 2); ctx.lineTo(-12, 2); ctx.stroke(); // 錨
+    ctx.restore();
+  },
+
   // ---------------- Phase6 惑星固有の味方 ----------------
   // 現在の惑星の味方をコロニー側(左)に描画。owned(state.allies)があるときのみ。惑星ごとに描画分岐を足す。
   drawPlanetAllies(ctx) {
