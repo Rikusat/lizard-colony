@@ -3624,6 +3624,26 @@ const Render = {
     ctx.restore();
   },
 
+  // Phase6 ID10 記録係アノール(新arch・効果は今後): 石板を抱えた学者肌の小トカゲ。
+  drawArchivistAnole(ctx, lv) { const n = Math.min(2, 1 + Math.floor((lv || 1) / 3)), sp = [[300, 466], [362, 452]]; for (let i = 0; i < n; i++) this._anole(ctx, sp[i][0], sp[i][1], i % 2 ? 1 : -1); },
+  _anole(ctx, x, y, dir) {
+    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
+    const skin = "#7a8a6a", skinL = "#9aac86", tablet = "#8a8072", gold = "#c9a84e";
+    ctx.fillStyle = "rgba(0,0,0,.2)"; ctx.beginPath(); ctx.ellipse(0, 10, 13, 3.5, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = skin; ctx.lineWidth = 3; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(-8, 6); ctx.quadraticCurveTo(-20, 6, -24, 0); ctx.stroke(); // 尾
+    ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(-2, 4, 10, 6, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = skinL; ctx.beginPath(); ctx.ellipse(-3, 3, 6, 4, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = skin; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-4, 9); ctx.lineTo(-7, 13); ctx.moveTo(2, 9); ctx.lineTo(4, 13); ctx.stroke(); // 後脚
+    ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(7, -1, 6, 4.5, 0, 0, 7); ctx.fill(); // 頭
+    ctx.fillStyle = "#1a140c"; ctx.beginPath(); ctx.arc(9, -2, 1.2, 0, 7); ctx.fill();
+    ctx.fillStyle = tablet; ctx.fillRect(0, -2, 11, 12); ctx.strokeStyle = "#5f574c"; ctx.lineWidth = 1; ctx.strokeRect(0, -2, 11, 12); // 石板
+    const gp = 0.5 + Math.sin(this.time * 2) * 0.3; ctx.strokeStyle = gold; ctx.globalAlpha = gp; ctx.lineWidth = 1;
+    for (const ly of [1, 5, 8]) { ctx.beginPath(); ctx.moveTo(2, ly); ctx.lineTo(9, ly); ctx.stroke(); } // 金の刻印(閲覧)
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = skinL; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-1, 6); ctx.lineTo(1, 10); ctx.stroke(); // 抱える前足
+    ctx.restore();
+  },
+
   // ---------------- Phase6 惑星固有の味方 ----------------
   // 現在の惑星の味方をコロニー側(左)に描画。owned(state.allies)があるときのみ。惑星ごとに描画分岐を足す。
   drawPlanetAllies(ctx) {
