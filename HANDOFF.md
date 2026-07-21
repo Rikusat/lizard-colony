@@ -1674,6 +1674,7 @@ Ric方針「進めれるところまで・品質/バランスは後で一括指�
   - ※ID3/5/10は既存の火力枠(ferretの前例)、ID4は既存の負傷時間枠に載せた＝新勝敗ルールなし。
 - **bossHpMult 惑星別たたき台 [本コミット]**: `CFG.bossHpMultByStage`（味方が全惑星に入った分の暫定補正）を `startRaid` のHP計算へ乗算。**★全て たたき台＝Ric実機で最終調整前提・極端値なし**（現値: 1:1.0/2:1.05/3:1.1/4:1.05/5:1.1/6:1.15/7:1.1/8:1.1/9:1.1/10:1.15）。
 - **検証 node実測16 PASS/0 FAIL**: 4効果=発火/CFG連動/惑星ゲート・既存ferret/spider非破壊・bossHpMultByStageのHP比例(×3実測)・値が妥当域(0.8〜1.5)。＋純血59/0・ブートconsole0。セーブ非接触(効果=runtime・CFG=data)。
+- **署名ボス出現頻度たたき台 [別コミット]**: 各惑星の署名脅威型を `stage.bosses`(×2優遇)へ追加（ID1snake/ID2scorpion/ID3snake/ID4monitor/ID5snake/ID6monitor追加/ID7snake追加/ID8bugger追加、ID9scorpion・ID10monitorは既存）。**★たたき台＝Ric後調整前提・データのみ(rollNextRaidのロジックは不変=勝敗ロジック非変更)**。低rank惑星は署名脅威のminRank未満だと従来どおりsnake固定(既存raid仕様)。検証 node21 PASS(全10惑星で署名がstage.bossesに含まれ・MC抽選で確かに出現(share>8%)・rollNextRaid健全)・純血59/0。
 
 ### 5u. ★帰還後サマリ — Step B 味方横展開スプリント（2026-07-21）
 
