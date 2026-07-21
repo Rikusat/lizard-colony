@@ -215,6 +215,7 @@ const Game = {
     for (const l of this.state.lizards) {
       if (this.isHidden(l)) continue; // 鷹に不在の個体は据え置き
       l.returning = false; // 即時確定=歩行途中の状態はクリア(ロード/惑星切替は瞬時に確定=fps安定)
+      l.spot = null; l._toSpot = null; // モーション: 居場所滞在も即クリア(ロード後は徘徊から再割当・stale姿勢なし)
       l.resting = !show.has(l.id);
       if (l.resting) l.restedAt = Date.now();
     }
@@ -2054,6 +2055,7 @@ const Game = {
       if (!this.isVisible(lz)) continue; // さらわれ中・休憩中
       // §8.14: 巣へ帰還中は徘徊/戦闘を無視して巣口へ歩き、到達したら巣に入る(消える)。ワープ禁止=物理移動で入退場
       if (lz.returning) {
+        lz.spot = null; // 帰巣中は居場所を離れる(姿勢解除)
         const n = this.nestEntryFor(lz); // §8.16: 割り当て入口へ歩く(動線分散)
         const dx = (n.x) - lz.x, dy = (n.y + 10) - lz.y, dist = Math.hypot(dx, dy);
         if (dist < CFG.nestArriveR) { lz.returning = false; lz.resting = true; lz.restedAt = Date.now(); lz.moving = false; this.refreshCrowdScale(); continue; }
@@ -2064,9 +2066,11 @@ const Game = {
         continue;
       }
       if (lz.panicT > 0) lz.panicT -= dt; // §9.1 自切直後の逃走ダッシュ
+      if (lz.panicT > 0 || lz.injuredT > 0) { lz.spot = null; lz._toSpot = null; } // 逃走/負傷中は居場所に留まらない
       lz.wanderT -= dt;
       const fighting = snake && lz.stage === "adult" && lz.injuredT <= 0;
       if (fighting) {
+        lz.spot = null; lz._toSpot = null; // 戦闘中は居場所より蛇へ群がる(姿勢解除)
         if (lz.wanderT <= 0) { // 蛇の周囲に群がる
           lz.wanderT = rnd(0.4, 1.0);
           const ang = rnd(0, Math.PI * 2);
@@ -2074,14 +2078,26 @@ const Game = {
           lz.tx = snake.x + Math.cos(ang) * d;
           lz.ty = snake.y + Math.sin(ang) * d * 0.6;
         }
-      } else if (lz.wanderT <= 0) { // 通常の徘徊: 自分の縄張り周辺をうろつく
-        lz.wanderT = rnd(2.5, 7);
-        if (Math.random() < 0.05) { // たまに縄張りを引っ越す
-          lz.homeX = rnd(FIELD.x1 + 40, FIELD.x2 - 40);
-          lz.homeY = rnd(FIELD.y1 + 20, FIELD.y2 - 20);
+      } else if (lz.wanderT <= 0) { // 通常の徘徊 or 設備の居場所(スポット)へ
+        // モーション(§8.5): 一定確率で居場所へ向かう。純装飾=Math.randomは既存の徘徊と同カテゴリ(生産/戦闘/遺伝の決定論には無影響)
+        const goSpot = Math.random() < (CFG.spotVisitChance || 0) ? this.spotFor(lz) : null;
+        if (goSpot) {
+          const off = (lz.id * 2654435761) >>> 0; // 面の中の決定論オフセット(idで分散=固まらない)
+          const ang = (off % 628) / 100, rad = (goSpot.radius || 12) * (0.15 + (off % 70) / 100);
+          lz.tx = clamp(goSpot.center.x + Math.cos(ang) * rad, FIELD.x1, FIELD.x2);
+          lz.ty = clamp(goSpot.center.y + Math.sin(ang) * rad, FIELD.y1 - 10, FIELD.y2);
+          lz._toSpot = goSpot.id; lz._spotFacing = goSpot.facing;
+          lz.wanderT = rnd(CFG.spotDwellMin || 3, CFG.spotDwellMax || 8); // 到着後この間は留まる
+        } else { // 通常の徘徊: 自分の縄張り周辺をうろつく
+          lz.spot = null; lz._toSpot = null;
+          lz.wanderT = rnd(2.5, 7);
+          if (Math.random() < 0.05) { // たまに縄張りを引っ越す
+            lz.homeX = rnd(FIELD.x1 + 40, FIELD.x2 - 40);
+            lz.homeY = rnd(FIELD.y1 + 20, FIELD.y2 - 20);
+          }
+          lz.tx = clamp(lz.homeX + rnd(-130, 130), FIELD.x1, FIELD.x2);
+          lz.ty = clamp(lz.homeY + rnd(-90, 90), FIELD.y1, FIELD.y2);
         }
-        lz.tx = clamp(lz.homeX + rnd(-130, 130), FIELD.x1, FIELD.x2);
-        lz.ty = clamp(lz.homeY + rnd(-90, 90), FIELD.y1, FIELD.y2);
       }
       const dx = lz.tx - lz.x, dy = lz.ty - lz.y;
       const dist = Math.hypot(dx, dy);
@@ -2098,6 +2114,7 @@ const Game = {
         lz.moving = true;
       } else {
         lz.moving = false;
+        if (lz._toSpot) lz.spot = lz._toSpot; // 居場所へ到達=姿勢に入る(C3で描画)。向きはspot.facingへ寄せる
       }
       lz.x = clamp(lz.x, 20, W - 20);
       lz.y = clamp(lz.y, FIELD.y1 - 30, H - 20);
