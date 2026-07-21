@@ -3531,7 +3531,7 @@ const Render = {
   },
 
   // Phase6 ID3 ゼンマイ・ヤマネ部隊(新arch・効果は今後): 眠そうなヤマネ+背にゼンマイの鍵。
-  drawDormouse(ctx, lv) { this._allySquad(ctx, lv, (c, x, y, dir) => this._dormouse(c, x, y, dir)); },
+  drawDormouse(ctx, lv) { const k = this._allyK("dormouse", 1.44); this._allySquad(ctx, lv, (c, x, y, dir) => this._allyBoost(c, x, y, k, () => this._dormouse(c, 0, 0, dir))); },
   _dormouse(ctx, x, y, dir) {
     ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
     const fur = "#8a6a44", furL = "#a8865a", brass = "#b8955a";
@@ -3549,8 +3549,8 @@ const Render = {
 
   // Phase6 ID4 トムライ・ホタルジャコ(新arch・効果は今後): 地味な小鳥+緑の鬼火(燐火)。
   drawFireflyBird(ctx, lv) {
-    const spots = [[300, 455], [360, 478]], n = Math.min(2, 1 + Math.floor((lv || 1) / 3));
-    for (let i = 0; i < n; i++) this._fireflyBird(ctx, spots[i][0], spots[i][1], i % 2 ? 1 : -1);
+    const spots = [[300, 455], [360, 478]], n = Math.min(2, 1 + Math.floor((lv || 1) / 3)), k = this._allyK("firefly", 1.5);
+    for (let i = 0; i < n; i++) this._allyBoost(ctx, spots[i][0], spots[i][1], k, () => this._fireflyBird(ctx, 0, 0, i % 2 ? 1 : -1));
   },
   _fireflyBird(ctx, x, y, dir) {
     ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
@@ -3570,7 +3570,7 @@ const Render = {
   },
 
   // Phase6 ID5 カジ・モグラ(新arch・効果は今後): 頭が金床の不格好なモグラ。
-  drawAnvilMole(ctx, lv) { this._allySquad(ctx, lv, (c, x, y, dir) => this._anvilMole(c, x, y, dir)); },
+  drawAnvilMole(ctx, lv) { const k = this._allyK("mole", 1.42); this._allySquad(ctx, lv, (c, x, y, dir) => this._allyBoost(c, x, y, k, () => this._anvilMole(c, 0, 0, dir))); },
   _anvilMole(ctx, x, y, dir) {
     ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
     const fur = "#4a4038", furL = "#5e5248", iron = "#6a6e74", ironD = "#3e4247";
@@ -3658,7 +3658,7 @@ const Render = {
   },
 
   // Phase6 ID10 記録係アノール(新arch・効果は今後): 石板を抱えた学者肌の小トカゲ。
-  drawArchivistAnole(ctx, lv) { const n = Math.min(2, 1 + Math.floor((lv || 1) / 3)), sp = [[300, 466], [362, 452]]; for (let i = 0; i < n; i++) this._anole(ctx, sp[i][0], sp[i][1], i % 2 ? 1 : -1); },
+  drawArchivistAnole(ctx, lv) { const n = Math.min(2, 1 + Math.floor((lv || 1) / 3)), sp = [[300, 466], [362, 452]], k = this._allyK("anole", 1.42); for (let i = 0; i < n; i++) this._allyBoost(ctx, sp[i][0], sp[i][1], k, () => this._anole(ctx, 0, 0, i % 2 ? 1 : -1)); },
   _anole(ctx, x, y, dir) {
     ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
     const skin = "#7a8a6a", skinL = "#9aac86", tablet = "#8a8072", gold = "#c9a84e";
@@ -3666,9 +3666,15 @@ const Render = {
     ctx.strokeStyle = skin; ctx.lineWidth = 3; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(-8, 6); ctx.quadraticCurveTo(-20, 6, -24, 0); ctx.stroke(); // 尾
     ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(-2, 4, 10, 6, 0, 0, 7); ctx.fill();
     ctx.fillStyle = skinL; ctx.beginPath(); ctx.ellipse(-3, 3, 6, 4, 0, 0, 7); ctx.fill();
+    // 学者服(肩マント)=記録係の証(トカゲと差別化)
+    ctx.fillStyle = "#3f4e74"; ctx.beginPath(); ctx.moveTo(-8, -1); ctx.quadraticCurveTo(-10, 9, -2, 10); ctx.quadraticCurveTo(4, 9, 5, 1); ctx.quadraticCurveTo(-1, -3, -8, -1); ctx.fill();
+    ctx.fillStyle = "#2c3856"; ctx.fillRect(-1, -1, 2, 10); // 前立て
     ctx.strokeStyle = skin; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-4, 9); ctx.lineTo(-7, 13); ctx.moveTo(2, 9); ctx.lineTo(4, 13); ctx.stroke(); // 後脚
     ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(7, -1, 6, 4.5, 0, 0, 7); ctx.fill(); // 頭
     ctx.fillStyle = "#1a140c"; ctx.beginPath(); ctx.arc(9, -2, 1.2, 0, 7); ctx.fill();
+    // 丸眼鏡(学者)=記録係の証
+    ctx.strokeStyle = "#241a12"; ctx.lineWidth = 0.9; ctx.beginPath(); ctx.arc(9, -2, 2.6, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.moveTo(11.5, -2); ctx.lineTo(13.5, -1); ctx.stroke();
+    ctx.fillStyle = "rgba(205,232,255,.45)"; ctx.beginPath(); ctx.arc(9, -2, 2.1, 0, 7); ctx.fill(); // レンズの光
     ctx.fillStyle = tablet; ctx.fillRect(0, -2, 11, 12); ctx.strokeStyle = "#5f574c"; ctx.lineWidth = 1; ctx.strokeRect(0, -2, 11, 12); // 石板
     const gp = 0.5 + Math.sin(this.time * 2) * 0.3; ctx.strokeStyle = gold; ctx.globalAlpha = gp; ctx.lineWidth = 1;
     for (const ly of [1, 5, 8]) { ctx.beginPath(); ctx.moveTo(2, ly); ctx.lineTo(9, ly); ctx.stroke(); } // 金の刻印(閲覧)
@@ -3687,6 +3693,17 @@ const Render = {
     if (!owned) return;
     if (a.draw && typeof this[a.draw] === "function") this[a.draw](ctx, owned.lv); // データ駆動(PLANET_ALLIES.draw)
   },
+  // Phase6 味方の底上げ(存在感): 個体を(x,y)でk倍に拡大し、輪郭に薄い影(縁/接地)を付けて背景から浮かせる。
+  //   fn(ctx)は原点(0,0)で1体を描く。★倍率/縁は SIG_PAL.allyBoost で調整可(Ric実機)。良好な味方(ID6/7/8)は通さない。
+  _allyK(name, def) { return (typeof SIG_PAL !== "undefined" && SIG_PAL.allyBoost && SIG_PAL.allyBoost[name]) || def; },
+  _allyBoost(ctx, x, y, k, fn) {
+    const B = (typeof SIG_PAL !== "undefined" && SIG_PAL.allyBoost) || {};
+    ctx.save();
+    ctx.translate(Math.round(x), Math.round(y)); ctx.scale(k, k);
+    ctx.shadowColor = B.edge || "rgba(0,0,0,.5)"; ctx.shadowBlur = B.edgeBlur || 2.6; ctx.shadowOffsetY = 1;
+    fn(ctx); // 原点で個体を描く(各_xxxは内部で translate(0,0)+scale(dir,1))
+    ctx.restore();
+  },
   // 味方の共通配置: コロニー左手前の3スポットに Lv で頭数(1-3)。fn(ctx,x,y,dir,i) で1体描く。
   _allySquad(ctx, lv, fn) {
     const n = Math.min(3, 1 + Math.floor((lv || 1) / 2));
@@ -3699,8 +3716,8 @@ const Render = {
     const spot = [[300, 452], [232, 486], [368, 470]];
     for (let i = 0; i < n; i++) {
       const bx = spot[i][0], by = spot[i][1];
-      const t = this.time * 0.8 + i * 2.1;
-      this.drawArmadillo(ctx, bx + Math.sin(t) * 9, by - Math.abs(Math.sin(t * 2)) * 2, i % 2 === 0 ? 1 : -1);
+      const t = this.time * 0.8 + i * 2.1, k = this._allyK("armadillo", 1.24);
+      this._allyBoost(ctx, bx + Math.sin(t) * 9, by - Math.abs(Math.sin(t * 2)) * 2, k, () => this.drawArmadillo(ctx, 0, 0, i % 2 === 0 ? 1 : -1));
     }
   },
   drawArmadillo(ctx, x, y, dir) {

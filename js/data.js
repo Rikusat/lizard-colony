@@ -655,6 +655,8 @@ const SIG_PAL = {
   baggerParent: { crack: "220,228,240", crackAlpha: 0.34, sac: "#6a4a86", sacEgg: "#c9a8e6", sacGlow: "#b070e0" },
   // ID1 アリド ドロヌマ・ワーム: 桃色寄り→土気色へ濁す＋スケール増で"巨大な脅威"を立てる
   doronumaWorm: { skin: "#7a6647", skinDk: "#4e3d28", band: "#94805c", saddle: "#ad9c7e", sand: "#8f7850", maw: "#2e1d10", bossScale: 1.72, girth: 19 },
+  // 味方の底上げ(ID1/3/4/5/10=小型/背景同化): 倍率＋輪郭の影(縁)で存在感を上げる。良好な味方(ID6/7/8)は非対象
+  allyBoost: { edge: "rgba(0,0,0,.5)", edgeBlur: 2.6, armadillo: 1.24, dormouse: 1.44, firefly: 1.5, mole: 1.42, anole: 1.42 },
 };
 
 // 味方 (GameExpansion_v2 ⑩) — 繁殖不可・常駐・素材でLvアップ
