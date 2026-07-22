@@ -183,6 +183,7 @@ const Render = {
     for (const lz of sorted) this.drawLizard(ctx, lz);
     this._pruneLizCache();
     this.drawSpawnFx(ctx); // §9-C2 誕生の登場エフェクト(生き物の上に重ねる祝祭)
+    this.drawGenesisFx(ctx); // S5 創世エフェクト(賢者の石の錬成=深紅の静かな重み)
     if (Game.raid) this.drawBoss(ctx, Game.raid);
     else if (Game.corpse) this.drawCorpse(ctx, Game.corpse);
     if (Game.currentStage().id === 8) this.drawBugSweep(ctx); // 氷の前線: 自動掃討(純演出)
@@ -4066,6 +4067,39 @@ const Render = {
       for (let i = 0; i < n; i++) { const a = rr2() * 6.28, d = R * (0.3 + rr2() * 0.6); const sx = F.x + Math.cos(a) * d, sy = F.y + Math.sin(a) * d * 0.5 - k * (F.big ? 40 : 22); ctx.fillStyle = `hsl(${(F.hue + rr2() * 60) | 0},85%,72%)`; ctx.beginPath(); ctx.arc(sx, sy, (F.big ? 2.7 : 1.8) * (1 - k * 0.5), 0, 7); ctx.fill(); }
       ctx.globalAlpha = Math.max(0, alpha) * (1 - k); // 中心の輝き
       ctx.fillStyle = "rgba(255,255,240,.9)"; ctx.beginPath(); ctx.arc(F.x, F.y - k * 10, (F.big ? 4.5 : 2.6) * (1 - k), 0, 7); ctx.fill();
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  },
+
+  // S5 創世エフェクト(賢者の石の錬成)。虹の祝祭(drawSpawnFx)とは別種=深紅・静・重。
+  //   深紅リングが外→中心へ収縮(光を吸う)→中心が暗転(--stone-deep)→定着の一閃。個体周囲のみ・全画面を奪わない(§9)。
+  //   reduced-motion=描かない=即時定着(徴は genesisTrait で既に付与済=結果保証)。色は賢者の石トークン(tokens.css)と一致。
+  drawGenesisFx(ctx) {
+    const fx = Game._genesisFx; if (!fx || !fx.length) return;
+    if (typeof window !== "undefined" && window.Motion && Motion.reduced) return; // 即時定着
+    const HI = "#8E1826", MID = "#380A12", DEEP = "#070103"; // 深紅 / 暗紅 / ほぼ黒(光を吸う)
+    for (const F of fx) {
+      const k = 1 - F.t / F.max; // 0→1
+      ctx.save();
+      // 深紅リングが外→中心へ収縮(吸い込む)。k~0.18で一度だけ脈動。
+      const R = 46 * (1 - k) + 6;
+      const pulse = Math.exp(-Math.pow((k - 0.18) / 0.12, 2));
+      ctx.globalAlpha = Math.max(0, 0.85 * (1 - k) + 0.5 * pulse);
+      ctx.strokeStyle = HI; ctx.lineWidth = 2.2 + pulse * 3.5;
+      ctx.beginPath(); ctx.ellipse(F.x, F.y - 4, R, R * 0.6, 0, 0, 7); ctx.stroke();
+      // 内側の暗紅リング
+      ctx.globalAlpha = Math.max(0, 0.5 * (1 - k));
+      ctx.strokeStyle = MID; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.ellipse(F.x, F.y - 4, R * 0.6, R * 0.36, 0, 0, 7); ctx.stroke();
+      // 中心が"光を吸う"暗転コア: k中盤でピーク→フェード。
+      const dark = Math.sin(Math.min(1, k / 0.85) * Math.PI);
+      ctx.globalAlpha = Math.max(0, dark * 0.72);
+      const g = ctx.createRadialGradient(F.x, F.y - 4, 1, F.x, F.y - 4, 34);
+      g.addColorStop(0, DEEP); g.addColorStop(0.6, MID); g.addColorStop(1, "rgba(7,1,3,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(F.x, F.y - 4, 30, 20, 0, 0, 7); ctx.fill();
+      // 定着の一閃(深紅がスッと引く)
+      if (k > 0.78) { ctx.globalAlpha = Math.max(0, (1 - k) / 0.22 * 0.6); ctx.strokeStyle = HI; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.ellipse(F.x, F.y - 4, 14, 9, 0, 0, 7); ctx.stroke(); }
       ctx.restore();
     }
     ctx.globalAlpha = 1;

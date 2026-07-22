@@ -418,9 +418,38 @@ const Game = {
     if (!this.state.rare) this.state.rare = {};
     this.state.rare[id] = Math.max(0, (this.state.rare[id] || 0) + n);
   },
-  // 賢者の石(v11・四重スリット装置のレア報酬・保有のみ)。負値も可(将来の消費用)
+  // 賢者の石(v11・四重スリット装置のレア報酬)。S5で消費(創世/固定化)。負値も可。
+  stones() { return this.state.stones || 0; },
   addStone(n) {
     this.state.stones = Math.max(0, (this.state.stones || 0) + n);
+  },
+  // ---------------- S5-a: 賢者の石=特性の創世(genesis付与) ----------------
+  // 血統に無い新特性を石で1つ創世(繁殖では生まれない=石だけが新特性の入口・§16.1)。tier連動コスト・上限3・重複なし・レジェンダリー除外。
+  stoneGenesisCost(tier) { return CFG.stoneGenesisBase + (tier || 1); }, // レア特性(tier高)ほど多くの石
+  hasTrait(lz, key) { return !!(lz.traits && lz.traits.some((t) => (t && t.key ? t.key : t) === key)); },
+  // この個体に創世できる特性key(未所持・上限3未満・非レジェンダリー時)。石不足でも候補は返す(UIはグレー表示)。
+  createableTraits(lz) {
+    if (!lz || lz.morphId === "legendary" || typeof TRAITS === "undefined") return [];
+    if ((lz.traits || []).length >= CFG.traitMaxPerLizard) return [];
+    return Object.keys(TRAITS).filter((k) => !this.hasTrait(lz, k));
+  },
+  genesisTrait(lz, key, silent) {
+    if (!lz || lz.morphId === "legendary") { if (!silent) UI.toast("レジェンダリーには特性を宿せない", true); return false; }
+    if (typeof TRAITS === "undefined" || !TRAITS[key]) return false;
+    lz.traits = lz.traits || [];
+    if (lz.traits.length >= CFG.traitMaxPerLizard) { if (!silent) UI.toast("これ以上は特性を宿せない(上限)", true); return false; }
+    if (this.hasTrait(lz, key)) return false;
+    const cost = this.stoneGenesisCost(TRAITS[key].tier);
+    if (this.stones() < cost) { if (!silent) UI.denyFlash("stones"); return false; }
+    this.addStone(-cost);
+    lz.traits.push({ key });
+    this.genesisFx(lz.x, lz.y); // 創世の瞬間(深紅の錬成・§S5演出)
+    return true;
+  },
+  // 創世/固定化の局所演出データ(表現層がdrawGenesisFxで描く。reduced-motionは描画側で即時定着=非描画)。
+  genesisFx(x, y) {
+    this._genesisFx = this._genesisFx || [];
+    if (this._genesisFx.length < 8) this._genesisFx.push({ x, y, t: CFG.genesisFxSec || 1.5, max: CFG.genesisFxSec || 1.5 });
   },
   spendOre(id, n) {
     if (this.ore(id) < n) return false;
@@ -2070,6 +2099,11 @@ const Game = {
     if (this._spawnFx) for (let i = this._spawnFx.length - 1; i >= 0; i--) {
       this._spawnFx[i].t -= dt;
       if (this._spawnFx[i].t <= 0) this._spawnFx.splice(i, 1);
+    }
+    // S5: 創世エフェクトの寿命
+    if (this._genesisFx) for (let i = this._genesisFx.length - 1; i >= 0; i--) {
+      this._genesisFx[i].t -= dt;
+      if (this._genesisFx[i].t <= 0) this._genesisFx.splice(i, 1);
     }
   },
 

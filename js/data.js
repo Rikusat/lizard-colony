@@ -196,6 +196,11 @@ const CFG = {
   traitTierPenalty: 0.005,  // tierが1上がるごとに-0.5%(希少ほど遺伝しにくい=射幸心)。tier3ミミカクシ=4.0%
   traitInheritFloor: 0.03,  // 下限=3%(最も希少な特性を保証)
   traitMaxPerLizard: 3,     // 1個体が持てる特性数の上限(§16 ③)
+  // S5 賢者の石の用途(§16 ④ 案III=創世+固定化)。石は四重スリット成功で+1(1/85=希少)=precious。★全て たたき台=Ric実機で石ペースを見て調整。
+  stoneGenesisBase: 1,      // S5-a 創世コスト = これ + tier(tier1=2…tier5=6個)。レアほど多くの石=射幸心の入口
+  stoneFixBase: 4,          // S5-b 固定化コスト = これ + tier×stoneFixPerTier(tier1=6…tier5=14個)。両親固定で2枚持ち確定=601回の錬金ショートカット
+  stoneFixPerTier: 2,
+  genesisFxSec: 1.5,        // 創世エフェクトの尺(深紅の錬成)
   // 群衆対策(表示のみ・収益/戦闘は全個体が対象のまま)
   maxVisibleLizards: 70,    // フィールドに同時表示する上限。超過分は巣穴で休憩
   restSwapPerSec: 3,        // 平常時に毎秒この匹数まで休憩⇔活動を入れ替え(漸進=ちらつき防止)
