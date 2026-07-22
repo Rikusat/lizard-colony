@@ -1664,6 +1664,14 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
   - ID1〜ID9 [済] / **ID10 記録係アノール[本]**: 石板を抱えた学者肌の小トカゲ+金の刻印の脈動(1-2体)。※新arch=戦闘効果は今後。
   - **★全10惑星の味方描画 完成**（ID1〜ID10）。移送先id味方(ID2/6/7/8/9)=既存効果型を再有効化／新arch味方(ID3/4/5/10)=可視・育成のみ(効果は今後)。後修正候補: ID2-5・ID10がやや小型・背景と同化気味(存在感up余地)／ID9はラクーンか廃炉山椒魚か(Ric選択)。
 
+### 5jj. ★本番デプロイ — 署名ボス配役一式＋見た目修正6箇所(2026-07-22・成功/本番実証済)
+Ric「まとめて本番デプロイ・CFG/バランスは本番反映後に実機で詰める」。QA全通過→`bump-cache`(整合)→`npx vercel --prod`= **`lizardcolony-93vtocc01` / READY / production**。
+- **QA(重大0/軽微0)**: boss_roster 58・phase6 86・純血 59・motion 22・味方 65・移行チェーン(v10→v14資産保全)・全JS構文30/0・**解像度4種(1920/1600/1366/1280)あふれ0=1画面固定・slit(#spin-proof)/game OK**・boot console0/4xx0・fps5629(>>60)。**変更は data/game/render の3ファイルのみ**=roulette.js/slit.js/core.js/style.css/tokens.css は前回デプロイ(1965709)以降0行変更=**#spin-proof/レイアウト/当たり判定 非回帰**。
+- **三者同期**: HEAD=origin=本番=`b0d23d7`。asset hash **本番=ローカル一致**(game`7bf7c158`/data`de424b4f`/render`7e2f78cb`)。index200/dev(test-integration)404。
+- **本番コード実証(https js実読み込み)**: 配役 **ID3=hawk/ID6=spider/ID10=crow**・`sigBossChance=1`・**全惑星署名100%/汎用の姿ゼロ=OK**・**7脅威型全発火=OK**・**SIG_PAL(6修正)全在=OK**・drawWebs有・drawHairoSalamander有・eliteScale=1.15・ID9味方=**廃炉山椒魚**・**既存セーブload=OK(v15・coins保全)**。本番起動console0/4xx0。本番コードでID3署名ボス=**飛行クロノ・マンティスのelite(金縁+オーラ+一回り大)**を実描画確認(スクショ)。
+- **本デプロイに含む一式**: 見た目修正6箇所(§5hh: ID2スコルピオ/ファルコン・ID8ヒビ位置/卵嚢・ID1ワーム土気色/大型・味方5体底上げ+アノール学者服・ID3複眼琥珀・ID9廃炉山椒魚) ＋ 署名ボス配役(§5ii: 7脅威型再配分/飛行適応/蔓リスキン/elite強化)。**確率/物理/純血/魂 不変・セーブ資産保全(BOSS_TYPES温存)**。
+- **本番反映後にRic調整(CFGで即動く)**: SIG_PAL各値/allyBoost倍率/eliteScale(濃さ)・poseBobPx/Speed/spotVisitChance/spotDwell(手触り)・bossHpMultByStage(署名前倒しで詰む惑星は下げる・味方あり/なし勝率で)。
+
 ### 5ii. Phase6 汎用ボス撤廃→署名ボス主役化(7脅威型を全惑星へ再配分・2026-07-22・push/デプロイは実機確認後)
 Ric承認: 汎用ボスの"姿"をフィールドに出さず署名ボスを全惑星の主役に。**ただし脅威型の挙動は失わない**(署名が姿を変えて引き継ぐ)。実測で「hawk/crow/spiderを引き継ぐ署名が1体も無い=消すと強奪/卵盗み/ウェブが消滅」の致命ギャップを事前発見→3種を署名へ再配役。**確率/物理/純血/魂 不変・セーブ非接触**。
 - **配役(§5ii表)**: ID3 snake→**hawk**(カマキリ飛翔で獲物をさらう)・ID6 monitor→**spider**(大蛇の締め付け=絡めて拘束)・ID10 monitor→**crow**(有翼スフィンクスが卵=系譜を博物館へ収蔵)。維持=ID1/5/7 snake・ID2/9 scorpion・ID4 monitor・ID8 bugger。**全7脅威型が最低1惑星で発火**(snake×3/scorpion×2/monitor×1/hawk×1/spider×1/crow×1/bugger×1・偏りsnake4→3/monitor3→1)。
