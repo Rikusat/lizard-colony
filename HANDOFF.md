@@ -1664,6 +1664,16 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
   - ID1〜ID9 [済] / **ID10 記録係アノール[本]**: 石板を抱えた学者肌の小トカゲ+金の刻印の脈動(1-2体)。※新arch=戦闘効果は今後。
   - **★全10惑星の味方描画 完成**（ID1〜ID10）。移送先id味方(ID2/6/7/8/9)=既存効果型を再有効化／新arch味方(ID3/4/5/10)=可視・育成のみ(効果は今後)。後修正候補: ID2-5・ID10がやや小型・背景と同化気味(存在感up余地)／ID9はラクーンか廃炉山椒魚か(Ric選択)。
 
+### 5nn. 特性システム S1 — ミミカクシ 見た目試作(2026-07-22・付与なし/セーブ非接触/可逆・捨てられる試作)
+Ric方向づけ7項目を§16確定→**可逆な S1(1特性のデータ＋見た目試作・付与なし・セーブ非接触)に着手**。Ric選択=1体目=**ミミカクシ**(discreteなパーツ=「特性は色/モーフと別の新軸」を最も明確に教える基準の見本)。**確率/物理/純血/魂 不変**(顔に上乗せ=骨格不変)。
+- **データ [data.js]**：`TRAITS`(単一の真実・データ駆動)を新設。`mimikakushi`={key/name(仮)/color(藍#3b4a6b)/rim(#7c93d4)/tier(内部レア度3・非表示)/draw/desc}。★命名/色/tierは仮=Ric最終。
+- **描画 [render.js]**：`_paintTraits(ctx,lz,g)`=`lz.traits`をkeyで分岐(TRAITS[key].draw)。`traitMimikakushi`=眼〜頬を暗色の仮面帯で覆い、上縁に明るい藍の徴、眼は穴から覗く。頭部ジオメトリ(scale(face,1)後の局所空間ex/ey)に上乗せ=**魂の骨格は不変・向き追従**。`_paintLizardBody`の頭部詳細に `if(lz.traits…)` フックを追加(**通常個体はtraits未定義=不発=セーブ/gameplay非接触**)。
+- **プレビュー [test-traits.html・dev専用/.vercelignore]**：全8種族を「通常 vs ミミカクシ」で並べ描画(noCache直接パス)。**メモリ上のみ・セーブ非接触**。
+- **実画像確認(headless Chrome スクショ)**：全種族で仮面が視認可(暗色種のテグー/コモドも藍の縁で判別可)・左右で通常/特性が明確に別・眼が仮面の穴から覗く=「素顔を隠す個体」が成立。
+- **検証(node実測)**：新設 `tests/trait_regression.js` **17 PASS/0**(TRAITS単一真実/データ駆動draw/keyで分岐/未知key安全/_paintTraits純粋/**付与なし=makeLizardスキーマ不変=セーブ非接触**)。既存 phase6 86・純血 59・boss_roster 58・motion 22・phase7 34 全PASS(非回帰)。全JS構文OK。
+- **残(Ric確認→次段)**：Ricが test-traits.html で世界観/手触りを確認→命名/色/濃さ/tierの最終語感。OKなら **S2＋S4(個体へadditive traits[]＋繁殖の特性遺伝の核・セーブ非接触)** へ。※S5(石の用途)→S3(UI)→**S6(不可逆・旧個体移行)は最後・要明示承認**。
+- **注記(S2への申し送り)**：スプライトキャッシュ署名(render.js `sig`)は現在traitsを含まない。S1は付与なし＝無影響だが、**S2で個体にtraitsを持たせる際はcache sigにtraitsを含める**こと(でないと同一見た目キャッシュの衝突)。
+
 ### 5mm. Phase 7 実装 — 味方のボスLv連動 自動強化(2026-07-22・Ric承認済/セーブ非接触/push・デプロイはRic)
 Ric承認(AskUserQuestion)：**①加算**(手動育成allyLvは残し、その上にTier連動allyScaleを上乗せ)／**②惑星のTier上限に常時連動**(視覚)。方式§5ll(3)どおり実装。**確率/物理/純血/魂・セーブ形式 いずれも非接触**(効果=runtime乗算・視覚=描画のみ・個体スキーマ不変)。
 - **効果 [game.js]**：`raidAllyTierScale(r)`=味方在住惑星でのみ(present-gated)、raidの実**Tier(+elite)**で倍率算出→`raidDps()` 末尾で乗算。手動育成の各arch効果(dormouse/mole/anole/ferret…)とは**別係数=二重取りなし**。Tier無し(R30未満)/味方不在は1.0。

@@ -627,6 +627,22 @@ const bossTierFor = (rank) => {
   return t;
 };
 
+// ================= 特性(Trait)システム — trait_system.md / V5別スプリント =================
+// レア度(縦の序列)を撤廃し"個性"を横に足す(皆違って皆良い)。種族×モーフの上に乗る第3軸。
+//   S1(現段階)=見た目試作のみ・付与なし・セーブ非接触。通常個体は traits を持たない(§8.2 方針A)。
+//   tier=内部レア度(非表示・出現率/遺伝難度の管理用・§8.1)。draw=Render のメソッド名(データ駆動・PLANET_ALLIES.drawと同型)。
+//   ★命名/色/tier は全て仮=Ric最終確認(§16 ⑥)。descは特性カード(§12)の"簡単な紹介"用。
+const TRAITS = {
+  mimikakushi: {
+    key: "mimikakushi", name: "ミミカクシ", // ★仮称
+    color: "#3b4a6b",        // 特性カード/UIの徴の色(藍/鈍色)
+    rim: "#7c93d4",          // 仮面の上縁(明るい藍=個体上でも特性色が読める徴)
+    tier: 3,                 // 内部レア度(1..5・非表示)
+    draw: "traitMimikakushi",
+    desc: "眼から頬を仮面状の帯で覆う。素顔を隠す個体。",
+  },
+};
+
 // ボス種 (GameExpansion_v2 ②)。minRank 到達で抽選プールに加入
 const BOSS_TYPES = [
   { id: "snake",    name: "ダイジャ",       icon: "snake", minRank: 0,  weight: 3, flying: false, dur: 45, threat: "噛みつきで負傷" },

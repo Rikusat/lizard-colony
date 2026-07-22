@@ -2153,6 +2153,8 @@ const Render = {
     ctx.beginPath(); ctx.arc(ex, ey, eyeR, 0, 7); ctx.fill();
     ctx.fillStyle = "rgba(255,255,255,.85)";
     ctx.beginPath(); ctx.arc(ex + eyeR * 0.3, ey - eyeR * 0.35, eyeR * 0.3, 0, 7); ctx.fill();
+    // 特性(trait)の見た目=顔に上乗せ(魂の骨格は不変)。S1: 付与なし=通常個体は lz.traits 未定義でスキップ。
+    if (lz.traits && lz.traits.length && typeof TRAITS !== "undefined") this._paintTraits(ctx, lz, { ex, ey, eyeR, L, col });
     // 耳の穴(あごの後ろ)
     const ea = S(0.875);
     ctx.fillStyle = "rgba(18,10,4,.5)";
@@ -3745,6 +3747,36 @@ const Render = {
 
   // ---------------- Phase6 惑星固有の味方 ----------------
   // 現在の惑星の味方をコロニー側(左)に描画。owned(state.allies)があるときのみ。惑星ごとに描画分岐を足す。
+  // ---------------- 特性(Trait)の見た目 — trait_system.md S1(見た目試作・付与なし) ----------------
+  // 通常個体は lz.traits を持たない(S1=付与なし)。プレビュー(test-traits.html)が traits 付き個体を描いて見た目を確認する。
+  //   魂(骨格)は不変=顔/体に"上乗せ"で描くのみ。データ駆動: TRAITS[key].draw がメソッド名。g=頭部ジオメトリ(scale(face,1)後の局所空間)。
+  _paintTraits(ctx, lz, g) {
+    for (const t of lz.traits) {
+      const def = TRAITS[t && t.key ? t.key : t];
+      if (def && def.draw && typeof this[def.draw] === "function") this[def.draw](ctx, g, def);
+    }
+  },
+  // ミミカクシ: 眼〜頬を仮面状の帯で覆う。地=体色を大きく暗く落とし、上縁に特性色(藍/鈍色)の徴。眼は仮面の穴から覗く。
+  traitMimikakushi(ctx, g, def) {
+    const { ex, ey, eyeR, col } = g;
+    const hw = eyeR * 3.4, hh = eyeR * 2.0;           // 帯の半径(頭軸方向×縦)
+    const cx = ex + eyeR * 0.2, cy = ey + eyeR * 0.15; // 眼をやや下寄りに包む中心
+    const rot = -0.12;
+    ctx.save();
+    // 地=体色を暗く落とした帯(仮面)
+    ctx.fillStyle = `hsl(${col.h}, ${Math.min(100, col.s + 8)}%, ${Math.max(5, col.l - 42)}%)`;
+    ctx.beginPath(); ctx.ellipse(cx, cy, hw, hh, rot, 0, 7); ctx.fill();
+    // 特性色(藍)の上縁=仮面の徴(個体の体色上でも特性色が読めるよう一段明るい藍)
+    ctx.strokeStyle = def.rim || def.color || "#7c93d4"; ctx.lineWidth = Math.max(1.4, eyeR * 0.7);
+    ctx.beginPath(); ctx.ellipse(cx, cy, hw * 0.96, hh * 0.96, rot, Math.PI * 1.02, Math.PI * 1.98); ctx.stroke();
+    // 眼は穴から覗く(仮面の上へ再スタンプ)
+    ctx.fillStyle = "#0d0906";
+    ctx.beginPath(); ctx.arc(ex, ey, eyeR * 0.92, 0, 7); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,.8)";
+    ctx.beginPath(); ctx.arc(ex + eyeR * 0.3, ey - eyeR * 0.32, eyeR * 0.28, 0, 7); ctx.fill();
+    ctx.restore();
+  },
+
   drawPlanetAllies(ctx) {
     const st = Game.currentStage && Game.currentStage();
     const a = st && planetAllyOf(st.id);

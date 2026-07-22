@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>特性(Trait)描画テスト — S1 見た目試作(開発用)</title>
+<style>
+  body { background: #4a352f; margin: 0; color: #e8dccb; font-family: system-ui, sans-serif; }
+  h1 { font-size: 15px; padding: 10px 16px 0; margin: 0; font-weight: 600; }
+  p.note { font-size: 12px; padding: 2px 16px 8px; margin: 0; color: #c9b8a2; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<h1>特性システム S1 — ミミカクシ 見た目試作(付与なし・セーブ非接触)</h1>
+<p class="note">各種族: 左=通常個体 / 右=ミミカクシ特性つき。魂(骨格)は不変で、顔に仮面の帯を上乗せしているだけ。命名/色/濃さは仮(Ric確認用)。</p>
+<canvas id="game" width="760" height="1200"></canvas>
+<script src="js/data.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script>
+// メモリ上だけで動作しセーブに触れない開発用ページ。全種族を「通常 vs ミミカクシ」の2体で並べて見比べる。
+globalThis.UI = { toast: () => {} }; // ui.js非読込のためスタブ
+Game.newGame();
+Game.state.lizards = [];
+const mk = (sp, x, y, traits) => {
+  const lz = Game.makeLizard(sp.id, "normal", { hue: sp.hue, sat: sp.sat, light: sp.light, pattern: "stripe" }, "adult");
+  lz.x = x; lz.y = y; lz.tx = x; lz.ty = y; lz.angle = 0.12; lz.moving = false;
+  if (traits) lz.traits = traits; // ★プレビューでのみ付与(通常ゲームは付与なし=S1)
+  return lz;
+};
+SPECIES.forEach((sp, r) => {
+  const y = 95 + r * 138;
+  Game.state.lizards.push(mk(sp, 210, y, null));                         // 通常
+  Game.state.lizards.push(mk(sp, 560, y, [{ key: "mimikakushi" }]));     // ミミカクシ
+});
+Render.init();
+Render.time = 1.3;
+const ctx = Render.ctx;
+ctx.fillStyle = "#5c4238"; ctx.fillRect(0, 0, 760, 1200);
+// noCache=true で直接描画(特性の上乗せはキャッシュ迂回の直接パスで確実に反映)
+for (const lz of Game.state.lizards) Render.drawLizard(ctx, lz, true);
+// 種族名ラベル
+ctx.fillStyle = "#e8dccb"; ctx.font = "12px system-ui";
+SPECIES.forEach((sp, r) => { ctx.fillText(sp.name, 16, 100 + r * 138); });
+</script>
+</body>
+</html>
