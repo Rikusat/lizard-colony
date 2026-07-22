@@ -12,8 +12,8 @@
 </style>
 </head>
 <body>
-<h1>特性システム — ミミカクシ(S1 見た目 / S4 遺伝)開発用・付与なしゲームには無影響・セーブ非接触</h1>
-<canvas id="game" width="760" height="1620"></canvas>
+<h1>特性システム — ミミカクシ(S1 見た目 / S4 遺伝 / S5 賢者の石)開発用・付与なしゲームには無影響・セーブ非接触</h1>
+<canvas id="game" width="760" height="1880"></canvas>
 <script src="js/data.js"></script>
 <script src="js/game.js"></script>
 <script src="js/render.js"></script>
@@ -69,6 +69,25 @@ inheritors.forEach((traits, i) => {
   draw1(sp, cx, cy, "normal", traits);
 });
 label("※2つの特性を両方持つ子は各pの積=小数点%(数百〜千回級)=トップやり込み層の目標。到達保証はS5賢者の石(固定化)。", 16, demoY + 250, "#c9b8a2");
+
+// ===== 最下段: S5-b 固定化 — 親のミミカクシを固定 → 子は必ず継承(100%) =====
+const fixY = demoY + 300;
+label("■ S5-b 固定化(クリア後解禁の天井): 親の特性を石で固定(p→1.0)。ガチャ4%が確定継承に。両親固定で2枚持ちが確定=601回の錬金ショートカット。", 16, fixY - 14, "#f0d9a8");
+const pFix = draw1(sp, 150, fixY + 40, "normal", [{ key: "mimikakushi" }]);
+pFix.fixedTraits = ["mimikakushi"]; // ★固定印(石で付与相当)
+draw1(sp, 150, fixY + 40, "normal", [{ key: "mimikakushi" }]); // 見た目は同じ(固定は遺伝挙動のみ)
+const pPlain = draw1(sp, 150, fixY + 130, "normal", [{ key: "mimikakushi" }]);
+label("親(ミミカクシ・固定★)", 30, fixY + 42, "#e0b0b0");
+label("相手(ミミカクシ)", 40, fixY + 132);
+const rng2 = lcg(12321);
+let fixHits = 0;
+for (let i = 0; i < 6; i++) {
+  const traits = Game.inheritTraits(pFix, pPlain, rng2); // 固定親→必ず継承
+  if (traits.length) fixHits++;
+  const cx = 380 + (i % 3) * 120, cy = fixY + 40 + Math.floor(i / 3) * 80;
+  draw1(sp, cx, cy, "normal", traits);
+}
+label(`固定した親の子 ${fixHits}/6 が継承(=100%・p迂回)。ガチャ(上)の約4%と対比=「運の探求者」と「石の錬金術師」の2つの道。`, 380, fixY + 210, "#9fd4a0");
 </script>
 </body>
 </html>

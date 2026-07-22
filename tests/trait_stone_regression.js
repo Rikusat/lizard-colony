@@ -79,6 +79,71 @@ ok("stoneGenesisCost = base + tier", Game.stoneGenesisCost(3) === CFG.stoneGenes
   ok("createableTraits: 未所持(zt1)は候補に出る", c.includes("zt1"));
 }
 
+// ===== S5-b: 固定化(fix) =====
+ok("stoneFixCost = base + tier×perTier", Game.stoneFixCost(3) === CFG.stoneFixBase + 3 * CFG.stoneFixPerTier, "=" + Game.stoneFixCost(3));
+// クリア前は解禁されない
+{
+  Game.newGame(); Game.state.stones = 100; Game.state.rocket = { done: false };
+  const lz = mk(["mimikakushi"]);
+  ok("固定: クリア前は不可(fixUnlocked=false)", Game.fixUnlocked() === false && Game.fixTrait(lz, "mimikakushi", true) === false);
+}
+// クリア後: 固定できる・石消費・持たない特性は固定不可(genesis限定)
+{
+  Game.state.rocket = { done: true }; Game.state.stones = 100;
+  const lz = mk(["mimikakushi"]); const before = Game.stones();
+  ok("固定: クリア後は解禁(fixUnlocked=true)", Game.fixUnlocked() === true);
+  ok("固定: 持たない特性は固定できない(genesis限定)", Game.fixTrait(lz, "zt1", true) === false);
+  const okf = Game.fixTrait(lz, "mimikakushi", true);
+  ok("固定: 持つ特性を固定できる", okf && Game.isFixed(lz, "mimikakushi"));
+  ok("固定: 石を消費(cost分)", Game.stones() === before - Game.stoneFixCost(TRAITS.mimikakushi.tier), `stones=${Game.stones()}`);
+  ok("固定: 二重固定は不可", Game.fixTrait(lz, "mimikakushi", true) === false);
+}
+// 石不足=不発&非消費
+{
+  Game.state.rocket = { done: true }; Game.state.stones = 0;
+  const lz = mk(["mimikakushi"]);
+  ok("固定: 石不足は不発&非消費", Game.fixTrait(lz, "mimikakushi", true) === false && Game.stones() === 0 && !Game.isFixed(lz, "mimikakushi"));
+}
+// === 固定特性は100%継承(決定論・p迂回) ===
+{
+  const a = { morphId: "normal", traits: [{ key: "mimikakushi" }], fixedTraits: ["mimikakushi"] };
+  const b = mk([]); // 片親のみ固定
+  let miss = 0; const rng = lcg(99);
+  for (let i = 0; i < 5000; i++) if (!Game.inheritTraits(a, b, rng).some((t) => t.key === "mimikakushi")) miss++;
+  ok("固定: 片親固定→子は必ず継承(100%・p迂回)", miss === 0, "miss=" + miss);
+}
+// === 両親固定→2枚持ちが確定 ===
+{
+  const a = { morphId: "normal", traits: [{ key: "zt1" }], fixedTraits: ["zt1"] };
+  const b = { morphId: "normal", traits: [{ key: "zt5" }], fixedTraits: ["zt5"] };
+  let bothN = 0; const rng = lcg(7);
+  for (let i = 0; i < 5000; i++) { const ks = Game.inheritTraits(a, b, rng).map((t) => t.key); if (ks.includes("zt1") && ks.includes("zt5")) bothN++; }
+  ok("固定: 両親固定→2枚持ちが100%確定(601回の錬金ショートカット)", bothN === 5000, "both=" + bothN);
+}
+// === 固定は上限3・レジェンダリー除外と矛盾しない ===
+{
+  // 固定4つ(親A3+親B1)でも子は上限3(固定優先で切り詰め)
+  const a = { morphId: "normal", traits: [{ key: "zt1" }, { key: "zt5" }, { key: "mimikakushi" }], fixedTraits: ["zt1", "zt5", "mimikakushi"] };
+  const b = { morphId: "normal", traits: [{ key: "zt2" }], fixedTraits: ["zt2"] };
+  TRAITS.zt2 = { key: "zt2", tier: 2, draw: "traitMimikakushi" };
+  let over = 0; const rng = lcg(3);
+  for (let i = 0; i < 2000; i++) if (Game.inheritTraits(a, b, rng).length > CFG.traitMaxPerLizard) over++;
+  ok("固定: 固定が多くても上限3を超えない", over === 0, "over=" + over);
+  // レジェンダリー親の固定は無効(伝播元にならない)
+  const leg = { morphId: "legendary", traits: [{ key: "zt1" }], fixedTraits: ["zt1"] };
+  let fromLeg = 0; const rng2 = lcg(5);
+  for (let i = 0; i < 3000; i++) if (Game.inheritTraits(leg, mk([]), rng2).some((t) => t.key === "zt1")) fromLeg++;
+  ok("固定: レジェンダリー親の固定は無効(伝播元にならない)", fromLeg === 0, "fromLeg=" + fromLeg);
+}
+// === 決定論(固定込みでも同一seed=同一子) ===
+{
+  const a = { morphId: "normal", traits: [{ key: "zt1" }, { key: "mimikakushi" }], fixedTraits: ["zt1"] };
+  const b = mk(["mimikakushi"]);
+  const r1 = Game.inheritTraits(a, b, lcg(42)).map((t) => t.key).sort().join(",");
+  const r2 = Game.inheritTraits(a, b, lcg(42)).map((t) => t.key).sort().join(",");
+  ok("固定込みでも決定論(同一seed=同一子)", r1 === r2, r1 + " vs " + r2);
+}
+
 console.log(`\n=== 賢者の石(S5) 回帰テスト結果: ${pass} PASS / ${fail} FAIL ===`);
 if (fail) { console.log("FAILED:\n - " + fails.join("\n - ")); process.exit(1); }
-else console.log("すべてPASS(S5-a 創世: tier連動コスト/付与/石消費/局所fx/重複なし/上限3/レジェンダリー除外/石不足で不発&非消費/候補は未所持のみ)");
+else console.log("すべてPASS(S5-a 創世 / S5-b 固定化=クリア後解禁・持つ特性のみ・100%継承・両親固定で2枚持ち確定・上限3/レジェンダリー除外/決定論と整合)");

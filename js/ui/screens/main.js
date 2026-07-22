@@ -103,6 +103,9 @@ Object.assign(UI, {
     // S5-a: この個体に創世できる新特性(未所持・上限3未満・非レジェンダリー)。最安コストで活性判定。
     const createable = Game.createableTraits(lz);
     const genesisMinCost = createable.length ? Math.min(...createable.map((k) => Game.stoneGenesisCost(TRAITS[k].tier))) : 0;
+    // S5-b: 固定化できる特性(クリア後解禁・この個体が持つ未固定の特性)。
+    const fixable = Game.fixUnlocked() ? Game.fixableTraits(lz) : [];
+    const fixMinCost = fixable.length ? Math.min(...fixable.map((k) => Game.stoneFixCost(TRAITS[k].tier))) : 0;
     el.innerHTML = `
       <h4><span class="sw" style="display:inline-block;width:20px;height:12px;border-radius:6px;background:${col.css};border:1px solid #0006"></span>
         ${Game.lizardName(lz)}</h4>
@@ -122,6 +125,7 @@ Object.assign(UI, {
         ${Game.stageSpecificSpecies().length && Game.res("bio") >= CFG.mutateBioCost && speciesById(lz.speciesId).stage !== Game.currentStage().id
           ? `<button data-act="mutate">${Icon.svg("bio")} 変異(${CFG.mutateBioCost})</button>` : ""}
         ${createable.length ? `<button data-act="genesis"${Game.stones() < genesisMinCost ? " disabled" : ""}>${Icon.svg("stone")} 石で創世</button>` : ""}
+        ${fixable.length ? `<button data-act="fix"${Game.stones() < fixMinCost ? " disabled" : ""}>${Icon.svg("stone")} 石で固定</button>` : ""}
         <button data-act="close">閉じる</button>
       </div>`;
   },
@@ -137,6 +141,7 @@ Object.assign(UI, {
       case "mutate": Game.mutateLizard(lz); break;
       case "breed": this.openBreedPicker(lz); return; // 3.11.4: 相手選択ウィンドウへ
       case "genesis": this.openGenesisPicker(lz); return; // S5-a: 賢者の石で特性を創世
+      case "fix": this.openFixPicker(lz); return; // S5-b: 賢者の石で遺伝を固定
       case "close": Game.selectedId = null; break;
     }
     this.renderDetail(true);
@@ -162,6 +167,32 @@ Object.assign(UI, {
         row.querySelector("button").addEventListener("click", () => {
           if (Game.genesisTrait(lz, k)) { UI.toast(`${def.name} が宿った — この世界に新たな個性が生まれた`); this.closeModal(); this.renderDetail(true); }
           else this.openGenesisPicker(lz); // 失敗時は再描画(状態更新)
+        });
+        body.appendChild(row);
+      }
+    });
+  },
+
+  // S5-b: 賢者の石で遺伝を固定(p→1.0)。クリア後の天井=努力が必ず報われる救済。両親に固定で2枚持ち確定。
+  openFixPicker(lz) {
+    this.openModal(`${Icon.svg("stone")} 固定 — ${Game.lizardName(lz)} の特性を必ず継がせる`, (body) => {
+      const keys = Game.fixableTraits(lz);
+      if (!keys.length) {
+        body.innerHTML = `<p style="color:var(--sub)">固定できる特性がありません(この個体が持つ未固定の特性が必要)。</p>`;
+        return;
+      }
+      body.innerHTML = `<p style="font-size:calc(12px * var(--fs-scale,1));color:var(--sub);margin-bottom:8px">石を代償に、この特性を子へ<b>必ず</b>継がせます(遺伝確率→100%)。両親で固定すれば2つ揃った子が確定。所持 ${Icon.svg("stone")}<b>${Game.stones()}</b>。</p>`;
+      for (const k of keys) {
+        const def = TRAITS[k], cost = Game.stoneFixCost(def.tier), afford = Game.stones() >= cost;
+        const row = document.createElement("div");
+        row.className = "list-row";
+        row.innerHTML =
+          `<span class="sw" style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${def.color};border:1px solid #0006"></span>` +
+          `<div class="grow"><b>${def.name}</b><div class="desc">${def.desc || ""}</div></div>` +
+          `<button${afford ? "" : " disabled"}>${Icon.svg("stone")}${cost}</button>`;
+        row.querySelector("button").addEventListener("click", () => {
+          if (Game.fixTrait(lz, k)) { UI.toast(`${def.name} を固定した — この血を継ぐ子へ必ず渡る`); this.closeModal(); this.renderDetail(true); }
+          else this.openFixPicker(lz);
         });
         body.appendChild(row);
       }

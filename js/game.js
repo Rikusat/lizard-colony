@@ -1297,22 +1297,49 @@ const Game = {
   //   レジェンダリー親(①)は伝播元にならない(和集合に寄与しない)。乱数は単一窓口rng(既定Math.random・テストはseed注入で決定論=fable2)。
   inheritTraits(a, b, rng) {
     rng = rng || Math.random;
-    const src = [];
+    const src = [], fixed = {};
     for (const parent of [a, b]) {
       if (!parent || parent.morphId === "legendary") continue; // レジェンダリーは伝播元にならない
-      for (const t of parent.traits || []) { const k = t && t.key ? t.key : t; if (k) src.push(k); }
+      const has = {};
+      for (const t of parent.traits || []) { const k = t && t.key ? t.key : t; if (k) { src.push(k); has[k] = 1; } }
+      // S5-b 固定化: その親が"実際に持つ"固定特性のみ有効(genesis限定=無からは生めない)
+      for (const k of parent.fixedTraits || []) { if (has[k]) fixed[k] = 1; }
     }
     // 和集合(keyで一意化・TRAITSに実在するもののみ=血統外/不正keyを排除)
     const seen = {}, union = [];
     for (const k of src) { if (!seen[k] && typeof TRAITS !== "undefined" && TRAITS[k]) { seen[k] = 1; union.push(k); } }
-    // 各特性を独立に判定(積の性質を保つ)→ 成功分を上限までに切り詰め
+    // 固定特性は p 計算を迂回して必ず継承(100%・rng不使用=決定論)。残りは各特性を独立に確率判定(積の性質)。上限まで切り詰め(固定を優先)。
     const out = [];
+    for (const k of union) if (fixed[k]) out.push({ key: k });
     for (const k of union) {
+      if (fixed[k]) continue;
       const def = TRAITS[k];
       const p = clamp(CFG.traitInheritBase - ((def.tier || 1) - 1) * CFG.traitTierPenalty, CFG.traitInheritFloor, 1);
       if (rng() < p) out.push({ key: k });
     }
     return out.slice(0, CFG.traitMaxPerLizard);
+  },
+  // ---------------- S5-b: 賢者の石=固定化(遺伝確率p→1.0) ----------------
+  // クリア後解禁の天井。個体が"持つ"特性を1つ「必ず子へ渡る」に印(fixedTraits・additive)。両親に固定→2枚持ちが確定(601回の錬金ショートカット)。
+  fixUnlocked() { return !!(this.state.rocket && this.state.rocket.done); }, // ロケット完成=クリア(§終盤解禁・純血の種移動解禁と同一貫性)
+  stoneFixCost(tier) { return CFG.stoneFixBase + (tier || 1) * CFG.stoneFixPerTier; },
+  isFixed(lz, key) { return !!(lz.fixedTraits && lz.fixedTraits.indexOf(key) >= 0); },
+  // 固定できる特性key = その個体が持つ特性のうち未固定のもの(genesis限定=持たない特性は固定できない)
+  fixableTraits(lz) {
+    if (!lz || lz.morphId === "legendary" || !lz.traits) return [];
+    return lz.traits.map((t) => (t && t.key ? t.key : t)).filter((k) => TRAITS[k] && !this.isFixed(lz, k));
+  },
+  fixTrait(lz, key, silent) {
+    if (!this.fixUnlocked()) { if (!silent) UI.toast("固定化はクリア後に解禁される", true); return false; }
+    if (!lz || lz.morphId === "legendary" || !this.hasTrait(lz, key)) return false; // 持つ特性のみ(genesis限定)
+    if (this.isFixed(lz, key)) return false;
+    const cost = this.stoneFixCost(TRAITS[key].tier);
+    if (this.stones() < cost) { if (!silent) UI.denyFlash("stones"); return false; }
+    this.addStone(-cost);
+    lz.fixedTraits = lz.fixedTraits || [];
+    lz.fixedTraits.push(key);
+    this.genesisFx(lz.x, lz.y); // 固定も錬成の一種(同じ深紅の演出)
+    return true;
   },
 
   // 未所持の図鑑エントリ(種×モーフ)を1つ返す。ステージ種優先(§7.5)。全所持ならnull
