@@ -1486,11 +1486,11 @@ const Game = {
     const elite = (wins + 1) % CFG.bossEvery === 0;
     const stage = this.currentStage();
     let typeId = null;
-    // Phase6: ボスは高確率でその惑星の署名脅威型(=固有ボス。Ric方針「ボスのときだけ固有敵」)。★sigBossChanceはたたき台
+    // Phase6: その惑星の署名脅威型を主役に(sigBossChance=1.0で実質100%)。minRank縛りは撤廃=その惑星の主は常に主。
+    //   (pre-R30は上のtierDef無し分岐でtypeId=snake固定=案B。ここはR30+のtierボスのみ)
     const pb = (typeof PLANET_BOSS !== "undefined") && PLANET_BOSS[stage.id];
     if (pb && Math.random() < (CFG.sigBossChance != null ? CFG.sigBossChance : 1)) {
-      const sigType = bossTypeById(pb.threat);
-      if (sigType && s.rank >= sigType.minRank) typeId = pb.threat; // rank未達ならフォールバック
+      if (bossTypeById(pb.threat)) typeId = pb.threat; // BOSS_TYPES.minRankは汎用pool専用として温存(グローバル非接触)
     }
     if (!typeId) {
       // 残りの確率 or 署名rank未達: 従来の重み抽選(汎用脅威型=毒/強奪/妨害等の変化)。ステージ専用敵は重み×2

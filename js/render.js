@@ -2320,7 +2320,9 @@ const Render = {
     if (!raid.boss) return null;
     const st = Game.currentStage && Game.currentStage();
     const pb = st && PLANET_BOSS[st.id];
-    return (pb && raid.typeId === pb.threat && typeof this[pb.draw] === "function") ? pb.draw : null;
+    // Phase6: 署名惑星でボス時は常に署名の姿(汎用の姿をフィールドに出さない)。
+    //   R30+はtypeId=pb.threat一致で挙動も署名。pre-R30はtypeId=snakeでも署名の姿+snake挙動(案B=序盤を過酷にしない)。
+    return (pb && typeof this[pb.draw] === "function") ? pb.draw : null;
   },
 
   drawBoss(ctx, raid) {

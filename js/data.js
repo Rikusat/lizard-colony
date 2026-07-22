@@ -264,7 +264,7 @@ const CFG = {
   bossHpMultByStage: { 1: 1.0, 2: 1.05, 3: 1.1, 4: 1.05, 5: 1.1, 6: 1.15, 7: 1.1, 8: 1.1, 9: 1.1, 10: 1.15 },
   // Phase6 署名ボス出現率: ボス選定時、この確率でその惑星の署名脅威型(=固有ボス)にする。残りは汎用脅威型で変化(毒/強奪/妨害等)。
   //   ★たたき台=Ric実機で最終調整(1.0=毎回署名 / 0=従来の重み抽選)。署名脅威型がrank未達の惑星は従来抽選へフォールバック。
-  sigBossChance: 0.85,
+  sigBossChance: 1.0,       // Phase6: 署名ボスが実質100%(汎用の姿はフィールドに出さない)。minRank縛りは撤廃=その惑星の主は常に主。★変化を戻すなら<1に
   // V4: フロンティア誘導 (§2.2)
   frontierIncomeMult: 1.5,  // 最新惑星の生産倍率
   frontierRaidMult: 1.5,    // 最新惑星の襲撃報酬倍率
@@ -635,14 +635,14 @@ const bossTypeById = (id) => BOSS_TYPES.find((b) => b.id === id);
 const PLANET_BOSS = {
   1: { threat: "snake", draw: "drawDoronumaWorm" },   // アリド: ドロヌマ・ワーム(泥沼蟲)
   2: { threat: "scorpion", draw: "drawCyberScorpio" }, // ネオヴェルデ: サイバー・スコルピオ(電脳蠍)
-  3: { threat: "snake", draw: "drawChronoMantis" },   // シルヴァ: クロノ・マンティス(時計蟷螂)
+  3: { threat: "hawk", draw: "drawChronoMantis" },    // シルヴァ: クロノ・マンティス(飛翔し鎌で獲物をさらう=hawk)
   4: { threat: "monitor", draw: "drawHaniwaGolem" },  // パルス: ハニワ・ゴーレム/墳王
   5: { threat: "snake", draw: "drawSlagHydra" },      // イグニス: スラグ・ヒドラ(鉱滓の多頭竜)
-  6: { threat: "monitor", draw: "drawSkullAnaconda" },// ユンガ: ドクロ・アナコンダ/贄蛇
+  6: { threat: "spider", draw: "drawSkullAnaconda" }, // ユンガ: ドクロ・アナコンダ/贄蛇(大蛇の締め付け=絡めて拘束=spider・webは蔓/翡翠紐へリスキン)
   7: { threat: "snake", draw: "drawMagmaShark" },     // メアリス: マグマ・シャーク/熔鮫
   8: { threat: "bugger", draw: "drawBaggerParent" },  // グラキス: ヌシ・バガー/親個体(既存bagger流用のelite変種)
   9: { threat: "scorpion", draw: "drawMeltGolem" },   // ヴォルタ: メルト・ゴーレム/臨界獣
-  10: { threat: "monitor", draw: "drawRelicSphinx" }, // オリジン: レリック・スフィンクス/守墓像
+  10: { threat: "crow", draw: "drawRelicSphinx" },    // オリジン: レリック・スフィンクス/守墓像(有翼が卵=系譜を博物館へ収蔵=crow)
 };
 
 // Phase6 署名生成物(敵ボス/惑星味方)の調整可パレット＝Ricが濃さ/視認性を実機で詰める単一の真実(描画専用・魂/確率/物理に無影響)。

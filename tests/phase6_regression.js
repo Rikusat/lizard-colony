@@ -49,13 +49,13 @@ for (let S = 1; S <= 10; S++) {
   ok(`ID${S}: 署名ボス出現率 >= 0.80 (症状1根治)`, rate >= 0.80, `率=${(rate * 100).toFixed(0)}%`);
 }
 
-// === 症状1: ②方式ゲート(署名脅威型のみ固有描画・非署名は null=漏れなし・非bossもnull) ===
+// === Phase6配役: ゲート(署名惑星でboss時は常に署名の姿=汎用の姿を出さない / 非署名threatでも署名描画=pre-R30案B / 非bossはnull) ===
 for (let S = 1; S <= 10; S++) {
   Game.newGame(); Game.state.stageSel = S; Game.state.rank = 320;
   const pb = PLANET_BOSS[S];
   ok(`ID${S}: ゲート 署名脅威型=固有描画(${pb.draw})`, Render.planetBossDraw({ boss: true, typeId: pb.threat }) === pb.draw);
   const other = BOSS_TYPES.find((b) => b.id !== pb.threat).id;
-  ok(`ID${S}: ゲート 非署名脅威型(${other})=null(漏れなし)`, Render.planetBossDraw({ boss: true, typeId: other }) === null);
+  ok(`ID${S}: ゲート 非署名脅威型(${other})でも署名の姿(pre-R30案B=汎用の姿を出さない)`, Render.planetBossDraw({ boss: true, typeId: other }) === pb.draw);
   ok(`ID${S}: ゲート 非boss(署名型でも)=null(通常襲来は汎用)`, Render.planetBossDraw({ boss: false, typeId: pb.threat }) === null);
 }
 
