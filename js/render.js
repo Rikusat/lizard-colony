@@ -2327,6 +2327,7 @@ const Render = {
 
   drawBoss(ctx, raid) {
     const e = raid.snake;
+    if (raid.typeId === "spider") this.drawWebs(ctx, raid); // ウェブ/蔓=盤の実座標(ボスのscale外)。署名ボス描画時も必ず出す
     const k = this.bossScale(raid);
     ctx.save();
     ctx.translate(e.x, e.y);
@@ -2588,28 +2589,33 @@ const Render = {
     ctx.restore();
   },
 
-  // B-5 オオグモ+ウェブ
-  drawSpider(ctx, raid) {
-    const e = raid.snake;
-    // ウェブ
+  // spider脅威の設置物(ウェブ)。惑星でスキン差し替え=ID6ユンガは蔓/翡翠紐(大蛇の締め付け=絡めて拘束)。
+  //   drawBossの冒頭(ボスのscale外=盤の実座標)で呼ぶ。署名ボス(アナコンダ)描画時も必ずwebが出る。
+  drawWebs(ctx, raid) {
+    const st = Game.currentStage && Game.currentStage();
+    const jungle = !!(st && st.id === 6); // ユンガ=蔓/翡翠紐リスキン
     for (const w of raid.webs) {
       if (w.hp <= 0) continue;
       const a = 0.28 + (w.hp / CFG.webHp) * 0.3;
-      ctx.strokeStyle = `rgba(240,240,250,${a})`;
-      ctx.lineWidth = 1.5;
-      for (let ring = 1; ring <= 3; ring++) {
-        ctx.beginPath(); ctx.ellipse(w.x, w.y, ring * 18, ring * 11, 0, 0, 7); ctx.stroke();
+      if (jungle) {
+        // うねる蔓(緑)+絡みの輪+翡翠の結び目(#2FA98A)=蛇が絡めて拘束する意匠(クモの巣ではない)
+        ctx.strokeStyle = `rgba(96,152,88,${a + 0.12})`; ctx.lineWidth = 2.6; ctx.lineCap = "round";
+        for (let k = 0; k < 6; k++) { const ang = k / 6 * Math.PI * 2 + w.x * 0.01; const ex = w.x + Math.cos(ang) * 54, ey = w.y + Math.sin(ang) * 33; ctx.beginPath(); ctx.moveTo(w.x, w.y); ctx.quadraticCurveTo(w.x + Math.cos(ang) * 30 + Math.sin(k + this.time) * 7, w.y + Math.sin(ang) * 18 - 6, ex, ey); ctx.stroke(); }
+        ctx.strokeStyle = `rgba(70,120,70,${a})`; ctx.lineWidth = 2; for (let ring = 1; ring <= 2; ring++) { ctx.beginPath(); ctx.ellipse(w.x, w.y, ring * 20, ring * 12, 0, 0, 7); ctx.stroke(); }
+        ctx.fillStyle = `rgba(47,169,138,.8)`; for (let k = 0; k < 4; k++) { const ang = k / 4 * Math.PI * 2; ctx.beginPath(); ctx.arc(w.x + Math.cos(ang) * 24, w.y + Math.sin(ang) * 15, 2.6, 0, 7); ctx.fill(); }
+      } else {
+        ctx.strokeStyle = `rgba(240,240,250,${a})`; ctx.lineWidth = 1.5;
+        for (let ring = 1; ring <= 3; ring++) { ctx.beginPath(); ctx.ellipse(w.x, w.y, ring * 18, ring * 11, 0, 0, 7); ctx.stroke(); }
+        for (let k = 0; k < 8; k++) { const ang = k / 8 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(w.x, w.y); ctx.lineTo(w.x + Math.cos(ang) * 54, w.y + Math.sin(ang) * 33); ctx.stroke(); }
       }
-      for (let k = 0; k < 8; k++) {
-        const ang = k / 8 * Math.PI * 2;
-        ctx.beginPath();
-        ctx.moveTo(w.x, w.y);
-        ctx.lineTo(w.x + Math.cos(ang) * 54, w.y + Math.sin(ang) * 33);
-        ctx.stroke();
-      }
-      if (w.burnT > 0) this.pill(ctx, w.x - 22, w.y + 36, "焼却 " + Math.ceil(w.burnT) + "s");
+      if (w.burnT > 0) this.pill(ctx, w.x - 22, w.y + 36, (jungle ? "焼き払う " : "焼却 ") + Math.ceil(w.burnT) + "s");
       else this.pill(ctx, w.x - 30, w.y + 36, "タップ ×" + w.hp);
     }
+  },
+
+  // B-5 オオグモ本体(ウェブは drawWebs でボスのscale外に描く)
+  drawSpider(ctx, raid) {
+    const e = raid.snake;
     const s = 1.5;
     ctx.save();
     if (raid.shake > 0) { ctx.translate(rnd(-2, 2), rnd(-2, 2)); raid.shake = Math.max(0, raid.shake - 0.2); }
@@ -3237,8 +3243,18 @@ const Render = {
     const MP = (typeof SIG_PAL !== "undefined" && SIG_PAL.chronoMantis) || { eye: "#eca63a", eyeGlow: 5 };
     const wood = "#6e5230", woodL = "#8a6a40", brass = "#b8955a", eye = MP.eye, dark = "#3e2e18";
     ctx.save(); ctx.translate(e.x, e.y); ctx.scale(-1, 1); ctx.lineJoin = "round"; ctx.lineCap = "round"; // 左(コロニー)向き
-    ctx.fillStyle = "rgba(0,0,0,.26)"; ctx.beginPath(); ctx.ellipse(0, 20 * s, 40 * s, 9 * s, 0, 0, 7); ctx.fill();
+    const flying = !!(raid.type && raid.type.flying); // hawk脅威=飛翔(舞い降りて鎌でさらう)
+    if (!flying) { ctx.fillStyle = "rgba(0,0,0,.26)"; ctx.beginPath(); ctx.ellipse(0, 20 * s, 40 * s, 9 * s, 0, 0, 7); ctx.fill(); }
     const sway = Math.sin(this.time * 1.6) * 0.06; ctx.rotate(sway); // ゆっくり揺れる(等時性)
+    // 飛翔: 半透明の翅(はばたき)。上空/急降下で"飛べる姿"として機能させる(hawk適応)
+    if (flying) {
+      const beat = Math.abs(Math.sin(this.time * 10)) * 0.5 + 0.3;
+      ctx.save(); ctx.globalAlpha = 0.55;
+      for (const dy of [4 * s, 0]) { ctx.fillStyle = dy ? "rgba(176,198,138,.34)" : "rgba(212,228,172,.42)"; ctx.beginPath(); ctx.moveTo(6 * s, -14 * s + dy); ctx.quadraticCurveTo(40 * s, (-30 - beat * 18) * s + dy, 52 * s, (-6 - beat * 6) * s + dy); ctx.quadraticCurveTo(30 * s, -4 * s + dy, 6 * s, -8 * s + dy); ctx.fill(); }
+      ctx.globalAlpha = 1; ctx.strokeStyle = "rgba(90,80,40,.4)"; ctx.lineWidth = 0.8;
+      for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(8 * s, -12 * s); ctx.lineTo((30 + i * 8) * s, (-24 + i * 6 - beat * 14) * s); ctx.stroke(); }
+      ctx.restore();
+    }
     // 後脚2対(接地)
     ctx.strokeStyle = dark; ctx.lineWidth = 3.4 * s;
     for (const o of [8, 20]) { ctx.beginPath(); ctx.moveTo(o * s, 6 * s); ctx.lineTo((o + 14) * s, 18 * s); ctx.lineTo((o + 8) * s, 22 * s); ctx.stroke(); }
@@ -3482,9 +3498,18 @@ const Render = {
     const e = raid.snake, s = 1.4 * (raid.boss ? 1.15 : 1);
     const stone = "#8a8072", stoneD = "#5f574c", stoneL = "#a49a8a", gold = "#c9a84e", moss = "#6a7a4a", glow = "#ffcf6a";
     ctx.save(); ctx.translate(e.x, e.y); ctx.lineJoin = "round";
-    ctx.fillStyle = "rgba(0,0,0,.3)"; ctx.beginPath(); ctx.ellipse(0, 28 * s, 54 * s, 12 * s, 0, 0, 7); ctx.fill();
-    // 台座
-    ctx.fillStyle = stoneD; ctx.fillRect(-46 * s, 22 * s, 92 * s, 10 * s);
+    const flying = !!(raid.type && raid.type.flying); // crow脅威=有翼で舞い降り、卵=系譜を収める
+    // 有翼(飛翔): 石の翼をゆったり羽ばたく(ゆっくり=威厳・収蔵の所作。軽薄な逃走に見せない)
+    if (flying) {
+      const beat = Math.sin(this.time * 2.2) * 0.5;
+      ctx.save();
+      for (const sd of [1, -1]) { ctx.fillStyle = sd > 0 ? "#7c7264" : "#6a6155"; ctx.beginPath(); ctx.moveTo(6 * s, -18 * s); ctx.quadraticCurveTo((30 + sd * 6) * s, (-46 - beat * 10) * s, (48 + sd * 4) * s, (-20 - beat * 14) * s); ctx.quadraticCurveTo(26 * s, -14 * s, 6 * s, -10 * s); ctx.fill(); }
+      ctx.strokeStyle = "#c9a84e"; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.7; for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(8 * s, -16 * s); ctx.lineTo((22 + i * 7) * s, (-30 - i * 4 - beat * 10) * s); ctx.stroke(); }
+      ctx.globalAlpha = 1; ctx.restore();
+    } else {
+      ctx.fillStyle = "rgba(0,0,0,.3)"; ctx.beginPath(); ctx.ellipse(0, 28 * s, 54 * s, 12 * s, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = stoneD; ctx.fillRect(-46 * s, 22 * s, 92 * s, 10 * s); // 台座(接地時のみ)
+    }
     // うずくまる獅子身(石)
     ctx.fillStyle = stone; ctx.beginPath(); ctx.moveTo(-46 * s, 22 * s); ctx.lineTo(-40 * s, -6 * s); ctx.quadraticCurveTo(-10 * s, -16 * s, 30 * s, -6 * s); ctx.lineTo(40 * s, 22 * s); ctx.closePath(); ctx.fill();
     // 前脚(前方=左へ伸ばす)
@@ -3507,6 +3532,14 @@ const Render = {
     ctx.rotate(this.time * 0.2); ctx.beginPath(); ctx.ellipse(0, 0, 20 * s, 8 * s, 0, 0, 7); ctx.stroke();
     ctx.rotate(1.1); ctx.beginPath(); ctx.ellipse(0, 0, 8 * s, 20 * s, 0, 0, 7); ctx.stroke();
     ctx.fillStyle = gold; ctx.beginPath(); ctx.arc(0, 0, 3 * s, 0, 7); ctx.fill(); ctx.restore();
+    // 収蔵の所作: さらった卵を金の厨子の光に収める(盗む=軽薄ではなく、系譜=未来を過去へ収める荘厳さ)
+    if (flying && raid.stolenEgg) {
+      ctx.save(); ctx.translate(-6 * s, 4 * s);
+      const gp2 = 0.5 + Math.sin(this.time * 2) * 0.3; const rg = ctx.createRadialGradient(0, 0, 1, 0, 0, 16 * s); rg.addColorStop(0, `rgba(255,207,106,${0.5 * gp2})`); rg.addColorStop(1, "rgba(255,207,106,0)");
+      ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(0, 0, 16 * s, 0, 7); ctx.fill();
+      ctx.fillStyle = "#f0e6d0"; ctx.beginPath(); ctx.ellipse(0, 0, 5 * s, 6.5 * s, 0, 0, 7); ctx.fill(); // 収める卵
+      ctx.strokeStyle = gold; ctx.lineWidth = 1; ctx.globalAlpha = gp2; ctx.beginPath(); ctx.arc(0, 0, 9 * s, 0, 7); ctx.stroke(); ctx.globalAlpha = 1; ctx.restore();
+    }
     ctx.restore();
   },
 
