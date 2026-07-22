@@ -2153,8 +2153,9 @@ const Render = {
     ctx.beginPath(); ctx.arc(ex, ey, eyeR, 0, 7); ctx.fill();
     ctx.fillStyle = "rgba(255,255,255,.85)";
     ctx.beginPath(); ctx.arc(ex + eyeR * 0.3, ey - eyeR * 0.35, eyeR * 0.3, 0, 7); ctx.fill();
-    // 特性(trait)の見た目=顔に上乗せ(魂の骨格は不変)。S1: 付与なし=通常個体は lz.traits 未定義でスキップ。
-    if (lz.traits && lz.traits.length && typeof TRAITS !== "undefined") this._paintTraits(ctx, lz, { ex, ey, eyeR, L, col });
+    // 特性(trait)の見た目=顔に上乗せ(魂の骨格は不変)。通常個体は lz.traits 未定義でスキップ。
+    //   レジェンダリーは特性の対象外(虹発光そのものが最上の個性=徴を描かない・§16/①)。既存の morphId フラグで判定(新ロジックなし)。
+    if (lz.morphId !== "legendary" && lz.traits && lz.traits.length && typeof TRAITS !== "undefined") this._paintTraits(ctx, lz, { ex, ey, eyeR, L, col });
     // 耳の穴(あごの後ろ)
     const ea = S(0.875);
     ctx.fillStyle = "rgba(18,10,4,.5)";
