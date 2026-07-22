@@ -97,7 +97,7 @@ Object.assign(UI, {
       return;
     }
     el.classList.remove("hidden");
-    const sp = speciesById(lz.speciesId), mo = morphById(lz.morphId);
+    const mo = morphById(lz.morphId); // 種の★(レア度表示)は撤廃=特性カードへ置換(内部数値=経済係数は残置・trait_system判断⑦(i))
     const col = Render.lizardColor(lz);
     const xpMax = lz.stage === "baby" ? CFG.babyXpToAdult : CFG.adultXpPerLevel;
     // S5-a: この個体に創世できる新特性(未所持・上限3未満・非レジェンダリー)。最安コストで活性判定。
@@ -109,7 +109,9 @@ Object.assign(UI, {
     el.innerHTML = `
       <h4><span class="sw" style="display:inline-block;width:20px;height:12px;border-radius:6px;background:${col.css};border:1px solid #0006"></span>
         ${Game.lizardName(lz)}</h4>
-      <div class="stars">${"★".repeat(sp.stars)}${"☆".repeat(5 - sp.stars)} <span style="color:var(--sub)">${mo.name}</span></div>
+      ${mo.legendary
+        ? `<div class="legendary-tag">✦ レジェンダリー</div>`
+        : this.traitCardsHtml(lz)}
       <div class="stat"><span>${lz.stage === "baby" ? "ベビー" : "アダルト Lv" + lz.level}</span>
         <span>XP ${Math.floor(lz.xp)}/${xpMax}</span></div>
       <div class="bar"><div style="width:${clamp(lz.xp / xpMax * 100, 0, 100)}%"></div></div>
@@ -128,6 +130,21 @@ Object.assign(UI, {
         ${fixable.length ? `<button data-act="fix"${Game.stones() < fixMinCost ? " disabled" : ""}>${Icon.svg("stone")} 石で固定</button>` : ""}
         <button data-act="close">閉じる</button>
       </div>`;
+  },
+
+  // S3: 個体の特性を「特性カード」で表示(UISkills §12)。各特性=色アクセント＋SVGロゴ＋名＋固定印。無印は控えめに「特性なし」。
+  traitCardsHtml(lz) {
+    const ks = (lz.traits || []).map((t) => (t && t.key ? t.key : t)).filter((k) => typeof TRAITS !== "undefined" && TRAITS[k]);
+    if (!ks.length) return `<div class="trait-empty">特性なし</div>`;
+    const cards = ks.map((k) => {
+      const d = TRAITS[k], tc = d.rim || d.color || "#7c93d4";
+      return `<span class="trait-card" style="--tc:${tc}">`
+        + `<span class="tc-ico">${Icon.svg(d.icon || "unknown")}</span>`
+        + `<span class="tc-name">${d.name}</span>`
+        + (Game.isFixed(lz, k) ? `<span class="tc-fixed" title="固定 — 必ず子へ継がれる">${Icon.svg("lock")}</span>` : "")
+        + `</span>`;
+    }).join("");
+    return `<div class="trait-cards">${cards}</div>`;
   },
 
   onDetailAction(e) {

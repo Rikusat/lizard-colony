@@ -12,6 +12,11 @@ const ICONS = {
   // 賢者の石(v11・四重スリット装置のレア報酬): 円の石+内環+錬金の三角(gemのダイヤ形と差別化)
   stone: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.6" fill="none" stroke-opacity=".6"/><path d="M12 8.2 15 13.5H9z" fill="none"/>',
   bio: '<path d="M8 3c0 6 8 6 8 9s-8 3-8 9M16 3c0 6-8 6-8 9s8 3 8 9M9 6.5h6M9 17.5h6" fill="none"/>',
+  // ---- 特性(trait)ロゴ / 固定印(S3) ----
+  // ミミカクシ: 眼を覆う仮面(帯+2つの眼)。特性カードのロゴ。
+  "trait-mask": '<path d="M4 9.5c2.6-1.6 13.4-1.6 16 0 .2 4-1.3 6.3-4.6 6.3-1.7 0-2.2-1.2-3.4-1.2s-1.7 1.2-3.4 1.2C5.3 15.8 3.8 13.5 4 9.5z" fill="none"/><circle cx="8.6" cy="11.2" r="1.3"/><circle cx="15.4" cy="11.2" r="1.3"/>',
+  // 固定印(S5-b): 鍵=「必ず子へ継がれる」。
+  lock: '<rect x="6" y="11" width="12" height="9" rx="2" fill="none"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" fill="none"/><circle cx="12" cy="15.2" r="1.2"/>',
   food: '<path d="M6 13a6 6 0 0 1 12 0v2H6z"/><path d="M5 18h14M8 15v3M12 15v3M16 15v3" fill="none"/>',
   energy: '<path d="M13 2 5 14h5l-1 8 8-12h-5z"/>',
   science: '<path d="M10 3v6l-5.5 9A2 2 0 0 0 6.2 21h11.6a2 2 0 0 0 1.7-3L14 9V3" fill="none"/><path d="M8.5 3h7M8 15h8"/>',

@@ -1664,6 +1664,18 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
   - ID1〜ID9 [済] / **ID10 記録係アノール[本]**: 石板を抱えた学者肌の小トカゲ+金の刻印の脈動(1-2体)。※新arch=戦闘効果は今後。
   - **★全10惑星の味方描画 完成**（ID1〜ID10）。移送先id味方(ID2/6/7/8/9)=既存効果型を再有効化／新arch味方(ID3/4/5/10)=可視・育成のみ(効果は今後)。後修正候補: ID2-5・ID10がやや小型・背景と同化気味(存在感up余地)／ID9はラクーンか廃炉山椒魚か(Ric選択)。
 
+### 5tt. 特性 S3①② 特性カードUI＋レア度表示撤廃(2026-07-22・表示層のみ/セーブ非接触/push・実装済)
+Ric承認(S3=①個体詳細の特性カード ②レア度表示→特性置換(判断⑦(i)) ③繁殖ピッカー固定印は後)。**表示層のみ・セーブ非接触・可逆。内部のレア度数値/経済ロジック/確率/純血/魂 は一切不変**(★の表示だけ消す)。boot console0・#spin-proof維持・reduced-motion対応。
+- **UISkills §12 追記(実装前・CLAUDE.md規律)**：特性カードの構造/トークン/色ロゴ/固定印/レジェンダリー例外/モーション(reduced-motion)を規定。
+- **アイコン [ui/icons.js]**：`trait-mask`(ミミカクシ=仮面)・`lock`(固定印=鍵)を ICONS に追加(§9絵文字禁止・24x24・currentColor)。
+- **データ [data.js]**：`TRAITS.mimikakushi.icon="trait-mask"`(カードのSVGロゴ)。color(地)/rim(明るい徴=アクセント)は既存。
+- **CSS [style.css]**：`.trait-cards/.trait-card`(色アクセントバー＋ロゴ＋名・`--radius-md`・淡い影・Neo-Terrarium土壌トーン=発光/強彩度なし)・`.tc-fixed`(琥珀の鍵)・`.trait-empty`(控えめ)・`.legendary-tag`(七色グラデ文字=特別表示)。reduced-motionでカードアニメ無効。
+- **UI [ui/screens/main.js]**：`renderDetail` の旧「★★★★★＋モーフ名」行を撤廃→**レジェンダリーは`.legendary-tag`「✦ レジェンダリー」・それ以外は`traitCardsHtml(lz)`**(特性カード列 or 「特性なし」)。`traitCardsHtml`=色/ロゴ/名/固定印(`Game.isFixed`=鍵)を組み立て。★内部の`sp.stars`/`mo.mult`等の経済ロジックは非参照化しただけで**未変更**(売却/繁殖コスト/図鑑報酬 不変)。未使用になった`sp`変数は削除(揺らぎ解消)。
+- **プレビュー [test-traitcards.html・dev専用/.vercelignore]**：無印/ミミカクシ/固定/複数並び/レジェンダリー の各状態をDOMで確認。headless実画像で成立(藍アクセント＋仮面ロゴ＋琥珀の固定鍵＋レジェンダリー虹グラデ)。
+- **検証**：全8スイートPASS(表示層のみ=ロジック非回帰)・全JS構文OK・**boot console0**(headless実測)。
+- **注意(デプロイ時)**：`icons.js`/`data.js`/`style.css` 変更=**`node tools/bump-cache.mjs` で versioned URL更新が必要**(Ric/QAのデプロイ工程で)。
+- **残**：Ricが実機でカードの美しさ/手触り確認→OKなら**S3③ 繁殖ピッカーの固定印(相手選択行に特性＋固定印)**。命名/色は仮のまま最終語感調整。
+
 ### 5ss. 特性 S5-b 賢者の石=固定化(遺伝p→1.0・クリア後解禁)(2026-07-22・準可逆/セーブ非接触/push・実装済)
 Ric承認(モデル=両親に固定印→当該特性が必ず子へ・親が持つ特性のみ・クリア後解禁)。**極小ガチャの到達保証の天井=「運の探求者」と「石の錬金術師」の2つの道**。**確率(遺伝率以外)/物理/純血/魂 不変・セーブ非接触(fixedTraits追記のみ・bump不要)・レジェンダリー除外踏襲**。
 - **固定ロジック [game.js]**：`fixUnlocked()`=`rocket.done`(ロケット完成=クリア・純血の種移動解禁と同一貫性)／`stoneFixCost(tier)=stoneFixBase(4)+tier×stoneFixPerTier(2)`(tier1=6…tier5=14)／`fixableTraits(lz)`(その個体が持つ未固定の特性=genesis限定)／`fixTrait(lz,key)`=検証(クリア後/持つ特性のみ/二重固定なし/石不足で不発&非消費)→石消費→`fixedTraits`追加→fx。

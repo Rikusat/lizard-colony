@@ -1459,6 +1459,36 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 #detail .injured { color: var(--red); font-weight: bold; margin-top: 4px; }
 .sw { display: inline-block; width: 22px; height: 13px; border-radius: var(--radius-sm); border: 1px solid rgba(0, 0, 0, .5); box-shadow: inset 0 1px 2px rgba(255, 255, 255, .3); }
 
+/* ============ 特性カード(UISkills §12・S3) ============ */
+/* コレクションカード的だが Neo-Terrarium の落ち着いた土壌トーンに収める(発光/強彩度は使わない)。 */
+.trait-cards { display: flex; flex-wrap: wrap; gap: 6px; margin: 5px 0 6px; }
+.trait-card {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 9px 4px 7px;
+  border-radius: var(--radius-md, 14px);
+  background: linear-gradient(160deg, rgba(51, 38, 28, .96), rgba(36, 24, 18, .96)); /* --ink-700→800 */
+  border: 1px solid var(--ink-600, #4A3728);
+  border-left: 3px solid var(--tc, #7c93d4);          /* 特性色のアクセントバー */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 2px 6px rgba(0, 0, 0, .26);
+  color: var(--paper-100, #F3E9D8);
+  font-size: calc(12px * var(--fs-scale, 1));
+  animation: trait-card-in var(--dur-base, 200ms) var(--ease-out, ease);
+}
+.trait-card .tc-ico { color: var(--tc, #7c93d4); display: inline-flex; }
+.trait-card .tc-ico .icon { width: 1.15em; height: 1.15em; }
+.trait-card .tc-name { font-weight: 600; letter-spacing: .02em; }
+.trait-card .tc-fixed { color: var(--amber-400, #E4BC3A); display: inline-flex; opacity: .9; } /* 固定印=琥珀の鍵 */
+.trait-card .tc-fixed .icon { width: 1em; height: 1em; }
+.trait-empty { color: var(--sub, #D8C3A5); opacity: .55; font-size: calc(12px * var(--fs-scale, 1)); margin: 4px 0 6px; }
+.legendary-tag {
+  margin: 4px 0 6px; font-weight: 700; letter-spacing: .04em;
+  display: inline-flex; align-items: center; gap: 6px;
+  background: linear-gradient(90deg, #E4BC3A, #7BD986, #4FC3E8, #9B6BD6, #E0533B);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+@keyframes trait-card-in { from { opacity: 0; transform: translateY(3px); } }
+@media (prefers-reduced-motion: reduce) { .trait-card { animation: none; } }
+
 /* ============ modal ============ */
 #modal {
   position: fixed; inset: 0; background: var(--glass-bg);

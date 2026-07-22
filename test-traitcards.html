@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>特性カード(S3) 見た目確認 — 開発用</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="style.css">
+<style>
+  body { background: #2a1d15; margin: 0; padding: 20px; color: #e8dccb; font-family: system-ui, sans-serif; }
+  h1 { font-size: 15px; margin: 0 0 4px; }
+  p.lead { font-size: 12px; color: #c9b8a2; margin: 0 0 16px; }
+  .grid { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
+  .panel { width: 264px; background: linear-gradient(rgba(42,32,17,.97), rgba(28,20,10,.97)); border: 2px solid var(--gold-deep); border-radius: var(--radius-md); padding: 12px; }
+  .panel h4 { color: var(--gold); font-size: 15px; margin: 0 0 4px; }
+  .cap { color: #c9b8a2; font-size: 12px; margin: 0 0 6px; }
+  .foot { color: #D8C3A5; font-size: 12px; margin-top: 6px; }
+</style>
+</head>
+<body>
+<h1>特性カード(UISkills §12 / S3) — 個体詳細パネルの特性表示</h1>
+<p class="lead">個体詳細を開いた時だけ表示(フィールド常時表示は増やさない)。レア度★は撤廃し特性カードへ置換(内部数値=経済は残置)。レジェンダリーは特別表示(特性の外)。</p>
+<div class="grid" id="grid"></div>
+<script src="js/data.js"></script>
+<script src="js/ui/icons.js"></script>
+<script>
+// 特性カードの見た目確認(セーブ非接触・純DOM)。traitCardsHtml と同じ組み立て。
+function card(key, fixed) {
+  const d = TRAITS[key], tc = d.rim || d.color || "#7c93d4";
+  return `<span class="trait-card" style="--tc:${tc}"><span class="tc-ico">${Icon.svg(d.icon)}</span><span class="tc-name">${d.name}</span>`
+    + (fixed ? `<span class="tc-fixed" title="固定 — 必ず子へ継がれる">${Icon.svg("lock")}</span>` : "") + `</span>`;
+}
+const rows = [
+  ["無印個体(特性なし)", `<div class="trait-empty">特性なし</div>`],
+  ["ミミカクシ(1特性)", `<div class="trait-cards">${card("mimikakushi")}</div>`],
+  ["ミミカクシ + 固定(S5-b)", `<div class="trait-cards">${card("mimikakushi", true)}</div>`],
+  ["複数カードの並び(将来の特性追加後)", `<div class="trait-cards">${card("mimikakushi")}${card("mimikakushi", true)}</div>`],
+  ["レジェンダリー(特別表示・特性の外)", `<div class="legendary-tag">✦ レジェンダリー</div>`],
+];
+document.getElementById("grid").innerHTML = rows.map((r) =>
+  `<div class="panel"><h4>フトアゴヒゲトカゲ #12</h4><p class="cap">${r[0]}</p>${r[1]}<div class="foot">アダルト Lv3 / 攻撃 12.0 / 生産 1.20G</div></div>`).join("");
+Icon.inject();
+</script>
+</body>
+</html>

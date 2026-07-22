@@ -648,8 +648,9 @@ const bossTierFor = (rank) => {
 const TRAITS = {
   mimikakushi: {
     key: "mimikakushi", name: "ミミカクシ", // ★仮称
-    color: "#3b4a6b",        // 特性カード/UIの徴の色(藍/鈍色)
-    rim: "#7c93d4",          // 仮面の上縁(明るい藍=個体上でも特性色が読める徴)
+    color: "#3b4a6b",        // 特性カード地の色(藍/鈍色)
+    rim: "#7c93d4",          // 明るい藍=徴/カードのアクセント/ロゴ色(暗背景で可読)
+    icon: "trait-mask",      // 特性カードのSVGロゴ(ICONS・§9絵文字禁止)
     tier: 3,                 // 内部レア度(1..5・非表示)
     draw: "traitMimikakushi",
     desc: "眼から頬を仮面状の帯で覆う。素顔を隠す個体。",
