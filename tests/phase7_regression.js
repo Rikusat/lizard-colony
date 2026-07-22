@@ -120,12 +120,12 @@ ok("CFG.allyVisHeadMax が数値", typeof CFG.allyVisHeadMax === "number");
   ok("_allySquad: 頭数は allyVisHeadMax を超えない", countHeads(5, 80) <= CFG.allyVisHeadMax, "=" + countHeads(5, 80));
 }
 
-// === 非破壊: 効果は runtime・makeLizard スキーマに新フィールドを足していない(セーブ非接触) ===
+// === 非破壊: 効果は runtime・Phase7は個体スキーマに味方/tierフィールドを足していない(セーブ非接触) ===
 {
   const lz = Game.makeLizard("kanahebi", "normal", { hue: 100, sat: 50, light: 50, pattern: "stripe" }, "adult");
-  const keys = Object.keys(lz).sort().join(",");
-  const expected = ["id", "speciesId", "morphId", "hue", "sat", "light", "pattern", "stage", "xp", "level", "injuredT", "breedCd"].sort().join(",");
-  ok("makeLizard スキーマ不変(味方/tierフィールドを個体に足していない)", keys === expected, keys);
+  const keys = Object.keys(lz);
+  // Phase7は個体に何も足さない。traitsは特性システムS2の追加=Phase7とは別スプリント(ここでは存在してよい)。
+  ok("makeLizard: Phase7由来の味方/tierフィールドを個体に足していない", !keys.some((k) => /ally|tier|boss|scale/i.test(k)), keys.join(","));
   // raidAllyTierScale は state を書き換えない(純粋)
   setup(320); const before = JSON.stringify(Game.state.allies);
   Game.raidAllyTierScale({ tier: 5, elite: true });

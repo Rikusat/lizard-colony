@@ -78,18 +78,31 @@ ok("TRAITS.mimikakushi が定義", !!TRAITS.mimikakushi);
   ok("_paintTraits: 個体を書き換えない(純粋)", JSON.stringify(lz) === before);
 }
 
-// === 付与なし・セーブ非接触: makeLizard は traits を持たない ===
+// === S2: makeLizard は additive traits[](既定=空)・後方互換 ===
 {
   const lz = Game.makeLizard("kanahebi", "normal", { hue: 100, sat: 50, light: 50, pattern: "stripe" }, "adult");
-  ok("makeLizard: traits フィールドを持たない(S1=付与なし)", !("traits" in lz));
+  ok("makeLizard: traits フィールドを持つ(S2・additive)", Array.isArray(lz.traits));
+  ok("makeLizard: 既定は空[](無印)", lz.traits.length === 0);
   const keys = Object.keys(lz).sort().join(",");
-  const expected = ["id", "speciesId", "morphId", "hue", "sat", "light", "pattern", "stage", "xp", "level", "injuredT", "breedCd"].sort().join(",");
-  ok("makeLizard: スキーマ不変(セーブ非接触)", keys === expected, keys);
+  const expected = ["id", "speciesId", "morphId", "hue", "sat", "light", "pattern", "stage", "xp", "level", "injuredT", "breedCd", "traits"].sort().join(",");
+  ok("makeLizard: スキーマ=既存+traitsのみ(additive)", keys === expected, keys);
+  // genes.traits を継承(繁殖経由の受け皿)
+  const lz2 = Game.makeLizard("kanahebi", "normal", { hue: 100, sat: 50, light: 50, pattern: "stripe", traits: [{ key: "mimikakushi" }] }, "adult");
+  ok("makeLizard: genes.traits を受け取る", lz2.traits.length === 1 && lz2.traits[0].key === "mimikakushi");
+  // レジェンダリーは常に空(①・§16.4)
+  const leg = Game.makeLizard("kanahebi", "legendary", { hue: 100, sat: 50, light: 50, pattern: "stripe", traits: [{ key: "mimikakushi" }] }, "adult");
+  ok("makeLizard: レジェンダリーは traits を持てない(強制[])", leg.traits.length === 0);
 }
-// newGame後の初期個体も traits なし(通常ゲームは付与なし=描画hookは不発)
+// newGame後の初期個体は無印(空)=通常ゲームは付与なし=描画hookは不発
 {
   Game.newGame();
-  ok("newGame初期個体: 誰も traits を持たない", Game.state.lizards.every((l) => !l.traits));
+  ok("newGame初期個体: 全員 無印(traits空)", Game.state.lizards.every((l) => !l.traits || l.traits.length === 0));
+}
+// レジェンダリーは描画対象外(①): morphId==="legendary"の個体は _paintTraits を通さない(hook側ガード)
+{
+  const ctx = recCtx();
+  Render._paintTraits(ctx, { traits: [{ key: "mimikakushi" }] }, GEO); // _paintTraits自体は描く
+  ok("_paintTraits単体は描く(hook側でlegendaryを弾く設計)", (ctx.__calls.ellipse || 0) >= 1);
 }
 
 console.log(`\n=== 特性(Trait) 回帰テスト結果: ${pass} PASS / ${fail} FAIL ===`);

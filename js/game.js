@@ -107,6 +107,9 @@ const Game = {
       xp: 0, level: 1,
       injuredT: 0,                // 残り負傷秒
       breedCd: 0,                 // 残り繁殖クールダウン秒
+      // 特性(S2・trait_system §8): additive。既定=無印[]。genesはtraitsを持てば継承(繁殖経由)。
+      //   レジェンダリーは特性の対象外(①・§16.4)=常に空。旧セーブの既存個体は traits 未定義=[]扱い(後方互換・bump不要)。
+      traits: morphId === "legendary" ? [] : ((genes && genes.traits) || []),
     };
   },
 
@@ -1247,13 +1250,40 @@ const Game = {
       + this.researchBonus("legend")) {
       morphId = "legendary";
     }
+    // 特性(S4): 子がレジェンダリーなら特性なし(①・§16.4)。それ以外は両親からの組み替え(genesis限定=血統外は出さない)。
+    const traits = morphId === "legendary" ? [] : this.inheritTraits(a, b);
     return {
       speciesId, morphId,
       hue: clamp(((a.hue + b.hue) / 2 + rnd(-15, 15) + 360) % 360, 0, 359),
       sat: clamp((a.sat + b.sat) / 2 + rnd(-8, 8), 5, 100),
       light: clamp((a.light + b.light) / 2 + rnd(-6, 6), 12, 85),
       pattern: Math.random() < 0.5 ? a.pattern : b.pattern,
+      traits,
     };
+  },
+
+  // 特性の遺伝(S4・trait_system §9/§16 genesis限定): 子の特性は両親の特性の和集合"のみ"から選ばれる。
+  //   血統に無い新特性は繁殖では発生しない(=賢者の石だけが新特性の入口・§16.1)。→ 突然変異は「石限定」を採用(繁殖ミューテーションなし)。
+  //   各特性は独立確率p(内部tierに反比例=希少ほど伝わりにくい)で発現→複数同時継承は各pの積で指数的に困難(やり込み)。上限=traitMaxPerLizard。
+  //   レジェンダリー親(①)は伝播元にならない(和集合に寄与しない)。乱数は単一窓口rng(既定Math.random・テストはseed注入で決定論=fable2)。
+  inheritTraits(a, b, rng) {
+    rng = rng || Math.random;
+    const src = [];
+    for (const parent of [a, b]) {
+      if (!parent || parent.morphId === "legendary") continue; // レジェンダリーは伝播元にならない
+      for (const t of parent.traits || []) { const k = t && t.key ? t.key : t; if (k) src.push(k); }
+    }
+    // 和集合(keyで一意化・TRAITSに実在するもののみ=血統外/不正keyを排除)
+    const seen = {}, union = [];
+    for (const k of src) { if (!seen[k] && typeof TRAITS !== "undefined" && TRAITS[k]) { seen[k] = 1; union.push(k); } }
+    // 各特性を独立に判定(積の性質を保つ)→ 成功分を上限までに切り詰め
+    const out = [];
+    for (const k of union) {
+      const def = TRAITS[k];
+      const p = clamp(CFG.traitInheritBase - ((def.tier || 1) - 1) * CFG.traitTierPenalty, CFG.traitInheritFloor, 1);
+      if (rng() < p) out.push({ key: k });
+    }
+    return out.slice(0, CFG.traitMaxPerLizard);
   },
 
   // 未所持の図鑑エントリ(種×モーフ)を1つ返す。ステージ種優先(§7.5)。全所持ならnull

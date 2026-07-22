@@ -1664,6 +1664,18 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
   - ID1〜ID9 [済] / **ID10 記録係アノール[本]**: 石板を抱えた学者肌の小トカゲ+金の刻印の脈動(1-2体)。※新arch=戦闘効果は今後。
   - **★全10惑星の味方描画 完成**（ID1〜ID10）。移送先id味方(ID2/6/7/8/9)=既存効果型を再有効化／新arch味方(ID3/4/5/10)=可視・育成のみ(効果は今後)。後修正候補: ID2-5・ID10がやや小型・背景と同化気味(存在感up余地)／ID9はラクーンか廃炉山椒魚か(Ric選択)。
 
+### 5oo. 特性システム ①レジェンダリー除外＋②S2＋S4(2026-07-22・準可逆/セーブ非接触/push・実装済)
+Ric方向づけ(基準=藍の仮面で確定)→ **①レジェンダリー除外 → ②S2(個体additive traits[])＋S4(繁殖の特性遺伝)**。**確率(既存)/物理/純血/魂 不変・SAVE_VERSION bump不要(後方互換)**。
+- **① レジェンダリー除外(commit `8bc528b`)**：描画フックに `morphId==="legendary"` ガード(既存フラグ=新ロジックなし)。虹発光と特性の徴が殺し合う/別格ゆえ。trait_system §16.4 に確定記録。付与/遺伝側の除外は②で inheritTraits/makeLizard/_traitSig にも反映。
+- **② S2 [game.js makeLizard]**：個体に `traits`(additive)。既定=無印`[]`・`genes.traits`があれば継承(繁殖経由の受け皿)・**レジェンダリーは強制`[]`**。**旧セーブの既存個体は traits 未定義=`[]`扱い(後方互換・bump不要=§8.2A)**。
+- **② S4 [game.js inheritTraits＋inherit()配線]**：子の特性は**両親の特性の和集合"のみ"**から、各特性を独立確率p(内部tierに反比例=`clamp(traitInheritBase-(tier-1)*traitTierPenalty,floor,1)`)で発現→**複数同時継承は各pの積で指数的に困難**(やり込み)・**上限`traitMaxPerLizard=3`**。乱数は単一窓口rng(既定Math.random・テストはseed注入=決定論)。`inherit()`は子がレジェンダリーなら`traits=[]`。
+  - **★突然変異の扱い=「石限定」を採用(§16.1 genesis限定に従う)**：**繁殖では血統に無い新特性は一切発生しない**(繁殖ミューテーションなし)。新特性の入口は賢者の石(S5)だけ。→ Ric承認済みの§16.1に忠実。※もし「繁殖でも低確率で新特性」を望む場合はCFG追加で可(要指示)。
+- **② CFG [data.js]**：`traitInheritBase=0.8`/`traitTierPenalty=0.12`/`traitInheritFloor=0.15`/`traitMaxPerLizard=3`。**★緩めに開始(単一は受け継がれ易く・複数だけ厳しく)=Ric実機調整**。
+- **② キャッシュ整合 [render.js]**：`_traitSig(lz)`をスプライト署名`sig`に追加=特性で見た目が変わる個体はキャッシュを分ける(古い姿の焼き残り防止)。**無印/レジェンダリーは`""`=従来と同一sig=無印個体のピクセル不変**。
+- **プレビュー [test-traits.html・dev専用]**：下段に**S4遺伝デモ=親2体(ミミカクシ)→子6匹**(実`inheritTraits`+seed固定rngで継承/非継承が混在)を追加。headless Chromeで**親→子の遺伝が可視・genesis限定で血統外は出ない**を実画像確認。上段S1見た目も維持。
+- **検証(node実測)**：新設 `tests/trait_inherit_regression.js` **18 PASS**(和集合/genesis限定=血統外なし/積で困難=fBoth≈p²/tier反比例/上限3/決定論=同一seed同一子/レジェンダリー伝播せず/`_traitSig`キャッシュ分離=無印`""`)。`tests/trait_regression.js` 更新(S2=makeLizard additive traits・レジェンダリー強制[]) **19 PASS**。`phase7_regression` 期待値更新(traitsはS2の追加=Phase7非由来)。全7スイートPASS(phase6 86・純血 59・boss_roster 58・motion 22・phase7・trait・trait_inherit)。全JS構文OK。
+- **残(Ric確認→次段)**：実機で繁殖→特性遺伝の手触り確認＋CFG(継承率/上限)最終。世界観OKなら **S5(賢者の石=genesis付与＋固定化素材)** → **S3(特性カードUI)**。※**S6(不可逆・旧個体移行)は最後・要明示承認**。
+
 ### 5nn. 特性システム S1 — ミミカクシ 見た目試作(2026-07-22・付与なし/セーブ非接触/可逆・捨てられる試作)
 Ric方向づけ7項目を§16確定→**可逆な S1(1特性のデータ＋見た目試作・付与なし・セーブ非接触)に着手**。Ric選択=1体目=**ミミカクシ**(discreteなパーツ=「特性は色/モーフと別の新軸」を最も明確に教える基準の見本)。**確率/物理/純血/魂 不変**(顔に上乗せ=骨格不変)。
 - **データ [data.js]**：`TRAITS`(単一の真実・データ駆動)を新設。`mimikakushi`={key/name(仮)/color(藍#3b4a6b)/rim(#7c93d4)/tier(内部レア度3・非表示)/draw/desc}。★命名/色/tierは仮=Ric最終。

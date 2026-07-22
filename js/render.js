@@ -2232,7 +2232,8 @@ const Render = {
     const crowdB = Math.round(Game.crowdScale() * 1000);
     // §9.1 尾の再生率を sig に含める(負傷個体は再生段階ごとに焼き直し=性能維持しつつ尾が伸びる)
     const trB = injured ? Math.round(clamp(1 - lz.injuredT / (CFG.injuryTime || 10), 0, 1) * 6) : 6;
-    const sig = phaseStep + "|" + face + "|" + crowdB + "|" + (moving ? 1 : 0) + "|" + (injured ? 1 : 0) + "|" + trB;
+    // 特性(S4): 見た目が特性で変わる個体はキャッシュを分ける(古い姿の焼き残り防止)。無印/レジェンダリーは "" =従来と同一描画。
+    const sig = phaseStep + "|" + face + "|" + crowdB + "|" + (moving ? 1 : 0) + "|" + (injured ? 1 : 0) + "|" + trB + "|" + this._traitSig(lz);
     // スプライト外接box: 魂の最大範囲(尾先x=-0.80L・鼻先+0.485L、幅/クレスト/脚/デューラップ/尾のしなり)を余裕を持って包む。
     // 左右反転(face)で尾は±0.80Lに振れるため x は対称に確保。原点(lz基準)=(ox,oyTop)
     const ox = Math.ceil(L * 0.98) + 3, oyTop = Math.ceil(L * 0.7) + 3, oyBot = Math.ceil(L * 0.3) + 3;
@@ -3756,6 +3757,11 @@ const Render = {
       const def = TRAITS[t && t.key ? t.key : t];
       if (def && def.draw && typeof this[def.draw] === "function") this[def.draw](ctx, g, def);
     }
+  },
+  // スプライトキャッシュ署名の特性成分。無印/レジェンダリー(徴を描かない)は "" =従来と同一=無印個体のピクセル不変。
+  _traitSig(lz) {
+    if (lz.morphId === "legendary" || !lz.traits || !lz.traits.length) return "";
+    return lz.traits.map((t) => (t && t.key ? t.key : t)).join(",");
   },
   // ミミカクシ: 眼〜頬を仮面状の帯で覆う。地=体色を大きく暗く落とし、上縁に特性色(藍/鈍色)の徴。眼は仮面の穴から覗く。
   traitMimikakushi(ctx, g, def) {

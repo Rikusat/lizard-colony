@@ -188,6 +188,12 @@ const CFG = {
   allyVisSizePerTier: 0.03, // 巨大化: _allyBoost の拡大率に tier×これ を加算(全boosted味方)
   allyVisHeadsPerTier: 0.5, // 数増: floor(tier×これ)頭を部隊に追加(T2で+1…T6で+3)
   allyVisHeadMax: 5,        // 味方の同時表示頭数の上限(spot拡張分)
+  // 特性の遺伝(S4・trait_system §9/§16)。genesis限定=繁殖は両親の"組み替え"のみ(血統外の新特性は繁殖では出ない=賢者の石だけ)。
+  //   各特性が独立確率p(内部tierに反比例)で発現→複数同時継承は各pの積で指数的に困難(=やり込み)。★緩めに開始=Ric実機調整。
+  traitInheritBase: 0.8,    // 内部tier1(最も普及)の1特性が継承される確率(単一は受け継がれ易く)
+  traitTierPenalty: 0.12,   // 内部tierが1上がるごとに継承確率を下げる(希少ほど伝わりにくい)
+  traitInheritFloor: 0.15,  // 継承確率の下限
+  traitMaxPerLizard: 3,     // 1個体が持てる特性数の上限(§16 ③)
   // 群衆対策(表示のみ・収益/戦闘は全個体が対象のまま)
   maxVisibleLizards: 70,    // フィールドに同時表示する上限。超過分は巣穴で休憩
   restSwapPerSec: 3,        // 平常時に毎秒この匹数まで休憩⇔活動を入れ替え(漸進=ちらつき防止)
