@@ -1664,6 +1664,38 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
   - ID1〜ID9 [済] / **ID10 記録係アノール[本]**: 石板を抱えた学者肌の小トカゲ+金の刻印の脈動(1-2体)。※新arch=戦闘効果は今後。
   - **★全10惑星の味方描画 完成**（ID1〜ID10）。移送先id味方(ID2/6/7/8/9)=既存効果型を再有効化／新arch味方(ID3/4/5/10)=可視・育成のみ(効果は今後)。後修正候補: ID2-5・ID10がやや小型・背景と同化気味(存在感up余地)／ID9はラクーンか廃炉山椒魚か(Ric選択)。
 
+### 5ll. Phase10 docコミット＋Phase 7調査/方式提示＋特性システム設計doc(2026-07-22・Ric承認プロセス)
+Ric承認：着手順=①Phase7実装(調査+方式提示→承認→実装・push可/デプロイはRic)／②特性システムは設計docのみ(実装絶対にしない)。
+- **(1) Phase 10設計書コミット済**：未コミットだった `GameExpansion_V5.md` Phase10節(惑星完全独立/自動移行廃止/報酬必発=§5bb〜5dd実装済の事後doc)を commit `a11edbf`。docs三者同期回復・コード非変更。
+- **(2) Phase 7 セーブ影響調査(実測)＝セーブ非接触を確認**：
+  - **味方の強さの現状**：`allyLv(arch)`(game.js:145)=現惑星の味方Lv(`state.allies[id].lv`)。プレイヤーが `allyLvUp`(生態データ消費)で**手動育成**。効果は `raidDps()`(game.js:1559〜)の乗算＋ID4回復猶予(1764)。
+  - **ボスの"Lv"の実体**：`s.rank`＋**Tier**(`BOSS_TIERS` data.js:607・rank30→T1…rank80→T6/hpMult1.5〜4.6)＋`elite`(×1.5)。startRaid(1507)でHP合成。専用「Lv」フィールドは無く**Tier(+elite)が"ボスの規模"**。
+  - **味方描画数/サイズの現状**：`_allySquad`(render.js:3768)=`n=min(3,1+floor(lv/2))`(頭数はallyLv連動)、単体は`_allyBoost`固定k。→**ボス規模には未連動**。
+  - **結論**：Phase7が足す「ボスLv連動の自動強化」は**すべてruntime(効果=raidDps乗算/描画=allyScale)で表現可＝セーブ形式・確率・物理・純血・魂 いずれも非接触**。allyLv移行は§5t済で活用。
+- **(3) スケール方式(たたき台・§下記"Phase 7方式提案"参照)＝Ric承認待ち**：Tier(+elite)駆動の`allyScale`を(a)効果=味方在住時のみraidDps乗算(present-gated)・(b)描画=単体kと部隊nをTierで増、全CFG化。詰み回避：allyScaleはbossHpMultByStage/tier hpMultを**部分相殺**(完全相殺は作業化・過少は詰み)＝Ric実機で味方あり/なし勝率調整。**承認後に実装**。
+- **(4) 特性システム設計doc作成済(実装なし)**：`docs/trait_system.md` を §7〜15へ拡張(スキーマ/遺伝/賢者の石経路/ルーレット・純血整合/UI/段階分けS1〜S7/テスト)。**重要発見=レア度は個体に非保存の派生値(species.stars×morph.mult)→撤廃は非破壊で可能**。Ric判断点7項目(§14)を明示。**Ricレビュー→方向確定後に実装(可逆S1から)**。
+
+### 5kk. ★残タスク最新棚卸し(§5jj本番後・§5s/§5eeを更新・2026-07-22)
+セッション再開時にfable群＋設計doc一式＋git/コード実体を実測し、§5ee(2026-07-21)以降の増分を消し込み。**§5s(Phase6期チェックポイント=古い)・§5ee は本節が上書き**(過去記述は改変せず本節を単一の真実とする)。
+- **git/同期**: HEAD=origin/main=`b5a4214`(§5jj doc)。本番コード=`b0d23d7`(§5jj実証・b5a4214はdoc-onlyの後続=コード非変更)。**三者同期・clean**。唯一の未コミット=`GameExpansion/GameExpansion_V5.md`(**Phase 10設計書の追記**。中身はPhase10=惑星完全独立/自動移行廃止/ボス報酬ルーレット必発=**既に§5bb〜5ddで実装+v15本番デプロイ済**の事後documentation。commitで docs三者同期を回復するのが妥当・Ric判断待ち)。
+
+**§5ee以降に完了(実装+本番反映済)**:
+- **署名ボス配役一式＋見た目修正6箇所を本番デプロイ**(§5jj・`b0d23d7`・三者同期・本番実証・確率/物理/純血/魂 不変)。→ §5ee[A]②の「デプロイ判断」を消し込み。
+- **トカゲモーション①〜⑤を本番デプロイ**(§5gg・純装飾・魂不変・reduced-motion対応)。→ §5ee[B]①の「実装」を消し込み(残=⑥手触りCFGのみ)。
+
+**残タスク(現在の真実・2分類＋アート保留)**:
+- **[A] Ric実機判定・手触り調整(CFGで即応・Ricが遊びながら詰める。CCは推測で数値を動かさない)**:
+  1. **Phase6 CFGバランス最終**: `bossHpMultByStage`(惑星別)/新arch4味方効果の強さ(`dormouseDps`/`moleAtkBuff`/`anoleDps`/`fireflyGrace`)/署名頻度(`sigBossChance`/`stage.bosses`)。全てたたき台配置済→**Ricが味方あり/なし勝率を見てCFG値を指示**。
+  2. **署名ボスの濃さ**: `SIG_PAL`各値/`allyBoost`倍率/`eliteScale`=Ricが実機で色/大きさの濃さを詰める。
+  3. **モーション⑥手触りCFG**: `poseBobPx`/`poseSpeed`/`spotVisitChance`/`spotDwell`/`capacity`=Ric実機。※頭下げ等の**魂geometry変化の許可可否は保留(要承認)**。
+  4. **軽微**: 命名の最終語感(全て仮)/`planetTravelSec=3.0`体感/Phase9残(里帰り祝福トースト・新着ドット微調整)。
+- **[C] 未着手の大物(次に選ぶ対象)**:
+  1. **特性システム**(`docs/trait_system.md`)=構想メモのみ・**設計未確定/破壊的(レア度撤廃=個体スキーマ・遺伝ロジック・純血/ルーレット整合・セーブ移行)/要Ric共同設計**。→**設計スプリント先行**(設計doc→承認→実装)。
+  2. **Phase 7 味方のボスLv連動 自動強化**=既存設計あり(V5 Phase7)・味方固有化/惑星ゲート/allyLv移行は実装済。**残=ボスLvに応じ味方が自動でスケール(巨大化/増数)する核**が未実装。セーブ非接触見込み・魂非接触・**実装に進める**(§5v味方効果と同型のCFGたたき台方式)。要事前セーブ影響調査。
+  3. **ID8バガー侵食率(erosion)連動**=別スプリント切出済・小。純演出は実装済/侵食率連動は未。
+  4. **legend.js死コード整理**(`js/ui/hero/legend.js`)=軽微・`test-v3.html`依存でRic判断。Fable3リファクタ規律(機能と混ぜない・テスト先行)。
+- **[B] アート判断保留**: 四重スリット装置の惑星別意匠(統一された冷たい美=食/syzygyを損なう恐れ・安全側で未着手)。
+
 ### 5jj. ★本番デプロイ — 署名ボス配役一式＋見た目修正6箇所(2026-07-22・成功/本番実証済)
 Ric「まとめて本番デプロイ・CFG/バランスは本番反映後に実機で詰める」。QA全通過→`bump-cache`(整合)→`npx vercel --prod`= **`lizardcolony-93vtocc01` / READY / production**。
 - **QA(重大0/軽微0)**: boss_roster 58・phase6 86・純血 59・motion 22・味方 65・移行チェーン(v10→v14資産保全)・全JS構文30/0・**解像度4種(1920/1600/1366/1280)あふれ0=1画面固定・slit(#spin-proof)/game OK**・boot console0/4xx0・fps5629(>>60)。**変更は data/game/render の3ファイルのみ**=roulette.js/slit.js/core.js/style.css/tokens.css は前回デプロイ(1965709)以降0行変更=**#spin-proof/レイアウト/当たり判定 非回帰**。
