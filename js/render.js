@@ -2266,6 +2266,7 @@ const Render = {
   bossScale(raid) {
     const big = raid.tier || raid.boss || raid.elite;
     let k = big ? CFG.bossScaleBoss + (raid.tier || 0) * CFG.bossScaleTier : CFG.bossScaleSnake;
+    if (raid.elite) k *= (CFG.eliteScale || 1.15); // Phase6: 大ボスは一回り大きい
     if (!raid.snake.arrived && !raid.type.flying) k *= CFG.bossApproach; // 迫り=より大きな影
     if (raid.snake.arrived) {
       k *= 1 + Math.sin(this.time * 2.1) * CFG.bossBreath;              // 呼吸
@@ -2351,6 +2352,14 @@ const Render = {
       g.addColorStop(1, hexA(raid.tierDef.aura, 0));
       ctx.fillStyle = g;
       ctx.beginPath(); ctx.arc(e.x, e.y, 130, 0, 7); ctx.fill();
+    }
+    // Phase6: 大ボス(elite)は脅威色の濃いオーラ+脈動(通常ボスとの格差を視覚化)
+    if (raid.elite) {
+      const ec = (raid.tierDef && raid.tierDef.aura) || "#ffd700";
+      const pa = (CFG.eliteAuraA || 0.34) + Math.sin(this.time * 4) * 0.14, R = CFG.eliteAuraR || 168;
+      const g2 = ctx.createRadialGradient(e.x, e.y, 20, e.x, e.y, R);
+      g2.addColorStop(0, hexA(ec, pa)); g2.addColorStop(0.7, hexA(ec, pa * 0.4)); g2.addColorStop(1, hexA(ec, 0));
+      ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(e.x, e.y, R, 0, 7); ctx.fill();
     }
     // Phase6 惑星署名ボス: raid.boss時のみ、その惑星の脅威型が一致すれば固有の姿で描画(通常襲来/不一致は既存脅威型のまま)
     const sig = this.planetBossDraw(raid);

@@ -300,6 +300,9 @@ const CFG = {
   bossScaleSnake: 1.1,      // 序盤の通常蛇の控えめな拡大
   bossBreath: 0.035,        // 呼吸(拡縮)の振幅
   bossApproach: 1.3,        // 迫り(未到着シルエット)の追加拡大
+  eliteScale: 1.15,         // Phase6: 大ボス(elite)は一回り大きい(通常/eliteの描き分け)。★CFG調整可
+  eliteAuraR: 168,          // 大ボスの脅威色オーラ半径
+  eliteAuraA: 0.34,         // 大ボスの脅威色オーラの濃さ(脈動の基準)
   // Phase4: 終盤コンテンツ (GameExpansion_v2 ⑨)
   legendChance: 0.004,      // 繁殖時の伝説変異率(祭壇 +0.2%/Lv)
   luckyEggInterval: 300,    // ラッキー卵の抽選間隔(秒)
