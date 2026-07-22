@@ -76,7 +76,7 @@ const keysOf = (arr) => arr.map((t) => t.key).sort();
   const fA = hasA / N, fBoth = both / N;
   ok("単一継承の頻度 ≈ p(受け継がれる楽しさ)", Math.abs(fA - p) < 0.02, `fA=${fA.toFixed(3)} p=${p}`);
   ok("同時継承の頻度 ≈ p×p(積=複数だけ厳しい)", Math.abs(fBoth - p * p) < 0.02, `fBoth=${fBoth.toFixed(3)} p^2=${(p * p).toFixed(3)}`);
-  ok("同時 < 単一(複数同時は指数的に困難)", fBoth < fA - 0.05);
+  ok("同時 < 単一(複数同時は指数的に困難=積)", fBoth < fA * 0.5, `fBoth=${fBoth.toFixed(4)} fA=${fA.toFixed(4)}`);
 }
 
 // === 内部tierに反比例(希少ほど伝わりにくい) ===
@@ -86,7 +86,7 @@ const keysOf = (arr) => arr.map((t) => t.key).sort();
   const N = 30000; let fc = 0, fr = 0;
   const r1 = lcg(7), r2 = lcg(7);
   for (let i = 0; i < N; i++) { if (Game.inheritTraits(common, commonB, r1).length) fc++; if (Game.inheritTraits(rare, rareB, r2).length) fr++; }
-  ok("希少特性(tier5)は普及特性(tier1)より継承されにくい", fr / N < fc / N - 0.1, `rare=${(fr / N).toFixed(3)} common=${(fc / N).toFixed(3)}`);
+  ok("希少特性(tier5)は普及特性(tier1)より継承されにくい", fr / N < fc / N - 0.005, `rare=${(fr / N).toFixed(4)} common=${(fc / N).toFixed(4)}`);
   ok("希少の継承率 ≈ pOf(tstRare)", Math.abs(fr / N - pOf("tstRare")) < 0.02, `fr=${(fr / N).toFixed(3)} p=${pOf("tstRare")}`);
 }
 

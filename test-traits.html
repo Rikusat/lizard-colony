@@ -46,9 +46,9 @@ SPECIES.forEach((sp, r) => {
   label(sp.name, 16, y + 4);
 });
 
-// ===== 下段: S4 遺伝 — 親2体(ミミカクシ)→ 子6匹(継承は確率p) =====
+// ===== 下段: S4 遺伝 — 極小確率のガチャ(親2体ミミカクシを大量繁殖→継承した子だけ表示) =====
 const demoY = 110 + 8 * 92 + 40;
-label("■ S4 遺伝: 親2体(ともにミミカクシ)→ 子6匹。継承は確率p(内部tierに反比例)=一部だけ受け継ぐ。血統外の新特性は繁殖では出ない(genesis限定)。", 16, demoY - 14, "#f0d9a8");
+label("■ S4 遺伝(極小確率ガチャ): 親2体ミミカクシ(tier3=約4%)を大量繁殖。ほとんどは非継承。継承した子だけ下に並ぶ。血統外の新特性は繁殖では出ない(genesis限定)。", 16, demoY - 14, "#f0d9a8");
 const sp = SPECIES[3]; // フトアゴ(明色で仮面が見やすい)
 const pA = draw1(sp, 150, demoY + 40, "normal", [{ key: "mimikakushi" }]);
 const pB = draw1(sp, 150, demoY + 130, "normal", [{ key: "mimikakushi" }]);
@@ -57,15 +57,18 @@ label("親B(ミミカクシ)", 40, demoY + 132);
 // seed固定の決定論rng(スクショ再現用)。Game.inheritTraits は乱数窓口を注入できる(fable2)。
 // ※lcg は render.js のグローバルを流用(seed→[0,1)の関数を返す)。
 const rng = lcg(20260722);
-let inheritN = 0;
-for (let i = 0; i < 6; i++) {
+const TRIES = 200; let hits = 0; const inheritors = [];
+for (let i = 0; i < TRIES; i++) {
   const traits = Game.inheritTraits(pA, pB, rng); // 実ロジックで子の特性を決定
-  if (traits.length) inheritN++;
-  const cx = 380 + (i % 3) * 130, cy = demoY + 40 + Math.floor(i / 3) * 90;
-  draw1(sp, cx, cy, "normal", traits);
-  label(traits.length ? "継承" : "非継承", cx - 30, cy + 38, traits.length ? "#9fd4a0" : "#c9a09a");
+  if (traits.length) { hits++; if (inheritors.length < 6) inheritors.push(traits); }
 }
-label(`子6匹中 ${inheritN}匹がミミカクシを継承(この乱数seedでの結果・確率的)`, 380, demoY + 232, "#c9b8a2");
+label(`${TRIES}回の繁殖 → ${hits}匹が継承(実測 ${(100 * hits / TRIES).toFixed(1)}%)。狙って平均 ${(TRIES / hits).toFixed(0)}回で1匹=射幸心と、やり込み。`, 380, demoY + 20, "#f0d9a8");
+label("↓ 継承した子(ミミカクシが正しく現れる):", 380, demoY + 40, "#9fd4a0");
+inheritors.forEach((traits, i) => {
+  const cx = 400 + (i % 3) * 120, cy = demoY + 90 + Math.floor(i / 3) * 80;
+  draw1(sp, cx, cy, "normal", traits);
+});
+label("※2つの特性を両方持つ子は各pの積=小数点%(数百〜千回級)=トップやり込み層の目標。到達保証はS5賢者の石(固定化)。", 16, demoY + 250, "#c9b8a2");
 </script>
 </body>
 </html>
