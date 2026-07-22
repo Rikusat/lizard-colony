@@ -154,6 +154,19 @@ const Game = {
     const a = st && planetAllyOf(st.id);
     if (a && !this.state.allies[a.id]) this.state.allies[a.id] = { lv: 1 };
   },
+  // Phase7: ボスLv連動の味方自動強化(手動育成不要)。ボスの"規模"=raidの実Tier(+elite)で味方効果を底上げ。
+  //   味方が在住する惑星でのみ発火(present-gated=強化するのは"味方"の働き)。手動育成allyLvとは別係数で加算的に乗る(二重取りなし)。
+  //   Tier無し(R30未満)は1.0=強化なし。全てCFGたたき台=Ricが味方あり/なし勝率で bossHpMultByStage と一緒に最終調整。
+  raidAllyTierScale(r) {
+    const st = this.currentStage && this.currentStage();
+    const a = st && planetAllyOf(st.id);
+    if (!a || !this.state.allies[a.id]) return 1; // 味方不在=強化なし
+    const tier = (r && r.tier) || 0;
+    if (!tier) return 1;
+    let m = (CFG.allyScaleByTier && CFG.allyScaleByTier[tier - 1]) || 1;
+    if (r.elite) m *= CFG.allyScaleElite || 1;
+    return m;
+  },
   isHidden(lz) { return lz.hiddenT > 0; }, // 鷹にさらわれて一時不在
   isAway(lz) { return lz.hiddenT > 0; }, // フィールド外(鷹にさらわれ一時不在)。V5.2: 探索(exploring)はV4.1で撤去済のため参照しない(残留フラグで個体が永久away=給餌/emit不能になるバグ根治)
   isVisible(lz) { return !this.isAway(lz) && !lz.resting; }, // フィールドに描画される個体
@@ -1568,6 +1581,7 @@ const Game = {
     if (this.allyLv("dormouse")) dps *= 1 + this.allyLv("dormouse") * CFG.dormouseDps; // ID3 斉射(火力)
     if (this.allyLv("mole")) dps *= 1 + this.allyLv("mole") * CFG.moleAtkBuff;         // ID5 全軍バフ
     if (this.allyLv("anole")) dps *= 1 + this.allyLv("anole") * CFG.anoleDps;          // ID10 情報バフ(弱点閲覧=与ダメ+)
+    dps *= this.raidAllyTierScale(r); // Phase7: ボスTier(+elite)連動の味方自動強化(味方在住惑星のみ・手動育成とは別枠)
     return dps;
   },
 

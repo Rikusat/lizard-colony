@@ -1664,6 +1664,15 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
   - ID1〜ID9 [済] / **ID10 記録係アノール[本]**: 石板を抱えた学者肌の小トカゲ+金の刻印の脈動(1-2体)。※新arch=戦闘効果は今後。
   - **★全10惑星の味方描画 完成**（ID1〜ID10）。移送先id味方(ID2/6/7/8/9)=既存効果型を再有効化／新arch味方(ID3/4/5/10)=可視・育成のみ(効果は今後)。後修正候補: ID2-5・ID10がやや小型・背景と同化気味(存在感up余地)／ID9はラクーンか廃炉山椒魚か(Ric選択)。
 
+### 5mm. Phase 7 実装 — 味方のボスLv連動 自動強化(2026-07-22・Ric承認済/セーブ非接触/push・デプロイはRic)
+Ric承認(AskUserQuestion)：**①加算**(手動育成allyLvは残し、その上にTier連動allyScaleを上乗せ)／**②惑星のTier上限に常時連動**(視覚)。方式§5ll(3)どおり実装。**確率/物理/純血/魂・セーブ形式 いずれも非接触**(効果=runtime乗算・視覚=描画のみ・個体スキーマ不変)。
+- **効果 [game.js]**：`raidAllyTierScale(r)`=味方在住惑星でのみ(present-gated)、raidの実**Tier(+elite)**で倍率算出→`raidDps()` 末尾で乗算。手動育成の各arch効果(dormouse/mole/anole/ferret…)とは**別係数=二重取りなし**。Tier無し(R30未満)/味方不在は1.0。
+- **視覚 [render.js]**：`_allyVisTier()`=`bossTierFor(rank)` の惑星Tier上限に常時連動(襲撃外でも味方が育って見える)。`_allyBoost` が k を `1+tier×allyVisSizePerTier` 倍(**巨大化**)／`_allySquad` が `floor(tier×allyVisHeadsPerTier)` 頭を追加(**数増**・spot 3→5拡張・`allyVisHeadMax`上限)。`drawArmadilloSquad` を共通ヘルパ経由へ集約(頭数の知識の重複を排除=揺らぎ解消)。
+- **CFG たたき台 [data.js]**：`allyScaleByTier=[1.05,1.10,1.14,1.18,1.22,1.26]`／`allyScaleElite=1.1`／`allyVisSizePerTier=0.03`／`allyVisHeadsPerTier=0.5`／`allyVisHeadMax=5`。★全てRic実機調整。
+- **詰み回避と bossHpMultByStage の兼ね合い**：allyScale(+5〜26%)は tier hpMult(×1.5〜4.6)を**部分相殺**に留める設計(完全相殺=作業化/過少=詰み)。**Ricが「味方あり/なし」勝率で allyScaleByTier と bossHpMultByStage を一緒に最終調整**。
+- **検証(node実測)**：新規恒久 `tests/phase7_regression.js` **34 PASS/0**(Tier→倍率/elite/present-gate/raidDps統合/詰み回避=部分相殺/視覚の常時連動・数増/**makeLizardスキーマ不変=セーブ非接触**/raidAllyTierScale純粋)。既存 phase6 **86**・純血 **59**・boss_roster **58**・motion **22** 全PASS(非回帰)。全JS構文OK。※in-browserブートはlogic-only harnessで全3ファイル実行成功=script健全(実機ブートはデプロイ前にRic/QAで最終確認)。
+- **残**：Ricが実機でCFGバランス最終調整＋デプロイ判断。
+
 ### 5ll. Phase10 docコミット＋Phase 7調査/方式提示＋特性システム設計doc(2026-07-22・Ric承認プロセス)
 Ric承認：着手順=①Phase7実装(調査+方式提示→承認→実装・push可/デプロイはRic)／②特性システムは設計docのみ(実装絶対にしない)。
 - **(1) Phase 10設計書コミット済**：未コミットだった `GameExpansion_V5.md` Phase10節(惑星完全独立/自動移行廃止/報酬必発=§5bb〜5dd実装済の事後doc)を commit `a11edbf`。docs三者同期回復・コード非変更。

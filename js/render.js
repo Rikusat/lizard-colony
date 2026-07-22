@@ -3756,29 +3756,34 @@ const Render = {
   // Phase6 味方の底上げ(存在感): 個体を(x,y)でk倍に拡大し、輪郭に薄い影(縁/接地)を付けて背景から浮かせる。
   //   fn(ctx)は原点(0,0)で1体を描く。★倍率/縁は SIG_PAL.allyBoost で調整可(Ric実機)。良好な味方(ID6/7/8)は通さない。
   _allyK(name, def) { return (typeof SIG_PAL !== "undefined" && SIG_PAL.allyBoost && SIG_PAL.allyBoost[name]) || def; },
+  // Phase7: 視覚スケールの駆動=惑星のTier上限(bossTierFor(rank))に常時連動。襲撃中でなくても味方が育って見える。
+  _allyVisTier() {
+    const r = (typeof bossTierFor === "function") && bossTierFor(Game.state.rank);
+    return (r && r.tier) || 0;
+  },
   _allyBoost(ctx, x, y, k, fn) {
     const B = (typeof SIG_PAL !== "undefined" && SIG_PAL.allyBoost) || {};
+    const kk = k * (1 + this._allyVisTier() * (CFG.allyVisSizePerTier || 0)); // Phase7: 巨大化(惑星Tierに常時連動)
     ctx.save();
-    ctx.translate(Math.round(x), Math.round(y)); ctx.scale(k, k);
+    ctx.translate(Math.round(x), Math.round(y)); ctx.scale(kk, kk);
     ctx.shadowColor = B.edge || "rgba(0,0,0,.5)"; ctx.shadowBlur = B.edgeBlur || 2.6; ctx.shadowOffsetY = 1;
     fn(ctx); // 原点で個体を描く(各_xxxは内部で translate(0,0)+scale(dir,1))
     ctx.restore();
   },
-  // 味方の共通配置: コロニー左手前の3スポットに Lv で頭数(1-3)。fn(ctx,x,y,dir,i) で1体描く。
+  // 味方の共通配置: コロニー左手前のスポットに頭数を置く。基本=Lvで1-3。Phase7: 惑星Tierで数増(部隊が"ボスに対応"して見える・上限allyVisHeadMax)。
+  //   fn(ctx,x,y,dir,i) で1体描く。spotは最大5まで用意(Tier数増の受け皿)。
   _allySquad(ctx, lv, fn) {
-    const n = Math.min(3, 1 + Math.floor((lv || 1) / 2));
-    const spot = [[300, 452], [232, 486], [368, 470]];
+    const base = Math.min(3, 1 + Math.floor((lv || 1) / 2));
+    const extra = Math.floor(this._allyVisTier() * (CFG.allyVisHeadsPerTier || 0)); // Phase7: 数増
+    const spot = [[300, 452], [232, 486], [368, 470], [352, 500], [264, 442]];
+    const n = Math.min(CFG.allyVisHeadMax || spot.length, base + extra);
     for (let i = 0; i < n; i++) { const t = this.time * 0.8 + i * 2.1; fn(ctx, spot[i][0] + Math.sin(t) * 8, spot[i][1] - Math.abs(Math.sin(t * 2)) * 2, i % 2 === 0 ? 1 : -1, i); }
   },
-  // スナホリ・アルマジロ部隊(ID1): Lvで頭数が増える。コロニー左手前でのんびり掘る/歩く。
+  // スナホリ・アルマジロ部隊(ID1): Lv/惑星Tierで頭数が増える。コロニー左手前でのんびり掘る/歩く。
+  //   Phase7: 頭数・巨大化は共通ヘルパ(_allySquad/_allyBoost)経由=頭数の知識を一箇所に集約(重複排除)。
   drawArmadilloSquad(ctx, lv) {
-    const n = Math.min(3, 1 + Math.floor((lv || 1) / 2)); // Lv1-2=1,3-4=2,5=3
-    const spot = [[300, 452], [232, 486], [368, 470]];
-    for (let i = 0; i < n; i++) {
-      const bx = spot[i][0], by = spot[i][1];
-      const t = this.time * 0.8 + i * 2.1, k = this._allyK("armadillo", 1.24);
-      this._allyBoost(ctx, bx + Math.sin(t) * 9, by - Math.abs(Math.sin(t * 2)) * 2, k, () => this.drawArmadillo(ctx, 0, 0, i % 2 === 0 ? 1 : -1));
-    }
+    const k = this._allyK("armadillo", 1.24);
+    this._allySquad(ctx, lv, (c, x, y, dir) => this._allyBoost(c, x, y, k, () => this.drawArmadillo(c, 0, 0, dir)));
   },
   drawArmadillo(ctx, x, y, dir) {
     ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);

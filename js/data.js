@@ -180,6 +180,14 @@ const CFG = {
   webHp: 3,                 // ウェブを除去するのに必要なタップ数
   allyMaxLv: 5,
   allyLvCostPerLv: 3,       // 味方Lvアップの素材コスト = 現Lv×これ
+  // Phase7: ボスLv(=Tier+elite)連動の味方自動強化(手動育成不要)。全てたたき台=Ric実機で bossHpMultByStage と一緒に調整。
+  //   効果: raidの実Tier(1-6)で raidDps を乗算(味方在住惑星のみ)。詰み回避=tier hpMult(1.5〜4.6)を"部分相殺"に留める(完全相殺=作業化/過少=詰み)。
+  allyScaleByTier: [1.05, 1.10, 1.14, 1.18, 1.22, 1.26], // index=tier-1(T1〜T6)。Tier無し(R30未満)は1.0
+  allyScaleElite: 1.1,      // 大ボス(elite)時の追加係数
+  // 視覚(惑星のTier上限に常時連動): 味方が巨大化/数増して"ボスに対応"して見える。
+  allyVisSizePerTier: 0.03, // 巨大化: _allyBoost の拡大率に tier×これ を加算(全boosted味方)
+  allyVisHeadsPerTier: 0.5, // 数増: floor(tier×これ)頭を部隊に追加(T2で+1…T6で+3)
+  allyVisHeadMax: 5,        // 味方の同時表示頭数の上限(spot拡張分)
   // 群衆対策(表示のみ・収益/戦闘は全個体が対象のまま)
   maxVisibleLizards: 70,    // フィールドに同時表示する上限。超過分は巣穴で休憩
   restSwapPerSec: 3,        // 平常時に毎秒この匹数まで休憩⇔活動を入れ替え(漸進=ちらつき防止)
