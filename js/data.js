@@ -710,6 +710,12 @@ const TRAITS = {
     icon: "trait-chrono", tier: 4, draw: "traitChrono",
     desc: "尾が秒針めいて分節する。時を刻んでいた頃の癖。",
   },
+  cherenko: {
+    key: "cherenko", name: "チェレンコ", // ★仮称・主題=⑨臨界の青
+    color: "#274a44", rim: "#6FB8A0", // rim=UISkills チェレンコフ光
+    icon: "trait-cherenko", tier: 4, draw: "traitCherenko",
+    desc: "輪郭が淡く青く滲む。深い水の底で光っていた何かの名残。",
+  },
 };
 
 // ボス種 (GameExpansion_v2 ②)。minRank 到達で抽選プールに加入

@@ -3959,6 +3959,19 @@ const Render = {
     ctx.restore();
   },
 
+  // チェレンコ(tier4): 全身の輪郭が淡く青く滲む(体輪郭Pathを微グローで縁取り・弱く=魂の発光種glow:trueとは別系統)。手法=微光。
+  traitCherenko(ctx, g, def) {
+    const { body, L } = g; if (!body) return;
+    const c = def.rim || "#6FB8A0";
+    ctx.save();
+    ctx.strokeStyle = c; ctx.shadowColor = c; ctx.shadowBlur = Math.max(4, L * 0.05);
+    ctx.globalAlpha = 0.5; ctx.lineWidth = Math.max(1, L * 0.011);
+    ctx.stroke(body); // 輪郭の滲み(2度重ねで淡い暈)
+    ctx.globalAlpha = 0.25; ctx.lineWidth = Math.max(2, L * 0.024);
+    ctx.stroke(body);
+    ctx.restore();
+  },
+
   drawPlanetAllies(ctx) {
     const st = Game.currentStage && Game.currentStage();
     const a = st && planetAllyOf(st.id);
