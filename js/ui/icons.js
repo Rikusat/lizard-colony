@@ -21,6 +21,8 @@ const ICONS = {
   "trait-hakushi": '<path d="M12 3.5c4.8 0 8 3.6 8 8s-3.2 9-8 9-8-4.6-8-9 3.2-8 8-8z" fill="none"/><ellipse cx="9.8" cy="10.6" rx="3" ry="2.1"/><circle cx="15" cy="14.6" r="1.5"/>',
   // トライアド: 三連の菱紋(三角配置)。
   "trait-triad": '<path d="M12 4.2 14.4 7 12 9.8 9.6 7z"/><path d="M6.6 13.2 9 16l-2.4 2.8L4.2 16z"/><path d="M17.4 13.2 19.8 16l-2.4 2.8L15 16z"/><path d="M12 9.8 6.6 13.2M12 9.8l5.4 3.4" fill="none" stroke-opacity=".45"/>',
+  // オウゴンヅカ: 眼を囲う金環(二重)。
+  "trait-ougon": '<circle cx="12" cy="12" r="7.5" fill="none"/><circle cx="12" cy="12" r="4.2" fill="none" stroke-opacity=".55"/><circle cx="12" cy="12" r="1.6"/>',
   // 固定印(S5-b): 鍵=「必ず子へ継がれる」。
   lock: '<rect x="6" y="11" width="12" height="9" rx="2" fill="none"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" fill="none"/><circle cx="12" cy="15.2" r="1.2"/>',
   food: '<path d="M6 13a6 6 0 0 1 12 0v2H6z"/><path d="M5 18h14M8 15v3M12 15v3M16 15v3" fill="none"/>',

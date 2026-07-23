@@ -674,6 +674,12 @@ const TRAITS = {
     icon: "trait-triad", tier: 2, draw: "traitTriad",
     desc: "背に三連の紋。始まりの星が最初に刻んだ徴。",
   },
+  ougon: {
+    key: "ougon", name: "オウゴンヅカ", // ★仮称・主題=④玄室の金
+    color: "#5a4514", rim: "#C9A227", // rim=UISkills 黄昏金(amber-500)
+    icon: "trait-ougon", tier: 2, draw: "traitOugon",
+    desc: "眼のまわりを金が縁取る。玄室に眠っていた輝き。",
+  },
 };
 
 // ボス種 (GameExpansion_v2 ②)。minRank 到達で抽選プールに加入

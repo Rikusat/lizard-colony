@@ -3832,6 +3832,20 @@ const Render = {
     ctx.restore();
   },
 
+  // オウゴンヅカ(tier2): 眼のまわりの金の縁取り(二重環+下瞼の小さな金)。顔=頭部ジオメトリのみ使用。
+  traitOugon(ctx, g, def) {
+    const { ex, ey, eyeR, L } = g;
+    const c = def.rim || "#C9A227";
+    ctx.save();
+    ctx.strokeStyle = "rgba(18,10,4,.6)"; ctx.lineWidth = Math.max(1.6, eyeR * 0.62);
+    ctx.beginPath(); ctx.arc(ex, ey, eyeR * 1.75, 0, 7); ctx.stroke(); // 暗い下地(明色種で沈まない)
+    ctx.strokeStyle = c; ctx.lineWidth = Math.max(1.1, eyeR * 0.42);
+    ctx.beginPath(); ctx.arc(ex, ey, eyeR * 1.75, 0, 7); ctx.stroke(); // 金環
+    ctx.globalAlpha = 0.85; ctx.lineWidth = Math.max(0.8, eyeR * 0.22);
+    ctx.beginPath(); ctx.arc(ex, ey + eyeR * 0.4, eyeR * 2.45, 0.45, 2.0); ctx.stroke(); // 下瞼へ流れる金線
+    ctx.restore();
+  },
+
   drawPlanetAllies(ctx) {
     const st = Game.currentStage && Game.currentStage();
     const a = st && planetAllyOf(st.id);
