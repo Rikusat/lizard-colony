@@ -152,6 +152,54 @@ function drawAqua(c, o, tier) {
   if (tier >= 4) { glassTank(c, o, 6.55, 1.35, 0.6, 0.6, 30, false); pipeTo(c, o, 8.0, 1.55, 36, 0.15); } // 実験区画(3槽+配管)
 }
 
+// ---------------- 設備: ロケット(クリア目標=rocket.done) ----------------
+// tier成長: T1 部品置き場 → T2 骨組み → T3 機体 → T4 完成(発射可能)。白い機体+琥珀の先端=清潔な白の中の小さな目標色。
+const RKT = {
+  hull: { top: "#e6e3dc", left: "#c5c1b8", right: "#b2aea4", line: "rgba(90,86,78,.4)" },
+  scaffold: "#9aa0a5", tip: "#C9A227", fin: "#b2aea4", pad: { top: "#c9c5bb", left: "#a8a498", right: "#98948a", line: "rgba(90,86,78,.45)" },
+};
+function drawRocket(c, o, tier, pos) {
+  const gx = pos ? pos.gx : 9.3, gy = pos ? pos.gy : 4.3; // 右手前の区画(発射台)。posはtierストリップ用の上書き
+  shadowPatch(c, o, gx - 0.25, gy - 0.25, 1.5, 1.5);
+  isoBox(c, o, gx - 0.25, gy - 0.25, 1.5, 1.5, 6, RKT.pad); // 発射台(円形の代わりの低い台)
+  const m = iso(gx + 0.5, gy + 0.5, o), base = m.y - 6;
+  if (tier === 1) { // 部品置き場: ノーズコーンと外板が置いてある
+    isoBox(c, o, gx - 0.05, gy + 0.15, 0.5, 0.5, 14, RKT.hull);
+    isoBox(c, o, gx + 0.62, gy + 0.5, 0.62, 0.35, 8, RKT.hull);
+    c.fillStyle = RKT.tip; const t = iso(gx + 0.45, gy - 0.02, o); // ノーズコーン(転がしてある)
+    c.beginPath(); c.moveTo(t.x, t.y - 3); c.lineTo(t.x + 14, t.y - 8); c.lineTo(t.x + 2, t.y - 15); c.closePath(); c.fill();
+    return;
+  }
+  const H = 118; // 塔の高さ
+  if (tier === 2) { // 骨組み: 細い柱4本+横桟
+    c.strokeStyle = RKT.scaffold; c.lineWidth = 2;
+    const corners = [iso(gx + 0.14, gy + 0.14, o), iso(gx + 0.86, gy + 0.14, o), iso(gx + 0.86, gy + 0.86, o), iso(gx + 0.14, gy + 0.86, o)];
+    for (const p of corners) { c.beginPath(); c.moveTo(p.x, p.y - 6); c.lineTo(p.x, p.y - 6 - H * 0.72); c.stroke(); }
+    for (let i = 1; i <= 3; i++) { const y = 6 + (H * 0.72) * i / 3;
+      c.beginPath(); c.moveTo(corners[0].x, corners[0].y - y); c.lineTo(corners[1].x, corners[1].y - y); c.lineTo(corners[2].x, corners[2].y - y); c.lineTo(corners[3].x, corners[3].y - y); c.closePath(); c.stroke(); }
+    return;
+  }
+  // T3/T4: 白い機体(八角柱の代わりに縦長のisoBox+丸みは省略=遠景の塔)
+  isoBox(c, o, gx + 0.2, gy + 0.2, 0.6, 0.6, H, RKT.hull);
+  c.strokeStyle = "rgba(120,116,106,.35)"; c.lineWidth = 1; // 機体の継ぎ目
+  for (const yy of [H * 0.35, H * 0.7]) { const a = iso(gx + 0.2, gy + 0.8, o), b = iso(gx + 0.8, gy + 0.8, o);
+    c.beginPath(); c.moveTo(a.x, a.y - yy - 6); c.lineTo(b.x, b.y - yy - 6); c.stroke(); }
+  if (tier >= 4) { // 完成: 琥珀の先端+フィン+窓
+    const t = iso(gx + 0.5, gy + 0.5, o);
+    c.fillStyle = RKT.tip;
+    c.beginPath(); c.moveTo(t.x - 11, t.y - 6 - H + 2); c.lineTo(t.x + 11, t.y - 6 - H + 2); c.lineTo(t.x, t.y - 6 - H - 26); c.closePath(); c.fill();
+    c.fillStyle = RKT.fin; // フィン(左右)
+    const fL = iso(gx + 0.14, gy + 0.86, o), fR = iso(gx + 0.86, gy + 0.86, o);
+    c.beginPath(); c.moveTo(fL.x, fL.y - 6); c.lineTo(fL.x - 12, fL.y + 2); c.lineTo(fL.x, fL.y - 34); c.closePath(); c.fill();
+    c.beginPath(); c.moveTo(fR.x, fR.y - 6); c.lineTo(fR.x + 12, fR.y + 2); c.lineTo(fR.x, fR.y - 34); c.closePath(); c.fill();
+    c.fillStyle = "#9fc4d4"; c.beginPath(); c.arc(t.x, t.y - 6 - H * 0.78, 3.2, 0, 7); c.fill(); // 小窓
+  } else { // T3: 未完の頂部(骨組みが少し残る)
+    const t = iso(gx + 0.5, gy + 0.5, o);
+    c.strokeStyle = RKT.scaffold; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(t.x - 8, t.y - 6 - H); c.lineTo(t.x - 8, t.y - 6 - H - 14); c.moveTo(t.x + 8, t.y - 6 - H); c.lineTo(t.x + 8, t.y - 6 - H - 14); c.stroke();
+  }
+}
+
 // ---------------- 部屋 ----------------
 function drawRoom(c, W, H, o, opts) {
   opts = opts || {};
@@ -180,6 +228,7 @@ function drawRoom(c, W, H, o, opts) {
   // 設備(奥→手前の順で描く)
   if (opts.aqua) drawAqua(c, o, opts.aqua);
   if (opts.desks) drawDesks(c, o, opts.desks);
+  if (opts.rocket) drawRocket(c, o, opts.rocket, opts.rocketPos);
   if (!opts.noLight) {
     const M = iso(cols / 2, rows / 2, o);
     const g = c.createRadialGradient(M.x, M.y, 10, M.x, M.y, 190);
@@ -195,7 +244,7 @@ function drawRoom(c, W, H, o, opts) {
 
 // ---------------- メイン(最大tier)+tier成長ストリップ ----------------
 const cv = document.getElementById("lab"), ctx = cv.getContext("2d");
-const ROOM_OPTS = { desks: 4, aqua: 4 };
+const ROOM_OPTS = { desks: 4, aqua: 4, rocket: 4 };
 drawRoom(ctx, cv.width, cv.height, { x: LAB.originX, y: LAB.originY }, ROOM_OPTS);
 // fps実測(設備込みフル再描画 / 事前描画+1blit)
 const N = 300;
@@ -213,22 +262,24 @@ console.log("[HQLAB] " + msg);
 ctx.fillStyle = "#c9b8a2"; ctx.font = "12px system-ui"; ctx.fillText(msg, 16, 604);
 
 // tier成長ストリップ(設備ごと): 小部屋(6×5タイル)で T1→T4 を並べる
-function addStrip(title, key, caps, shiftX) {
+function addStrip(title, key, caps, opt) {
+  opt = opt || {};
   const wrap = document.getElementById("strips");
   const h2 = document.createElement("h2"); h2.textContent = title; wrap.appendChild(h2);
   const row = document.createElement("div"); row.className = "strip"; wrap.appendChild(row);
   for (let t = 1; t <= 4; t++) {
     const fig = document.createElement("figure");
     const c2 = document.createElement("canvas"); c2.width = 240; c2.height = 220;
-    const o2 = { x: 120 + (shiftX || 0), y: 60 };
-    const opts = { cols: 6, rows: 5, noVig: true, noLight: true }; opts[key] = t;
+    const o2 = { x: 120 + (opt.shiftX || 0), y: 60 + (opt.shiftY || 0) };
+    const opts = Object.assign({ cols: 6, rows: 5, noVig: true, noLight: true }, opt.extra || {}); opts[key] = t;
     drawRoom(c2.getContext("2d"), 240, 220, o2, opts);
     const cap = document.createElement("figcaption"); cap.textContent = caps[t - 1];
     fig.appendChild(c2); fig.appendChild(cap); row.appendChild(fig);
   }
 }
 addStrip("パソコンデスク群(研究) — tier成長", "desks", ["T1 机1+端末1", "T2 3台の島", "T3 多面モニタの解析卓", "T4 サーバーラック併設"]);
-addStrip("実験用水槽(合成の場) — tier成長", "aqua", ["T1 小さなガラス水槽", "T2 培養槽+配管", "T3 錬成槽(深紅の光)", "T4 複数槽の実験区画"], -220);
+addStrip("実験用水槽(合成の場) — tier成長", "aqua", ["T1 小さなガラス水槽", "T2 培養槽+配管", "T3 錬成槽(深紅の光)", "T4 複数槽の実験区画"], { shiftX: -220 });
+addStrip("ロケット(クリア目標) — tier成長", "rocket", ["T1 部品置き場", "T2 骨組み", "T3 機体", "T4 完成(発射可能)"], { shiftY: 30, extra: { rocketPos: { gx: 2.2, gy: 2.2 } } });
 </script>
 </body>
 </html>
