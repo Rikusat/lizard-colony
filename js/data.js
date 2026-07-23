@@ -698,6 +698,12 @@ const TRAITS = {
     icon: "trait-yougan", tier: 3, draw: "traitYougan",
     desc: "背の亀裂から熱色が覗く。冷えても消えない炉の記憶。",
   },
+  amidagura: {
+    key: "amidagura", name: "アミダグラ", // ★仮称・主題=上位存在の紋
+    color: "#43305e", rim: "#9B6BD6", // rim=UISkills アメジスト(最上位鉱石=上位存在の色)
+    icon: "trait-amidagura", tier: 3, draw: "traitAmidagura",
+    desc: "体表に幾何学の網目。回路とも、籤(くじ)ともつかない。",
+  },
 };
 
 // ボス種 (GameExpansion_v2 ②)。minRank 到達で抽選プールに加入

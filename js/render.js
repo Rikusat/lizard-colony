@@ -3905,6 +3905,34 @@ const Render = {
     ctx.restore();
   },
 
+  // アミダグラ(tier3): 胴の体表に幾何学の網目(縦桟+横桟のあみだ紋・輪郭clip)。手法=体表の紋様(面)。
+  traitAmidagura(ctx, g, def) {
+    const { S, body, L } = g; if (!S || !body) return;
+    const c = def.rim || "#9B6BD6";
+    ctx.save(); ctx.clip(body);
+    ctx.strokeStyle = c; ctx.globalAlpha = 0.8; ctx.lineWidth = Math.max(0.9, L * 0.008); ctx.lineCap = "round";
+    const rails = [];
+    for (let i = 0; i < 4; i++) { // 縦桟(背→腹へ)
+      const s = S(0.47 + i * 0.09);
+      const ax = s.p.x + s.n.x * s.w * 0.8 * s.u, ay = s.p.y + s.n.y * s.w * 0.8 * s.u;
+      const bx = s.p.x - s.n.x * s.w * 0.55 * s.u, by = s.p.y - s.n.y * s.w * 0.55 * s.u;
+      rails.push([ax, ay, bx, by]);
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+    }
+    for (let i = 0; i < 3; i++) { // 横桟(あみだの渡し・互い違い)
+      const [a1x, a1y, b1x, b1y] = rails[i], [a2x, a2y, b2x, b2y] = rails[i + 1];
+      const k = i % 2 === 0 ? 0.3 : 0.62;
+      ctx.beginPath();
+      ctx.moveTo(a1x + (b1x - a1x) * k, a1y + (b1y - a1y) * k);
+      ctx.lineTo(a2x + (b2x - a2x) * k, a2y + (b2y - a2y) * k);
+      ctx.stroke();
+    }
+    ctx.fillStyle = c; ctx.globalAlpha = 0.95; // 節点の灯
+    const [ax, ay, bx, by] = rails[1];
+    ctx.beginPath(); ctx.arc(ax + (bx - ax) * 0.3, ay + (by - ay) * 0.3, Math.max(1, L * 0.011), 0, 7); ctx.fill();
+    ctx.restore();
+  },
+
   drawPlanetAllies(ctx) {
     const st = Game.currentStage && Game.currentStage();
     const a = st && planetAllyOf(st.id);

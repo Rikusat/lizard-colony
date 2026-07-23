@@ -29,6 +29,8 @@ const ICONS = {
   "trait-hyoga": '<path d="M12 3v18M5 7.5l14 9M19 7.5l-14 9M12 6.4l-2-2M12 6.4l2-2M12 17.6l-2 2M12 17.6l2 2" fill="none"/>',
   // ヨウガン: 岩塊に走る亀裂(稲妻状の裂け目)。
   "trait-yougan": '<path d="M5 18 4 10l4-5.5L15 4l5 4.5.8 7L17 20l-8 .8z" fill="none"/><path d="M8 6.5l2.6 4-1.8 3 2.8 4.4M14.6 5l-1 4.2 3 2.6-1.2 4.6" fill="none"/>',
+  // アミダグラ: 縦線を桟が渡る籤(あみだ)の網目=回路ともつかぬ幾何学。
+  "trait-amidagura": '<path d="M6 4v16M12 4v16M18 4v16M6 8h6M12 12h6M6 16h6M12 6h6" fill="none"/><circle cx="18" cy="6" r="1.2"/><circle cx="6" cy="16" r="1.2"/>',
   // 固定印(S5-b): 鍵=「必ず子へ継がれる」。
   lock: '<rect x="6" y="11" width="12" height="9" rx="2" fill="none"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" fill="none"/><circle cx="12" cy="15.2" r="1.2"/>',
   food: '<path d="M6 13a6 6 0 0 1 12 0v2H6z"/><path d="M5 18h14M8 15v3M12 15v3M16 15v3" fill="none"/>',
