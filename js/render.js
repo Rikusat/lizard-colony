@@ -3788,6 +3788,18 @@ const Render = {
     ctx.restore();
   },
 
+  // ネオン(tier1): 手前側の四肢に沿って細い蛍光の線(既存の脚ストロークの上に細い明線=配管ライト)。
+  //   legSegs は歩行スイングに追従した実座標=線が脚から剥がれない。暗色種でも蛍光ピンクが浮く。
+  traitNeon(ctx, g, def) {
+    const { legs, L } = g; if (!legs || !legs.length) return;
+    const c = def.rim || "#D957B0";
+    ctx.save();
+    ctx.strokeStyle = c; ctx.lineWidth = Math.max(1, L * 0.014); ctx.lineCap = "round";
+    ctx.shadowColor = c; ctx.shadowBlur = 4; ctx.globalAlpha = 0.92;
+    for (const s of legs) { ctx.beginPath(); ctx.moveTo(s.a.x, s.a.y); ctx.lineTo(s.b.x, s.b.y); ctx.stroke(); }
+    ctx.restore();
+  },
+
   drawPlanetAllies(ctx) {
     const st = Game.currentStage && Game.currentStage();
     const a = st && planetAllyOf(st.id);

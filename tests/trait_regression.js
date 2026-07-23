@@ -38,6 +38,15 @@ const GEO = { ex: 100, ey: 50, eyeR: 3, L: 100, col: { h: 30, s: 50, l: 50 } };
 // === TRAITS = data.js の単一の真実(データ駆動) ===
 ok("TRAITS が定義", TRAITS && typeof TRAITS === "object");
 ok("TRAITS.mimikakushi が定義", !!TRAITS.mimikakushi);
+// ロスター全件のデータ整合(§3拡張のたび自動検証): 必須フィールド+drawがRenderに実在+tier域+key一致
+for (const k of Object.keys(TRAITS)) {
+  const d = TRAITS[k];
+  ok(`roster[${k}]: key一致・name/color/rim/icon/desc/tier/draw が揃う`,
+    d.key === k && typeof d.name === "string" && typeof d.color === "string" && typeof d.rim === "string"
+    && typeof d.icon === "string" && typeof d.desc === "string"
+    && typeof d.tier === "number" && d.tier >= 1 && d.tier <= 5
+    && typeof Render[d.draw] === "function", JSON.stringify(d));
+}
 {
   const d = TRAITS.mimikakushi;
   ok("mimikakushi.key='mimikakushi'", d.key === "mimikakushi");

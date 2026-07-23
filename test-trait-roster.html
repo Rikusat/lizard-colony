@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>特性ロスター(§3) 見た目確認 — 開発用</title>
+<style>
+  body { background: #4a352f; margin: 0; color: #e8dccb; font-family: system-ui, sans-serif; }
+  h1 { font-size: 15px; padding: 10px 16px 0; margin: 0; font-weight: 600; }
+  p.note { font-size: 12px; padding: 2px 16px 8px; margin: 0; color: #c9b8a2; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<h1>特性ロスター — 1行=1特性(左からフトアゴ通常/フトアゴ・メラニ=暗色テスト/コモド)。等倍・魂の骨格不変・上乗せのみ。</h1>
+<p class="note">暗色種(メラニスティック l=17)でも徴が判別できることが合格基準(§3.1)。命名/色は全て仮=Ric最終語感。ミミカクシ=基準。</p>
+<canvas id="game" width="820" height="1400"></canvas>
+<script src="js/data.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script>
+// メモリ上だけで動作しセーブに触れない開発用ページ。実装済みTRAITSを全行描画(追加のたび行が増える)。
+globalThis.UI = { toast: () => {} };
+Game.newGame(); Game.state.lizards = [];
+Render.init(); Render.time = 1.3;
+const ctx = Render.ctx;
+ctx.fillStyle = "#5c4238"; ctx.fillRect(0, 0, 820, 1400);
+const sp = SPECIES.find((s) => s.id === "futoago"), ko = SPECIES.find((s) => s.id === "komodo");
+const draw1 = (species, x, y, morph, traits) => {
+  const lz = Game.makeLizard(species.id, morph, { hue: species.hue, sat: species.sat, light: species.light, pattern: "stripe", traits }, "adult");
+  lz.x = x; lz.y = y; lz.tx = x; lz.ty = y; lz.angle = 0.12; lz.moving = false;
+  Render.drawLizard(ctx, lz, true);
+};
+ctx.font = "13px system-ui"; ctx.fillStyle = "#f0d9a8";
+Object.keys(TRAITS).forEach((key, r) => {
+  const d = TRAITS[key], y = 120 + r * 112, tr = [{ key }];
+  draw1(sp, 260, y, "normal", tr);        // 明色
+  draw1(sp, 470, y, "melanistic", tr);    // 暗色テスト
+  draw1(ko, 690, y, "normal", tr);        // 大型・暗緑
+  ctx.fillStyle = d.rim || "#f0d9a8"; ctx.fillText("●", 16, y + 4);
+  ctx.fillStyle = "#f0d9a8"; ctx.fillText(`${d.name}`, 34, y + 4);
+  ctx.fillStyle = "#c9b8a2"; ctx.font = "11px system-ui"; ctx.fillText(d.desc || "", 16, y + 22); ctx.font = "13px system-ui";
+});
+</script>
+</body>
+</html>

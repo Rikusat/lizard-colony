@@ -655,6 +655,13 @@ const TRAITS = {
     draw: "traitMimikakushi",
     desc: "眼から頬を仮面状の帯で覆う。素顔を隠す個体。",
   },
+  // ロスター拡張(trait_system v2.0 §3.2・★命名は全て仮=Ric最終語感)。主題の呼応は意匠で語る(説明しない)。
+  neon: {
+    key: "neon", name: "ネオン", // ★仮称・主題=②摩天楼スラム
+    color: "#4a1d3a", rim: "#D957B0", // rim=UISkills §1.5 摩天楼スラムのアクセント(ネオン)
+    icon: "trait-neon", tier: 1, draw: "traitNeon",
+    desc: "四肢に細い蛍光の線が走る。眠らない街の光。",
+  },
 };
 
 // ボス種 (GameExpansion_v2 ②)。minRank 到達で抽選プールに加入
