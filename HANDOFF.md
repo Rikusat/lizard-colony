@@ -1664,6 +1664,15 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
   - ID1〜ID9 [済] / **ID10 記録係アノール[本]**: 石板を抱えた学者肌の小トカゲ+金の刻印の脈動(1-2体)。※新arch=戦闘効果は今後。
   - **★全10惑星の味方描画 完成**（ID1〜ID10）。移送先id味方(ID2/6/7/8/9)=既存効果型を再有効化／新arch味方(ID3/4/5/10)=可視・育成のみ(効果は今後)。後修正候補: ID2-5・ID10がやや小型・背景と同化気味(存在感up余地)／ID9はラクーンか廃炉山椒魚か(Ric選択)。
 
+### 5zz. ★本番デプロイ — 特性システム一式＋本部ページ＋Phase7(2026-07-23・成功/本番実証済)
+Ric指示(重点QA2件+通常QA→bump-cache→deploy→本番実証)を完遂。**`dpl_Cj1rw8v8o1LuRPf9PYKk8UQoWgTH` / READY / production / https://lizardcolony.vercel.app** 反映コミット=`124b67f`(HEAD=origin=本番=三者同期)。
+- **重点QA①(canvas往復)**: 実UIハーネス`test-hqlab-qa.html`で **3解像度(1920/1600/1366)×21 PASS/0 FAIL** — 初回ロード直後の本部起動(labキャンバス実寸>0)・1画面あふれ0・**往復×3後の#game実寸/属性が完全同一(過去地雷300px潰れなし)**・**実pointerdownクリックで往復後も同座標同個体選択(判定ズレなし)**。※実クリック配線=pointerdown(clickでない)をQAで発見しハーネス側を実配線に合わせた(本体は健全)。
+- **重点QA②(滞在中の進行)**: メインループは無ゲート(RAFがtick/Slit/Roulette/Renderを常時駆動=構造確認)+実測60秒滞在で**Gold生産どおり増・卵t-60・襲撃タイマー進行**。滞在中の本部表示=`UI.update`で0.2秒ごとHQ Lv/tier変化検知→変化時のみ再描画(フック追加`core.js`)。戻り直後のRender.draw正常。
+- **通常QA**: 12機能実操作(変換/開発/研究購入=実クリックで資産増減確認・鍛造/Lore/鉱石/新着ドット)・合成UI実クリック(シズミマチ誕生/素材昇華/石消費)・全9スイートPASS(合成37含む)・聖域(slit/roulette/tokens)**0行変更=#spin-proof/確率/幾何 非回帰 by construction**・boot console0。
+- **デプロイ**: `bump-cache` 33アセット(**hqlab.js新規=?v=47ba9a2b**)→commit `124b67f`→`npx vercel deploy --prod --yes`。
+- **本番実証**: asset hash **本番=ローカル全一致**(data/game/render/hqlab/hq/core/icons/style)・index200・dev頁404(最終)・本番console0/4xx0・**本番#hqlabで本部ページ実画像**(topbar維持/戻る導線/T1の部屋)・**本番jsをnode実行=SAVE_VERSION15/TRAITS18種/RECIPES6/既存セーブload=資産完全保全(coins777777/gems321/stones42)/旧個体traits[]正常/創世→合成(石8消費)→固定化の全行程動作/合成専用genesis不可/Phase7 allyScale(T6elite)=1.386発火**。
+- **残(Ric実機)**: 石の経済の体感(§8.6の数字提示済)→創世/固定/合成コストのCFG調整・Phase7勝率→allyScaleByTier/bossHpMultByStage調整・命名/濃さ/tier閾値の最終。S6(旧個体移行)は引き続き保留・明示承認まで着手しない。
+
 ### 5yy. B(1)(2)＋C-2完了=デプロイ可能(2026-07-23・Ric QA待ち)
 Ric順序(C-2を合成UIの前に・C-2完了時点で本番デプロイ)どおり実装完了。**確率(遺伝率以外)/物理/純血/魂 不変・セーブ非接触**(traits書換/research既存枠/表示は全て派生値)。
 - **B(1) 合成専用6特性 実装(各1コミット・血統原則§8.4準拠・共通の格=深紅の芯線)**: ハガネ`f615549`(鋼帯+刃文+継ぎ跡)/コンテンギ`c0798fb`(軌道環+星点)/ムメイ`f32f60f`(白仮面+破線輪郭)/ホウカン`8517964`(三尖金冠+金環維持)/シズミマチ`3a880ad`(窓灯格子+ピンク混在)/リンカイ(黒+強い青輪郭+臨界点)。全てtier6/synth=**genesis不可(到達の証)**・遺伝floor3%。roster18種の実画像確認済。
