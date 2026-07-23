@@ -729,6 +729,12 @@ const TRAITS = {
     icon: "trait-hagane", tier: 6, synth: true, draw: "traitHagane",
     desc: "熱と急冷が鍛えた鋼の帯。裂け目は継がれ、霜は刃文になった。",
   },
+  kontengi: {
+    key: "kontengi", name: "コンテンギ", // ★仮称・レシピ=クロノ+アミダグラ
+    color: "#463317", rim: "#D4AF5E", // 明るい真鍮(クロノより一段明るい=格)
+    icon: "trait-kontengi", tier: 6, synth: true, draw: "traitKontengi",
+    desc: "体を巡る渾天の環。節輪は軌道になり、網目の灯は星になった。",
+  },
 };
 
 // ボス種 (GameExpansion_v2 ②)。minRank 到達で抽選プールに加入

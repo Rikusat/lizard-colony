@@ -4008,6 +4008,28 @@ const Render = {
     ctx.restore();
   },
 
+  // コンテンギ: 胴を斜めに巡る二重の軌道環。血統=クロノの尾の節輪→軌道環(輪が環へ) / アミダグラの節点の灯→環上の星点。
+  traitKontengi(ctx, g, def) {
+    const { S, L } = g; if (!S) return;
+    const c = def.rim || "#D4AF5E";
+    ctx.save(); ctx.lineCap = "round";
+    const rings = [[0.56, -0.5], [0.66, -0.35]]; // [胴のt, 環の傾き]
+    for (const [t, rot] of rings) {
+      const s = S(t);
+      const cx = s.p.x, cy = s.p.y + s.w * 0.02;
+      ctx.strokeStyle = c; ctx.globalAlpha = 0.9; ctx.lineWidth = Math.max(1, L * 0.010);
+      ctx.beginPath(); ctx.ellipse(cx, cy, L * 0.055, s.w * 1.32, rot, 0, 7); ctx.stroke(); // 体を巡る環
+      ctx.fillStyle = "#fdf6e3"; // 環上の星点(アミダグラの灯の面影)
+      const sx = cx + Math.cos(rot + 1.1) * L * 0.05, sy = cy - s.w * 1.22;
+      ctx.beginPath(); ctx.arc(sx, sy, Math.max(1, L * 0.011), 0, 7); ctx.fill();
+    }
+    // 深紅の芯線: 第一環の下弧の一区間だけ深紅
+    const s0 = S(rings[0][0]);
+    ctx.strokeStyle = "#8E1826"; ctx.globalAlpha = 0.85; ctx.lineWidth = Math.max(0.9, L * 0.008);
+    ctx.beginPath(); ctx.ellipse(s0.p.x, s0.p.y + s0.w * 0.02, L * 0.055, s0.w * 1.32, rings[0][1], Math.PI * 0.35, Math.PI * 0.62); ctx.stroke();
+    ctx.restore();
+  },
+
   drawPlanetAllies(ctx) {
     const st = Game.currentStage && Game.currentStage();
     const a = st && planetAllyOf(st.id);
