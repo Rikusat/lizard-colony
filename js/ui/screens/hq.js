@@ -106,7 +106,7 @@ Object.assign(UI, {
           <span class="fic">${Icon.svg(done ? "check" : locked ? "lock" : "science")}</span>
           <div class="grow"><b>${r.name}</b><div class="desc">${r.desc}</div></div>
           ${done ? `<span class="lv">済</span>` : locked ? `<span style="color:var(--sub)">要:${researchById(r.req).name}</span>`
-            : `<button>${r.cost.orichalcum ? `${Icon.svg("orichalcum")}${r.cost.orichalcum}` : `${Icon.svg("science")}${r.cost.science || 0}+${fmt(r.cost.coins || 0)}G`}</button>`}`;
+            : `<button>${r.cost.orichalcum ? `${Icon.svg("orichalcum")}${r.cost.orichalcum}` : `${Icon.svg("science")}${r.cost.science || 0}+${fmt(r.cost.coins || 0)}G${r.cost.stones ? `+${Icon.svg("stone")}${r.cost.stones}` : ""}`}</button>`}`;
         if (!done && !locked) row.querySelector("button").addEventListener("click", () => {
           Game.buyResearch(r.id);
           this.openHQ();

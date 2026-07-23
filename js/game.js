@@ -437,6 +437,7 @@ const Game = {
   genesisTrait(lz, key, silent) {
     if (!lz || lz.morphId === "legendary") { if (!silent) UI.toast("レジェンダリーには特性を宿せない", true); return false; }
     if (typeof TRAITS === "undefined" || !TRAITS[key]) return false;
+    if (TRAITS[key].synth) return false; // 合成専用は創世できない(§8=合成でしか手に入らない到達の証)
     lz.traits = lz.traits || [];
     if (lz.traits.length >= CFG.traitMaxPerLizard) { if (!silent) UI.toast("これ以上は特性を宿せない(上限)", true); return false; }
     if (this.hasTrait(lz, key)) return false;
@@ -1342,6 +1343,33 @@ const Game = {
     this.genesisFx(lz.x, lz.y); // 固定も錬成の一種(同じ深紅の演出)
     return true;
   },
+  // ---------------- 合成=トランスミュート(§8・案B=昇華) ----------------
+  // 2特性を併せ持つ個体の traits:[A,B] を [C] へ昇華(個体は残る=資産原則)。100%確定(乱数なし=「錬金は裏切らない」)。
+  // 固定印付きは素材にできない(石投資の保護)・レジェンダリー除外・解読済みレシピのみ。触媒=賢者の石(order連動コスト)。
+  recipeByResult(key) { return (typeof RECIPES !== "undefined" && RECIPES.find((r) => r.result === key)) || null; },
+  recipeDecoded(r) { return !!(this.state.research && this.state.research["recipe" + r.order]); },
+  stoneSynthCost(r) { return CFG.stoneSynthBase + r.order * CFG.stoneSynthPerOrder; },
+  // この個体で素材が揃っているレシピ(解読状態は問わず返す=UIが未解読を「?」表示するため)
+  synthesizableRecipes(lz) {
+    if (!lz || lz.morphId === "legendary" || typeof RECIPES === "undefined") return [];
+    return RECIPES.filter((r) => this.hasTrait(lz, r.a) && this.hasTrait(lz, r.b)
+      && !this.isFixed(lz, r.a) && !this.isFixed(lz, r.b) && !this.hasTrait(lz, r.result));
+  },
+  synthesize(lz, resultKey, silent) {
+    const r = this.recipeByResult(resultKey);
+    if (!r || !lz || lz.morphId === "legendary") return false;
+    if (!this.recipeDecoded(r)) { if (!silent) UI.toast("レシピが未解読 — 本部の研究で解読できる", true); return false; }
+    if (!this.hasTrait(lz, r.a) || !this.hasTrait(lz, r.b) || this.hasTrait(lz, r.result)) return false;
+    if (this.isFixed(lz, r.a) || this.isFixed(lz, r.b)) { if (!silent) UI.toast("固定された特性は素材にできない", true); return false; }
+    const cost = this.stoneSynthCost(r);
+    if (this.stones() < cost) { if (!silent) UI.denyFlash("stones"); return false; }
+    this.addStone(-cost);
+    // 案B: 素材2特性が上位1つへ"昇華"(traitsから除去→結果を追加。個体・レベル・体色は不変)
+    lz.traits = (lz.traits || []).filter((t) => { const k = t && t.key ? t.key : t; return k !== r.a && k !== r.b; });
+    lz.traits.push({ key: r.result });
+    this.genesisFx(lz.x, lz.y); // 錬成の深紅(創世/固定と同じ演出=石の系譜)
+    return true;
+  },
 
   // 未所持の図鑑エントリ(種×モーフ)を1つ返す。ステージ種優先(§7.5)。全所持ならnull
   pickUnownedDexEntry(preferStageId) {
@@ -1532,8 +1560,13 @@ const Game = {
       UI.toast("オリハルコンが足りない(巣ネットワークの外周で手に入る)", true);
       return false;
     }
+    if ((r.cost.stones || 0) > this.stones()) { // §8.5: レシピ解読の後半は賢者の石を少量
+      UI.toast("賢者の石が足りない(四重スリットの奇跡で手に入る)", true);
+      return false;
+    }
     this.addRes("science", -(r.cost.science || 0));
     if (r.cost.orichalcum) this.addOre("orichalcum", -r.cost.orichalcum);
+    if (r.cost.stones) this.addStone(-r.cost.stones);
     s.coins -= r.cost.coins || 0;
     s.research[id] = true;
     this._badgeHq = true; // §9-C4 本部ボタンに新着ドット(研究完了・見るまで消えない)
