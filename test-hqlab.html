@@ -2,104 +2,194 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>本部=研究施設 試作: 白タイルの空の部屋(アイソメ・開発用)</title>
+<title>本部=研究施設 試作: アイソメの部屋+設備(開発用)</title>
 <style>
   body { background: #14100d; margin: 0; color: #e8dccb; font-family: system-ui, sans-serif; }
   h1 { font-size: 15px; padding: 10px 16px 0; margin: 0; font-weight: 600; }
-  p.note { font-size: 12px; padding: 2px 16px 8px; margin: 0; color: #c9b8a2; }
+  h2 { font-size: 13px; padding: 10px 16px 0; margin: 0; font-weight: 600; color: #f0d9a8; }
+  p.note { font-size: 12px; padding: 2px 16px 6px; margin: 0; color: #c9b8a2; }
   canvas { display: block; margin: 0 auto; }
+  .strip { display: flex; gap: 8px; justify-content: center; padding: 4px 0 10px; }
+  .strip figure { margin: 0; text-align: center; }
+  .strip figcaption { font-size: 11px; color: #c9b8a2; padding-top: 2px; }
 </style>
 </head>
 <body>
-<h1>本部=研究施設 試作①: 白タイルの空の部屋(hq_lab.md §2 アイソメトリック 2:1・設備なし)</h1>
-<p class="note">まだ何もない実験室の静けさ・清潔さ・少しの寂しさ。ここから設備が増えて発達していく起点。飼育槽(横視点・生命・温かい土)との対比=別の場所。</p>
+<h1>本部=研究施設 試作(hq_lab.md・アイソメ2:1・白タイル承認済)— 部屋+設備のtier成長</h1>
+<p class="note">研究室の静けさ・清潔さを保つ(賑やかにしない)。設備は1つずつ追加・tierで姿ごと発達(Phase 8方式)。</p>
 <canvas id="lab" width="1000" height="620"></canvas>
+<div id="strips"></div>
 <script>
 // ============================================================
-// アイソメ試作(ゲーム非接続・純スタンドアロン)。承認後に本実装へ移植する基準画。
-// 方式: 2:1菱形タイル(64×32)・painter's algorithm(gx+gy昇順)・全パラメータは下のCFG相当に集約。
+// アイソメ試作(ゲーム非接続)。承認後に本実装へ移植する基準画。パラメータはLAB/各設備定数に集約(本実装でCFG/tokens化)。
 // ============================================================
-const LAB = { // 本実装時は CFG/tokens へ(全CFG化の前提)
-  tileW: 64, tileH: 32,        // 2:1菱形
-  cols: 12, rows: 9,           // 床の広さ
-  originX: 500, originY: 150,  // 部屋の頂点(奥角)のスクリーン座標
-  wallH: 92,                   // 背面壁の高さ
-  tile: "#e9e7e1", tileAlt: "#e2dfd8", seam: "#c9c5bb",   // 白タイル(わずかな市松+目地)
-  tileEdge: "#b5b1a6",         // 床の縁(部屋の輪郭)
-  wall: "#dcd9d2", wallDk: "#cfccc4", wallBase: "#b8b4a9", // 壁(奥2面・別トーンで面を分ける)
-  light: "rgba(210, 225, 235, .10)", // 天井灯の冷たい光だまり
-  vig: 0.34,                   // ヴィネット(静けさ)
+const LAB = {
+  tileW: 64, tileH: 32, cols: 12, rows: 9,
+  originX: 500, originY: 150, wallH: 92,
+  tile: "#e9e7e1", tileAlt: "#e2dfd8", seam: "#c9c5bb", tileEdge: "#b5b1a6",
+  wall: "#dcd9d2", wallDk: "#cfccc4", wallBase: "#b8b4a9",
+  light: "rgba(210, 225, 235, .10)", vig: 0.34,
 };
-const iso = (gx, gy) => ({ x: LAB.originX + (gx - gy) * LAB.tileW / 2, y: LAB.originY + (gx + gy) * LAB.tileH / 2 });
-const cv = document.getElementById("lab"), ctx = cv.getContext("2d");
+const iso = (gx, gy, o) => ({ x: o.x + (gx - gy) * LAB.tileW / 2, y: o.y + (gx + gy) * LAB.tileH / 2 });
+const poly = (c, pts, fill, stroke, lw) => {
+  c.beginPath(); c.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) c.lineTo(pts[i].x, pts[i].y);
+  c.closePath();
+  if (fill) { c.fillStyle = fill; c.fill(); }
+  if (stroke) { c.strokeStyle = stroke; c.lineWidth = lw || 1; c.stroke(); }
+};
+// アイソメの箱(設備の基本形): footprint w×d タイル・高さh px。top/左面/右面の3面(面の向きで明暗)。
+const isoBox = (c, o, gx, gy, w, d, h, col) => {
+  const p00 = iso(gx, gy, o), p10 = iso(gx + w, gy, o), p11 = iso(gx + w, gy + d, o), p01 = iso(gx, gy + d, o);
+  const up = (p) => ({ x: p.x, y: p.y - h });
+  poly(c, [up(p01), up(p11), p11, p01], col.left);
+  poly(c, [up(p10), up(p11), p11, p10], col.right);
+  poly(c, [up(p00), up(p10), up(p11), up(p01)], col.top, col.line, 1);
+  return { p00, p10, p11, p01, up };
+};
 
-function drawRoom(c) {
-  c.clearRect(0, 0, cv.width, cv.height);
-  // 背景(部屋の外=無): 冷たい闇
-  const bg = c.createLinearGradient(0, 0, 0, cv.height);
-  bg.addColorStop(0, "#191d20"); bg.addColorStop(1, "#0e0c0b");
-  c.fillStyle = bg; c.fillRect(0, 0, cv.width, cv.height);
-
-  // --- 奥の壁2面(左奥=gx軸に沿う / 右奥=gy軸に沿う) ---
-  const A = iso(0, 0), B = iso(LAB.cols, 0), D = iso(0, LAB.rows);
-  c.fillStyle = LAB.wall; // 右奥の面(A-B)
-  c.beginPath(); c.moveTo(A.x, A.y - LAB.wallH); c.lineTo(B.x, B.y - LAB.wallH); c.lineTo(B.x, B.y); c.lineTo(A.x, A.y); c.closePath(); c.fill();
-  c.fillStyle = LAB.wallDk; // 左奥の面(A-D・わずかに暗く=面の向き)
-  c.beginPath(); c.moveTo(A.x, A.y - LAB.wallH); c.lineTo(D.x, D.y - LAB.wallH); c.lineTo(D.x, D.y); c.lineTo(A.x, A.y); c.closePath(); c.fill();
-  c.strokeStyle = LAB.wallBase; c.lineWidth = 2; // 幅木(壁と床の境)
-  c.beginPath(); c.moveTo(D.x, D.y); c.lineTo(A.x, A.y); c.lineTo(B.x, B.y); c.stroke();
-  c.strokeStyle = "rgba(255,255,255,.35)"; c.lineWidth = 1; // 壁の上端のハイライト(清潔さ)
-  c.beginPath(); c.moveTo(D.x, D.y - LAB.wallH); c.lineTo(A.x, A.y - LAB.wallH); c.lineTo(B.x, B.y - LAB.wallH); c.stroke();
-
-  // --- 床タイル(奥→手前: gx+gy昇順 = painter's algorithm) ---
-  const order = [];
-  for (let gx = 0; gx < LAB.cols; gx++) for (let gy = 0; gy < LAB.rows; gy++) order.push([gx, gy]);
-  order.sort((p, q) => (p[0] + p[1]) - (q[0] + q[1]));
-  for (const [gx, gy] of order) {
-    const p0 = iso(gx, gy), p1 = iso(gx + 1, gy), p2 = iso(gx + 1, gy + 1), p3 = iso(gx, gy + 1);
-    c.fillStyle = (gx + gy) % 2 === 0 ? LAB.tile : LAB.tileAlt; // わずかな市松(単調さを消す・主張しない)
-    c.beginPath(); c.moveTo(p0.x, p0.y); c.lineTo(p1.x, p1.y); c.lineTo(p2.x, p2.y); c.lineTo(p3.x, p3.y); c.closePath(); c.fill();
-    c.strokeStyle = LAB.seam; c.lineWidth = 1; c.stroke(); // 目地
+// ---------------- 設備: パソコンデスク群(研究) ----------------
+// tier成長: T1 机1+端末1 → T2 3台の島 → T3 多面モニタの解析卓 → T4 サーバーラック併設。
+// 清潔さ=白い天板・冷たいシアンの画面光(弱)・配線や散らかりは描かない。
+const DESK = {
+  top: "#d3cfc6", left: "#a8a498", right: "#98948a", line: "rgba(90,86,78,.45)", // 床よりわずかに沈む灰(同化しない)
+  mon: { top: "#4c4f55", left: "#3c3f45", right: "#34373d", line: "rgba(0,0,0,.4)" },
+  screen: "#bfe4ee", screenGlow: 5, screenA: 0.85,
+  rack: { top: "#464a52", left: "#383c44", right: "#30343c", line: "rgba(0,0,0,.45)" },
+  led1: "#7fd98a", led2: "#e0b34a",
+};
+const deskCol = { top: DESK.top, left: DESK.left, right: DESK.right, line: DESK.line };
+function monitor(c, o, gx, gy, w, screenW) { // 机上のモニタ(SE面=画面がこちらを向く)
+  const b = isoBox(c, o, gx, gy, w, 0.1, 15, DESK.mon);
+  const s0 = iso(gx + w * 0.08, gy + 0.1, o), s1 = iso(gx + w * (0.08 + (screenW || 0.84)), gy + 0.1, o);
+  c.save(); c.globalAlpha = DESK.screenA; c.shadowColor = DESK.screen; c.shadowBlur = DESK.screenGlow;
+  poly(c, [{ x: s0.x, y: s0.y - 13 }, { x: s1.x, y: s1.y - 13 }, { x: s1.x, y: s1.y - 3.5 }, { x: s0.x, y: s0.y - 3.5 }], DESK.screen);
+  c.restore();
+}
+function shadowPatch(c, o, gx, gy, w, d) { // 接地影(浮かない・研究室の静かな影)
+  const p00 = iso(gx - 0.06, gy - 0.06, o), p10 = iso(gx + w + 0.1, gy - 0.06, o), p11 = iso(gx + w + 0.1, gy + d + 0.1, o), p01 = iso(gx - 0.06, gy + d + 0.1, o);
+  poly(c, [p00, p10, p11, p01], "rgba(60,54,44,.18)");
+}
+function desk(c, o, gx, gy, w, d) { // 机(灰の天板・細い脚・接地影)
+  const legH = 20, topH = 4;
+  shadowPatch(c, o, gx, gy, w, d);
+  const l1 = iso(gx + 0.1, gy + d - 0.1, o), l2 = iso(gx + w - 0.1, gy + d - 0.1, o), l3 = iso(gx + w - 0.1, gy + 0.1, o);
+  c.strokeStyle = DESK.right; c.lineWidth = 2.5;
+  for (const l of [l1, l2, l3]) { c.beginPath(); c.moveTo(l.x, l.y); c.lineTo(l.x, l.y - legH); c.stroke(); }
+  // 天板=薄い箱(側面が見える厚み)
+  const p00 = iso(gx, gy, o), p10 = iso(gx + w, gy, o), p11 = iso(gx + w, gy + d, o), p01 = iso(gx, gy + d, o);
+  const up = (p, h) => ({ x: p.x, y: p.y - h });
+  poly(c, [up(p01, legH + topH), up(p11, legH + topH), up(p11, legH), up(p01, legH)], DESK.left);
+  poly(c, [up(p10, legH + topH), up(p11, legH + topH), up(p11, legH), up(p10, legH)], DESK.right);
+  poly(c, [up(p00, legH + topH), up(p10, legH + topH), up(p11, legH + topH), up(p01, legH + topH)], DESK.top, DESK.line, 1);
+}
+function drawDesks(c, o, tier) {
+  if (tier >= 4) { // サーバーラック(左奥の壁際・静かなLED)
+    for (const gy0 of [1.6, 2.8]) {
+      shadowPatch(c, o, 0.3, gy0, 0.55, 0.9);
+      const b = isoBox(c, o, 0.3, gy0, 0.55, 0.9, 74, DESK.rack);
+      for (let i = 0; i < 4; i++) { // SE面のLED(小さく・点滅させない=§5.7)
+        const p = iso(0.85, gy0 + 0.18 + i * 0.18, o);
+        c.fillStyle = i % 3 === 0 ? DESK.led2 : DESK.led1; c.globalAlpha = 0.9;
+        c.fillRect(p.x - 1, p.y - 58 + i * 3, 2, 2); c.globalAlpha = 1;
+      }
+    }
   }
-  // 床の縁(手前2辺=部屋の輪郭を立てる)
-  const C2 = iso(LAB.cols, LAB.rows);
-  c.strokeStyle = LAB.tileEdge; c.lineWidth = 2.5;
-  c.beginPath(); c.moveTo(B.x, B.y); c.lineTo(C2.x, C2.y); c.lineTo(D.x, D.y); c.stroke();
-
-  // --- 天井灯の光だまり(中央にひとつ=まだ設備のない部屋の静けさ) ---
-  const M = iso(LAB.cols / 2, LAB.rows / 2);
-  const g = c.createRadialGradient(M.x, M.y, 10, M.x, M.y, 190);
-  g.addColorStop(0, LAB.light); g.addColorStop(1, "rgba(210,225,235,0)");
-  c.fillStyle = g; c.beginPath(); c.ellipse(M.x, M.y, 210, 105, 0, 0, 7); c.fill();
-
-  // --- ヴィネット(少しの寂しさ) ---
-  const v = c.createRadialGradient(cv.width / 2, cv.height / 2, cv.height * 0.35, cv.width / 2, cv.height / 2, cv.height * 0.85);
-  v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, `rgba(0,0,0,${LAB.vig})`);
-  c.fillStyle = v; c.fillRect(0, 0, cv.width, cv.height);
+  // 中核の机(T1から存在・T3で解析卓へ拡幅)
+  const w = tier >= 3 ? 2.3 : 1.5;
+  desk(c, o, 2.0, 2.0, w, 0.8);
+  if (tier >= 3) { monitor(c, o, 2.15, 2.02, 0.7); monitor(c, o, 2.95, 2.02, 0.95, 0.8); monitor(c, o, 4.0, 2.02, 0.55); } // 多面モニタ(中央が主)
+  else monitor(c, o, 2.35, 2.02, 0.8);
+  if (tier >= 2) { // 3台の島(直交の机2)
+    desk(c, o, 2.0, 3.15, 1.4, 0.8); monitor(c, o, 2.3, 3.17, 0.75);
+    desk(c, o, 4.0, 2.9, 0.8, 1.4); // 直交配置
+    const b = isoBox(c, o, 4.5, 3.0, 0.1, 0.8, 15, DESK.mon); // 横向きモニタ(NE面)
+    const s0 = iso(4.5, 3.08, o), s1 = iso(4.5, 3.72, o);
+    c.save(); c.globalAlpha = DESK.screenA; c.shadowColor = DESK.screen; c.shadowBlur = DESK.screenGlow;
+    poly(c, [{ x: s0.x, y: s0.y - 13 }, { x: s1.x, y: s1.y - 13 }, { x: s1.x, y: s1.y - 3.5 }, { x: s0.x, y: s0.y - 3.5 }], DESK.screen);
+    c.restore();
+  }
+  // 丸椅子(T1=1脚 → T2+=2脚。生活の気配は最小限)
+  const stool = (sx, sy) => { shadowPatch(c, o, sx, sy, 0.32, 0.32); isoBox(c, o, sx, sy, 0.32, 0.32, 12, deskCol); };
+  stool(2.6, 3.0 - (tier >= 2 ? 0 : 0.6));
+  if (tier >= 2) stool(3.4, 2.55);
 }
 
-// --- fps実測: フル再描画 と 事前描画+1blit(本実装方式=§8.15スプライトキャッシュと同型) ---
-drawRoom(ctx);
+// ---------------- 部屋 ----------------
+function drawRoom(c, W, H, o, opts) {
+  opts = opts || {};
+  c.clearRect(0, 0, W, H);
+  const bg = c.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#191d20"); bg.addColorStop(1, "#0e0c0b");
+  c.fillStyle = bg; c.fillRect(0, 0, W, H);
+  const cols = opts.cols || LAB.cols, rows = opts.rows || LAB.rows;
+  const A = iso(0, 0, o), B = iso(cols, 0, o), D = iso(0, rows, o);
+  if (!opts.noWall) {
+    poly(c, [{ x: A.x, y: A.y - LAB.wallH }, { x: B.x, y: B.y - LAB.wallH }, B, A], LAB.wall);
+    poly(c, [{ x: A.x, y: A.y - LAB.wallH }, { x: D.x, y: D.y - LAB.wallH }, D, A], LAB.wallDk);
+    c.strokeStyle = LAB.wallBase; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(D.x, D.y); c.lineTo(A.x, A.y); c.lineTo(B.x, B.y); c.stroke();
+    c.strokeStyle = "rgba(255,255,255,.35)"; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(D.x, D.y - LAB.wallH); c.lineTo(A.x, A.y - LAB.wallH); c.lineTo(B.x, B.y - LAB.wallH); c.stroke();
+  }
+  for (let s = 0; s <= cols + rows - 2; s++) // 奥→手前(painter's)
+    for (let gx = 0; gx < cols; gx++) { const gy = s - gx; if (gy < 0 || gy >= rows) continue;
+      const p0 = iso(gx, gy, o), p1 = iso(gx + 1, gy, o), p2 = iso(gx + 1, gy + 1, o), p3 = iso(gx, gy + 1, o);
+      poly(c, [p0, p1, p2, p3], (gx + gy) % 2 === 0 ? LAB.tile : LAB.tileAlt, LAB.seam, 1);
+    }
+  const C2 = iso(cols, rows, o);
+  c.strokeStyle = LAB.tileEdge; c.lineWidth = 2.5;
+  c.beginPath(); c.moveTo(B.x, B.y); c.lineTo(C2.x, C2.y); c.lineTo(D.x, D.y); c.stroke();
+  // 設備(奥→手前の順で描く)
+  if (opts.desks) drawDesks(c, o, opts.desks);
+  if (!opts.noLight) {
+    const M = iso(cols / 2, rows / 2, o);
+    const g = c.createRadialGradient(M.x, M.y, 10, M.x, M.y, 190);
+    g.addColorStop(0, LAB.light); g.addColorStop(1, "rgba(210,225,235,0)");
+    c.fillStyle = g; c.beginPath(); c.ellipse(M.x, M.y, 210, 105, 0, 0, 7); c.fill();
+  }
+  if (!opts.noVig) {
+    const v = c.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.85);
+    v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, `rgba(0,0,0,${LAB.vig})`);
+    c.fillStyle = v; c.fillRect(0, 0, W, H);
+  }
+}
+
+// ---------------- メイン(最大tier)+tier成長ストリップ ----------------
+const cv = document.getElementById("lab"), ctx = cv.getContext("2d");
+const ROOM_OPTS = { desks: 4 };
+drawRoom(ctx, cv.width, cv.height, { x: LAB.originX, y: LAB.originY }, ROOM_OPTS);
+// fps実測(設備込みフル再描画 / 事前描画+1blit)
 const N = 300;
 let t0 = performance.now();
-for (let i = 0; i < N; i++) drawRoom(ctx);
+for (let i = 0; i < N; i++) drawRoom(ctx, cv.width, cv.height, { x: LAB.originX, y: LAB.originY }, ROOM_OPTS);
 const fullMs = (performance.now() - t0) / N;
 const off = document.createElement("canvas"); off.width = cv.width; off.height = cv.height;
-drawRoom(off.getContext("2d"));
+drawRoom(off.getContext("2d"), cv.width, cv.height, { x: LAB.originX, y: LAB.originY }, ROOM_OPTS);
 t0 = performance.now();
 for (let i = 0; i < N; i++) ctx.drawImage(off, 0, 0);
 const blitMs = (performance.now() - t0) / N;
-drawRoom(ctx);
-const msg = `fps実測(${N}フレーム平均): フル再描画=${(1000 / fullMs).toFixed(0)}fps(${fullMs.toFixed(2)}ms) / 事前描画+1blit=${(1000 / blitMs).toFixed(0)}fps(${blitMs.toFixed(3)}ms)`;
+drawRoom(ctx, cv.width, cv.height, { x: LAB.originX, y: LAB.originY }, ROOM_OPTS);
+const msg = `fps実測(設備込み・${N}平均): フル再描画=${(1000 / fullMs).toFixed(0)}fps / 事前描画+1blit=${(1000 / blitMs).toFixed(0)}fps`;
 console.log("[HQLAB] " + msg);
 ctx.fillStyle = "#c9b8a2"; ctx.font = "12px system-ui"; ctx.fillText(msg, 16, 604);
-// 逆等角変換(当たり判定の実証・O(1)): スクリーン→グリッド
-const unproject = (sx, sy) => {
-  const dx = (sx - LAB.originX) / (LAB.tileW / 2), dy = (sy - LAB.originY) / (LAB.tileH / 2);
-  return { gx: Math.floor((dy + dx) / 2), gy: Math.floor((dy - dx) / 2) };
-};
-const M2 = iso(5, 3), hit = unproject(M2.x + 2, M2.y + 2);
-console.log(`[HQLAB] 逆等角変換の検算: iso(5,3)→screen→grid(${hit.gx},${hit.gy}) ${hit.gx === 5 && hit.gy === 3 ? "OK" : "NG"}`);
+
+// tier成長ストリップ(設備ごと): 小部屋(6×5タイル)で T1→T4 を並べる
+function addStrip(title, key) {
+  const wrap = document.getElementById("strips");
+  const h2 = document.createElement("h2"); h2.textContent = title; wrap.appendChild(h2);
+  const row = document.createElement("div"); row.className = "strip"; wrap.appendChild(row);
+  for (let t = 1; t <= 4; t++) {
+    const fig = document.createElement("figure");
+    const c2 = document.createElement("canvas"); c2.width = 240; c2.height = 220;
+    const o2 = { x: 120, y: 60 };
+    const opts = { cols: 6, rows: 5, noVig: true, noLight: true }; opts[key] = t;
+    drawRoom(c2.getContext("2d"), 240, 220, o2, opts);
+    const cap = document.createElement("figcaption"); cap.textContent = ["T1 机1+端末1", "T2 3台の島", "T3 多面モニタの解析卓", "T4 サーバーラック併設"][t - 1];
+    fig.appendChild(c2); fig.appendChild(cap); row.appendChild(fig);
+  }
+}
+addStrip("パソコンデスク群(研究) — tier成長", "desks");
 </script>
 </body>
 </html>
