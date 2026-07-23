@@ -1343,6 +1343,23 @@ const Game = {
     this.genesisFx(lz.x, lz.y); // 固定も錬成の一種(同じ深紅の演出)
     return true;
   },
+  // ---------------- 本部=デスク群の鉱石投資(hq_lab v2.0 §5.3 案B・Ric承認・additive保存) ----------------
+  // 「鉱石を投じるのみで設備が育つ」。labInvest={desks:n}を保存(未定義=0=後方互換・bump不要)。rankには一切触れない(禁じ手)。
+  labInvestLv(key) { return (this.state.labInvest && this.state.labInvest[key]) || 0; },
+  labInvestCost(key) { // 次の1段の鉱石コスト(CFG)。null=最大到達
+    const table = CFG.labInvestCosts && CFG.labInvestCosts[key];
+    return (table && table[this.labInvestLv(key)]) || null;
+  },
+  labInvestPay(key, silent) {
+    const cost = this.labInvestCost(key);
+    if (!cost) return false;
+    for (const ore in cost) if (this.ore(ore) < cost[ore]) { if (!silent) UI.toast("鉱石が足りない(巣ネットワークが運んでくる)", true); return false; }
+    for (const ore in cost) this.addOre(ore, -cost[ore]);
+    this.state.labInvest = this.state.labInvest || {};
+    this.state.labInvest[key] = this.labInvestLv(key) + 1;
+    return true;
+  },
+
   // ---------------- 合成=トランスミュート(§8・案B=昇華) ----------------
   // 2特性を併せ持つ個体の traits:[A,B] を [C] へ昇華(個体は残る=資産原則)。100%確定(乱数なし=「錬金は裏切らない」)。
   // 固定印付きは素材にできない(石投資の保護)・レジェンダリー除外・解読済みレシピのみ。触媒=賢者の石(order連動コスト)。
@@ -2466,6 +2483,7 @@ const Game = {
       nestWeb: s.nestWeb || { nodes: {}, surprises: 0 },         // V4.1: 巣(WorldData直下・全惑星共通)
       dial: s.dial || { auto: false, rate: 1, supply: false },   // Brushup V2: 給餌ダイヤル
       rareWallet: s.rare || {},                                  // V4.1: 希少鉱石
+      labInvest: s.labInvest || {},                              // hq_lab v2.0 §5.3案B: 本部設備の鉱石投資(additive・未定義={}=後方互換)
       erosion: s.erosion || 0,                                   // V4.1: 侵食率
       forged: s.forged || {},
       lore: s.lore || {},
@@ -2692,6 +2710,7 @@ const Game = {
     this.state = {
       coins: w.wallet.coins, gems: w.wallet.gems,
       stones: w.wallet.stones || 0, // v11: 賢者の石(旧セーブは既定0で後方互換)
+      labInvest: w.labInvest || {}, // hq_lab v2.0: 本部投資(旧セーブは既定{}=後方互換・bump不要)
       crickets: w.wallet.crickets || 0, // V5.2: コオロギ給餌の復活(全コロニー共通在庫)
       rank: w.headquarters.rank, rankXp: w.headquarters.rankXp,
       research: w.headquarters.research || {},

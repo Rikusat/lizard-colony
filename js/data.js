@@ -203,9 +203,16 @@ const CFG = {
   stoneSynthBase: 6,        // 合成(§8)の石触媒 = これ + order×stoneSynthPerOrder(order1=8…order6=18個)。★石の経済(§8.6)提示後にRic最終調整
   stoneSynthPerOrder: 2,
   // 本部=研究施設(hq_lab)の設備tier閾値(全て既存stateからの派生=セーブ非接触・★たたき台=Ric調整)
-  labDeskTiers: [3, 8, 14],   // デスク群: HQ Lv がこの値以上でT2/T3/T4
   labTankTiers: [1, 3, 5],    // 実験用水槽: 解読済みレシピ数でT2/T3/T4
   labShelfTiers: [8, 18, 28], // 標本棚: 図鑑登録数でT2/T3/T4(ロケットはrocket状態から直接導出)
+  // デスク群=鉱石投資で育つ(hq_lab v2.0 §5.3案B・投資1回=1段T1→T4)。★コストは全てたたき台=Ric実機調整
+  labInvestCosts: {
+    desks: [
+      { titaniumOre: 2, amber: 2 },       // T1→T2
+      { orichalcum: 2, titaniumOre: 4 },  // T2→T3
+      { amethyst: 1, orichalcum: 4 },     // T3→T4
+    ],
+  },
   labTileScale: 2.0,          // 本部のタイル+設備の一体倍率(大きさ)。★Ric実機調整
   labFacScale: 1.0,           // 設備のみの追加倍率(比較用・既定1=一体拡大方式)
   genesisFxSec: 1.5,        // 創世エフェクトの尺(深紅の錬成)
