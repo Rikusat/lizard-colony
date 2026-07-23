@@ -3987,6 +3987,27 @@ const Render = {
     ctx.restore();
   },
 
+  // ============ 合成専用特性(§8・到達の証)。血統原則§8.4=素材の意匠が結果へ変化して見える。共通の格=深紅の芯線(#8E1826・一筋・抑制) ============
+  // ハガネ: 体側の鋼帯。血統=ヨウガンの裂け目→鋼で塞がれた継ぎ跡(帯を横切る接合線) / ヒョウガの霜→刃文の白波(帯の下縁)。
+  traitHagane(ctx, g, def) {
+    const { S, body, L } = g; if (!S || !body) return;
+    ctx.save(); ctx.clip(body); ctx.lineCap = "round";
+    const at = (t, dy) => { const s = S(t); return { x: s.p.x, y: s.p.y + s.w * 0.05 + (dy || 0) }; };
+    // 鋼帯
+    ctx.strokeStyle = def.rim || "#9FB2C0"; ctx.globalAlpha = 0.88; ctx.lineWidth = Math.max(3, L * 0.048);
+    ctx.beginPath(); for (let i = 0; i <= 8; i++) { const p = at(0.42 + i * 0.05); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); } ctx.stroke();
+    // 刃文の白波(ヒョウガの霜の面影)
+    ctx.strokeStyle = "rgba(240,248,252,.92)"; ctx.lineWidth = Math.max(1, L * 0.011);
+    ctx.beginPath(); for (let i = 0; i <= 16; i++) { const p = at(0.42 + i * 0.025, L * 0.022 + Math.sin(i * 1.55) * L * 0.008); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); } ctx.stroke();
+    // 継ぎ跡(ヨウガンの裂け目が鋼で塞がれた跡=帯を横切る暗い接合線)
+    ctx.strokeStyle = "rgba(50,60,68,.9)"; ctx.lineWidth = Math.max(1, L * 0.009);
+    for (const t of [0.52, 0.66]) { const p = at(t); ctx.beginPath(); ctx.moveTo(p.x - L * 0.012, p.y - L * 0.024); ctx.lineTo(p.x + L * 0.012, p.y + L * 0.024); ctx.stroke(); }
+    // 深紅の芯線(錬成の焼き印)
+    ctx.strokeStyle = "#8E1826"; ctx.globalAlpha = 0.8; ctx.lineWidth = Math.max(0.8, L * 0.006);
+    ctx.beginPath(); for (let i = 0; i <= 8; i++) { const p = at(0.45 + i * 0.036, -L * 0.013); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); } ctx.stroke();
+    ctx.restore();
+  },
+
   drawPlanetAllies(ctx) {
     const st = Game.currentStage && Game.currentStage();
     const a = st && planetAllyOf(st.id);

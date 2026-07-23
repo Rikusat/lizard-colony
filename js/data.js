@@ -722,6 +722,13 @@ const TRAITS = {
     icon: "trait-void", tier: 5, draw: "traitVoid",
     desc: "光を吸う黒。輪郭だけが、辛うじてこちら側に残っている。",
   },
+  // ---- 合成専用特性(§8・synth=genesis不可・tier6=遺伝はfloor3%・共通の格=深紅の芯線#8E1826) ----
+  hagane: {
+    key: "hagane", name: "ハガネ", // ★仮称・レシピ=ヨウガン+ヒョウガ
+    color: "#3c4a54", rim: "#9FB2C0", // 鋼青灰
+    icon: "trait-hagane", tier: 6, synth: true, draw: "traitHagane",
+    desc: "熱と急冷が鍛えた鋼の帯。裂け目は継がれ、霜は刃文になった。",
+  },
 };
 
 // ボス種 (GameExpansion_v2 ②)。minRank 到達で抽選プールに加入
