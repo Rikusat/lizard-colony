@@ -3933,6 +3933,32 @@ const Render = {
     ctx.restore();
   },
 
+  // クロノ(tier4): 尾が秒針めいて分節(真鍮の節輪)+胴に微細な歯車紋1つ。部位=尾(尾のしなり=S(t)に追従)。
+  traitChrono(ctx, g, def) {
+    const { S, L } = g; if (!S) return;
+    const c = def.rim || "#B8955A";
+    ctx.save(); ctx.lineCap = "round";
+    ctx.strokeStyle = c; ctx.globalAlpha = 0.9;
+    for (let i = 0; i < 5; i++) { // 尾の節輪(先端ほど密)
+      const t = 0.07 + i * 0.065;
+      const s = S(t);
+      const ax = s.p.x + s.n.x * s.w * 1.0 * s.u, ay = s.p.y + s.n.y * s.w * 1.0 * s.u;
+      const bx = s.p.x - s.n.x * s.w * 1.0 * s.u, by = s.p.y - s.n.y * s.w * 1.0 * s.u;
+      ctx.lineWidth = Math.max(0.9, L * (i === 0 ? 0.013 : 0.009)); // 先端の輪は太く=秒針の頭
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+    }
+    const s = S(0.58); // 胴の歯車紋(小・1つだけ=気配)
+    const gx = s.p.x, gy = s.p.y + s.w * 0.05, r = Math.max(2, L * 0.026);
+    ctx.lineWidth = Math.max(0.8, L * 0.007);
+    ctx.beginPath(); ctx.arc(gx, gy, r, 0, 7); ctx.stroke();
+    for (let a = 0; a < 6.28; a += Math.PI / 4) {
+      ctx.beginPath(); ctx.moveTo(gx + Math.cos(a) * r, gy + Math.sin(a) * r);
+      ctx.lineTo(gx + Math.cos(a) * r * 1.32, gy + Math.sin(a) * r * 1.32); ctx.stroke();
+    }
+    ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx, gy - r * 0.62); ctx.stroke(); // 針
+    ctx.restore();
+  },
+
   drawPlanetAllies(ctx) {
     const st = Game.currentStage && Game.currentStage();
     const a = st && planetAllyOf(st.id);

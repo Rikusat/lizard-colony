@@ -31,6 +31,8 @@ const ICONS = {
   "trait-yougan": '<path d="M5 18 4 10l4-5.5L15 4l5 4.5.8 7L17 20l-8 .8z" fill="none"/><path d="M8 6.5l2.6 4-1.8 3 2.8 4.4M14.6 5l-1 4.2 3 2.6-1.2 4.6" fill="none"/>',
   // アミダグラ: 縦線を桟が渡る籤(あみだ)の網目=回路ともつかぬ幾何学。
   "trait-amidagura": '<path d="M6 4v16M12 4v16M18 4v16M6 8h6M12 12h6M6 16h6M12 6h6" fill="none"/><circle cx="18" cy="6" r="1.2"/><circle cx="6" cy="16" r="1.2"/>',
+  // クロノ: 歯車と秒針。
+  "trait-chrono": '<circle cx="12" cy="12" r="6.5" fill="none"/><path d="M12 3.4v2M12 18.6v2M3.4 12h2M18.6 12h2M5.9 5.9l1.4 1.4M16.7 16.7l1.4 1.4M18.1 5.9l-1.4 1.4M7.3 16.7l-1.4 1.4" fill="none"/><path d="M12 12V7.6M12 12l3.2 1.8" fill="none"/><circle cx="12" cy="12" r="1.1"/>',
   // 固定印(S5-b): 鍵=「必ず子へ継がれる」。
   lock: '<rect x="6" y="11" width="12" height="9" rx="2" fill="none"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" fill="none"/><circle cx="12" cy="15.2" r="1.2"/>',
   food: '<path d="M6 13a6 6 0 0 1 12 0v2H6z"/><path d="M5 18h14M8 15v3M12 15v3M16 15v3" fill="none"/>',

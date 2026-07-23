@@ -704,6 +704,12 @@ const TRAITS = {
     icon: "trait-amidagura", tier: 3, draw: "traitAmidagura",
     desc: "体表に幾何学の網目。回路とも、籤(くじ)ともつかない。",
   },
+  chrono: {
+    key: "chrono", name: "クロノ", // ★仮称・主題=③からくり時計
+    color: "#4e3a1c", rim: "#B8955A", // rim=真鍮(SIG_PAL chronoMantisの真鍮と同系・惑星アクセント外)
+    icon: "trait-chrono", tier: 4, draw: "traitChrono",
+    desc: "尾が秒針めいて分節する。時を刻んでいた頃の癖。",
+  },
 };
 
 // ボス種 (GameExpansion_v2 ②)。minRank 到達で抽選プールに加入
