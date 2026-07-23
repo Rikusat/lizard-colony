@@ -115,6 +115,43 @@ function drawDesks(c, o, tier) {
   if (tier >= 2) stool(3.4, 2.55);
 }
 
+// ---------------- 設備: 実験用水槽(合成=トランスミュートの場) ----------------
+// tier成長: T1 小さなガラス水槽 → T2 培養槽+配管 → T3 錬成槽(深紅の光が差す) → T4 複数槽の実験区画。
+// 錬成槽の深紅(#8E1826=賢者の石)は部屋で唯一の暖色=錬金の場の徴(それでも抑制・光は槽の中だけ)。
+const AQUA = {
+  base: { top: "#d3cfc6", left: "#a8a498", right: "#98948a", line: "rgba(90,86,78,.45)" },
+  glassL: "rgba(168,205,218,.30)", glassR: "rgba(148,190,205,.36)", glassT: "rgba(225,240,245,.28)",
+  edge: "rgba(210,235,242,.75)", water: "rgba(95,168,201,.38)", waterTop: "rgba(150,205,228,.5)",
+  pipe: "#9aa0a5", crimson: "#8E1826", crimsonGlow: "rgba(142,24,38,.34)",
+};
+function glassTank(c, o, gx, gy, w, d, h, crimson) {
+  shadowPatch(c, o, gx, gy, w, d);
+  isoBox(c, o, gx, gy, w, d, 5, AQUA.base); // 台座
+  const wl = 5 + (h - 5) * 0.62; // 水面の高さ
+  isoBox(c, o, gx + 0.04, gy + 0.04, w - 0.08, d - 0.08, wl, { top: AQUA.waterTop, left: AQUA.water, right: AQUA.water, line: "rgba(0,0,0,0)" }); // 水
+  if (crimson) { // 錬成槽: 槽の中に深紅の光(部屋で唯一の暖色・槽内だけ)
+    const m = iso(gx + w / 2, gy + d / 2, o);
+    const g = c.createRadialGradient(m.x, m.y - wl * 0.55, 2, m.x, m.y - wl * 0.55, 26);
+    g.addColorStop(0, AQUA.crimsonGlow); g.addColorStop(1, "rgba(142,24,38,0)");
+    c.fillStyle = g; c.beginPath(); c.ellipse(m.x, m.y - wl * 0.55, 26, 20, 0, 0, 7); c.fill();
+    c.fillStyle = AQUA.crimson; c.globalAlpha = 0.85;
+    c.beginPath(); c.arc(m.x, m.y - wl * 0.55, 2.2, 0, 7); c.fill(); c.globalAlpha = 1; // 芯=賢者の石
+  }
+  const b = isoBox(c, o, gx, gy, w, d, h, { top: AQUA.glassT, left: AQUA.glassL, right: AQUA.glassR, line: AQUA.edge }); // ガラス
+  c.strokeStyle = AQUA.edge; c.lineWidth = 1; // 縦の稜線(ガラスの角)
+  c.beginPath(); c.moveTo(b.p11.x, b.p11.y); c.lineTo(b.p11.x, b.p11.y - h); c.stroke();
+}
+function pipeTo(c, o, gx, gy, topH, wallGy) { // 槽上部から奥の壁へ伸びる配管
+  const a = iso(gx, gy, o), t = { x: a.x, y: a.y - topH }, w = iso(gx, wallGy, o);
+  c.strokeStyle = AQUA.pipe; c.lineWidth = 2.5; c.lineCap = "round";
+  c.beginPath(); c.moveTo(t.x, t.y); c.lineTo(t.x, t.y - 10); c.lineTo(w.x, w.y - topH - 10 - (gy - wallGy) * 0); c.stroke();
+}
+function drawAqua(c, o, tier) {
+  glassTank(c, o, 7.6, 1.25, 0.85, 0.85, 36, tier >= 3); // 主槽(T3+で錬成槽)
+  if (tier >= 2) { glassTank(c, o, 8.75, 1.2, 0.62, 0.62, 52, false); pipeTo(c, o, 9.05, 1.5, 52, 0.15); } // 培養槽+配管
+  if (tier >= 4) { glassTank(c, o, 6.55, 1.35, 0.6, 0.6, 30, false); pipeTo(c, o, 8.0, 1.55, 36, 0.15); } // 実験区画(3槽+配管)
+}
+
 // ---------------- 部屋 ----------------
 function drawRoom(c, W, H, o, opts) {
   opts = opts || {};
@@ -141,6 +178,7 @@ function drawRoom(c, W, H, o, opts) {
   c.strokeStyle = LAB.tileEdge; c.lineWidth = 2.5;
   c.beginPath(); c.moveTo(B.x, B.y); c.lineTo(C2.x, C2.y); c.lineTo(D.x, D.y); c.stroke();
   // 設備(奥→手前の順で描く)
+  if (opts.aqua) drawAqua(c, o, opts.aqua);
   if (opts.desks) drawDesks(c, o, opts.desks);
   if (!opts.noLight) {
     const M = iso(cols / 2, rows / 2, o);
@@ -157,7 +195,7 @@ function drawRoom(c, W, H, o, opts) {
 
 // ---------------- メイン(最大tier)+tier成長ストリップ ----------------
 const cv = document.getElementById("lab"), ctx = cv.getContext("2d");
-const ROOM_OPTS = { desks: 4 };
+const ROOM_OPTS = { desks: 4, aqua: 4 };
 drawRoom(ctx, cv.width, cv.height, { x: LAB.originX, y: LAB.originY }, ROOM_OPTS);
 // fps実測(設備込みフル再描画 / 事前描画+1blit)
 const N = 300;
@@ -175,21 +213,22 @@ console.log("[HQLAB] " + msg);
 ctx.fillStyle = "#c9b8a2"; ctx.font = "12px system-ui"; ctx.fillText(msg, 16, 604);
 
 // tier成長ストリップ(設備ごと): 小部屋(6×5タイル)で T1→T4 を並べる
-function addStrip(title, key) {
+function addStrip(title, key, caps, shiftX) {
   const wrap = document.getElementById("strips");
   const h2 = document.createElement("h2"); h2.textContent = title; wrap.appendChild(h2);
   const row = document.createElement("div"); row.className = "strip"; wrap.appendChild(row);
   for (let t = 1; t <= 4; t++) {
     const fig = document.createElement("figure");
     const c2 = document.createElement("canvas"); c2.width = 240; c2.height = 220;
-    const o2 = { x: 120, y: 60 };
+    const o2 = { x: 120 + (shiftX || 0), y: 60 };
     const opts = { cols: 6, rows: 5, noVig: true, noLight: true }; opts[key] = t;
     drawRoom(c2.getContext("2d"), 240, 220, o2, opts);
-    const cap = document.createElement("figcaption"); cap.textContent = ["T1 机1+端末1", "T2 3台の島", "T3 多面モニタの解析卓", "T4 サーバーラック併設"][t - 1];
+    const cap = document.createElement("figcaption"); cap.textContent = caps[t - 1];
     fig.appendChild(c2); fig.appendChild(cap); row.appendChild(fig);
   }
 }
-addStrip("パソコンデスク群(研究) — tier成長", "desks");
+addStrip("パソコンデスク群(研究) — tier成長", "desks", ["T1 机1+端末1", "T2 3台の島", "T3 多面モニタの解析卓", "T4 サーバーラック併設"]);
+addStrip("実験用水槽(合成の場) — tier成長", "aqua", ["T1 小さなガラス水槽", "T2 培養槽+配管", "T3 錬成槽(深紅の光)", "T4 複数槽の実験区画"], -220);
 </script>
 </body>
 </html>
