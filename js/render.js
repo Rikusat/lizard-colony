@@ -1903,6 +1903,7 @@ const Render = {
     body.closePath();
 
     // --- 脚(爪のある四肢): 奥側 → 体 → 手前側の順で奥行きを出す ---
+    const legSegs = []; // 特性描画用: 手前側の脚セグメント(歩行スイングに追従・trait roster §3)
     const claws = (toe, dir) => {
       ctx.strokeStyle = "#1a120a";
       ctx.lineWidth = Math.max(1.2, L * 0.012);
@@ -1951,6 +1952,7 @@ const Render = {
       ctx.lineWidth = Math.max(2.4, L * 0.026);
       ctx.beginPath(); ctx.moveTo(wri.x, wri.y); ctx.lineTo(toeF.x, toeF.y); ctx.stroke();
       if (!isFar) claws(toeF, 1);
+      if (!isFar) legSegs.push({ a: kneeH, b: ankH }, { a: ankH, b: toeH }, { a: elb, b: wri }, { a: wri, b: toeF }); // 特性用(歩行追従)
     };
     legPair(true); // 奥側の脚
 
@@ -2154,9 +2156,10 @@ const Render = {
     ctx.beginPath(); ctx.arc(ex, ey, eyeR, 0, 7); ctx.fill();
     ctx.fillStyle = "rgba(255,255,255,.85)";
     ctx.beginPath(); ctx.arc(ex + eyeR * 0.3, ey - eyeR * 0.35, eyeR * 0.3, 0, 7); ctx.fill();
-    // 特性(trait)の見た目=顔に上乗せ(魂の骨格は不変)。通常個体は lz.traits 未定義でスキップ。
+    // 特性(trait)の見た目=体/顔に上乗せ(魂の骨格は不変)。通常個体は lz.traits 未定義でスキップ。
     //   レジェンダリーは特性の対象外(虹発光そのものが最上の個性=徴を描かない・§16/①)。既存の morphId フラグで判定(新ロジックなし)。
-    if (lz.morphId !== "legendary" && lz.traits && lz.traits.length && typeof TRAITS !== "undefined") this._paintTraits(ctx, lz, { ex, ey, eyeR, L, col });
+    //   g=頭部(ex/ey/eyeR)+体ジオメトリ(S=背骨サンプラ/body=輪郭Path/legs=手前脚セグメント)。ロスター拡張(§3)は全てこの窓口経由で描く。
+    if (lz.morphId !== "legendary" && lz.traits && lz.traits.length && typeof TRAITS !== "undefined") this._paintTraits(ctx, lz, { ex, ey, eyeR, L, col, S, body, legs: legSegs });
     // 耳の穴(あごの後ろ)
     const ea = S(0.875);
     ctx.fillStyle = "rgba(18,10,4,.5)";
