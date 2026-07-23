@@ -4114,6 +4114,36 @@ const Render = {
     ctx.restore();
   },
 
+  // リンカイ(最上位): 黒+臨界の青。血統=ヴォイドの黒ヴェール→維持 / チェレンコの輪郭の滲み→強い輪郭発光+体内の臨界点。
+  traitRinkai(ctx, g, def) {
+    const { S, body, L } = g; if (!body) return;
+    const c = def.rim || "#8FE8CC";
+    // 黒ヴェール(ヴォイドの面影=そのまま)
+    ctx.save(); ctx.clip(body);
+    ctx.globalAlpha = 0.58; ctx.fillStyle = "#070103"; ctx.fill(body);
+    // 体内の臨界点(静かな芯・胴の奥に一点)
+    if (S) {
+      const s = S(0.6), px = s.p.x, py = s.p.y + s.w * 0.05;
+      const gl = ctx.createRadialGradient(px, py, 1, px, py, L * 0.06);
+      gl.addColorStop(0, "rgba(143,232,204,.85)"); gl.addColorStop(1, "rgba(143,232,204,0)");
+      ctx.globalAlpha = 1; ctx.fillStyle = gl;
+      ctx.beginPath(); ctx.arc(px, py, L * 0.06, 0, 7); ctx.fill();
+      ctx.fillStyle = "#eafff6"; ctx.beginPath(); ctx.arc(px, py, Math.max(1, L * 0.012), 0, 7); ctx.fill();
+      // 深紅の芯線(臨界点を囲む小さな環の一区間)
+      ctx.strokeStyle = "#8E1826"; ctx.globalAlpha = 0.9; ctx.lineWidth = Math.max(0.8, L * 0.007);
+      ctx.beginPath(); ctx.arc(px, py, L * 0.028, Math.PI * 0.2, Math.PI * 1.1); ctx.stroke();
+    }
+    ctx.restore();
+    // 輪郭が臨界の青で燃える(チェレンコの滲み→強い発光へ)
+    ctx.save();
+    ctx.strokeStyle = c; ctx.shadowColor = c; ctx.shadowBlur = Math.max(6, L * 0.07);
+    ctx.globalAlpha = 0.85; ctx.lineWidth = Math.max(1.2, L * 0.013);
+    ctx.stroke(body);
+    ctx.globalAlpha = 0.35; ctx.lineWidth = Math.max(2.4, L * 0.028);
+    ctx.stroke(body);
+    ctx.restore();
+  },
+
   drawPlanetAllies(ctx) {
     const st = Game.currentStage && Game.currentStage();
     const a = st && planetAllyOf(st.id);

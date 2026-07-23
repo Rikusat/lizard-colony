@@ -753,6 +753,12 @@ const TRAITS = {
     icon: "trait-shizumimachi", tier: 6, synth: true, draw: "traitShizumimachi",
     desc: "体側に窓灯の格子。深海の点は街の窓になり、蛍光は灯に混ざった。",
   },
+  rinkai: {
+    key: "rinkai", name: "リンカイ", // ★仮称・レシピ=ヴォイド+チェレンコ(最上位=最深)
+    color: "#0d1f1c", rim: "#8FE8CC", // 強いチェレンコフ光(チェレンコより一段強い=格)
+    icon: "trait-rinkai", tier: 6, synth: true, draw: "traitRinkai",
+    desc: "光を吸う黒に、輪郭だけが臨界の青で燃える。体の奥に一点、静かな芯。",
+  },
 };
 
 // ボス種 (GameExpansion_v2 ②)。minRank 到達で抽選プールに加入
