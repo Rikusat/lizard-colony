@@ -747,6 +747,12 @@ const TRAITS = {
     icon: "trait-houkan", tier: 6, synth: true, draw: "traitHoukan",
     desc: "頭に三尖の宝冠。眼の金は冠へ昇り、三つの紋は頂の宝石になった。",
   },
+  shizumimachi: {
+    key: "shizumimachi", name: "シズミマチ", // ★仮称・レシピ=シンカイ+ネオン(旧リンコウ=音の衝突で改名)
+    color: "#23384a", rim: "#79C3E0", // 水面ごしの街灯り
+    icon: "trait-shizumimachi", tier: 6, synth: true, draw: "traitShizumimachi",
+    desc: "体側に窓灯の格子。深海の点は街の窓になり、蛍光は灯に混ざった。",
+  },
 };
 
 // ボス種 (GameExpansion_v2 ②)。minRank 到達で抽選プールに加入

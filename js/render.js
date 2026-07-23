@@ -4087,6 +4087,33 @@ const Render = {
     ctx.restore();
   },
 
+  // シズミマチ: 体側の窓灯の格子。血統=シンカイの点列→街の窓(点が四角い灯へ) / ネオンの蛍光線→窓に混ざるピンクの灯。
+  traitShizumimachi(ctx, g, def) {
+    const { S, body, L } = g; if (!S || !body) return;
+    const cyan = "#5FA8C9", pink = "#D957B0";
+    ctx.save(); ctx.clip(body);
+    // 窓灯2段(上段=大きめ・下段=小さめ。cyan基調にpinkが混ざる=ネオンの面影)
+    for (let row = 0; row < 2; row++) {
+      for (let i = 0; i < 6 - row; i++) {
+        const t = 0.42 + i * 0.062 + row * 0.03;
+        const s = S(t);
+        const wx = s.p.x, wy = s.p.y + s.w * (0.12 + row * 0.34);
+        const wsz = Math.max(1.6, L * (row === 0 ? 0.017 : 0.013));
+        const c = (i * 2 + row) % 5 === 3 ? pink : cyan; // 5窓に1つピンク
+        ctx.fillStyle = c; ctx.globalAlpha = 0.92 - row * 0.2;
+        ctx.shadowColor = c; ctx.shadowBlur = 2.5;
+        ctx.fillRect(wx - wsz / 2, wy - wsz * 0.7, wsz, wsz * 1.4);
+      }
+    }
+    ctx.shadowBlur = 0;
+    // 深紅の芯線(街の地平線=窓の下に一筋)
+    ctx.strokeStyle = "#8E1826"; ctx.globalAlpha = 0.75; ctx.lineWidth = Math.max(0.8, L * 0.006); ctx.lineCap = "round";
+    ctx.beginPath();
+    for (let i = 0; i <= 8; i++) { const s = S(0.43 + i * 0.043); const y = s.p.y + s.w * 0.62; i ? ctx.lineTo(s.p.x, y) : ctx.moveTo(s.p.x, y); }
+    ctx.stroke();
+    ctx.restore();
+  },
+
   drawPlanetAllies(ctx) {
     const st = Game.currentStage && Game.currentStage();
     const a = st && planetAllyOf(st.id);

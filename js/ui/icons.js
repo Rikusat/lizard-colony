@@ -46,6 +46,8 @@ const ICONS = {
   "trait-mumei": '<path d="M4 9.5c2.6-1.6 13.4-1.6 16 0 .2 4-1.3 6.3-4.6 6.3-1.7 0-2.2-1.2-3.4-1.2s-1.7 1.2-3.4 1.2C5.3 15.8 3.8 13.5 4 9.5z" fill="none" stroke-dasharray="3 2.6"/><circle cx="8.6" cy="11.2" r="1.3"/><circle cx="15.4" cy="11.2" r="1.3"/>',
   // ホウカン: 三尖の冠(中央が高い)+台座の帯。
   "trait-houkan": '<path d="M5 16V9.5l3.5 3L12 5.5l3.5 7 3.5-3V16z" fill="none"/><path d="M5 18.5h14" fill="none"/><circle cx="12" cy="12.6" r="1.2"/>',
+  // シズミマチ: 波の下に沈むビルの窓灯。
+  "trait-shizumimachi": '<path d="M4 6c2-1.6 4-1.6 6 0s4 1.6 6 0 3-1.2 4 0" fill="none"/><path d="M6 20v-9h4v9M14 20V8h5v12" fill="none"/><rect x="7.2" y="12.6" width="1.5" height="1.5"/><rect x="7.2" y="15.6" width="1.5" height="1.5"/><rect x="15.6" y="10" width="1.5" height="1.5"/><rect x="15.6" y="13.2" width="1.5" height="1.5"/><rect x="15.6" y="16.4" width="1.5" height="1.5"/>',
   // 固定印(S5-b): 鍵=「必ず子へ継がれる」。
   lock: '<rect x="6" y="11" width="12" height="9" rx="2" fill="none"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" fill="none"/><circle cx="12" cy="15.2" r="1.2"/>',
   food: '<path d="M6 13a6 6 0 0 1 12 0v2H6z"/><path d="M5 18h14M8 15v3M12 15v3M16 15v3" fill="none"/>',
