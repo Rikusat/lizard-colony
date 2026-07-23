@@ -716,6 +716,12 @@ const TRAITS = {
     icon: "trait-cherenko", tier: 4, draw: "traitCherenko",
     desc: "輪郭が淡く青く滲む。深い水の底で光っていた何かの名残。",
   },
+  void: {
+    key: "void", name: "ヴォイド", // ★仮称・主題=モノリス/次元の外
+    color: "#241b33", rim: "#8a76b8", // rim=沈んだ菫(輪郭の淡い残光・判別の徴)
+    icon: "trait-void", tier: 5, draw: "traitVoid",
+    desc: "光を吸う黒。輪郭だけが、辛うじてこちら側に残っている。",
+  },
 };
 
 // ボス種 (GameExpansion_v2 ②)。minRank 到達で抽選プールに加入

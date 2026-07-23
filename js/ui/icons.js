@@ -35,6 +35,8 @@ const ICONS = {
   "trait-chrono": '<circle cx="12" cy="12" r="6.5" fill="none"/><path d="M12 3.4v2M12 18.6v2M3.4 12h2M18.6 12h2M5.9 5.9l1.4 1.4M16.7 16.7l1.4 1.4M18.1 5.9l-1.4 1.4M7.3 16.7l-1.4 1.4" fill="none"/><path d="M12 12V7.6M12 12l3.2 1.8" fill="none"/><circle cx="12" cy="12" r="1.1"/>',
   // チェレンコ: 内から滲む微光(二重の暈)。
   "trait-cherenko": '<circle cx="12" cy="12" r="3" /><circle cx="12" cy="12" r="6.2" fill="none" stroke-opacity=".6"/><circle cx="12" cy="12" r="9" fill="none" stroke-opacity=".3"/>',
+  // ヴォイド: 塗り潰された円と、辛うじて残る輪郭の弧。
+  "trait-void": '<circle cx="12" cy="12" r="6" /><path d="M12 2.6a9.4 9.4 0 0 1 9.4 9.4M12 21.4A9.4 9.4 0 0 1 2.6 12" fill="none" stroke-opacity=".5"/>',
   // 固定印(S5-b): 鍵=「必ず子へ継がれる」。
   lock: '<rect x="6" y="11" width="12" height="9" rx="2" fill="none"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" fill="none"/><circle cx="12" cy="15.2" r="1.2"/>',
   food: '<path d="M6 13a6 6 0 0 1 12 0v2H6z"/><path d="M5 18h14M8 15v3M12 15v3M16 15v3" fill="none"/>',

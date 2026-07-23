@@ -3972,6 +3972,21 @@ const Render = {
     ctx.restore();
   },
 
+  // ヴォイド(tier5・最希少): 光を吸う黒(体を暗いヴェールで沈める)+輪郭だけ淡い菫の残光。
+  //   体色の上に半透明の黒を重ねる=遺伝子カラーは下に生きている(魂不変・上乗せのみ)。暗色種は輪郭の残光が判別の徴。
+  traitVoid(ctx, g, def) {
+    const { body, L } = g; if (!body) return;
+    ctx.save();
+    ctx.clip(body);
+    ctx.globalAlpha = 0.58; ctx.fillStyle = "#070103"; // 光を吸う黒(stone-deepと同系=石の世界観)
+    ctx.fill(body);
+    ctx.restore();
+    ctx.save();
+    ctx.strokeStyle = def.rim || "#8a76b8"; ctx.globalAlpha = 0.55; ctx.lineWidth = Math.max(0.9, L * 0.009);
+    ctx.stroke(body); // 辛うじて残る輪郭
+    ctx.restore();
+  },
+
   drawPlanetAllies(ctx) {
     const st = Game.currentStage && Game.currentStage();
     const a = st && planetAllyOf(st.id);
