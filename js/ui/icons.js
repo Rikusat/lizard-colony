@@ -17,6 +17,8 @@ const ICONS = {
   "trait-mask": '<path d="M4 9.5c2.6-1.6 13.4-1.6 16 0 .2 4-1.3 6.3-4.6 6.3-1.7 0-2.2-1.2-3.4-1.2s-1.7 1.2-3.4 1.2C5.3 15.8 3.8 13.5 4 9.5z" fill="none"/><circle cx="8.6" cy="11.2" r="1.3"/><circle cx="15.4" cy="11.2" r="1.3"/>',
   // ネオン: 折れ曲がるネオン管(灯の点)。energy(塗りの稲妻)とは別言語=線のみ。
   "trait-neon": '<path d="M4 16 8.5 9l3.5 4.5L15.5 8l4 6" fill="none"/><circle cx="4" cy="16" r="1.1"/><circle cx="19.5" cy="14" r="1.1"/>',
+  // ハクシ(白紙): 輪郭だけの体に、抜け落ちた白斑(塗りの小斑)。
+  "trait-hakushi": '<path d="M12 3.5c4.8 0 8 3.6 8 8s-3.2 9-8 9-8-4.6-8-9 3.2-8 8-8z" fill="none"/><ellipse cx="9.8" cy="10.6" rx="3" ry="2.1"/><circle cx="15" cy="14.6" r="1.5"/>',
   // 固定印(S5-b): 鍵=「必ず子へ継がれる」。
   lock: '<rect x="6" y="11" width="12" height="9" rx="2" fill="none"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" fill="none"/><circle cx="12" cy="15.2" r="1.2"/>',
   food: '<path d="M6 13a6 6 0 0 1 12 0v2H6z"/><path d="M5 18h14M8 15v3M12 15v3M16 15v3" fill="none"/>',

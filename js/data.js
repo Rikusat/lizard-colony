@@ -662,6 +662,12 @@ const TRAITS = {
     icon: "trait-neon", tier: 1, draw: "traitNeon",
     desc: "四肢に細い蛍光の線が走る。眠らない街の光。",
   },
+  hakushi: {
+    key: "hakushi", name: "ハクシ", // ★仮称・主題=⑩記録以前
+    color: "#55524a", rim: "#EFE8DA", // rim=無垢の白(paper系)
+    icon: "trait-hakushi", tier: 1, draw: "traitHakushi",
+    desc: "体色が一部だけ抜け落ちた、無垢の白斑。まだ何も書かれていない。",
+  },
 };
 
 // ボス種 (GameExpansion_v2 ②)。minRank 到達で抽選プールに加入

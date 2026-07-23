@@ -3800,6 +3800,21 @@ const Render = {
     ctx.restore();
   },
 
+  // ハクシ(tier1): 体色が抜け落ちた白斑(2大1小)。輪郭Pathでclip=シルエットからはみ出さない。
+  //   淡い縁取りで「抜けた」境界を立てる=白っぽい種(アルビノ等)でも判別可。位置は固定(特性の同一性=個体差なし)。
+  traitHakushi(ctx, g, def) {
+    const { S, body, L } = g; if (!S || !body) return;
+    ctx.save(); ctx.clip(body);
+    for (const [t, dy, rx, ry, rot] of [[0.56, 0.15, 0.085, 0.058, 0.3], [0.70, -0.1, 0.062, 0.044, -0.2], [0.35, 0, 0.045, 0.032, 0.5]]) {
+      const s = S(t), px = s.p.x, py = s.p.y + dy * s.w;
+      ctx.globalAlpha = 0.9; ctx.fillStyle = def.rim || "#EFE8DA";
+      ctx.beginPath(); ctx.ellipse(px, py, L * rx, L * ry, rot, 0, 7); ctx.fill();
+      ctx.globalAlpha = 0.55; ctx.strokeStyle = "#b7ab97"; ctx.lineWidth = Math.max(1, L * 0.008);
+      ctx.beginPath(); ctx.ellipse(px, py, L * rx, L * ry, rot, 0, 7); ctx.stroke();
+    }
+    ctx.restore();
+  },
+
   drawPlanetAllies(ctx) {
     const st = Game.currentStage && Game.currentStage();
     const a = st && planetAllyOf(st.id);
