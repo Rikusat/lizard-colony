@@ -680,6 +680,12 @@ const TRAITS = {
     icon: "trait-ougon", tier: 2, draw: "traitOugon",
     desc: "眼のまわりを金が縁取る。玄室に眠っていた輝き。",
   },
+  shinkai: {
+    key: "shinkai", name: "シンカイ", // ★仮称・主題=⑦深海の灯
+    color: "#1f3a4a", rim: "#5FA8C9", // rim=UISkills 深海光
+    icon: "trait-shinkai", tier: 2, draw: "traitShinkai",
+    desc: "体側に生体発光の点が連なる。暗い水の底で交わした合図。",
+  },
 };
 
 // ボス種 (GameExpansion_v2 ②)。minRank 到達で抽選プールに加入

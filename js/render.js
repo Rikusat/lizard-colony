@@ -3846,6 +3846,22 @@ const Render = {
     ctx.restore();
   },
 
+  // シンカイ(tier2): 体側(尾の付け根〜肩)に生体発光の点列(微グロー)。腹側寄り=クレスト/トライアド(背)と部位が被らない。
+  traitShinkai(ctx, g, def) {
+    const { S, L } = g; if (!S) return;
+    const c = def.rim || "#5FA8C9";
+    ctx.save();
+    ctx.fillStyle = c; ctx.shadowColor = c; ctx.shadowBlur = 3;
+    for (let i = 0; i < 6; i++) {
+      const t = 0.40 + i * 0.072; // 尾の付け根→肩
+      const s = S(t);
+      const bx = s.p.x - s.n.x * s.w * 0.5 * s.u, by = s.p.y - s.n.y * s.w * 0.5 * s.u; // 腹側の縁近く
+      ctx.globalAlpha = 0.9 - (i % 2) * 0.25; // 点の明滅感(静的・交互に淡く)
+      ctx.beginPath(); ctx.arc(bx, by - s.w * 0.28, Math.max(1.1, L * 0.013), 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  },
+
   drawPlanetAllies(ctx) {
     const st = Game.currentStage && Game.currentStage();
     const a = st && planetAllyOf(st.id);
