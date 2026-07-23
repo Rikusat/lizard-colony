@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>QA実行中…</title>
+<!-- 本部C-2 重点QA(実UI/実DOM)。①ページ往復でcanvasが壊れない ②本部滞在中もゲームが進む ③12機能 ④合成UI。
+     headless: window-sizeを変えて実行し title(PASS n/FAIL m) を読む。.vercelignoreでdev限定。 -->
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="style.css">
+<style>#itest{position:fixed;right:8px;bottom:8px;z-index:99999;background:rgba(13,10,6,.95);color:#cde;font:12px monospace;padding:10px;max-height:60vh;overflow:auto;max-width:46vw}#itest .ok{color:#7bd986}#itest .ng{color:#ff6a6a}</style>
+</head>
+<body>
+<div id="itest">QA実行中…</div>
+<!-- 本体DOM(index.html準拠・#hqlab含む) -->
+<header id="topbar"><div id="brand"></div>
+  <div class="res"><b id="ui-coins">0</b><small id="ui-cps"></small></div>
+  <div class="res"><b id="ui-crickets-top">0</b></div><div class="res"><b id="ui-gems">0</b></div><div class="res"><b id="ui-stones">0</b></div>
+  <nav><button id="btn-map"></button><button id="btn-hq"></button><span id="hq-badge"></span><button id="btn-dex"></button><span id="dex-badge"></span>
+  <button id="btn-missions"></button><span id="mission-badge"></span><button id="btn-stats"></button><span id="stats-badge"></span><button id="btn-settings"></button></nav>
+</header>
+<div id="hq-bar"><div id="rank-bar"></div><span id="hq-bar-label"><b id="ui-rank">1</b></span></div>
+<main><aside id="left"><div class="card"><button id="btn-cricket"><span id="cricket-lot-lbl"></span></button><button id="btn-fac"></button></div>
+  <div id="slit-device"><canvas id="slit-canvas"></canvas></div></aside>
+  <section id="center"><div id="frame"><canvas id="game" width="1280" height="720"></canvas>
+    <div id="raid-hud"><div class="rh-line"><span id="raid-timer"></span></div><div id="next-boss" class="hidden"></div><button id="btn-raid-now"></button></div>
+    <div id="toasts"></div></div><div id="raid-banner" class="hidden"></div><div id="detail" class="hidden"></div></section></main>
+<section id="hqlab" class="hidden">
+  <header id="hqlab-head"><button id="hqlab-back">←</button><h2>本部</h2><span id="hqlab-lv"></span></header>
+  <div id="hqlab-wrap"><canvas id="hqlab-canvas" width="1000" height="620"></canvas></div>
+</section>
+<div id="modal" class="hidden"><div id="modal-box"><header><h2 id="modal-title"></h2><button id="modal-close">×</button></header><div id="modal-body"></div></div></div>
+
+<script src="js/data.js"></script><script src="js/game.js"></script><script src="js/render.js"></script>
+<script src="js/roulette.js"></script><script src="js/slit.js"></script>
+<script src="js/ui/core.js"></script><script src="js/ui/icons.js"></script><script src="js/ui/components.js"></script><script src="js/ui/motion.js"></script>
+<script src="js/ui/hero/hero.js"></script><script src="js/ui/hero/nest-reveal.js"></script><script src="js/ui/hero/boss.js"></script>
+<script src="js/ui/hero/meteorite.js"></script><script src="js/ui/hero/rocket.js"></script><script src="js/ui/hero/legend.js"></script>
+<script src="js/ui/hero/species-reveal.js"></script><script src="js/ui/hero/boss-reward.js"></script>
+<script src="js/ui/screens/main.js"></script><script src="js/ui/screens/feeder-skins.js"></script><script src="js/ui/screens/feeder.js"></script>
+<script src="js/ui/screens/roulette.js"></script><script src="js/ui/screens/slit.js"></script><script src="js/ui/screens/breeding.js"></script>
+<script src="js/ui/screens/equipment.js"></script><script src="js/ui/screens/planet-map.js"></script><script src="js/ui/screens/nest.js"></script>
+<script src="js/ui/screens/hq.js"></script><script src="js/ui/screens/hqlab.js"></script><script src="js/ui/screens/dex.js"></script><script src="js/ui/screens/meta.js"></script><script src="js/ui/boot.js"></script>
+<script>
+window.__err = null; window.addEventListener("error", (e) => { window.__err = (window.__err || "") + e.message + " | "; });
+(function () {
+  var R = [], pass = 0, fail = 0;
+  function ok(n, c, e) { if (c) { pass++; R.push('<div class="ok">PASS ' + n + '</div>'); } else { fail++; R.push('<div class="ng">FAIL ' + n + (e ? " :: " + e : "") + '</div>'); } }
+  function rectOf(el) { var r = el.getBoundingClientRect(); return { w: Math.round(r.width * 10) / 10, h: Math.round(r.height * 10) / 10, x: Math.round(r.left * 10) / 10, y: Math.round(r.top * 10) / 10 }; }
+  function run() {
+    try {
+      var game = document.getElementById("game");
+      // ===== 重点QA①: ページ往復でcanvasが壊れない =====
+      var before = rectOf(game), attrsBefore = game.width + "x" + game.height;
+      // 初回ロード直後に本部を開く(過去地雷: 0サイズ初期化)
+      UI.openHqLab();
+      var labCv = document.getElementById("hqlab-canvas"), labRect = rectOf(labCv);
+      ok("QA1: 初回ロード直後に本部が開く(labキャンバス実寸>0)", labRect.w > 300 && labRect.h > 200, JSON.stringify(labRect));
+      ok("QA1: 本部が1画面固定(labがviewport内=あふれ0)", labRect.w <= innerWidth && (labRect.y + labRect.h) <= innerHeight + 1, JSON.stringify(labRect) + " vp=" + innerWidth + "x" + innerHeight);
+      for (var i = 0; i < 3; i++) { UI.closeHqLab(); UI.openHqLab(); } // 往復×3
+      UI.closeHqLab();
+      var after = rectOf(game), attrsAfter = game.width + "x" + game.height;
+      ok("QA1: 往復後 #game の実寸が同一(過去地雷: 300px潰れ)", before.w === after.w && before.h === after.h && before.x === after.x && before.y === after.y, JSON.stringify(before) + " → " + JSON.stringify(after));
+      ok("QA1: 往復後 #game のcanvas属性が同一", attrsBefore === attrsAfter, attrsBefore + " → " + attrsAfter);
+      // クリック判定: 実クリックで個体選択→往復→同座標で再選択できる
+      Game.newGame();
+      var lz = Game.state.lizards[0];
+      lz.x = 640; lz.y = 360; lz.tx = 640; lz.ty = 360; Game.ensureRuntime(lz);
+      Render.draw();
+      var r0 = game.getBoundingClientRect();
+      var cx = r0.left + lz.x * r0.width / game.width, cy = r0.top + lz.y * r0.height / game.height;
+      function clickAt(x, y) { game.dispatchEvent(new PointerEvent("pointerdown", { clientX: x, clientY: y, bubbles: true })); } // 実配線=pointerdown(core.js)
+      Game.selectedId = null; clickAt(cx, cy);
+      var sel1 = Game.selectedId === lz.id;
+      UI.openHqLab(); UI.closeHqLab();
+      Game.selectedId = null; Render.draw(); clickAt(cx, cy);
+      ok("QA1: クリック判定が往復後もズレない(同座標で同個体を選択)", sel1 && Game.selectedId === lz.id, "sel1=" + sel1 + " sel2=" + (Game.selectedId === lz.id));
+
+      // ===== 重点QA②: 本部滞在中もゲームが進む =====
+      Game.newGame();
+      Game.state.crickets = 0; // 自動給餌のGold消費を避け生産を純観測
+      var inc = Game.totalIncomePerSec();
+      Game.state.eggs.push({ speciesId: "kanahebi", morphId: "normal", hue: 100, sat: 50, light: 50, pattern: "stripe", t: 300, total: 300 });
+      Game.state.raidTimer = 500;
+      var coins0 = Game.state.coins, egg0 = Game.state.eggs[0].t, raid0 = Game.state.raidTimer, slit0 = (typeof Slit !== "undefined" && Slit._cd != null) ? 1 : 0;
+      UI.openHqLab();
+      for (var s = 0; s < 60; s++) { Game.tick(1); if (typeof Slit !== "undefined") Slit.advance(1); if (typeof Roulette !== "undefined") Roulette.advance(1); }
+      ok("QA2: 本部滞在60秒でGoldが生産どおり増える", Game.state.coins > coins0 + inc * 50, "Δ=" + (Game.state.coins - coins0).toFixed(1) + " 期待≈" + (inc * 60).toFixed(1));
+      ok("QA2: 卵の孵化が進む(t-60)", Math.abs((egg0 - Game.state.eggs[0].t) - 60) < 1.5, "Δ=" + (egg0 - Game.state.eggs[0].t).toFixed(1));
+      ok("QA2: 襲撃タイマーが進む", Game.state.raidTimer < raid0 - 50, "Δ=" + (raid0 - Game.state.raidTimer).toFixed(1));
+      UI.update();
+      ok("QA2: 滞在中も本部表示が更新される(#hqlab-lvにHQ Lv)", /HQ Lv/.test(document.getElementById("hqlab-lv").textContent));
+      UI.closeHqLab(); Render.draw();
+      ok("QA2: 戻った直後にRender.drawがエラーなく走る(表示同期)", true);
+
+      // ===== 12機能(パネル移設・経済直結の実操作) =====
+      Game.newGame(); Game.state.coins = 10000000; Game.addRes("bio", 5000); Game.state.stones = 50;
+      UI.openHqLab();
+      UI.openLabPanel("desks");
+      var body = document.getElementById("modal-body");
+      ok("機能: デスク群パネル(HQ Lv/変換/開発/侵食/研究)", /HQ Lv/.test(body.innerHTML) && body.querySelector("#cv-food") && body.querySelector("#hq-dev") && body.querySelector("#hq-invasion") && body.querySelector("#research-list").children.length > 5);
+      var food0 = Game.res("food"), c0 = Game.state.coins;
+      body.querySelector("#cv-food").click(); body = document.getElementById("modal-body");
+      ok("機能: Gold変換(実クリック)=食料+・Gold-", Game.res("food") === food0 + CFG.convertBatch && Game.state.coins < c0);
+      var dev0 = Game.state.devLv || 0; c0 = Game.state.coins;
+      body.querySelector("#hq-dev").click(); body = document.getElementById("modal-body");
+      ok("機能: 惑星開発(実クリック)=devLv+1・Gold-", (Game.state.devLv || 0) === dev0 + 1 && Game.state.coins < c0);
+      // 研究購入(recipe1を実クリック)
+      var rows = body.querySelectorAll("#research-list .list-row"), bought = false;
+      for (var ri = 0; ri < rows.length; ri++) { if (/レシピ解読 I</.test(rows[ri].innerHTML.replace("解読 I", "解読 I<"))) {} }
+      Game.addRes("science", 500); UI.closeModal(); UI.openLabPanel("desks"); body = document.getElementById("modal-body");
+      rows = body.querySelectorAll("#research-list .list-row");
+      for (var rj = 0; rj < rows.length; rj++) {
+        if (rows[rj].textContent.indexOf("レシピ解読 I") >= 0 && rows[rj].querySelector("button")) { rows[rj].querySelector("button").click(); bought = true; break; }
+      }
+      ok("機能: 研究購入(レシピ解読I・実クリック)", bought && Game.state.research.recipe1 === true);
+      UI.closeModal();
+      UI.openLabPanel("tank"); body = document.getElementById("modal-body");
+      ok("機能: 水槽パネル(合成6行/遺伝子ラボ3/鍛造)", body.querySelectorAll("#synth-list .list-row").length === 6 && body.querySelector("#hq-gene") && body.querySelector("#hq-forge").children.length > 3);
+      ok("機能: 解読済レシピが実名表示・未解読は?", body.textContent.indexOf("シズミマチ") >= 0 && body.textContent.indexOf("? ? ?") >= 0);
+      UI.closeModal();
+      UI.openLabPanel("rocket"); body = document.getElementById("modal-body");
+      ok("機能: 宇宙港パネル(建造)", /建造|完成/.test(body.textContent));
+      UI.closeModal();
+      UI.openLabPanel("shelf"); body = document.getElementById("modal-body");
+      ok("機能: 標本棚パネル(Lore/鉱石)", body.querySelector("#hq-lore") && /アメジスト|琥珀/.test(body.textContent));
+      UI.closeModal();
+      // 新着ドット: openHqLabで消える
+      Game._badgeHq = true; UI.openHqLab();
+      ok("機能: 新着ドットは本部を開くと消える", Game._badgeHq === false);
+
+      // ===== 合成UIの実行(実クリック) =====
+      var mz = Game.state.lizards[0];
+      mz.traits = [{ key: "shinkai" }, { key: "neon" }]; Game.state.stones = 50;
+      UI.openLabPanel("tank"); body = document.getElementById("modal-body");
+      var sbtn = null, srows = body.querySelectorAll("#synth-list .list-row");
+      for (var si = 0; si < srows.length; si++) if (srows[si].textContent.indexOf("シズミマチ") >= 0) sbtn = srows[si].querySelector("button");
+      var st0 = Game.stones();
+      if (sbtn) sbtn.click();
+      ok("合成: 水槽UIから実行=シズミマチ誕生・素材2つ昇華・石消費", !!sbtn && Game.hasTrait(mz, "shizumimachi") && !Game.hasTrait(mz, "shinkai") && !Game.hasTrait(mz, "neon") && Game.stones() === st0 - Game.stoneSynthCost(Game.recipeByResult("shizumimachi")), "stones " + st0 + "→" + Game.stones());
+      UI.closeModal(); UI.closeHqLab();
+
+      ok("console: 実行時エラーなし", !window.__err, window.__err);
+    } catch (err) { fail++; R.push('<div class="ng">EXCEPTION ' + (err && err.message) + '</div>'); }
+    document.getElementById("itest").innerHTML = "<b>PASS " + pass + " / FAIL " + fail + "</b>" + R.join("");
+    document.title = "PASS " + pass + "/FAIL " + fail;
+  }
+  window.addEventListener("load", function () { setTimeout(run, 300); });
+})();
+</script>
+</body>
+</html>

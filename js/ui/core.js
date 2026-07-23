@@ -224,6 +224,11 @@ const UI = {
   // ---------------- 定期更新 ----------------
   update() {
     const s = Game.state;
+    // C-2: 本部滞在中の表示更新(0.2秒ごと)。HQ Lvラベルは毎回・部屋の再描画はtierが変わった時だけ(静的シーン=無駄描画なし)
+    if (this.hqLabOpen && this.hqLabOpen()) {
+      const sig = JSON.stringify(this.labTiers()) + "|" + Game.hqLevel();
+      if (sig !== this._hqlabSig) { this._hqlabSig = sig; this.renderHqLab(); }
+    }
     // 資源ピル(§5.1): 平常の自動収入は静かに回し、まとまった増減だけ弾ませる
     this.resPill("ui-coins", s.coins, Game.totalIncomePerSec() * 0.5);
     this.els["ui-cps"].textContent = "+" + Game.totalIncomePerSec().toFixed(1) + "/秒"; // V5: 全コロニー合算
