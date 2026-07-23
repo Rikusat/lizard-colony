@@ -3815,6 +3815,23 @@ const Render = {
     ctx.restore();
   },
 
+  // トライアド(tier2): 背の縁に沿って三連の菱紋(砂金)。背側=S(t)の+n*u側。暗い縁取りで明色種でも沈まない。
+  traitTriad(ctx, g, def) {
+    const { S, L } = g; if (!S) return;
+    const c = def.rim || "#D9A441";
+    ctx.save();
+    for (const t of [0.52, 0.61, 0.70]) {
+      const s = S(t);
+      const bx = s.p.x + s.n.x * s.w * 0.42 * s.u, by = s.p.y + s.n.y * s.w * 0.42 * s.u;
+      const r = Math.max(2.2, L * 0.032);
+      ctx.fillStyle = c; ctx.strokeStyle = "rgba(18,10,4,.65)"; ctx.lineWidth = Math.max(1, L * 0.009);
+      ctx.beginPath(); ctx.moveTo(bx, by - r); ctx.lineTo(bx + r * 0.72, by); ctx.lineTo(bx, by + r); ctx.lineTo(bx - r * 0.72, by); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "rgba(255,250,235,.55)"; // 紋の芯(小さな光)
+      ctx.beginPath(); ctx.arc(bx, by - r * 0.25, r * 0.2, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  },
+
   drawPlanetAllies(ctx) {
     const st = Game.currentStage && Game.currentStage();
     const a = st && planetAllyOf(st.id);

@@ -668,6 +668,12 @@ const TRAITS = {
     icon: "trait-hakushi", tier: 1, draw: "traitHakushi",
     desc: "体色が一部だけ抜け落ちた、無垢の白斑。まだ何も書かれていない。",
   },
+  triad: {
+    key: "triad", name: "トライアド", // ★仮称・主題=①原初の紋
+    color: "#59421f", rim: "#D9A441", // rim=UISkills §1.5 砂漠のアクセント(砂金)
+    icon: "trait-triad", tier: 2, draw: "traitTriad",
+    desc: "背に三連の紋。始まりの星が最初に刻んだ徴。",
+  },
 };
 
 // ボス種 (GameExpansion_v2 ②)。minRank 到達で抽選プールに加入
