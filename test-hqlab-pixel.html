@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>本部v2.0 視点比較試作: 案A(アイソメ×ファミコン) vs 案B(真俯瞰×ファミコン)</title>
+<style>
+  body { background: #14100d; margin: 0; color: #e8dccb; font-family: system-ui, sans-serif; }
+  h1 { font-size: 15px; padding: 10px 16px 0; margin: 0; font-weight: 600; }
+  p.note { font-size: 12px; padding: 2px 16px 10px; margin: 0; color: #c9b8a2; }
+  .row { display: flex; gap: 24px; justify-content: center; align-items: flex-start; }
+  figure { margin: 0; text-align: center; }
+  figcaption { font-size: 13px; color: #f0d9a8; padding: 6px 0; }
+  canvas { display: block; image-rendering: pixelated; }
+</style>
+</head>
+<body>
+<h1>本部 v2.0 §4 視点の比較試作 — 箱庭(境界あり・外は暗)+ファミコン質感(低解像度240×180→×4整数拡大・スムージングなし)</h1>
+<p class="note">床+設備2つ(研究デスク/錬成槽)。フラット色面・限定パレット・硬エッジ・AAなし。縁の意匠=床の縁+低い巾木(高い壁なし)。質感の比較用=簡素。</p>
+<div class="row">
+  <figure><canvas id="cvA" width="960" height="720"></canvas><figcaption>案A: アイソメトリック維持 × ファミコン質感(Q*bert系譜・立体感が残る)</figcaption></figure>
+  <figure><canvas id="cvB" width="960" height="720"></canvas><figcaption>案B: 真俯瞰2D × ファミコン質感(マサラタウン系譜・純粋なドット箱庭)</figcaption></figure>
+</div>
+<script>
+// 共通: 低解像度オフスクリーン(240×180)に描き、imageSmoothingEnabled=false で×4整数拡大(本物のドット感)。
+// 限定パレット(ファミコン風・色の抑制: 暖色は深紅+琥珀のみ)
+const PAL = {
+  out: "#181410",           // 部屋の外(暗)
+  floor: "#e0d8c8", floorAlt: "#d0c8b8", seam: "#b8b0a0",
+  base: "#8a8478", baseDk: "#5a5448",   // 巾木(低い縁)
+  grey1: "#c8c4b8", grey2: "#98948a", grey3: "#6a665c", dark: "#3a3630",
+  screen: "#7ad4e8", water: "#6ab4d8", waterHi: "#9ad4ec",
+  crimson: "#8E1826", amber: "#d8a828", white: "#f8f4ec", ink: "#242018",
+};
+function px(c, x, y, w, h, col) { c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); }
+
+// ============ 案A: アイソメ × ファミコン ============
+(function () {
+  const off = document.createElement("canvas"); off.width = 240; off.height = 180;
+  const c = off.getContext("2d");
+  px(c, 0, 0, 240, 180, PAL.out);
+  const TW = 16, TH = 8, COLS = 10, ROWS = 8, OX = 120, OY = 46;
+  const iso = (gx, gy) => ({ x: OX + (gx - gy) * TW / 2, y: OY + (gx + gy) * TH / 2 });
+  // 床(フラット2色市松・輪郭は1pxの硬い線)
+  for (let s = 0; s <= COLS + ROWS - 2; s++) for (let gx = 0; gx < COLS; gx++) {
+    const gy = s - gx; if (gy < 0 || gy >= ROWS) continue;
+    const p0 = iso(gx, gy), p1 = iso(gx + 1, gy), p2 = iso(gx + 1, gy + 1), p3 = iso(gx, gy + 1);
+    c.fillStyle = (gx + gy) % 2 === 0 ? PAL.floor : PAL.floorAlt;
+    c.beginPath(); c.moveTo(p0.x, p0.y); c.lineTo(p1.x, p1.y); c.lineTo(p2.x, p2.y); c.lineTo(p3.x, p3.y); c.closePath(); c.fill();
+  }
+  // 縁=床の側面(低い巾木・高い壁なし)
+  const A = iso(0, 0), B = iso(COLS, 0), C2 = iso(COLS, ROWS), D = iso(0, ROWS);
+  c.fillStyle = PAL.baseDk;
+  c.beginPath(); c.moveTo(B.x, B.y); c.lineTo(C2.x, C2.y); c.lineTo(C2.x, C2.y + 5); c.lineTo(B.x, B.y + 5); c.closePath(); c.fill();
+  c.fillStyle = PAL.base;
+  c.beginPath(); c.moveTo(D.x, D.y); c.lineTo(C2.x, C2.y); c.lineTo(C2.x, C2.y + 5); c.lineTo(D.x, D.y + 5); c.closePath(); c.fill();
+  // 奥の縁=1pxの暗線(部屋の境界)
+  c.strokeStyle = PAL.baseDk; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(D.x, D.y); c.lineTo(A.x, A.y); c.lineTo(B.x, B.y); c.stroke();
+  // 設備1: 研究デスク(フラット3面・硬い輪郭・グラデなし)
+  const flatBox = (gx, gy, w, d, h, top, left, right) => {
+    const p00 = iso(gx, gy), p10 = iso(gx + w, gy), p11 = iso(gx + w, gy + d), p01 = iso(gx, gy + d);
+    const up = (p) => ({ x: p.x, y: p.y - h });
+    c.fillStyle = left; c.beginPath(); c.moveTo(up(p01).x, up(p01).y); c.lineTo(up(p11).x, up(p11).y); c.lineTo(p11.x, p11.y); c.lineTo(p01.x, p01.y); c.closePath(); c.fill();
+    c.fillStyle = right; c.beginPath(); c.moveTo(up(p10).x, up(p10).y); c.lineTo(up(p11).x, up(p11).y); c.lineTo(p11.x, p11.y); c.lineTo(p10.x, p10.y); c.closePath(); c.fill();
+    c.fillStyle = top; c.beginPath(); c.moveTo(up(p00).x, up(p00).y); c.lineTo(up(p10).x, up(p10).y); c.lineTo(up(p11).x, up(p11).y); c.lineTo(up(p01).x, up(p01).y); c.closePath(); c.fill();
+    c.strokeStyle = PAL.ink; c.beginPath(); c.moveTo(up(p00).x, up(p00).y); c.lineTo(up(p10).x, up(p10).y); c.lineTo(up(p11).x, up(p11).y); c.lineTo(up(p01).x, up(p01).y); c.closePath(); c.stroke();
+  };
+  flatBox(2.5, 2.5, 2, 1, 10, PAL.grey1, PAL.grey2, PAL.grey3); // 机
+  flatBox(3.0, 2.55, 0.9, 0.15, 17, PAL.dark, PAL.dark, PAL.ink); // モニタ
+  const ms = iso(3.45, 2.7); px(c, ms.x - 5, ms.y - 15, 10, 5, PAL.screen); // 画面(フラット)
+  // 設備2: 錬成槽(フラット水色面+深紅1px=唯一の暖色)
+  flatBox(6.5, 3.5, 1.2, 1.2, 14, PAL.waterHi, PAL.water, PAL.grey3);
+  const tc = iso(7.1, 4.1); px(c, tc.x - 1, tc.y - 9, 3, 3, PAL.crimson);
+  // ×4整数拡大
+  const cv = document.getElementById("cvA"), g = cv.getContext("2d");
+  g.imageSmoothingEnabled = false; g.drawImage(off, 0, 0, 240, 180, 0, 0, 960, 720);
+})();
+
+// ============ 案B: 真俯瞰2D × ファミコン ============
+(function () {
+  const off = document.createElement("canvas"); off.width = 240; off.height = 180;
+  const c = off.getContext("2d");
+  px(c, 0, 0, 240, 180, PAL.out);
+  const T = 16, COLS = 12, ROWS = 9, OX = (240 - COLS * T) / 2, OY = (180 - ROWS * T) / 2;
+  // 床(2色市松・タイル目地=1px)
+  for (let gx = 0; gx < COLS; gx++) for (let gy = 0; gy < ROWS; gy++) {
+    px(c, OX + gx * T, OY + gy * T, T, T, (gx + gy) % 2 === 0 ? PAL.floor : PAL.floorAlt);
+    px(c, OX + gx * T, OY + gy * T, T, 1, PAL.seam); px(c, OX + gx * T, OY + gy * T, 1, T, PAL.seam);
+  }
+  // 縁=外周の巾木ライン(2px・下辺は影で厚み=低い縁・壁なし)
+  px(c, OX - 2, OY - 2, COLS * T + 4, 2, PAL.base);
+  px(c, OX - 2, OY + ROWS * T, COLS * T + 4, 3, PAL.baseDk);
+  px(c, OX - 2, OY, 2, ROWS * T, PAL.base); px(c, OX + COLS * T, OY, 2, ROWS * T, PAL.base);
+  // 設備1: 研究デスク(真俯瞰=天板+モニタ上面・硬い縁取り)
+  const dx = OX + 3 * T, dy = OY + 3 * T;
+  px(c, dx - 1, dy - 1, T * 2 + 2, T + 2, PAL.ink);       // 輪郭
+  px(c, dx, dy, T * 2, T, PAL.grey1);                     // 天板
+  px(c, dx + 2, dy + 2, T * 2 - 4, 3, PAL.grey2);         // 奥の段
+  px(c, dx + T - 5, dy + 4, 10, 6, PAL.dark);             // モニタ(上面)
+  px(c, dx + T - 4, dy + 5, 8, 4, PAL.screen);            // 画面
+  px(c, dx + 3, dy + T - 4, 4, 2, PAL.grey3); px(c, dx + T * 2 - 7, dy + T - 4, 4, 2, PAL.grey3); // 椅子の気配
+  // 設備2: 錬成槽(真俯瞰=水面の円形…はドットなので八角・深紅1px)
+  const tx = OX + 8 * T, ty = OY + 5 * T;
+  px(c, tx - 1, ty - 1, T + 8, T + 8, PAL.ink);
+  px(c, tx, ty, T + 6, T + 6, PAL.grey2);                 // 槽の縁
+  px(c, tx + 2, ty + 2, T + 2, T + 2, PAL.water);         // 水面
+  px(c, tx + 3, ty + 3, 6, 2, PAL.waterHi);               // 水面のハイライト(硬い1段)
+  px(c, tx + T / 2 + 1, ty + T / 2 + 1, 2, 2, PAL.crimson); // 賢者の石(唯一の暖色)
+  // ×4整数拡大
+  const cv = document.getElementById("cvB"), g = cv.getContext("2d");
+  g.imageSmoothingEnabled = false; g.drawImage(off, 0, 0, 240, 180, 0, 0, 960, 720);
+})();
+</script>
+</body>
+</html>
