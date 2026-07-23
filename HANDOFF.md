@@ -1664,6 +1664,17 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
   - ID1〜ID9 [済] / **ID10 記録係アノール[本]**: 石板を抱えた学者肌の小トカゲ+金の刻印の脈動(1-2体)。※新arch=戦闘効果は今後。
   - **★全10惑星の味方描画 完成**（ID1〜ID10）。移送先id味方(ID2/6/7/8/9)=既存効果型を再有効化／新arch味方(ID3/4/5/10)=可視・育成のみ(効果は今後)。後修正候補: ID2-5・ID10がやや小型・背景と同化気味(存在感up余地)／ID9はラクーンか廃炉山椒魚か(Ric選択)。
 
+### 5ddd. 統合テストFAILの切り分け＋QAゲート常設(2026-07-24・プロセス是正)
+Ric検出: `test-integration.html` が **9 PASS/1 FAIL**(「ID6のsnakeボス(非署名)は署名描画されない(null)」)。node全スイートPASS報告の外で、ブラウザ統合テストがQAに回っていなかった。
+- **切り分け(実測・推測せず)**: アサーション=`aadef20`(7/21・旧②方式=脅威型一致時のみ署名描画)で記述→仕様=`7715cbf`(7/22・§5ii署名主役化・Ric承認「ボス時は常に署名の姿=汎用の姿ゼロ」)で意図的に変更→テストはそれ以降未更新(最終更新`2320642`=仕様変更前)。現行実装はrender.jsコメント+node2スイート(phase6/boss_roster)が新仕様を固定済み。**判定=【古くなったテスト】・本物の回帰ではない**。
+- **修正**: 期待値を現行仕様へ更新(更新履歴コメント=なぜ変わったかを明記)+非bossケース1件追加 → **11/11 PASS**(headless実測)。ID6署名の表記もmonitor→spider(§5ii配役)へ追随。
+- **【QAゲート常設・恒久ルール】** デプロイ前・大きな変更後のQAは**node+ブラウザの両方**を必ず回す。「全スイートPASS」は両方を指す:
+  - **node**: tests/*.js 全部(現在11本)
+  - **ブラウザ(headless Chrome・titleがPASS n/FAIL m)**: ①`test-integration.html`=実UI/実DOM/実Roulette経路(報酬フロー/署名描画ゲート§5ii/引き連れUI撤去/Gold漏れ§5aa) ②`test-hqlab-qa.html`(3解像度・#nowで実時間fps)=本部の canvas往復/滞在中進行/12機能実操作/合成・投資実クリック/当たり判定
+  - **boot**: index.html console0
+- **ブラウザ側ページ一覧(dev・.vercelignore・localhost:3000/)**: 判定系=`test-integration.html`/`test-hqlab-qa.html`(#now)。目視プレビュー系=`test-lizards.html`(全種族の魂)/`test-traits.html`(特性S1見た目+S4遺伝+S5固定デモ)/`test-traitcards.html`(特性カードUI)/`test-trait-roster.html`(ロスター18種×3体=暗色判別基準)/`test-hqlab.html`(本部v1.0旧試作)/`test-hqlab-pixel.html`(v2.0視点比較)/`test-field.html`/`test-bench.html`/`test-v3.html`(既存)。
+- **本部の実機URL**: ゲーム内トップバー**「本部」ボタン**(トグル)。直行=`localhost:3000/index.html#hqlab`(現在状態)/`#hqlab-full`(全設備T4プレビュー)/`#hqlab-desks|tank|rocket|shelf`(各パネル直行)。
+
 ### 5ccc. 本部v2.0 本実装完了: 案A×ファミコン箱庭+パネル刷新+labInvest(2026-07-23・push/デプロイはRic実機後)
 Ric決定(視点=**案A**アイソメ×ファミコン「育つ空間の核心は高さ」/labInvest案B承認/混在駆動承認/12機能振り分け承認)。3コミット=`a1f8abb`(labInvest)/`373a83b`(箱庭×ファミコン)/`b81deea`(パネル刷新)。
 - **①箱庭×ファミコン(hqlab.js全面書換)**: 低解像度256×176に描き`imageSmoothingEnabled=false`整数倍拡大=本物のドット感。境界のある一室(13×10・床の縁+低い巾木4px・外は暗)=一望。フラット色面/限定パレット/硬エッジ/AAなし/影=硬い単色。暖色=錬成槽の深紅+ロケット先端の琥珀のみ。クリック=ブリット逆変換で低解像度座標(判定1:1)。

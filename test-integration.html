@@ -71,10 +71,14 @@ window.__err=null; window.addEventListener("error",e=>{window.__err=(window.__er
     ok("症状3: 討伐処理でJSエラーなし", !window.__err, window.__err||"");
 
     // (2) 症状1: 署名惑星でボスraidが署名描画(planetBossDraw)に載る
+    // 【期待値の更新履歴】旧②方式(aadef20: 脅威型一致時のみ署名描画・非署名=null)→ §5ii 署名主役化(7715cbf・Ric承認)で
+    // 「署名惑星でboss時は常に署名の姿(汎用の姿ゼロ・pre-R30案B)」へ仕様変更。本テストが旧仕様のまま残りFAILしていた
+    // (2026-07-24 Ric検出)。node側(phase6/boss_roster)と同じ現行仕様へ期待値を更新。ID6署名はmonitor→spider(§5ii配役)。
     Game.state.stageSel=6;
-    var sigDraw=Render.planetBossDraw({boss:true,typeId:"monitor"});
-    ok("症状1: ID6のmonitorボスが署名描画(drawSkullAnaconda)", sigDraw==="drawSkullAnaconda", "="+sigDraw);
-    ok("症状1: ID6のsnakeボス(非署名)は署名描画されない(null)", Render.planetBossDraw({boss:true,typeId:"snake"})===null);
+    var sigDraw=Render.planetBossDraw({boss:true,typeId:"spider"});
+    ok("症状1: ID6の署名脅威型(spider)ボスが署名描画(drawSkullAnaconda)", sigDraw==="drawSkullAnaconda", "="+sigDraw);
+    ok("症状1: ID6のsnakeボス(非署名脅威型)でも署名の姿(§5ii=汎用の姿ゼロ)", Render.planetBossDraw({boss:true,typeId:"snake"})==="drawSkullAnaconda");
+    ok("症状1: 非boss(通常襲来)はnull(署名は出ない)", Render.planetBossDraw({boss:false,typeId:"spider"})===null);
 
     // (3) 症状2: buildPioneer(開拓UI)に引き連れ選択が存在しない・開拓ボタンのみ
     var div=document.createElement("div");
