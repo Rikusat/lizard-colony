@@ -1,22 +1,23 @@
 // =============================================================
-// screens/hqlab — 本部=研究施設ページ(hq_lab.md・アイソメ2:1)
-// 壁なし・タイルは画面端まで走らせ「画面外へ続く」(浮いた島を作らない)。奥行き=床グリッド+接地影。
-// 表示は既存stateからの派生のみ(セーブ非接触・fable2)。機能パネルは hq.js(openLabPanel)。
+// screens/hqlab — 本部=研究施設ページ(hq_lab.md v2.0・案A=アイソメ×ファミコン)
+// 箱庭: 境界のある一室(床の縁+低い巾木・外は暗)。一望できる。
+// 質感: 低解像度(256×176)に描き imageSmoothingEnabled=false で整数倍拡大=本物のドット感。
+//   フラット色面・限定パレット・硬エッジ・AAなし。影は硬い単色。暖色=錬成槽の深紅+ロケット先端の琥珀のみ。
+// 表示は既存stateの派生+labInvest(デスク群のみ・§5.3案B)。機能パネルは hq.js。
 // =============================================================
 
-// 見た目パラメータ(色)。大きさは CFG.labTileScale(タイル+設備の一体倍率)/CFG.labFacScale(設備のみ倍率・比較用)。
+// 限定パレット(ファミコン風・★Ric実機調整)
 const LAB_P = {
-  baseTileW: 64, baseTileH: 32,
-  tile: "#e9e7e1", tileAlt: "#e2dfd8", seam: "#c9c5bb",
-  light: "rgba(210,225,235,.10)", vig: 0.34,
-  label: "rgba(120,112,100,.85)",
-};
-// 壁の無い床では旧・部屋の北西寄り配置が偏って見える→クラスタごとのオフセットで画面全体へ再配分(描画/判定が_iso経由で自動追従)
-const LAB_OFFS = {
-  desks: { x: 0.9, y: 0.9 },   // 中央左=主役
-  tank: { x: 1.5, y: 1.7 },    // 右上の島
-  rocket: { x: -0.2, y: 1.9 }, // 右下の発射区画
-  shelf: { x: 0.9, y: 1.3 },   // 左下の収蔵
+  W0: 256, H0: 176, tileW: 16, tileH: 8, cols: 13, rows: 10, ox: 128, oy: 40,
+  out: "#14100d",
+  floor: "#e0d8c8", floorAlt: "#d0c8b8",
+  base: "#8a8478", baseDk: "#555046", edge: "#3a3630",
+  shadow: "#bcb4a4",       // 接地影(硬い単色・ぼかしなし)
+  grey1: "#c8c4b8", grey2: "#98948a", grey3: "#6a665c", dark: "#3a3630", ink: "#242018",
+  screen: "#7ad4e8", water: "#6ab4d8", waterHi: "#9ad4ec", glass: "#cfe8f0",
+  crimson: "#8E1826", amber: "#d8a828", white: "#f4f0e6",
+  led1: "#7fd98a", led2: "#d8a828",
+  label: "rgba(96,88,76,.95)",
 };
 
 Object.assign(UI, {
@@ -46,322 +47,258 @@ Object.assign(UI, {
     if (back) back.addEventListener("click", () => this.closeHqLab());
     const cv = document.getElementById("hqlab-canvas");
     if (cv) {
-      const toCanvas = (e) => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * cv.width / r.width, y: (e.clientY - r.top) * cv.height / r.height }; };
-      cv.addEventListener("click", (e) => { const p = toCanvas(e); const z = this._hqlabZoneAt(p.x, p.y); if (z) this.openLabPanel(z); });
-      cv.addEventListener("mousemove", (e) => { const p = toCanvas(e); cv.style.cursor = this._hqlabZoneAt(p.x, p.y) ? "pointer" : "default"; });
+      const toLow = (e) => { // 表示px→低解像度px(整数倍ブリットの逆変換)
+        const r = cv.getBoundingClientRect(), b = this._labBlit || { k: 1, bx: 0, by: 0 };
+        return { x: ((e.clientX - r.left) * cv.width / r.width - b.bx) / b.k, y: ((e.clientY - r.top) * cv.height / r.height - b.by) / b.k };
+      };
+      cv.addEventListener("click", (e) => { const p = toLow(e); const z = this._hqlabZoneAt(p.x, p.y); if (z) this.openLabPanel(z); });
+      cv.addEventListener("mousemove", (e) => { const p = toLow(e); cv.style.cursor = this._hqlabZoneAt(p.x, p.y) ? "pointer" : "default"; });
     }
-    window.addEventListener("resize", () => { if (this.hqLabOpen()) this.renderHqLab(); }); // 解像度変化に追従(静的シーン=再描画1回)
+    window.addEventListener("resize", () => { if (this.hqLabOpen()) this.renderHqLab(); });
   },
 
-  // ---------------- 設備tier(全て既存stateの派生=保存しない・fable2) ----------------
+  // ---------------- 設備tier(混在駆動=施設ごとの物語・Ric承認) ----------------
+  // デスク群=鉱石投資(labInvest・案B) / 水槽=解読レシピ数 / ロケット=rocket状態 / 標本棚=図鑑登録数(観賞=収集の成果)
   labTiers() {
-    if (this._labTierOverride) return this._labTierOverride; // dev表示用オーバーライド(状態は変えない)
+    if (this._labTierOverride) return this._labTierOverride; // dev表示用(状態は変えない)
     const tierOf = (v, th) => (v >= th[2] ? 4 : v >= th[1] ? 3 : v >= th[0] ? 2 : 1);
     const decoded = (typeof RECIPES !== "undefined") ? RECIPES.filter((r) => Game.recipeDecoded(r)).length : 0;
     const rk = Game.ensureRocket();
     return {
-      desks: tierOf(Game.hqLevel(), CFG.labDeskTiers),
+      desks: Math.min(4, 1 + Game.labInvestLv("desks")), // 投資1回=1段(T1→T4)
       tank: tierOf(decoded, CFG.labTankTiers),
       rocket: rk.done ? 4 : rk.stage >= 2 ? 3 : (rk.stage >= 1 || rk.invested > 0) ? 2 : 1,
       shelf: tierOf(Object.keys(Game.state.dex || {}).length, CFG.labShelfTiers),
     };
   },
 
-  // ---------------- 座標系(倍率S・原点=設備群の中心を画面中央へ) ----------------
-  _labS() { return CFG.labTileScale || 1.7; },   // タイル+設備の一体倍率(★Ric実機調整)
-  _labF() { return CFG.labFacScale || 1.0; },    // 設備のみ倍率(比較用・既定1)
-  _iso(gx, gy) {
-    const o = this._labO || { x: 500, y: 150 }, f = this._labOff; // _labOff=描画中クラスタのオフセット(再配分)
-    if (f) { gx += f.x; gy += f.y; }
-    return { x: o.x + (gx - gy) * this._tw / 2, y: o.y + (gx + gy) * this._th / 2 };
-  },
-  _unproject(sx, sy) { // 逆等角(O(1)) — 当たり判定/床範囲の算出
-    const o = this._labO, dx = (sx - o.x) / (this._tw / 2), dy = (sy - o.y) / (this._th / 2);
-    return { gx: (dy + dx) / 2, gy: (dy - dx) / 2 };
-  },
-  _poly(c, pts, fill, stroke, lw) {
-    c.beginPath(); c.moveTo(pts[0].x, pts[0].y);
-    for (let i = 1; i < pts.length; i++) c.lineTo(pts[i].x, pts[i].y);
+  // ---------------- 座標系(低解像度空間) ----------------
+  _iso(gx, gy) { return { x: LAB_P.ox + (gx - gy) * LAB_P.tileW / 2, y: LAB_P.oy + (gx + gy) * LAB_P.tileH / 2 }; },
+  _px(c, x, y, w, h, col) { c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); },
+  _flat(c, pts, fill, line) { // フラット多角形(塗り+1px硬線)
+    c.beginPath(); c.moveTo(Math.round(pts[0].x) + 0.5, Math.round(pts[0].y) + 0.5);
+    for (let i = 1; i < pts.length; i++) c.lineTo(Math.round(pts[i].x) + 0.5, Math.round(pts[i].y) + 0.5);
     c.closePath();
     if (fill) { c.fillStyle = fill; c.fill(); }
-    if (stroke) { c.strokeStyle = stroke; c.lineWidth = lw || 1; c.stroke(); }
+    if (line) { c.strokeStyle = line; c.lineWidth = 1; c.stroke(); }
   },
-  _isoBox(c, gx, gy, w, d, h, col) {
+  // フラットなアイソメ箱(3面+上面の硬い輪郭・グラデ/ぼかしなし)
+  _box(c, gx, gy, w, d, h, top, left, right, line) {
     const p00 = this._iso(gx, gy), p10 = this._iso(gx + w, gy), p11 = this._iso(gx + w, gy + d), p01 = this._iso(gx, gy + d);
     const up = (p) => ({ x: p.x, y: p.y - h });
-    this._poly(c, [up(p01), up(p11), p11, p01], col.left);
-    this._poly(c, [up(p10), up(p11), p11, p10], col.right);
-    this._poly(c, [up(p00), up(p10), up(p11), up(p01)], col.top, col.line, 1);
+    this._flat(c, [up(p01), up(p11), p11, p01], left);
+    this._flat(c, [up(p10), up(p11), p11, p10], right);
+    this._flat(c, [up(p00), up(p10), up(p11), up(p01)], top, line || LAB_P.ink);
     return { p00, p10, p11, p01 };
   },
-  _labShadow(c, gx, gy, w, d) {
-    const p00 = this._iso(gx - 0.06, gy - 0.06), p10 = this._iso(gx + w + 0.1, gy - 0.06), p11 = this._iso(gx + w + 0.1, gy + d + 0.1), p01 = this._iso(gx - 0.06, gy + d + 0.1);
-    this._poly(c, [p00, p10, p11, p01], "rgba(60,54,44,.18)");
+  _shadow(c, gx, gy, w, d) { // 接地影=硬い単色の菱形(床トーンを一段沈める)
+    const p00 = this._iso(gx - 0.05, gy - 0.05), p10 = this._iso(gx + w + 0.12, gy - 0.05), p11 = this._iso(gx + w + 0.12, gy + d + 0.12), p01 = this._iso(gx - 0.05, gy + d + 0.12);
+    this._flat(c, [p00, p10, p11, p01], LAB_P.shadow);
   },
 
-  // ---------------- 当たり判定(設備群のバウンディング矩形・標的広め=UISkills§7・倍率に自動追従) ----------------
+  // ---------------- 当たり判定(低解像度座標・標的広め) ----------------
   _hqlabZones() {
-    const S = this._labS() * this._labF();
     const zr = (gx0, gy0, gx1, gy1, hUp) => {
       const pts = [this._iso(gx0, gy0), this._iso(gx1, gy0), this._iso(gx1, gy1), this._iso(gx0, gy1)];
       const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
-      return { x0: Math.min(...xs) - 8, x1: Math.max(...xs) + 8, y0: Math.min(...ys) - hUp * S, y1: Math.max(...ys) + 8 };
+      return { x0: Math.min(...xs) - 3, x1: Math.max(...xs) + 3, y0: Math.min(...ys) - hUp, y1: Math.max(...ys) + 3 };
     };
-    const defs = [
-      { key: "desks", raw: [[1.6, 1.6, 5.2, 4.2, 45], [0.1, 0.4, 1.9, 3.9, 85]] }, // 机の島+ラック+侵食モニタ
-      { key: "tank", raw: [[6.3, 0.9, 9.6, 2.3, 70]] },
-      { key: "shelf", raw: [[0.05, 4.2, 2.3, 7.6, 100]] },
-      { key: "rocket", raw: [[8.9, 3.9, 11.0, 6.0, 165]] },
+    return [
+      { key: "desks", rects: [zr(1.6, 1.4, 6.0, 4.6, 14), zr(0.2, 0.2, 2.0, 4.0, 26)] }, // 机の島+ラック+侵食モニタ
+      { key: "tank", rects: [zr(7.6, 0.8, 11.6, 3.2, 20)] },
+      { key: "shelf", rects: [zr(0.3, 5.3, 3.2, 9.4, 24)] },
+      { key: "rocket", rects: [zr(8.6, 5.2, 12.2, 8.6, 48)] },
     ];
-    const out = [];
-    for (const d of defs) { // クラスタオフセットを適用して矩形化(描画と同じ座標系=ズレない)
-      this._labOff = LAB_OFFS[d.key];
-      out.push({ key: d.key, rects: d.raw.map((r) => zr(r[0], r[1], r[2], r[3], r[4])) });
-      this._labOff = null;
-    }
-    return out;
   },
   _hqlabZoneAt(x, y) {
     for (const z of this._hqlabZones()) for (const r of z.rects) if (x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1) return z.key;
     return null;
   },
 
-  // ---------------- 描画(静的シーン=開いた時/変化時のみ。壁なし=床が画面外へ続く) ----------------
+  // ---------------- 描画(静的シーン=開いた時/変化時のみ) ----------------
   renderHqLab() {
     const cv = document.getElementById("hqlab-canvas"), wrap = document.getElementById("hqlab-wrap");
     if (!cv || !wrap) return;
-    // canvasを領域実寸で確保(全解像度でcrisp・CSS=実寸1:1=当たり判定もそのまま)
     const W = Math.max(320, wrap.clientWidth), H = Math.max(240, wrap.clientHeight);
     if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
-    const S = this._labS();
-    this._tw = LAB_P.baseTileW * S; this._th = LAB_P.baseTileH * S;
-    // 原点: 設備群の視覚重心(gx≈5.4, gy≈3.4)を画面中央へ(塔物の高さぶんやや下げる)
-    const cgx = 5.4, cgy = 3.4;
-    this._labO = { x: 0, y: 0 };
-    const cIso = this._iso(cgx, cgy);
-    this._labO = { x: W / 2 - cIso.x, y: H * 0.52 - cIso.y };
-    const c = cv.getContext("2d");
-    const tiers = this.labTiers();
     const lv = document.getElementById("hqlab-lv"); if (lv) lv.textContent = `HQ Lv${Game.hqLevel()} — 全惑星恒久バフ 生産+${(Game.hqLevel() * 0.2).toFixed(1)}%`;
-    c.clearRect(0, 0, W, H);
-    // 床タイル: 画面の四隅を逆等角変換し、視界を覆う範囲を全て描く=「画面外へ続く」(縁の切れ目を作らない)
-    const corners = [this._unproject(0, 0), this._unproject(W, 0), this._unproject(0, H), this._unproject(W, H)];
-    const gxMin = Math.floor(Math.min(...corners.map((p) => p.gx))) - 1, gxMax = Math.ceil(Math.max(...corners.map((p) => p.gx))) + 1;
-    const gyMin = Math.floor(Math.min(...corners.map((p) => p.gy))) - 1, gyMax = Math.ceil(Math.max(...corners.map((p) => p.gy))) + 1;
-    for (let s = gxMin + gyMin; s <= gxMax + gyMax; s++) // 奥→手前(painter's)
-      for (let gx = gxMin; gx <= gxMax; gx++) {
-        const gy = s - gx; if (gy < gyMin || gy > gyMax) continue;
-        const p0 = this._iso(gx, gy), p1 = this._iso(gx + 1, gy), p2 = this._iso(gx + 1, gy + 1), p3 = this._iso(gx, gy + 1);
-        if (Math.max(p0.x, p2.x) < -this._tw || Math.min(p0.x, p2.x) > W + this._tw) continue;
-        this._poly(c, [p0, p1, p2, p3], (((gx % 2) + 2) % 2 + ((gy % 2) + 2) % 2) % 2 === 0 ? LAB_P.tile : LAB_P.tileAlt, LAB_P.seam, 1);
-      }
-    // 設備(奥→手前・クラスタごとに再配分オフセットを適用)
-    this._labOff = LAB_OFFS.tank; this._labTank(c, tiers.tank);
-    this._labOff = LAB_OFFS.desks; this._labDesks(c, tiers.desks);
-    this._labOff = LAB_OFFS.shelf; this._labShelf(c, tiers.shelf);
-    this._labOff = LAB_OFFS.rocket; this._labRocket(c, tiers.rocket);
-    this._labOff = null;
-    // 設備の小さな名札(控えめ・各クラスタのオフセットで描く)
-    c.fillStyle = LAB_P.label; c.font = `${Math.round(12 * Math.min(1.25, S * 0.75))}px system-ui`;
-    const lbl = (off, gx, gy, t) => { this._labOff = off; const p = this._iso(gx, gy); this._labOff = null; c.fillText(t, p.x - c.measureText(t).width / 2, p.y); };
-    lbl(LAB_OFFS.desks, 3.4, 4.9, "研究デスク"); lbl(LAB_OFFS.tank, 8.1, 2.9, "実験用水槽"); lbl(LAB_OFFS.shelf, 1.4, 8.3, "標本棚・記録"); lbl(LAB_OFFS.rocket, 10.0, 6.6, "宇宙港");
-    // 天井灯の光だまり+ヴィネット(静けさ・清潔)
-    const M = this._iso(cgx, cgy);
-    const g = c.createRadialGradient(M.x, M.y, 10, M.x, M.y, 190 * S);
-    g.addColorStop(0, LAB_P.light); g.addColorStop(1, "rgba(210,225,235,0)");
-    c.fillStyle = g; c.beginPath(); c.ellipse(M.x, M.y, 220 * S, 110 * S, 0, 0, 7); c.fill();
-    const v = c.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.9);
-    v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, `rgba(0,0,0,${LAB_P.vig})`);
-    c.fillStyle = v; c.fillRect(0, 0, W, H);
+    // --- 低解像度バッファへドット絵を描く ---
+    if (!this._labLow) { this._labLow = document.createElement("canvas"); this._labLow.width = LAB_P.W0; this._labLow.height = LAB_P.H0; }
+    const c = this._labLow.getContext("2d");
+    const tiers = this.labTiers();
+    this._px(c, 0, 0, LAB_P.W0, LAB_P.H0, LAB_P.out); // 外は暗
+    // 床(箱庭=境界あり・2色市松・フラット)
+    for (let gx = 0; gx < LAB_P.cols; gx++) for (let gy = 0; gy < LAB_P.rows; gy++) {
+      const p0 = this._iso(gx, gy), p1 = this._iso(gx + 1, gy), p2 = this._iso(gx + 1, gy + 1), p3 = this._iso(gx, gy + 1);
+      this._flat(c, [p0, p1, p2, p3], (gx + gy) % 2 === 0 ? LAB_P.floor : LAB_P.floorAlt);
+    }
+    // 縁: 手前2辺=低い巾木(高さ4px・高い壁なし)/奥2辺=1pxの硬線
+    const A = this._iso(0, 0), B = this._iso(LAB_P.cols, 0), C2 = this._iso(LAB_P.cols, LAB_P.rows), D = this._iso(0, LAB_P.rows);
+    this._flat(c, [B, C2, { x: C2.x, y: C2.y + 4 }, { x: B.x, y: B.y + 4 }], LAB_P.baseDk);
+    this._flat(c, [D, C2, { x: C2.x, y: C2.y + 4 }, { x: D.x, y: D.y + 4 }], LAB_P.base);
+    c.strokeStyle = LAB_P.edge; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(D.x + 0.5, D.y + 0.5); c.lineTo(A.x + 0.5, A.y + 0.5); c.lineTo(B.x + 0.5, B.y + 0.5); c.stroke();
+    // 設備(奥→手前)
+    this._labTank(c, tiers.tank);
+    this._labDesks(c, tiers.desks);
+    this._labShelf(c, tiers.shelf);
+    this._labRocket(c, tiers.rocket);
+    // --- 整数倍拡大ブリット(ドット感) ---
+    const k = Math.max(2, Math.floor(Math.min(W / LAB_P.W0, H / LAB_P.H0)));
+    const bx = Math.floor((W - LAB_P.W0 * k) / 2), by = Math.floor((H - LAB_P.H0 * k) / 2);
+    this._labBlit = { k, bx, by };
+    const g = cv.getContext("2d");
+    g.imageSmoothingEnabled = false;
+    g.fillStyle = LAB_P.out; g.fillRect(0, 0, W, H);
+    g.drawImage(this._labLow, 0, 0, LAB_P.W0, LAB_P.H0, bx, by, LAB_P.W0 * k, LAB_P.H0 * k);
+    // 名札(共通UI層=ブリット後に通常フォントで控えめに。シーン内はドットのみ)
+    g.fillStyle = LAB_P.label; g.font = "12px system-ui";
+    const lbl = (gx, gy, t) => { const p = this._iso(gx, gy); g.fillText(t, bx + p.x * k - g.measureText(t).width / 2, by + p.y * k); };
+    lbl(3.8, 5.4, "研究デスク"); lbl(9.8, 3.7, "実験用水槽"); lbl(1.8, 10.1, "標本棚・記録"); lbl(10.6, 9.2, "宇宙港");
   },
 
-  // ---- パソコンデスク群(研究・変換・管制)+自立式の侵食モニタ(旧・壁面モニタの床置き化) ----
+  // ---- パソコンデスク群(鉱石投資で育つ=labInvest・§5.3案B)+自立式の侵食モニタ ----
   _labDesks(c, tier) {
-    const S = this._labS() * this._labF();
-    const DK = { top: "#d3cfc6", left: "#a8a498", right: "#98948a", line: "rgba(90,86,78,.45)" };
-    const MON = { top: "#4c4f55", left: "#3c3f45", right: "#34373d", line: "rgba(0,0,0,.4)" };
-    const SCREEN = "#bfe4ee";
-    const F = this._labF();
+    const P = LAB_P;
     const desk = (gx, gy, w, d) => {
-      w *= F; d *= F;
-      const legH = 20 * S, topH = 4 * S;
-      this._labShadow(c, gx, gy, w, d);
-      c.strokeStyle = DK.right; c.lineWidth = 2.5 * S * 0.7 + 0.8;
-      for (const [lx, ly] of [[gx + 0.1, gy + d - 0.1], [gx + w - 0.1, gy + d - 0.1], [gx + w - 0.1, gy + 0.1]]) {
-        const l = this._iso(lx, ly); c.beginPath(); c.moveTo(l.x, l.y); c.lineTo(l.x, l.y - legH); c.stroke();
-      }
-      const p00 = this._iso(gx, gy), p10 = this._iso(gx + w, gy), p11 = this._iso(gx + w, gy + d), p01 = this._iso(gx, gy + d);
-      const up = (p, h) => ({ x: p.x, y: p.y - h });
-      this._poly(c, [up(p01, legH + topH), up(p11, legH + topH), up(p11, legH), up(p01, legH)], DK.left);
-      this._poly(c, [up(p10, legH + topH), up(p11, legH + topH), up(p11, legH), up(p10, legH)], DK.right);
-      this._poly(c, [up(p00, legH + topH), up(p10, legH + topH), up(p11, legH + topH), up(p01, legH + topH)], DK.top, DK.line, 1);
+      this._shadow(c, gx, gy, w, d);
+      this._box(c, gx, gy, w, d, 6, P.grey1, P.grey2, P.grey3);
     };
-    const monitor = (gx, gy, w, screenW) => {
-      w *= F;
-      this._isoBox(c, gx, gy, w, 0.1, 15 * S, MON);
-      const s0 = this._iso(gx + w * 0.08, gy + 0.1), s1 = this._iso(gx + w * (0.08 + (screenW || 0.84)), gy + 0.1);
-      c.save(); c.globalAlpha = 0.85; c.shadowColor = SCREEN; c.shadowBlur = 5;
-      this._poly(c, [{ x: s0.x, y: s0.y - 13 * S }, { x: s1.x, y: s1.y - 13 * S }, { x: s1.x, y: s1.y - 3.5 * S }, { x: s0.x, y: s0.y - 3.5 * S }], SCREEN);
-      c.restore();
+    const monitor = (gx, gy, w) => {
+      this._box(c, gx, gy, w, 0.12, 5, P.dark, P.dark, P.ink, P.ink);
+      const s0 = this._iso(gx + 0.06, gy + 0.12), s1 = this._iso(gx + w - 0.06, gy + 0.12);
+      this._flat(c, [{ x: s0.x, y: s0.y - 4.5 }, { x: s1.x, y: s1.y - 4.5 }, { x: s1.x, y: s1.y - 1 }, { x: s0.x, y: s0.y - 1 }], P.screen);
     };
-    if (tier >= 4) { // サーバーラック(床置き・静かなLED)
-      const RACK = { top: "#464a52", left: "#383c44", right: "#30343c", line: "rgba(0,0,0,.45)" };
-      for (const gy0 of [1.6, 2.8]) {
-        this._labShadow(c, 0.3, gy0, 0.55 * F, 0.9 * F);
-        this._isoBox(c, 0.3, gy0, 0.55 * F, 0.9 * F, 74 * S, RACK);
-        for (let i = 0; i < 4; i++) {
-          const p = this._iso(0.3 + 0.55 * F, gy0 + (0.18 + i * 0.18) * F);
-          c.fillStyle = i % 3 === 0 ? "#e0b34a" : "#7fd98a"; c.globalAlpha = 0.9;
-          c.fillRect(p.x - S, p.y - (58 - i * 3) * S, 2 * S, 2 * S); c.globalAlpha = 1;
+    if (tier >= 4) { // サーバーラック(LEDは点=静的)
+      for (const gy0 of [0.5, 1.7]) {
+        this._shadow(c, 0.4, gy0, 0.6, 1.0);
+        this._box(c, 0.4, gy0, 0.6, 1.0, 22, P.grey3, P.dark, P.ink);
+        for (let i = 0; i < 3; i++) {
+          const p = this._iso(1.0, gy0 + 0.2 + i * 0.25);
+          this._px(c, p.x, p.y - 17 + i * 3, 1, 1, i % 2 === 0 ? P.led1 : P.led2);
         }
       }
     }
-    // 自立式の侵食モニタ(旧・壁面モニタ→床置きスタンドの大型盤。機能=デスクパネル内・見た目の家)
-    if (tier >= 3) {
-      const gx = 0.55, gy = 0.55, bw = 1.15 * F;
-      this._labShadow(c, gx, gy, bw, 0.16);
-      const a = this._iso(gx, gy + 0.08), b = this._iso(gx + bw, gy + 0.08);
-      c.strokeStyle = "#3c3f45"; c.lineWidth = 2.2 * S * 0.7 + 0.8; // スタンド脚2本
-      for (const p of [a, b]) { c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(p.x, p.y - 30 * S); c.stroke(); }
-      this._poly(c, [{ x: a.x - 2, y: a.y - 62 * S }, { x: b.x + 2, y: b.y - 62 * S }, { x: b.x + 2, y: b.y - 30 * S }, { x: a.x - 2, y: a.y - 30 * S }], "#3c3f45", "rgba(0,0,0,.4)", 1);
-      c.save(); c.globalAlpha = 0.8; c.shadowColor = SCREEN; c.shadowBlur = 5; // 盤面(侵食の帯グラフ=気配のみ)
-      this._poly(c, [{ x: a.x + 2 * S, y: a.y - 58 * S }, { x: b.x - 2 * S, y: b.y - 58 * S }, { x: b.x - 2 * S, y: b.y - 34 * S }, { x: a.x + 2 * S, y: a.y - 34 * S }], "#9fc7d4");
-      c.restore();
+    if (tier >= 3) { // 自立式の侵食モニタ(帯=深紅・見れば分かる§9)
+      const a = this._iso(1.5, 0.5), b = this._iso(2.7, 0.5);
+      this._shadow(c, 1.5, 0.42, 1.2, 0.16);
+      c.strokeStyle = P.dark; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(a.x + 0.5, a.y + 0.5); c.lineTo(a.x + 0.5, a.y - 8.5); c.moveTo(b.x + 0.5, b.y + 0.5); c.lineTo(b.x + 0.5, b.y - 8.5); c.stroke();
+      this._flat(c, [{ x: a.x - 1, y: a.y - 18 }, { x: b.x + 1, y: b.y - 18 }, { x: b.x + 1, y: b.y - 8 }, { x: a.x - 1, y: a.y - 8 }], P.dark, P.ink);
+      this._px(c, a.x + 1, a.y - 16, b.x - a.x - 2, 6, P.screen);
       const ero = Math.min(1, Math.max(0, (Game.state.erosion || 0) / 100));
-      c.fillStyle = "#c96a4e"; c.globalAlpha = 0.85;
-      c.fillRect(a.x + 4 * S, a.y - 42 * S, Math.max(2, (b.x - a.x - 8 * S) * ero), 3 * S); c.globalAlpha = 1; // 侵食の帯(見れば分かる=§9)
+      this._px(c, a.x + 1, a.y - 12, Math.max(1, (b.x - a.x - 2) * ero), 2, P.crimson);
     }
-    const w = tier >= 3 ? 2.3 : 1.5;
-    desk(2.0, 2.0, w, 0.8);
-    if (tier >= 3) { monitor(2.15, 2.02, 0.7); monitor(2.95, 2.02, 0.95, 0.8); monitor(4.0, 2.02, 0.55); }
-    else monitor(2.35, 2.02, 0.8);
-    if (tier >= 2) {
-      desk(2.0, 3.15, 1.4, 0.8); monitor(2.3, 3.17, 0.75);
-      desk(4.0, 2.9, 0.8, 1.4);
-      this._isoBox(c, 4.5, 3.0, 0.1, 0.8 * F, 15 * S, MON);
-      const s0 = this._iso(4.5, 3.08), s1 = this._iso(4.5, 3.0 + 0.72 * F);
-      c.save(); c.globalAlpha = 0.85; c.shadowColor = SCREEN; c.shadowBlur = 5;
-      this._poly(c, [{ x: s0.x, y: s0.y - 13 * S }, { x: s1.x, y: s1.y - 13 * S }, { x: s1.x, y: s1.y - 3.5 * S }, { x: s0.x, y: s0.y - 3.5 * S }], SCREEN);
-      c.restore();
-    }
-    const stool = (sx, sy) => { this._labShadow(c, sx, sy, 0.32 * F, 0.32 * F); this._isoBox(c, sx, sy, 0.32 * F, 0.32 * F, 12 * S, DK); };
-    stool(2.6, 3.0 - (tier >= 2 ? 0 : 0.6));
-    if (tier >= 2) stool(3.4, 2.55);
+    const w = tier >= 3 ? 2.4 : 1.6;
+    desk(2.2, 2.0, w, 0.9);
+    if (tier >= 3) { monitor(2.35, 2.05, 0.6); monitor(3.1, 2.05, 0.8); monitor(4.05, 2.05, 0.5); }
+    else monitor(2.5, 2.05, 0.7);
+    if (tier >= 2) { desk(2.2, 3.3, 1.5, 0.9); monitor(2.5, 3.35, 0.7); }
+    // 丸椅子
+    this._shadow(c, 2.9, 3.05 - (tier >= 2 ? -0.35 : 0.45), 0.35, 0.35);
+    this._box(c, 2.9, 3.05 - (tier >= 2 ? -0.35 : 0.45), 0.35, 0.35, 4, P.grey1, P.grey2, P.grey3);
   },
 
-  // ---- 実験用水槽(遺伝子ラボ・鍛造・合成の場) ----
+  // ---- 実験用水槽(錬成の場・唯一の暖色=深紅は槽内のみ) ----
   _labTank(c, tier) {
-    const S = this._labS() * this._labF(), F = this._labF();
-    const BASE = { top: "#d3cfc6", left: "#a8a498", right: "#98948a", line: "rgba(90,86,78,.45)" };
+    const P = LAB_P;
     const tank = (gx, gy, w, d, h, crimson) => {
-      w *= F; d *= F; h *= S;
-      this._labShadow(c, gx, gy, w, d);
-      this._isoBox(c, gx, gy, w, d, 5 * S, BASE);
-      const wl = 5 * S + (h - 5 * S) * 0.62;
-      this._isoBox(c, gx + 0.04, gy + 0.04, w - 0.08, d - 0.08, wl, { top: "rgba(150,205,228,.5)", left: "rgba(95,168,201,.38)", right: "rgba(95,168,201,.38)", line: "rgba(0,0,0,0)" });
-      if (crimson) { // 錬成槽=唯一の暖色(賢者の石の深紅・槽内のみ)
-        const m = this._iso(gx + w / 2, gy + d / 2);
-        const g = c.createRadialGradient(m.x, m.y - wl * 0.55, 2, m.x, m.y - wl * 0.55, 26 * S);
-        g.addColorStop(0, "rgba(142,24,38,.34)"); g.addColorStop(1, "rgba(142,24,38,0)");
-        c.fillStyle = g; c.beginPath(); c.ellipse(m.x, m.y - wl * 0.55, 26 * S, 20 * S, 0, 0, 7); c.fill();
-        c.fillStyle = "#8E1826"; c.globalAlpha = 0.85;
-        c.beginPath(); c.arc(m.x, m.y - wl * 0.55, 2.2 * S, 0, 7); c.fill(); c.globalAlpha = 1;
-      }
-      const b = this._isoBox(c, gx, gy, w, d, h, { top: "rgba(225,240,245,.28)", left: "rgba(168,205,218,.30)", right: "rgba(148,190,205,.36)", line: "rgba(210,235,242,.75)" });
-      c.strokeStyle = "rgba(210,235,242,.75)"; c.lineWidth = 1;
-      c.beginPath(); c.moveTo(b.p11.x, b.p11.y); c.lineTo(b.p11.x, b.p11.y - h); c.stroke();
+      this._shadow(c, gx, gy, w, d);
+      this._box(c, gx, gy, w, d, 2, P.grey2, P.grey3, P.dark); // 台座
+      const wl = Math.round(h * 0.62);
+      this._box(c, gx + 0.06, gy + 0.06, w - 0.12, d - 0.12, wl, P.waterHi, P.water, P.water, P.water); // 水(フラット2トーン)
+      if (crimson) { const m = this._iso(gx + w / 2, gy + d / 2); this._px(c, m.x - 1, m.y - wl + 1, 3, 3, P.crimson); } // 賢者の石の芯
+      // ガラス=輪郭のみ(1px明線)
+      const p00 = this._iso(gx, gy), p10 = this._iso(gx + w, gy), p11 = this._iso(gx + w, gy + d), p01 = this._iso(gx, gy + d);
+      const up = (p) => ({ x: p.x, y: p.y - h });
+      c.strokeStyle = P.glass; c.lineWidth = 1;
+      c.beginPath();
+      c.moveTo(up(p00).x + 0.5, up(p00).y + 0.5); c.lineTo(up(p10).x + 0.5, up(p10).y + 0.5); c.lineTo(up(p11).x + 0.5, up(p11).y + 0.5); c.lineTo(up(p01).x + 0.5, up(p01).y + 0.5); c.closePath();
+      c.moveTo(up(p11).x + 0.5, up(p11).y + 0.5); c.lineTo(p11.x + 0.5, p11.y + 0.5);
+      c.moveTo(up(p01).x + 0.5, up(p01).y + 0.5); c.lineTo(p01.x + 0.5, p01.y + 0.5);
+      c.moveTo(up(p10).x + 0.5, up(p10).y + 0.5); c.lineTo(p10.x + 0.5, p10.y + 0.5);
+      c.stroke();
     };
-    const pipe = (gx, gy, topH) => { // 壁が無いので配管は槽間を渡る低い連絡管に(行き先を失わない)
-      const a = this._iso(gx, gy), b = this._iso(7.9, 1.6);
-      c.strokeStyle = "#9aa0a5"; c.lineWidth = 2.5 * S * 0.6 + 0.8; c.lineCap = "round";
-      c.beginPath(); c.moveTo(a.x, a.y - topH * S); c.lineTo(a.x, a.y - (topH + 8) * S); c.lineTo(b.x, b.y - (topH + 8) * S); c.stroke();
-    };
-    tank(7.6, 1.25, 0.85, 0.85, 36, tier >= 3);
-    if (tier >= 2) { tank(8.75, 1.2, 0.62, 0.62, 52, false); pipe(9.05, 1.5, 52); }
-    if (tier >= 4) { tank(6.55, 1.35, 0.6, 0.6, 30, false); }
+    tank(8.2, 1.2, 1.1, 1.1, 12, tier >= 3);
+    if (tier >= 2) {
+      tank(9.8, 1.1, 0.8, 0.8, 17, false);
+      const a = this._iso(10.2, 1.5); // 連絡管(硬い1px線)
+      c.strokeStyle = P.grey2; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(a.x + 0.5, a.y - 19.5); c.lineTo(a.x + 0.5, a.y - 22.5); c.lineTo(this._iso(8.8, 1.7).x + 0.5, a.y - 22.5); c.stroke();
+    }
+    if (tier >= 4) tank(7.0, 1.4, 0.7, 0.7, 9, false);
   },
 
-  // ---- ロケット(宇宙港) ----
+  // ---- ロケット(宇宙港・先端の琥珀=もう一つの暖色) ----
   _labRocket(c, tier) {
-    const S = this._labS() * this._labF(), F = this._labF();
-    const HULL = { top: "#e6e3dc", left: "#c5c1b8", right: "#b2aea4", line: "rgba(90,86,78,.4)" };
-    const gx = 9.3, gy = 4.3;
-    this._labShadow(c, gx - 0.25, gy - 0.25, 1.5 * F, 1.5 * F);
-    this._isoBox(c, gx - 0.25, gy - 0.25, 1.5 * F, 1.5 * F, 6 * S, { top: "#c9c5bb", left: "#a8a498", right: "#98948a", line: "rgba(90,86,78,.45)" });
+    const P = LAB_P;
+    const gx = 9.6, gy = 5.8;
+    this._shadow(c, gx - 0.3, gy - 0.3, 1.7, 1.7);
+    this._box(c, gx - 0.3, gy - 0.3, 1.7, 1.7, 2, P.grey2, P.grey3, P.dark); // 発射台
     if (tier === 1) {
-      this._isoBox(c, gx - 0.05, gy + 0.15, 0.5 * F, 0.5 * F, 14 * S, HULL);
-      this._isoBox(c, gx + 0.62, gy + 0.5, 0.62 * F, 0.35 * F, 8 * S, HULL);
-      c.fillStyle = "#C9A227"; const t = this._iso(gx + 0.45, gy - 0.02);
-      c.beginPath(); c.moveTo(t.x, t.y - 3 * S); c.lineTo(t.x + 14 * S, t.y - 8 * S); c.lineTo(t.x + 2 * S, t.y - 15 * S); c.closePath(); c.fill();
+      this._box(c, gx, gy + 0.2, 0.5, 0.5, 5, P.white, P.grey1, P.grey2);
+      this._box(c, gx + 0.7, gy + 0.6, 0.6, 0.35, 3, P.white, P.grey1, P.grey2);
+      const t = this._iso(gx + 0.5, gy);
+      this._flat(c, [{ x: t.x, y: t.y - 1 }, { x: t.x + 5, y: t.y - 3 }, { x: t.x + 1, y: t.y - 6 }], P.amber, P.ink);
       return;
     }
-    const H = 118 * S;
-    if (tier === 2) {
-      c.strokeStyle = "#9aa0a5"; c.lineWidth = 2 * S * 0.7 + 0.6;
-      const corners = [this._iso(gx + 0.14, gy + 0.14), this._iso(gx + 0.86, gy + 0.14), this._iso(gx + 0.86, gy + 0.86), this._iso(gx + 0.14, gy + 0.86)];
-      for (const p of corners) { c.beginPath(); c.moveTo(p.x, p.y - 6 * S); c.lineTo(p.x, p.y - 6 * S - H * 0.72); c.stroke(); }
+    const H = tier === 2 ? 26 : 36;
+    if (tier === 2) { // 骨組み(硬い1px線)
+      c.strokeStyle = P.grey2; c.lineWidth = 1;
+      const cs = [this._iso(gx + 0.2, gy + 0.2), this._iso(gx + 0.9, gy + 0.2), this._iso(gx + 0.9, gy + 0.9), this._iso(gx + 0.2, gy + 0.9)];
+      for (const p of cs) { c.beginPath(); c.moveTo(p.x + 0.5, p.y - 2); c.lineTo(p.x + 0.5, p.y - 2 - H); c.stroke(); }
       for (let i = 1; i <= 3; i++) {
-        const y = 6 * S + (H * 0.72) * i / 3;
-        c.beginPath(); c.moveTo(corners[0].x, corners[0].y - y); c.lineTo(corners[1].x, corners[1].y - y); c.lineTo(corners[2].x, corners[2].y - y); c.lineTo(corners[3].x, corners[3].y - y); c.closePath(); c.stroke();
+        const y = 2 + H * i / 3;
+        c.beginPath(); c.moveTo(cs[0].x + 0.5, cs[0].y - y); c.lineTo(cs[1].x + 0.5, cs[1].y - y); c.lineTo(cs[2].x + 0.5, cs[2].y - y); c.lineTo(cs[3].x + 0.5, cs[3].y - y); c.closePath(); c.stroke();
       }
       return;
     }
-    this._isoBox(c, gx + 0.2, gy + 0.2, 0.6 * F, 0.6 * F, H, HULL);
-    c.strokeStyle = "rgba(120,116,106,.35)"; c.lineWidth = 1;
-    for (const yy of [H * 0.35, H * 0.7]) {
-      const a = this._iso(gx + 0.2, gy + 0.8), b = this._iso(gx + 0.8, gy + 0.8);
-      c.beginPath(); c.moveTo(a.x, a.y - yy - 6 * S); c.lineTo(b.x, b.y - yy - 6 * S); c.stroke();
-    }
-    const t = this._iso(gx + 0.5, gy + 0.5);
+    this._box(c, gx + 0.25, gy + 0.25, 0.65, 0.65, H, P.white, P.grey1, P.grey2); // 機体(フラット2トーン)
+    const t = this._iso(gx + 0.57, gy + 0.57);
+    c.strokeStyle = P.grey2; c.lineWidth = 1; // 継ぎ目
+    c.beginPath(); c.moveTo(t.x - 5, t.y - H * 0.5 - 2); c.lineTo(t.x + 5, t.y - H * 0.5 - 2); c.stroke();
     if (tier >= 4) {
-      c.fillStyle = "#C9A227";
-      c.beginPath(); c.moveTo(t.x - 11 * S, t.y - 6 * S - H + 2 * S); c.lineTo(t.x + 11 * S, t.y - 6 * S - H + 2 * S); c.lineTo(t.x, t.y - 6 * S - H - 26 * S); c.closePath(); c.fill();
-      c.fillStyle = "#b2aea4";
-      const fL = this._iso(gx + 0.14, gy + 0.86), fR = this._iso(gx + 0.86, gy + 0.86);
-      c.beginPath(); c.moveTo(fL.x, fL.y - 6 * S); c.lineTo(fL.x - 12 * S, fL.y + 2 * S); c.lineTo(fL.x, fL.y - 34 * S); c.closePath(); c.fill();
-      c.beginPath(); c.moveTo(fR.x, fR.y - 6 * S); c.lineTo(fR.x + 12 * S, fR.y + 2 * S); c.lineTo(fR.x, fR.y - 34 * S); c.closePath(); c.fill();
-      c.fillStyle = "#9fc4d4"; c.beginPath(); c.arc(t.x, t.y - 6 * S - H * 0.78, 3.2 * S, 0, 7); c.fill();
+      this._flat(c, [{ x: t.x - 5, y: t.y - H - 1 }, { x: t.x + 5, y: t.y - H - 1 }, { x: t.x, y: t.y - H - 10 }], P.amber, P.ink); // 琥珀の先端
+      const fL = this._iso(gx + 0.2, gy + 0.95), fR = this._iso(gx + 0.95, gy + 0.95);
+      this._flat(c, [{ x: fL.x, y: fL.y - 2 }, { x: fL.x - 4, y: fL.y + 1 }, { x: fL.x, y: fL.y - 11 }], P.grey2, P.ink);
+      this._flat(c, [{ x: fR.x, y: fR.y - 2 }, { x: fR.x + 4, y: fR.y + 1 }, { x: fR.x, y: fR.y - 11 }], P.grey2, P.ink);
+      this._px(c, t.x - 1, t.y - H * 0.78, 2, 2, P.screen); // 小窓
     } else {
-      c.strokeStyle = "#9aa0a5"; c.lineWidth = 2 * S * 0.7 + 0.6;
-      c.beginPath(); c.moveTo(t.x - 8 * S, t.y - 6 * S - H); c.lineTo(t.x - 8 * S, t.y - 6 * S - H - 14 * S); c.moveTo(t.x + 8 * S, t.y - 6 * S - H); c.lineTo(t.x + 8 * S, t.y - 6 * S - H - 14 * S); c.stroke();
+      c.strokeStyle = P.grey2;
+      c.beginPath(); c.moveTo(t.x - 3.5, t.y - H); c.lineTo(t.x - 3.5, t.y - H - 5); c.moveTo(t.x + 3.5, t.y - H); c.lineTo(t.x + 3.5, t.y - H - 5); c.stroke();
     }
   },
 
-  // ---- 標本棚/記録(床置き什器)+自立スタンドの星図盤(旧・壁のチャートの床置き化) ----
+  // ---- 標本棚/記録(収集の成果が景色になる・投資対象外)+自立スタンドの星図盤 ----
   _labShelf(c, tier) {
-    const S = this._labS() * this._labF(), F = this._labF();
-    const FRAME = { top: "#cfccc4", left: "#aaa69b", right: "#9a968c", line: "rgba(90,86,78,.45)" };
+    const P = LAB_P;
     const unit = (gx, gy) => {
-      this._labShadow(c, gx, gy, 0.5 * F, 1.1 * F);
-      const H = 66 * S;
-      this._isoBox(c, gx, gy, 0.5 * F, 1.1 * F, H, FRAME);
-      for (let i = 1; i <= 3; i++) {
-        const y = H * i / 3.6;
-        const a = this._iso(gx + 0.5 * F, gy + 0.06), b = this._iso(gx + 0.5 * F, gy + 1.04 * F);
-        c.strokeStyle = "#b8b4a9"; c.lineWidth = 1.6 * S * 0.6 + 0.5;
-        c.beginPath(); c.moveTo(a.x, a.y - y); c.lineTo(b.x, b.y - y); c.stroke();
-        if (tier >= 2) for (let j = 0; j < 3 + (i % 2); j++) {
-          const p = this._iso(gx + 0.5 * F, gy + (0.18 + j * 0.24) * F);
-          c.fillStyle = "rgba(168,205,218,.55)"; c.fillRect(p.x - 2.2 * S, p.y - y - 8 * S, 4.4 * S, 8 * S);
-          c.fillStyle = "#9aa0a5"; c.fillRect(p.x - 2.2 * S, p.y - y - 9.5 * S, 4.4 * S, 1.8 * S);
+      this._shadow(c, gx, gy, 0.55, 1.2);
+      const H = 18;
+      this._box(c, gx, gy, 0.55, 1.2, H, P.grey1, P.grey2, P.grey3);
+      for (let i = 1; i <= 2; i++) { // 棚板(1px)+標本瓶(2×3pxフラット)
+        const y = Math.round(H * i / 3);
+        const a = this._iso(gx + 0.55, gy + 0.06), b = this._iso(gx + 0.55, gy + 1.14);
+        c.strokeStyle = P.grey3; c.lineWidth = 1;
+        c.beginPath(); c.moveTo(a.x + 0.5, a.y - y + 0.5); c.lineTo(b.x + 0.5, b.y - y + 0.5); c.stroke();
+        if (tier >= 2) for (let j = 0; j < 3; j++) {
+          const p = this._iso(gx + 0.55, gy + 0.22 + j * 0.3);
+          this._px(c, p.x - 1, p.y - y - 4, 2, 3, P.glass);
+          this._px(c, p.x - 1, p.y - y - 5, 2, 1, P.grey2);
         }
       }
     };
-    unit(0.3, 4.6);
-    if (tier >= 4) unit(0.3, 6.0);
-    if (tier >= 3) { // 自立スタンドの星図盤(旧・壁チャート→床置きイーゼル。説明しない星座線)
-      const gx = 0.9, gy = 6.9, bw = 1.15 * F;
-      this._labShadow(c, gx, gy, bw, 0.16);
-      const a = this._iso(gx, gy + 0.08), b = this._iso(gx + bw, gy + 0.08);
-      c.strokeStyle = "#8a867c"; c.lineWidth = 2.2 * S * 0.6 + 0.7; // イーゼル脚
-      for (const p of [a, b]) { c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(p.x, p.y - 26 * S); c.stroke(); }
-      this._poly(c, [{ x: a.x - 2, y: a.y - 58 * S }, { x: b.x + 2, y: b.y - 58 * S }, { x: b.x + 2, y: b.y - 24 * S }, { x: a.x - 2, y: a.y - 24 * S }], "#2c3440", "rgba(0,0,0,.4)", 1);
-      const w = { x: b.x - a.x, y: b.y - a.y };
-      c.strokeStyle = "rgba(160,190,215,.35)"; c.lineWidth = 1;
-      c.beginPath(); c.moveTo(a.x + 6 * S, a.y - 50 * S); c.lineTo(a.x + w.x * 0.4, a.y + w.y * 0.4 - 38 * S); c.lineTo(a.x + w.x * 0.75, a.y + w.y * 0.75 - 46 * S); c.stroke();
-      c.fillStyle = "#dfe8f0";
-      for (const [fx, fy] of [[0.12, -48], [0.4, -36], [0.75, -44], [0.55, -30], [0.88, -34], [0.25, -27]]) {
-        c.beginPath(); c.arc(a.x + w.x * fx, a.y + w.y * fx + fy * S, 1.1 * S, 0, 7); c.fill();
+    unit(0.8, 5.8);
+    if (tier >= 4) unit(0.8, 7.2);
+    if (tier >= 3) { // 自立スタンドの星図盤(フラット紺+星1px)
+      const gx = 2.0, gy = 7.9;
+      this._shadow(c, gx, gy - 0.1, 1.1, 0.16);
+      const a = this._iso(gx, gy), b = this._iso(gx + 1.1, gy);
+      c.strokeStyle = P.grey3; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(a.x + 0.5, a.y + 0.5); c.lineTo(a.x + 0.5, a.y - 7.5); c.moveTo(b.x + 0.5, b.y + 0.5); c.lineTo(b.x + 0.5, b.y - 7.5); c.stroke();
+      this._flat(c, [{ x: a.x - 1, y: a.y - 17 }, { x: b.x + 1, y: b.y - 17 }, { x: b.x + 1, y: b.y - 7 }, { x: a.x - 1, y: a.y - 7 }], "#2c3440", P.ink);
+      for (const [fx, fy] of [[0.15, -14], [0.4, -10], [0.7, -13], [0.55, -9], [0.85, -12]]) {
+        this._px(c, a.x + (b.x - a.x) * fx, a.y + fy, 1, 1, P.white);
       }
     }
   },
@@ -371,7 +308,7 @@ Object.assign(UI, {
 if (typeof window !== "undefined") window.addEventListener("load", () => {
   const m = location.hash.match(/^#hqlab(?:-(desks|tank|rocket|shelf|full))?$/);
   if (m && UI.openHqLab) setTimeout(() => {
-    if (m[1] === "full") UI._labTierOverride = { desks: 4, tank: 4, rocket: 4, shelf: 4 }; // 表示のみ・状態は変えない
+    if (m[1] === "full") UI._labTierOverride = { desks: 4, tank: 4, rocket: 4, shelf: 4 };
     UI.openHqLab();
     if (m[1] && m[1] !== "full") UI.openLabPanel(m[1]);
   }, 60);
