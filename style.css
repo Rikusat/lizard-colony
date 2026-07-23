@@ -1489,6 +1489,19 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 @keyframes trait-card-in { from { opacity: 0; transform: translateY(3px); } }
 @media (prefers-reduced-motion: reduce) { .trait-card { animation: none; } }
 
+/* ============ 本部=研究施設ページ(hq_lab) ============ */
+/* <main>(飼育槽)との切替。topbarは残す(資源が見える)。1画面固定・スクロールなし。canvasは領域内に収める(あふれ0)。 */
+#hqlab { flex: 1; min-height: 0; display: flex; flex-direction: column; background: linear-gradient(#191d20, #0e0c0b); }
+#hqlab.hidden { display: none; }
+#hqlab-head { display: flex; align-items: center; gap: 16px; padding: 8px 20px 4px; }
+#hqlab-head h2 { font-size: calc(17px * var(--fs-scale, 1)); color: var(--paper-100, #F3E9D8); display: flex; align-items: center; gap: 8px; margin: 0; }
+#hqlab-lv { font-size: calc(12px * var(--fs-scale, 1)); color: var(--sub); }
+#hqlab-back { font-size: calc(13px * var(--fs-scale, 1)); padding: 6px 14px; }
+#hqlab-wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 0 12px 10px; }
+#hqlab-canvas { max-width: 100%; max-height: 100%; border-radius: var(--radius-md); }
+/* topbar側の「今いる場所」の徴(本部にいる間は本部ボタンが点灯) */
+#btn-hq.at-lab { border-color: var(--amber-500, #C9A227); box-shadow: 0 0 8px var(--amber-glow-soft, rgba(228,188,58,.2)); }
+
 /* ============ modal ============ */
 #modal {
   position: fixed; inset: 0; background: var(--glass-bg);

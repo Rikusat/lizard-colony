@@ -51,7 +51,7 @@ const UI = {
     // 3.11.4: 「繁殖する」ボタンは撤廃。繁殖はトカゲクリック→相手選択(renderDetail)から
     on("btn-fac", () => this.openFacilities());
     on("btn-stats", () => this.openStats());
-    on("btn-hq", () => this.openHQ());
+    on("btn-hq", () => (this.hqLabOpen && this.hqLabOpen()) ? this.closeHqLab() : this.openHqLab()); // C-2: 本部=独立ページ(トグル=場所の切替)
     // V5.2: コオロギ購入(まとめ買い)復活。短押し=1ロット / 長押し=連続。巣ネットワークは巣タップで開く
     on("btn-cricket", () => Game.buyCrickets());
     const cricketBtn = document.getElementById("btn-cricket");

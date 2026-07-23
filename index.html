@@ -78,6 +78,16 @@
   </section>
 </main>
 
+<!-- 本部=研究施設ページ(hq_lab.md)。飼育槽<main>と切替(topbarは常に残す=資源が見える)。1画面固定・スクロールなし -->
+<section id="hqlab" class="hidden">
+  <header id="hqlab-head">
+    <button id="hqlab-back">← 飼育槽へ戻る</button>
+    <h2><svg class="icon"><use href="#i-hq"/></svg> 本部 — 研究施設</h2>
+    <span id="hqlab-lv"></span>
+  </header>
+  <div id="hqlab-wrap"><canvas id="hqlab-canvas" width="1000" height="620"></canvas></div>
+</section>
+
 <div id="modal" class="hidden">
   <div id="modal-box">
     <header><h2 id="modal-title"></h2><button id="modal-close">×</button></header>
@@ -112,6 +122,7 @@
 <script src="js/ui/screens/planet-map.js?v=8797a2d1"></script>
 <script src="js/ui/screens/nest.js?v=bffb5d1a"></script>
 <script src="js/ui/screens/hq.js?v=36bd9b57"></script>
+<script src="js/ui/screens/hqlab.js?v=1"></script>
 <script src="js/ui/screens/dex.js?v=c8ef5198"></script>
 <script src="js/ui/screens/meta.js?v=2c3ab8f6"></script>
 <script src="js/ui/boot.js?v=e5e0b966"></script>

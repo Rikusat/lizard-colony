@@ -202,6 +202,10 @@ const CFG = {
   stoneFixPerTier: 2,
   stoneSynthBase: 6,        // 合成(§8)の石触媒 = これ + order×stoneSynthPerOrder(order1=8…order6=18個)。★石の経済(§8.6)提示後にRic最終調整
   stoneSynthPerOrder: 2,
+  // 本部=研究施設(hq_lab)の設備tier閾値(全て既存stateからの派生=セーブ非接触・★たたき台=Ric調整)
+  labDeskTiers: [3, 8, 14],   // デスク群: HQ Lv がこの値以上でT2/T3/T4
+  labTankTiers: [1, 3, 5],    // 実験用水槽: 解読済みレシピ数でT2/T3/T4
+  labShelfTiers: [8, 18, 28], // 標本棚: 図鑑登録数でT2/T3/T4(ロケットはrocket状態から直接導出)
   genesisFxSec: 1.5,        // 創世エフェクトの尺(深紅の錬成)
   // 群衆対策(表示のみ・収益/戦闘は全個体が対象のまま)
   maxVisibleLizards: 70,    // フィールドに同時表示する上限。超過分は巣穴で休憩
