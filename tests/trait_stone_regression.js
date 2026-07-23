@@ -135,6 +135,22 @@ ok("stoneFixCost = base + tier×perTier", Game.stoneFixCost(3) === CFG.stoneFixB
   for (let i = 0; i < 3000; i++) if (Game.inheritTraits(leg, mk([]), rng2).some((t) => t.key === "zt1")) fromLeg++;
   ok("固定: レジェンダリー親の固定は無効(伝播元にならない)", fromLeg === 0, "fromLeg=" + fromLeg);
 }
+// === 固定印は個体ごと・子には伝播しない(石の道が合成へ到達する必須条件・Ric §5vv) ===
+{
+  const a = { id: 1, morphId: "normal", speciesId: "kanahebi", hue: 100, sat: 50, light: 50, pattern: "stripe", traits: [{ key: "mimikakushi" }], fixedTraits: ["mimikakushi"] };
+  const b = { id: 2, morphId: "normal", speciesId: "kanahebi", hue: 100, sat: 50, light: 50, pattern: "stripe", traits: [{ key: "zt1" }], fixedTraits: ["zt1"] };
+  Game.newGame();
+  let anyFixed = 0, both = 0, nonLegendary = 0;
+  for (let i = 0; i < 500; i++) {
+    const genes = Game.inherit(a, b);
+    const child = Game.makeLizard(genes.speciesId, genes.morphId, genes, "baby");
+    if (child.fixedTraits !== undefined) anyFixed++;
+    if (child.morphId !== "legendary") { nonLegendary++; const ks = child.traits.map((t) => t.key); if (ks.includes("mimikakushi") && ks.includes("zt1")) both++; }
+  }
+  ok("固定印は子に伝播しない(fixedTraits未定義=そのまま合成素材にできる)", anyFixed === 0, "any=" + anyFixed);
+  ok("両親固定→非レジェンダリーの子は全て2枚持ち(石の道の到達)", both === nonLegendary, `${both}/${nonLegendary}`);
+}
+
 // === 決定論(固定込みでも同一seed=同一子) ===
 {
   const a = { morphId: "normal", traits: [{ key: "zt1" }, { key: "mimikakushi" }], fixedTraits: ["zt1"] };
