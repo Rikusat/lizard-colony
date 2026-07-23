@@ -38,9 +38,9 @@ Object.assign(UI, {
         </div>
         <div class="list-row">
           <span class="fic">${Icon.svg("coin")}</span><div class="grow"><b>変換</b></div>
-          <button id="cv-food">${Icon.svg("coin")}${fmt(CFG.goldToFoodRate * CFG.convertBatch)}→${Icon.svg("food")}${CFG.convertBatch}</button>
-          <button id="cv-energy">${Icon.svg("coin")}${fmt(CFG.goldToEnergyRate * CFG.convertBatch)}→${Icon.svg("energy")}${CFG.convertBatch}</button>
-          <button id="cv-science">${Icon.svg("bio")}${fmt(CFG.bioToScienceRate * CFG.convertBatch)}→${Icon.svg("science")}${CFG.convertBatch}</button>
+          <button id="cv-food" class="cv-btn"><span class="cv-from">${Icon.svg("coin")}${fmt(CFG.goldToFoodRate * CFG.convertBatch)}</span><span class="cv-arr">▶</span><span class="cv-to">${Icon.svg("food")}+${CFG.convertBatch}</span></button>
+          <button id="cv-energy" class="cv-btn"><span class="cv-from">${Icon.svg("coin")}${fmt(CFG.goldToEnergyRate * CFG.convertBatch)}</span><span class="cv-arr">▶</span><span class="cv-to">${Icon.svg("energy")}+${CFG.convertBatch}</span></button>
+          <button id="cv-science" class="cv-btn"><span class="cv-from">${Icon.svg("bio")}${fmt(CFG.bioToScienceRate * CFG.convertBatch)}</span><span class="cv-arr">▶</span><span class="cv-to">${Icon.svg("science")}+${CFG.convertBatch}</span></button>
         </div>
         <div class="list-row">
           <span class="fic">${Icon.svg("build")}</span><div class="grow"><b>惑星開発 Lv${s.devLv || 0}/${CFG.devMaxLv}</b></div>

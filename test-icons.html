@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>資源アイコン一覧(大小2サイズ・シルエット判定用・開発用)</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  body { background: #241812; margin: 0; padding: 20px; color: #F3E9D8; font-family: system-ui, sans-serif; }
+  h1 { font-size: 15px; margin: 0 0 4px; }
+  p.note { font-size: 12px; color: #D8C3A5; margin: 0 0 14px; }
+  .grid { display: grid; grid-template-columns: 110px repeat(2, 90px); gap: 6px 14px; align-items: center; max-width: 460px; }
+  .name { font-size: 13px; color: #D8C3A5; }
+  .big .icon { width: 34px; height: 34px; }
+  .small .icon { width: 14px; height: 14px; }
+  .cell { display: flex; gap: 10px; align-items: center; }
+  h2 { font-size: 13px; color: #E4BC3A; margin: 18px 0 6px; }
+  .pair { display: flex; gap: 4px; align-items: center; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>資源アイコン一覧 — シルエットだけで区別できるか(色に頼らない判定)</h1>
+<p class="note">左=名称 / 中=大(34px) / 右=小(14px)。単色(currentColor)で表示=色を外した素のシルエット比較。</p>
+<div class="grid" id="grid"></div>
+<h2>変換ペアの並置(小サイズ・紛らわしさの実測)</h2>
+<div id="pairs"></div>
+<script src="js/ui/icons.js"></script>
+<script>
+const ids = ["coin", "food", "energy", "science", "bio", "cricket", "gem", "stone", "amber", "iridium", "amethyst", "meteorite", "orichalcum", "titanium"];
+const grid = document.getElementById("grid");
+for (const id of ids) {
+  grid.insertAdjacentHTML("beforeend",
+    `<div class="name">${id}</div><div class="cell big">${Icon.svg(id)}</div><div class="cell small">${Icon.svg(id)}${Icon.svg(id)}${Icon.svg(id)}</div>`);
+}
+const pairs = [["coin", "food", "Gold→食料"], ["coin", "energy", "Gold→エネルギー"], ["bio", "science", "bio→科学"], ["coin", "stone", "(topbar隣接)"], ["gem", "amethyst", "(鉱石系)"]];
+const pv = document.getElementById("pairs");
+for (const [a, b, lbl] of pairs) {
+  pv.insertAdjacentHTML("beforeend", `<div class="pair small">${Icon.svg(a)} ▶ ${Icon.svg(b)} <span style="color:#D8C3A5">${lbl}</span></div>`);
+}
+Icon.inject();
+</script>
+</body>
+</html>

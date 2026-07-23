@@ -1504,6 +1504,12 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 /* 本部パネル(§5): アイコン+個数のみ。不足=赤字/充足=通常 */
 .lab-cost { display: inline-flex; align-items: center; gap: 2px; margin-right: 8px; font-variant-numeric: tabular-nums; }
 .lab-cost.cost-ng { color: var(--red, #E0533B); }
+/* 変換ボタン(§5): 方向が一目で分かる=from(小さく淡い)→太い▶→to(大きく強調)。同格に並べない */
+.cv-btn { display: inline-flex; align-items: center; gap: 5px; }
+.cv-btn .cv-from { opacity: .62; font-size: .92em; display: inline-flex; align-items: center; gap: 2px; }
+.cv-btn .cv-arr { font-weight: 700; color: var(--amber-400, #E4BC3A); }
+.cv-btn .cv-to { font-weight: 700; display: inline-flex; align-items: center; gap: 2px; }
+.cv-btn .cv-to .icon { width: 1.3em; height: 1.3em; }
 
 /* ============ modal ============ */
 #modal {

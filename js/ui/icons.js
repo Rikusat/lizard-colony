@@ -9,8 +9,9 @@ const ICONS = {
   coin: '<circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 9.5h4a1.8 1.8 0 1 1 0 3.6h-3a1.8 1.8 0 1 0 0 3.6h4" fill="none"/>',
   cricket: '<ellipse cx="12" cy="14" rx="7" ry="4.5"/><path d="M7 10 4 5M17 10l3-5M6 17l-2 3M18 17l2 3M9 14h6" fill="none"/>',
   gem: '<path d="M7 4h10l4 5-9 11L3 9z"/><path d="M3 9h18M12 20 8.5 9l3.5-5 3.5 5z" fill="none" stroke-opacity=".55"/>',
-  // 賢者の石(v11・四重スリット装置のレア報酬): 円の石+内環+錬金の三角(gemのダイヤ形と差別化)
-  stone: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.6" fill="none" stroke-opacity=".6"/><path d="M12 8.2 15 13.5H9z" fill="none"/>',
+  // 賢者の石(v11・四重スリット装置のレア報酬): 六角の原石(小サイズでcoinの円と混ざらない非円シルエット)+内環+錬金の三角。
+  //   【改形履歴】旧=円形→小14pxでcoinと同一の●に潰れる(2026-07-24実測)→六角へ。
+  stone: '<path d="M12 3.2 19 7.6v8.8L12 20.8 5 16.4V7.6z"/><path d="M12 7.4 15.2 13H8.8z" fill="none" stroke-opacity=".75"/>',
   bio: '<path d="M8 3c0 6 8 6 8 9s-8 3-8 9M16 3c0 6-8 6-8 9s8 3 8 9M9 6.5h6M9 17.5h6" fill="none"/>',
   // ---- 特性(trait)ロゴ / 固定印(S3) ----
   // ミミカクシ: 眼を覆う仮面(帯+2つの眼)。特性カードのロゴ。
@@ -52,7 +53,8 @@ const ICONS = {
   "trait-rinkai": '<circle cx="12" cy="12" r="5.2"/><circle cx="12" cy="12" r="8.6" fill="none"/><circle cx="12" cy="12" r="1.2" fill="none" stroke-opacity=".7"/>',
   // 固定印(S5-b): 鍵=「必ず子へ継がれる」。
   lock: '<rect x="6" y="11" width="12" height="9" rx="2" fill="none"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" fill="none"/><circle cx="12" cy="15.2" r="1.2"/>',
-  food: '<path d="M6 13a6 6 0 0 1 12 0v2H6z"/><path d="M5 18h14M8 15v3M12 15v3M16 15v3" fill="none"/>',
+  // 食料: 飼料袋(結び目+膨らむ袋=四角系)。【改形履歴】旧=ドーム皿→小サイズでcoin(円)/orichalcum(ドーム)と酷似(2026-07-24実測)→袋へ。
+  food: '<path d="M9.5 6.5 8 4.5h8l-1.5 2c1.8 1.6 3.5 3.8 3.5 7 0 4-2.6 7-6 7s-6-3-6-7c0-3.2 1.7-5.4 3.5-7z"/><path d="M8.6 9.5h6.8" fill="none" stroke-opacity=".5"/>',
   energy: '<path d="M13 2 5 14h5l-1 8 8-12h-5z"/>',
   science: '<path d="M10 3v6l-5.5 9A2 2 0 0 0 6.2 21h11.6a2 2 0 0 0 1.7-3L14 9V3" fill="none"/><path d="M8.5 3h7M8 15h8"/>',
   erosion: '<circle cx="12" cy="13" r="6"/><path d="M12 7V4M8 8 5 5M16 8l3-3M6 13H3M21 13h-3M8 18l-2.5 2.5M16 18l2.5 2.5M12 10v6M9.5 11.5v3M14.5 11.5v3" fill="none"/>',
