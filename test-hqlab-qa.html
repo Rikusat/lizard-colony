@@ -64,6 +64,7 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       // クリック判定: 実クリックで個体選択→往復→同座標で再選択できる
       Game.newGame();
       var lz = Game.state.lizards[0];
+      Game.state.lizards = [lz]; // 決定論化: 2匹目(位置ランダム)が判定圏へ迷い込むflakeを排除(fable3: 不安定テスト=非決定性の隔離)
       lz.x = 640; lz.y = 360; lz.tx = 640; lz.ty = 360; Game.ensureRuntime(lz);
       Render.draw();
       var r0 = game.getBoundingClientRect();
