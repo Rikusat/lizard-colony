@@ -97,7 +97,7 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       UI.openHqLab();
       UI.openLabPanel("desks");
       var body = document.getElementById("modal-body");
-      ok("機能: デスク群パネル(HQ Lv/変換/開発/侵食/研究)", /HQ Lv/.test(body.innerHTML) && body.querySelector("#cv-food") && body.querySelector("#hq-dev") && body.querySelector("#hq-invasion") && body.querySelector("#research-list").children.length > 5);
+      ok("機能: デスク群パネル(投資/変換/開発/侵食/研究)", body.querySelector("#lab-invest") && body.querySelector("#cv-food") && body.querySelector("#hq-dev") && body.querySelector("#hq-invasion") && body.querySelector("#research-list").children.length > 5);
       var food0 = Game.res("food"), c0 = Game.state.coins;
       body.querySelector("#cv-food").click(); body = document.getElementById("modal-body");
       ok("機能: Gold変換(実クリック)=食料+・Gold-", Game.res("food") === food0 + CFG.convertBatch && Game.state.coins < c0);
@@ -119,10 +119,18 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       ok("機能: 解読済レシピが実名表示・未解読は?", body.textContent.indexOf("シズミマチ") >= 0 && body.textContent.indexOf("? ? ?") >= 0);
       UI.closeModal();
       UI.openLabPanel("rocket"); body = document.getElementById("modal-body");
-      ok("機能: 宇宙港パネル(建造)", /建造|完成/.test(body.textContent));
+      ok("機能: 宇宙港パネル(建造)", /段階|完成/.test(body.textContent) && (body.querySelector("#hq-rocket") || /完成/.test(body.textContent)));
       UI.closeModal();
       UI.openLabPanel("shelf"); body = document.getElementById("modal-body");
-      ok("機能: 標本棚パネル(Lore/鉱石)", body.querySelector("#hq-lore") && /アメジスト|琥珀/.test(body.textContent));
+      ok("機能: 標本棚パネル(Lore/鉱石アイコン列)", body.querySelector("#hq-lore") && body.querySelectorAll("svg.icon").length >= 6);
+      UI.closeModal();
+      // 設備投資(labInvest・案B): 鉱石を投じるとtierが育つ+後方互換
+      Game.addOre("titaniumOre", 5); Game.addOre("amber", 5);
+      var inv0 = Game.labInvestLv("desks"), tOre0 = Game.ore("titaniumOre");
+      UI.closeModal(); UI.openLabPanel("desks"); body = document.getElementById("modal-body");
+      var invBtn = body.querySelector("#lab-invest-btn");
+      if (invBtn) invBtn.click();
+      ok("投資: 鉱石を投じるとlabInvest+1・鉱石消費・tier連動", Game.labInvestLv("desks") === inv0 + 1 && Game.ore("titaniumOre") === tOre0 - 2 && UI.labTiers().desks === 1 + Game.labInvestLv("desks"), "inv=" + Game.labInvestLv("desks"));
       UI.closeModal();
       // 新着ドット: openHqLabで消える
       Game._badgeHq = true; UI.openHqLab();
@@ -141,10 +149,10 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
 
       // ===== 改修後: 当たり判定の整合(拡大+再配分後・各設備の代表点がそのzoneを返す) =====
       UI.openHqLab();
-      var reps = { desks: [3.2, 3.0], tank: [8.0, 1.6], shelf: [0.6, 5.6], rocket: [9.6, 4.9] };
+      var reps = { desks: [3.2, 3.0], tank: [9.0, 2.0], shelf: [1.2, 6.8], rocket: [10.2, 6.6] };
       for (var zk in reps) {
-        UI._labOff = LAB_OFFS[zk]; var zp = UI._iso(reps[zk][0], reps[zk][1]); UI._labOff = null;
-        ok("判定: " + zk + " の代表点がzone一致(拡大/再配分に追従)", UI._hqlabZoneAt(zp.x, zp.y - 20) === zk, JSON.stringify(zp) + "→" + UI._hqlabZoneAt(zp.x, zp.y - 20));
+        var zp = UI._iso(reps[zk][0], reps[zk][1]); // 低解像度座標(ファミコン方式)
+        ok("判定: " + zk + " の代表点がzone一致(整数倍拡大に追従)", UI._hqlabZoneAt(zp.x, zp.y - 4) === zk, JSON.stringify(zp) + "→" + UI._hqlabZoneAt(zp.x, zp.y - 4));
       }
       // ===== fps実測(フル再描画/静的blit方式の確認) =====
       var t0 = performance.now(); for (var fi = 0; fi < 120; fi++) UI.renderHqLab();

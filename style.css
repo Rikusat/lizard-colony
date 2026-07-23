@@ -1501,6 +1501,9 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 #hqlab-canvas { display: block; border-radius: var(--radius-md); } /* 実寸=領域実寸(renderHqLabが動的確保・CSS拡縮なし=crisp+判定1:1) */
 /* topbar側の「今いる場所」の徴(本部にいる間は本部ボタンが点灯) */
 #btn-hq.at-lab { border-color: var(--amber-500, #C9A227); box-shadow: 0 0 8px var(--amber-glow-soft, rgba(228,188,58,.2)); }
+/* 本部パネル(§5): アイコン+個数のみ。不足=赤字/充足=通常 */
+.lab-cost { display: inline-flex; align-items: center; gap: 2px; margin-right: 8px; font-variant-numeric: tabular-nums; }
+.lab-cost.cost-ng { color: var(--red, #E0533B); }
 
 /* ============ modal ============ */
 #modal {
