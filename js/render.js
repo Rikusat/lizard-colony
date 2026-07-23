@@ -4059,6 +4059,34 @@ const Render = {
     ctx.restore();
   },
 
+  // ホウカン: 頭頂の三尖の金冠。血統=オウゴンヅカの金環→維持(眼の金) / トライアドの三点紋→三尖冠の宝石(三が頂へ昇華)。
+  traitHoukan(ctx, g, def) {
+    const { ex, ey, eyeR } = g;
+    const gold = def.rim || "#E4BC3A";
+    ctx.save();
+    // 眼の金環(オウゴンヅカの面影=維持・細め)
+    ctx.strokeStyle = "rgba(18,10,4,.55)"; ctx.lineWidth = Math.max(1.2, eyeR * 0.5);
+    ctx.beginPath(); ctx.arc(ex, ey, eyeR * 1.6, 0, 7); ctx.stroke();
+    ctx.strokeStyle = gold; ctx.lineWidth = Math.max(0.9, eyeR * 0.32);
+    ctx.beginPath(); ctx.arc(ex, ey, eyeR * 1.6, 0, 7); ctx.stroke();
+    // 三尖の冠(頭頂・中央が高い)。宝石=トライアドの三点の面影
+    const bx = ex - eyeR * 0.4, by = ey - eyeR * 2.7, w = eyeR * 3.0, hMid = eyeR * 2.1, hSide = eyeR * 1.3;
+    ctx.fillStyle = gold; ctx.strokeStyle = "rgba(18,10,4,.6)"; ctx.lineWidth = Math.max(0.8, eyeR * 0.16);
+    ctx.beginPath();
+    ctx.moveTo(bx - w / 2, by);
+    ctx.lineTo(bx - w / 2, by - hSide); ctx.lineTo(bx - w / 6, by - hSide * 0.55);
+    ctx.lineTo(bx, by - hMid); ctx.lineTo(bx + w / 6, by - hSide * 0.55);
+    ctx.lineTo(bx + w / 2, by - hSide); ctx.lineTo(bx + w / 2, by);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // 三点の宝石(各尖の根本)
+    ctx.fillStyle = "#fdf3d0";
+    for (const dx of [-w / 3, 0, w / 3]) { ctx.beginPath(); ctx.arc(bx + dx, by - eyeR * 0.42, eyeR * 0.22, 0, 7); ctx.fill(); }
+    // 深紅の芯線(冠の台座の帯に一筋)
+    ctx.strokeStyle = "#8E1826"; ctx.globalAlpha = 0.85; ctx.lineWidth = Math.max(0.7, eyeR * 0.16);
+    ctx.beginPath(); ctx.moveTo(bx - w / 2 + eyeR * 0.2, by - eyeR * 0.12); ctx.lineTo(bx + w / 2 - eyeR * 0.2, by - eyeR * 0.12); ctx.stroke();
+    ctx.restore();
+  },
+
   drawPlanetAllies(ctx) {
     const st = Game.currentStage && Game.currentStage();
     const a = st && planetAllyOf(st.id);

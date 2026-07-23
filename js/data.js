@@ -741,6 +741,12 @@ const TRAITS = {
     icon: "trait-mumei", tier: 6, synth: true, draw: "traitMumei",
     desc: "白い仮面と薄れる輪郭。藍は白へ反転し、白斑は存在の際まで広がった。",
   },
+  houkan: {
+    key: "houkan", name: "ホウカン", // ★仮称・レシピ=オウゴンヅカ+トライアド
+    color: "#5a4514", rim: "#E4BC3A", // 明るい金(オウゴンヅカより一段明るい=格)
+    icon: "trait-houkan", tier: 6, synth: true, draw: "traitHoukan",
+    desc: "頭に三尖の宝冠。眼の金は冠へ昇り、三つの紋は頂の宝石になった。",
+  },
 };
 
 // ボス種 (GameExpansion_v2 ②)。minRank 到達で抽選プールに加入
