@@ -4030,6 +4030,35 @@ const Render = {
     ctx.restore();
   },
 
+  // ムメイ: 白い仮面+輪郭の破線。血統=ミミカクシの藍の仮面→白へ反転 / ハクシの白斑→輪郭の破線(存在の希薄へ)。
+  traitMumei(ctx, g, def) {
+    const { ex, ey, eyeR, body, L, col } = g;
+    const white = def.rim || "#F3EFE6";
+    ctx.save();
+    // 白い仮面(ミミカクシと同じ幾何=血統が形で読める)
+    const hw = eyeR * 3.4, hh = eyeR * 2.0, cx = ex + eyeR * 0.2, cy = ey + eyeR * 0.15, rot = -0.12;
+    ctx.fillStyle = white; ctx.globalAlpha = 0.94;
+    ctx.beginPath(); ctx.ellipse(cx, cy, hw, hh, rot, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#b9b4a8"; ctx.globalAlpha = 0.7; ctx.lineWidth = Math.max(1, eyeR * 0.3);
+    ctx.beginPath(); ctx.ellipse(cx, cy, hw * 0.96, hh * 0.96, rot, 0, 7); ctx.stroke();
+    // 眼だけ確か(穴から覗く)
+    ctx.globalAlpha = 1; ctx.fillStyle = "#0d0906";
+    ctx.beginPath(); ctx.arc(ex, ey, eyeR * 0.92, 0, 7); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,.8)";
+    ctx.beginPath(); ctx.arc(ex + eyeR * 0.3, ey - eyeR * 0.32, eyeR * 0.28, 0, 7); ctx.fill();
+    // 輪郭の破線(ハクシの"抜け"が際まで広がった=存在の希薄)
+    if (body) {
+      ctx.setLineDash([Math.max(3, L * 0.035), Math.max(3, L * 0.03)]);
+      ctx.strokeStyle = white; ctx.globalAlpha = 0.55; ctx.lineWidth = Math.max(1, L * 0.009);
+      ctx.stroke(body);
+      ctx.setLineDash([]);
+    }
+    // 深紅の芯線(仮面の下縁に一筋)
+    ctx.strokeStyle = "#8E1826"; ctx.globalAlpha = 0.8; ctx.lineWidth = Math.max(0.8, eyeR * 0.2);
+    ctx.beginPath(); ctx.ellipse(cx, cy, hw * 0.9, hh * 0.9, rot, Math.PI * 0.25, Math.PI * 0.72); ctx.stroke();
+    ctx.restore();
+  },
+
   drawPlanetAllies(ctx) {
     const st = Game.currentStage && Game.currentStage();
     const a = st && planetAllyOf(st.id);

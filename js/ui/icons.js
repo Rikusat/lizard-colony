@@ -42,6 +42,8 @@ const ICONS = {
   "trait-hagane": '<path d="M7 8h10l3.5 7H3.5z"/><path d="M4.5 18c2.5-1.8 5-1.8 7.5 0s5 1.8 7.5 0" fill="none"/>',
   // コンテンギ: 交差する軌道環と星点。
   "trait-kontengi": '<circle cx="12" cy="12" r="8" fill="none"/><ellipse cx="12" cy="12" rx="8" ry="3" fill="none"/><ellipse cx="12" cy="12" rx="3" ry="8" fill="none" stroke-opacity=".55"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="10" r="1"/>',
+  // ムメイ: 破線の輪郭の仮面(眼の穴だけ確か)。
+  "trait-mumei": '<path d="M4 9.5c2.6-1.6 13.4-1.6 16 0 .2 4-1.3 6.3-4.6 6.3-1.7 0-2.2-1.2-3.4-1.2s-1.7 1.2-3.4 1.2C5.3 15.8 3.8 13.5 4 9.5z" fill="none" stroke-dasharray="3 2.6"/><circle cx="8.6" cy="11.2" r="1.3"/><circle cx="15.4" cy="11.2" r="1.3"/>',
   // 固定印(S5-b): 鍵=「必ず子へ継がれる」。
   lock: '<rect x="6" y="11" width="12" height="9" rx="2" fill="none"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" fill="none"/><circle cx="12" cy="15.2" r="1.2"/>',
   food: '<path d="M6 13a6 6 0 0 1 12 0v2H6z"/><path d="M5 18h14M8 15v3M12 15v3M16 15v3" fill="none"/>',

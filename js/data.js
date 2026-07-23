@@ -735,6 +735,12 @@ const TRAITS = {
     icon: "trait-kontengi", tier: 6, synth: true, draw: "traitKontengi",
     desc: "体を巡る渾天の環。節輪は軌道になり、網目の灯は星になった。",
   },
+  mumei: {
+    key: "mumei", name: "ムメイ", // ★仮称・レシピ=ミミカクシ+ハクシ
+    color: "#4a4a48", rim: "#F3EFE6", // 無垢の白(ハクシより純度が高い=格)
+    icon: "trait-mumei", tier: 6, synth: true, draw: "traitMumei",
+    desc: "白い仮面と薄れる輪郭。藍は白へ反転し、白斑は存在の際まで広がった。",
+  },
 };
 
 // ボス種 (GameExpansion_v2 ②)。minRank 到達で抽選プールに加入
