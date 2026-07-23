@@ -206,6 +206,8 @@ const CFG = {
   labDeskTiers: [3, 8, 14],   // デスク群: HQ Lv がこの値以上でT2/T3/T4
   labTankTiers: [1, 3, 5],    // 実験用水槽: 解読済みレシピ数でT2/T3/T4
   labShelfTiers: [8, 18, 28], // 標本棚: 図鑑登録数でT2/T3/T4(ロケットはrocket状態から直接導出)
+  labTileScale: 2.0,          // 本部のタイル+設備の一体倍率(大きさ)。★Ric実機調整
+  labFacScale: 1.0,           // 設備のみの追加倍率(比較用・既定1=一体拡大方式)
   genesisFxSec: 1.5,        // 創世エフェクトの尺(深紅の錬成)
   // 群衆対策(表示のみ・収益/戦闘は全個体が対象のまま)
   maxVisibleLizards: 70,    // フィールドに同時表示する上限。超過分は巣穴で休憩
