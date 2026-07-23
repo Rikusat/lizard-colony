@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>本部=研究施設 試作: 白タイルの空の部屋(アイソメ・開発用)</title>
+<style>
+  body { background: #14100d; margin: 0; color: #e8dccb; font-family: system-ui, sans-serif; }
+  h1 { font-size: 15px; padding: 10px 16px 0; margin: 0; font-weight: 600; }
+  p.note { font-size: 12px; padding: 2px 16px 8px; margin: 0; color: #c9b8a2; }
+  canvas { display: block; margin: 0 auto; }
+</style>
+</head>
+<body>
+<h1>本部=研究施設 試作①: 白タイルの空の部屋(hq_lab.md §2 アイソメトリック 2:1・設備なし)</h1>
+<p class="note">まだ何もない実験室の静けさ・清潔さ・少しの寂しさ。ここから設備が増えて発達していく起点。飼育槽(横視点・生命・温かい土)との対比=別の場所。</p>
+<canvas id="lab" width="1000" height="620"></canvas>
+<script>
+// ============================================================
+// アイソメ試作(ゲーム非接続・純スタンドアロン)。承認後に本実装へ移植する基準画。
+// 方式: 2:1菱形タイル(64×32)・painter's algorithm(gx+gy昇順)・全パラメータは下のCFG相当に集約。
+// ============================================================
+const LAB = { // 本実装時は CFG/tokens へ(全CFG化の前提)
+  tileW: 64, tileH: 32,        // 2:1菱形
+  cols: 12, rows: 9,           // 床の広さ
+  originX: 500, originY: 150,  // 部屋の頂点(奥角)のスクリーン座標
+  wallH: 92,                   // 背面壁の高さ
+  tile: "#e9e7e1", tileAlt: "#e2dfd8", seam: "#c9c5bb",   // 白タイル(わずかな市松+目地)
+  tileEdge: "#b5b1a6",         // 床の縁(部屋の輪郭)
+  wall: "#dcd9d2", wallDk: "#cfccc4", wallBase: "#b8b4a9", // 壁(奥2面・別トーンで面を分ける)
+  light: "rgba(210, 225, 235, .10)", // 天井灯の冷たい光だまり
+  vig: 0.34,                   // ヴィネット(静けさ)
+};
+const iso = (gx, gy) => ({ x: LAB.originX + (gx - gy) * LAB.tileW / 2, y: LAB.originY + (gx + gy) * LAB.tileH / 2 });
+const cv = document.getElementById("lab"), ctx = cv.getContext("2d");
+
+function drawRoom(c) {
+  c.clearRect(0, 0, cv.width, cv.height);
+  // 背景(部屋の外=無): 冷たい闇
+  const bg = c.createLinearGradient(0, 0, 0, cv.height);
+  bg.addColorStop(0, "#191d20"); bg.addColorStop(1, "#0e0c0b");
+  c.fillStyle = bg; c.fillRect(0, 0, cv.width, cv.height);
+
+  // --- 奥の壁2面(左奥=gx軸に沿う / 右奥=gy軸に沿う) ---
+  const A = iso(0, 0), B = iso(LAB.cols, 0), D = iso(0, LAB.rows);
+  c.fillStyle = LAB.wall; // 右奥の面(A-B)
+  c.beginPath(); c.moveTo(A.x, A.y - LAB.wallH); c.lineTo(B.x, B.y - LAB.wallH); c.lineTo(B.x, B.y); c.lineTo(A.x, A.y); c.closePath(); c.fill();
+  c.fillStyle = LAB.wallDk; // 左奥の面(A-D・わずかに暗く=面の向き)
+  c.beginPath(); c.moveTo(A.x, A.y - LAB.wallH); c.lineTo(D.x, D.y - LAB.wallH); c.lineTo(D.x, D.y); c.lineTo(A.x, A.y); c.closePath(); c.fill();
+  c.strokeStyle = LAB.wallBase; c.lineWidth = 2; // 幅木(壁と床の境)
+  c.beginPath(); c.moveTo(D.x, D.y); c.lineTo(A.x, A.y); c.lineTo(B.x, B.y); c.stroke();
+  c.strokeStyle = "rgba(255,255,255,.35)"; c.lineWidth = 1; // 壁の上端のハイライト(清潔さ)
+  c.beginPath(); c.moveTo(D.x, D.y - LAB.wallH); c.lineTo(A.x, A.y - LAB.wallH); c.lineTo(B.x, B.y - LAB.wallH); c.stroke();
+
+  // --- 床タイル(奥→手前: gx+gy昇順 = painter's algorithm) ---
+  const order = [];
+  for (let gx = 0; gx < LAB.cols; gx++) for (let gy = 0; gy < LAB.rows; gy++) order.push([gx, gy]);
+  order.sort((p, q) => (p[0] + p[1]) - (q[0] + q[1]));
+  for (const [gx, gy] of order) {
+    const p0 = iso(gx, gy), p1 = iso(gx + 1, gy), p2 = iso(gx + 1, gy + 1), p3 = iso(gx, gy + 1);
+    c.fillStyle = (gx + gy) % 2 === 0 ? LAB.tile : LAB.tileAlt; // わずかな市松(単調さを消す・主張しない)
+    c.beginPath(); c.moveTo(p0.x, p0.y); c.lineTo(p1.x, p1.y); c.lineTo(p2.x, p2.y); c.lineTo(p3.x, p3.y); c.closePath(); c.fill();
+    c.strokeStyle = LAB.seam; c.lineWidth = 1; c.stroke(); // 目地
+  }
+  // 床の縁(手前2辺=部屋の輪郭を立てる)
+  const C2 = iso(LAB.cols, LAB.rows);
+  c.strokeStyle = LAB.tileEdge; c.lineWidth = 2.5;
+  c.beginPath(); c.moveTo(B.x, B.y); c.lineTo(C2.x, C2.y); c.lineTo(D.x, D.y); c.stroke();
+
+  // --- 天井灯の光だまり(中央にひとつ=まだ設備のない部屋の静けさ) ---
+  const M = iso(LAB.cols / 2, LAB.rows / 2);
+  const g = c.createRadialGradient(M.x, M.y, 10, M.x, M.y, 190);
+  g.addColorStop(0, LAB.light); g.addColorStop(1, "rgba(210,225,235,0)");
+  c.fillStyle = g; c.beginPath(); c.ellipse(M.x, M.y, 210, 105, 0, 0, 7); c.fill();
+
+  // --- ヴィネット(少しの寂しさ) ---
+  const v = c.createRadialGradient(cv.width / 2, cv.height / 2, cv.height * 0.35, cv.width / 2, cv.height / 2, cv.height * 0.85);
+  v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, `rgba(0,0,0,${LAB.vig})`);
+  c.fillStyle = v; c.fillRect(0, 0, cv.width, cv.height);
+}
+
+// --- fps実測: フル再描画 と 事前描画+1blit(本実装方式=§8.15スプライトキャッシュと同型) ---
+drawRoom(ctx);
+const N = 300;
+let t0 = performance.now();
+for (let i = 0; i < N; i++) drawRoom(ctx);
+const fullMs = (performance.now() - t0) / N;
+const off = document.createElement("canvas"); off.width = cv.width; off.height = cv.height;
+drawRoom(off.getContext("2d"));
+t0 = performance.now();
+for (let i = 0; i < N; i++) ctx.drawImage(off, 0, 0);
+const blitMs = (performance.now() - t0) / N;
+drawRoom(ctx);
+const msg = `fps実測(${N}フレーム平均): フル再描画=${(1000 / fullMs).toFixed(0)}fps(${fullMs.toFixed(2)}ms) / 事前描画+1blit=${(1000 / blitMs).toFixed(0)}fps(${blitMs.toFixed(3)}ms)`;
+console.log("[HQLAB] " + msg);
+ctx.fillStyle = "#c9b8a2"; ctx.font = "12px system-ui"; ctx.fillText(msg, 16, 604);
+// 逆等角変換(当たり判定の実証・O(1)): スクリーン→グリッド
+const unproject = (sx, sy) => {
+  const dx = (sx - LAB.originX) / (LAB.tileW / 2), dy = (sy - LAB.originY) / (LAB.tileH / 2);
+  return { gx: Math.floor((dy + dx) / 2), gy: Math.floor((dy - dx) / 2) };
+};
+const M2 = iso(5, 3), hit = unproject(M2.x + 2, M2.y + 2);
+console.log(`[HQLAB] 逆等角変換の検算: iso(5,3)→screen→grid(${hit.gx},${hit.gy}) ${hit.gx === 5 && hit.gy === 3 ? "OK" : "NG"}`);
+</script>
+</body>
+</html>
