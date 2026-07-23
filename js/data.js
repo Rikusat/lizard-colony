@@ -692,6 +692,12 @@ const TRAITS = {
     icon: "trait-hyoga", tier: 2, draw: "traitHyoga",
     desc: "鱗の縁が霜のように白む。前線を越えて生き延びた証。",
   },
+  yougan: {
+    key: "yougan", name: "ヨウガン", // ★仮称・主題=⑤高炉の火
+    color: "#5a241a", rim: "#E0533B", // rim=UISkills 熔岩(boss-500と同値だが意味は惑星アクセント)
+    icon: "trait-yougan", tier: 3, draw: "traitYougan",
+    desc: "背の亀裂から熱色が覗く。冷えても消えない炉の記憶。",
+  },
 };
 
 // ボス種 (GameExpansion_v2 ②)。minRank 到達で抽選プールに加入

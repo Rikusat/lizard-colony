@@ -3885,6 +3885,26 @@ const Render = {
     ctx.restore();
   },
 
+  // ヨウガン(tier3): 背に走る亀裂から熱色が覗く(暗い裂け目+中に熔岩色+微グロー)。手法=裂け目の質感。
+  traitYougan(ctx, g, def) {
+    const { S, L } = g; if (!S) return;
+    const c = def.rim || "#E0533B";
+    ctx.save(); ctx.lineCap = "round";
+    for (const [t0, len, ang] of [[0.50, 0.11, -0.5], [0.60, 0.14, 0.35], [0.72, 0.09, -0.25]]) {
+      const s = S(t0);
+      const bx = s.p.x + s.n.x * s.w * 0.5 * s.u, by = s.p.y + s.n.y * s.w * 0.5 * s.u;
+      const dx = Math.cos(ang) * L * len, dy = Math.sin(ang) * L * len * 0.4;
+      // 暗い裂け目(下地)→中の熱色(細)→芯の明色
+      ctx.globalAlpha = 1; ctx.strokeStyle = "rgba(18,8,4,.8)"; ctx.lineWidth = Math.max(1.8, L * 0.02);
+      ctx.beginPath(); ctx.moveTo(bx - dx / 2, by - dy / 2); ctx.lineTo(bx - dx * 0.1, by + dy * 0.2); ctx.lineTo(bx + dx / 2, by + dy / 2); ctx.stroke();
+      ctx.shadowColor = c; ctx.shadowBlur = 3; ctx.strokeStyle = c; ctx.lineWidth = Math.max(1, L * 0.010);
+      ctx.beginPath(); ctx.moveTo(bx - dx / 2, by - dy / 2); ctx.lineTo(bx - dx * 0.1, by + dy * 0.2); ctx.lineTo(bx + dx / 2, by + dy / 2); ctx.stroke();
+      ctx.shadowBlur = 0; ctx.globalAlpha = 0.8; ctx.strokeStyle = "#ffb37a"; ctx.lineWidth = Math.max(0.6, L * 0.004);
+      ctx.beginPath(); ctx.moveTo(bx - dx * 0.32, by - dy * 0.3); ctx.lineTo(bx - dx * 0.1, by + dy * 0.2); ctx.stroke();
+    }
+    ctx.restore();
+  },
+
   drawPlanetAllies(ctx) {
     const st = Game.currentStage && Game.currentStage();
     const a = st && planetAllyOf(st.id);

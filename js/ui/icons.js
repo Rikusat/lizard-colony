@@ -27,6 +27,8 @@ const ICONS = {
   "trait-shinkai": '<path d="M4 7c2-1.6 4-1.6 6 0s4 1.6 6 0 3-1.2 4 0" fill="none"/><circle cx="7" cy="13" r="1.4"/><circle cx="12" cy="15.5" r="1.4"/><circle cx="17" cy="13.5" r="1.4"/><circle cx="9.6" cy="18.4" r="1"/><circle cx="14.6" cy="19" r="1"/>',
   // ヒョウガ: 結晶(霜)の六枝。
   "trait-hyoga": '<path d="M12 3v18M5 7.5l14 9M19 7.5l-14 9M12 6.4l-2-2M12 6.4l2-2M12 17.6l-2 2M12 17.6l2 2" fill="none"/>',
+  // ヨウガン: 岩塊に走る亀裂(稲妻状の裂け目)。
+  "trait-yougan": '<path d="M5 18 4 10l4-5.5L15 4l5 4.5.8 7L17 20l-8 .8z" fill="none"/><path d="M8 6.5l2.6 4-1.8 3 2.8 4.4M14.6 5l-1 4.2 3 2.6-1.2 4.6" fill="none"/>',
   // 固定印(S5-b): 鍵=「必ず子へ継がれる」。
   lock: '<rect x="6" y="11" width="12" height="9" rx="2" fill="none"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" fill="none"/><circle cx="12" cy="15.2" r="1.2"/>',
   food: '<path d="M6 13a6 6 0 0 1 12 0v2H6z"/><path d="M5 18h14M8 15v3M12 15v3M16 15v3" fill="none"/>',
