@@ -428,10 +428,11 @@ const Game = {
   stoneGenesisCost(tier) { return CFG.stoneGenesisBase + (tier || 1); }, // レア特性(tier高)ほど多くの石
   hasTrait(lz, key) { return !!(lz.traits && lz.traits.some((t) => (t && t.key ? t.key : t) === key)); },
   // この個体に創世できる特性key(未所持・上限3未満・非レジェンダリー時)。石不足でも候補は返す(UIはグレー表示)。
+  //   合成専用特性(synth)は創世できない=合成(§8)でしか手に入らない「到達の証」。
   createableTraits(lz) {
     if (!lz || lz.morphId === "legendary" || typeof TRAITS === "undefined") return [];
     if ((lz.traits || []).length >= CFG.traitMaxPerLizard) return [];
-    return Object.keys(TRAITS).filter((k) => !this.hasTrait(lz, k));
+    return Object.keys(TRAITS).filter((k) => !TRAITS[k].synth && !this.hasTrait(lz, k));
   },
   genesisTrait(lz, key, silent) {
     if (!lz || lz.morphId === "legendary") { if (!silent) UI.toast("レジェンダリーには特性を宿せない", true); return false; }
