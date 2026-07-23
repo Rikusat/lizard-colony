@@ -200,6 +200,49 @@ function drawRocket(c, o, tier, pos) {
   }
 }
 
+// ---------------- 設備: 標本棚/記録(特性図鑑・Lore・鉱石標本) ----------------
+// tier成長: T1 棚1つ → T2 標本瓶の列 → T3 資料棚+星図 → T4 記録の間。左壁沿い・静かな収蔵の気配。
+const SHELF = {
+  frame: { top: "#cfccc4", left: "#aaa69b", right: "#9a968c", line: "rgba(90,86,78,.45)" },
+  board: "#b8b4a9", jar: "rgba(168,205,218,.55)", jarLid: "#9aa0a5",
+  chart: "#2c3440", star: "#dfe8f0", chartLine: "rgba(160,190,215,.35)",
+};
+function shelfUnit(c, o, gx, gy, tiers) { // 左壁沿いの棚(NE面がこちらを向く)
+  shadowPatch(c, o, gx, gy, 0.5, 1.1);
+  const H = 66;
+  isoBox(c, o, gx, gy, 0.5, 1.1, H, SHELF.frame);
+  // 棚板(NE面に3段)と標本瓶
+  for (let i = 1; i <= 3; i++) {
+    const y = H * i / 3.6;
+    const a = iso(gx + 0.5, gy + 0.06, o), b = iso(gx + 0.5, gy + 1.04, o);
+    c.strokeStyle = SHELF.board; c.lineWidth = 1.6;
+    c.beginPath(); c.moveTo(a.x, a.y - y); c.lineTo(b.x, b.y - y); c.stroke();
+    if (tiers >= 2) for (let j = 0; j < 3 + (i % 2); j++) { // 標本瓶(小さな円筒)
+      const p = iso(gx + 0.5, gy + 0.18 + j * 0.24, o);
+      c.fillStyle = SHELF.jar; c.fillRect(p.x - 2.2, p.y - y - 8, 4.4, 8);
+      c.fillStyle = SHELF.jarLid; c.fillRect(p.x - 2.2, p.y - y - 9.5, 4.4, 1.8);
+    }
+  }
+}
+function drawShelf(c, o, tier) {
+  shelfUnit(c, o, 0.3, 4.6, tier);
+  if (tier >= 4) shelfUnit(c, o, 0.3, 6.0, tier); // 記録の間=棚が並ぶ
+  if (tier >= 3) { // 星図(左奥の壁に掛かる・静かな紺)
+    const a = iso(0, 5.0, o), b = iso(0, 6.6, o);
+    const w = { x: b.x - a.x, y: b.y - a.y };
+    c.save();
+    c.fillStyle = SHELF.chart;
+    c.beginPath(); c.moveTo(a.x + 2, a.y - 72); c.lineTo(b.x + 2, b.y - 72); c.lineTo(b.x + 2, b.y - 30); c.lineTo(a.x + 2, a.y - 30); c.closePath(); c.fill();
+    c.strokeStyle = SHELF.chartLine; c.lineWidth = 1; // 星座線(2本・説明しない)
+    c.beginPath(); c.moveTo(a.x + 8, a.y - 62); c.lineTo(a.x + w.x * 0.4, a.y + w.y * 0.4 - 48); c.lineTo(a.x + w.x * 0.75, a.y + w.y * 0.75 - 58); c.stroke();
+    c.fillStyle = SHELF.star;
+    for (const [fx, fy] of [[0.12, -60], [0.4, -46], [0.75, -56], [0.55, -38], [0.88, -44], [0.25, -35]]) {
+      c.beginPath(); c.arc(a.x + w.x * fx, a.y + w.y * fx + fy, 1.1, 0, 7); c.fill();
+    }
+    c.restore();
+  }
+}
+
 // ---------------- 部屋 ----------------
 function drawRoom(c, W, H, o, opts) {
   opts = opts || {};
@@ -228,6 +271,7 @@ function drawRoom(c, W, H, o, opts) {
   // 設備(奥→手前の順で描く)
   if (opts.aqua) drawAqua(c, o, opts.aqua);
   if (opts.desks) drawDesks(c, o, opts.desks);
+  if (opts.shelf) drawShelf(c, o, opts.shelf);
   if (opts.rocket) drawRocket(c, o, opts.rocket, opts.rocketPos);
   if (!opts.noLight) {
     const M = iso(cols / 2, rows / 2, o);
@@ -244,7 +288,7 @@ function drawRoom(c, W, H, o, opts) {
 
 // ---------------- メイン(最大tier)+tier成長ストリップ ----------------
 const cv = document.getElementById("lab"), ctx = cv.getContext("2d");
-const ROOM_OPTS = { desks: 4, aqua: 4, rocket: 4 };
+const ROOM_OPTS = { desks: 4, aqua: 4, shelf: 4, rocket: 4 };
 drawRoom(ctx, cv.width, cv.height, { x: LAB.originX, y: LAB.originY }, ROOM_OPTS);
 // fps実測(設備込みフル再描画 / 事前描画+1blit)
 const N = 300;
@@ -279,6 +323,7 @@ function addStrip(title, key, caps, opt) {
 }
 addStrip("パソコンデスク群(研究) — tier成長", "desks", ["T1 机1+端末1", "T2 3台の島", "T3 多面モニタの解析卓", "T4 サーバーラック併設"]);
 addStrip("実験用水槽(合成の場) — tier成長", "aqua", ["T1 小さなガラス水槽", "T2 培養槽+配管", "T3 錬成槽(深紅の光)", "T4 複数槽の実験区画"], { shiftX: -220 });
+addStrip("標本棚/記録(特性図鑑・Lore) — tier成長", "shelf", ["T1 棚1つ", "T2 標本瓶の列", "T3 資料棚+星図", "T4 記録の間"], { shiftX: 60, extra: { noWall: false } });
 addStrip("ロケット(クリア目標) — tier成長", "rocket", ["T1 部品置き場", "T2 骨組み", "T3 機体", "T4 完成(発射可能)"], { shiftY: 30, extra: { rocketPos: { gx: 2.2, gy: 2.2 } } });
 </script>
 </body>
