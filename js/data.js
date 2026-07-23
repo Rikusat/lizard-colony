@@ -686,6 +686,12 @@ const TRAITS = {
     icon: "trait-shinkai", tier: 2, draw: "traitShinkai",
     desc: "体側に生体発光の点が連なる。暗い水の底で交わした合図。",
   },
+  hyoga: {
+    key: "hyoga", name: "ヒョウガ", // ★仮称・主題=⑧氷の前線
+    color: "#2e4a56", rim: "#7FC7DE", // rim=UISkills 氷水
+    icon: "trait-hyoga", tier: 2, draw: "traitHyoga",
+    desc: "鱗の縁が霜のように白む。前線を越えて生き延びた証。",
+  },
 };
 
 // ボス種 (GameExpansion_v2 ②)。minRank 到達で抽選プールに加入

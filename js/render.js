@@ -3862,6 +3862,29 @@ const Render = {
     ctx.restore();
   },
 
+  // ヒョウガ(tier2): 鱗の縁=背の輪郭に沿って霜のように白む(氷水色の縁線+小さな霜の棘)。質感=縁。
+  traitHyoga(ctx, g, def) {
+    const { S, L } = g; if (!S) return;
+    const c = def.rim || "#7FC7DE";
+    ctx.save();
+    ctx.strokeStyle = c; ctx.globalAlpha = 0.85; ctx.lineCap = "round";
+    ctx.lineWidth = Math.max(1, L * 0.012);
+    ctx.beginPath(); // 背の縁をなぞる霜のライン
+    for (let i = 0; i <= 12; i++) {
+      const s = S(0.44 + i * 0.035);
+      const bx = s.p.x + s.n.x * s.w * 0.99 * s.u, by = s.p.y + s.n.y * s.w * 0.99 * s.u;
+      i === 0 ? ctx.moveTo(bx, by) : ctx.lineTo(bx, by);
+    }
+    ctx.stroke();
+    ctx.fillStyle = "#eaf6fb"; // 霜の粒(白)
+    for (let i = 0; i < 5; i++) {
+      const s = S(0.47 + i * 0.085);
+      const bx = s.p.x + s.n.x * s.w * 0.92 * s.u, by = s.p.y + s.n.y * s.w * 0.92 * s.u;
+      ctx.beginPath(); ctx.arc(bx, by, Math.max(0.9, L * 0.009), 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  },
+
   drawPlanetAllies(ctx) {
     const st = Game.currentStage && Game.currentStage();
     const a = st && planetAllyOf(st.id);
