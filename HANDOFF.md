@@ -1879,6 +1879,7 @@ Ric検出: `test-integration.html` が **9 PASS/1 FAIL**(「ID6のsnakeボス(�
 - **切り分け(実測・推測せず)**: アサーション=`aadef20`(7/21・旧②方式=脅威型一致時のみ署名描画)で記述→仕様=`7715cbf`(7/22・§5ii署名主役化・Ric承認「ボス時は常に署名の姿=汎用の姿ゼロ」)で意図的に変更→テストはそれ以降未更新(最終更新`2320642`=仕様変更前)。現行実装はrender.jsコメント+node2スイート(phase6/boss_roster)が新仕様を固定済み。**判定=【古くなったテスト】・本物の回帰ではない**。
 - **修正**: 期待値を現行仕様へ更新(更新履歴コメント=なぜ変わったかを明記)+非bossケース1件追加 → **11/11 PASS**(headless実測)。ID6署名の表記もmonitor→spider(§5ii配役)へ追随。
 - **【設計恒久ルール・Ric裁定 2026-07-24(§5nnn)】給餌の自動化は「クランク経路(state.dial.auto→feedAll)」のみ。巣・施設・その他いかなる経路にも自動給餌を作らない。** 旧「§8.12 巣の自動給餌」は想定外の機構と裁定され機構ごと撤廃(ゲート復活ではない)。再実装禁止=`tests/feed_discipline_regression.js`が恒久監視(無操作tickで給餌0)。
+- **【デプロイ恒久ルール・Ric裁定 2026-07-24】deployは指示された変更のみを含むツリーで行う。未出荷コミットが同乗する場合はデプロイ前に列挙申告し個別承認を得る。緊急修正は原則単独デプロイ。**(由来: §5wwwでresearchBonus修正がDev.grantデプロイに同乗した事例)
 - **【QAゲート常設・恒久ルール】** デプロイ前・大きな変更後のQAは**node+ブラウザの両方**を必ず回す。「全スイートPASS」は両方を指す:
   - **node**: tests/*.js 全部(**現在13本**=再監査②`roulette_prize_regression.js`+裁定§5nnn`feed_discipline_regression.js`+§5uuu`cfg_sanity_regression.js`追加・2026-07-24。※それ以前の「11本」表記は誤記=Ric指摘で実測訂正: git全期間で削除0件・§5ddd記載時点は10本)
   - **ブラウザ(headless Chrome・titleがPASS n/FAIL m)**: ①`test-integration.html`=実UI/実DOM/実Roulette経路(報酬フロー/署名描画ゲート§5ii/引き連れUI撤去/Gold漏れ§5aa) ②`test-hqlab-qa.html`(3解像度・#nowで実時間fps)=本部の canvas往復/滞在中進行/12機能実操作/合成・投資実クリック/当たり判定
