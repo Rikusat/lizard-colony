@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>S3③ 繁殖ピッカーの特性チップ+固定印(開発用・モック個体)</title>
+<!-- 実UI/実DOMで繁殖ピッカーを開き、4パターン(2枚持ち+固定印/1枚/なし/レジェンダリー)を1画面で確認する。
+     localStorageは下でサンドボックス化=本セーブに一切触れない(読みも書きもメモリ内のみ)。.vercelignoreでdev限定。 -->
+<script>
+// 本セーブ非接触の保証: 実localStorageを遮断しメモリ実装に差し替え(スクリプト読込より先に実行)
+(function () {
+  const mem = {};
+  const shim = { getItem: (k) => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: (k) => { delete mem[k]; }, clear: () => { for (const k in mem) delete mem[k]; } };
+  Object.defineProperty(window, "localStorage", { value: shim, configurable: false });
+})();
+</script>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="style.css">
+<style>#modal-box{animation:none !important} /* headlessスクショ用: virtual-timeでmodal-inが凍結するため */
+#note{position:fixed;left:8px;bottom:8px;z-index:99999;background:rgba(13,10,6,.9);color:#c9b8a2;font:12px system-ui;padding:8px 12px;border-radius:8px}</style>
+</head>
+<body>
+<div id="note">S3③ モック確認: ①ミミカクシ(固定印)+ハガネ ②シンカイのみ ③特性なし ④レジェンダリー(チップ領域ごと不在)</div>
+<header id="topbar"><div id="brand"></div>
+  <div class="res"><b id="ui-coins">0</b><small id="ui-cps"></small></div>
+  <div class="res"><b id="ui-crickets-top">0</b></div><div class="res"><b id="ui-gems">0</b></div><div class="res"><b id="ui-stones">0</b></div>
+  <nav><button id="btn-map"></button><button id="btn-hq"></button><span id="hq-badge"></span><button id="btn-dex"></button><span id="dex-badge"></span>
+  <button id="btn-missions"></button><span id="mission-badge"></span><button id="btn-stats"></button><span id="stats-badge"></span><button id="btn-settings"></button></nav>
+</header>
+<div id="hq-bar"><div id="rank-bar"></div><span id="hq-bar-label"><b id="ui-rank">1</b></span></div>
+<main><aside id="left"><div class="card"><button id="btn-cricket"><span id="cricket-lot-lbl"></span></button><button id="btn-fac"></button></div>
+  <div id="slit-device"><canvas id="slit-canvas"></canvas></div></aside>
+  <section id="center"><div id="frame"><canvas id="game" width="1280" height="720"></canvas>
+    <div id="raid-hud"><div class="rh-line"><span id="raid-timer"></span></div><div id="next-boss" class="hidden"></div><button id="btn-raid-now"></button></div>
+    <div id="toasts"></div></div><div id="raid-banner" class="hidden"></div><div id="detail" class="hidden"></div></section></main>
+<section id="hqlab" class="hidden"><header id="hqlab-head"><button id="hqlab-back">←</button><h2>本部</h2><span id="hqlab-lv"></span></header>
+  <div id="hqlab-wrap"><canvas id="hqlab-canvas" width="1000" height="620"></canvas></div></section>
+<div id="modal" class="hidden"><div id="modal-box"><header><h2 id="modal-title"></h2><button id="modal-close">×</button></header><div id="modal-body"></div></div></div>
+
+<script src="js/data.js"></script><script src="js/game.js"></script><script src="js/render.js"></script>
+<script src="js/roulette.js"></script><script src="js/slit.js"></script>
+<script src="js/ui/core.js"></script><script src="js/ui/icons.js"></script><script src="js/ui/components.js"></script><script src="js/ui/motion.js"></script>
+<script src="js/ui/hero/hero.js"></script><script src="js/ui/hero/nest-reveal.js"></script><script src="js/ui/hero/boss.js"></script>
+<script src="js/ui/hero/meteorite.js"></script><script src="js/ui/hero/rocket.js"></script><script src="js/ui/hero/legend.js"></script>
+<script src="js/ui/hero/species-reveal.js"></script><script src="js/ui/hero/boss-reward.js"></script>
+<script src="js/ui/screens/main.js"></script><script src="js/ui/screens/feeder-skins.js"></script><script src="js/ui/screens/feeder.js"></script>
+<script src="js/ui/screens/roulette.js"></script><script src="js/ui/screens/slit.js"></script><script src="js/ui/screens/breeding.js"></script>
+<script src="js/ui/screens/equipment.js"></script><script src="js/ui/screens/planet-map.js"></script><script src="js/ui/screens/nest.js"></script>
+<script src="js/ui/screens/hq.js"></script><script src="js/ui/screens/hqlab.js"></script><script src="js/ui/screens/dex.js"></script><script src="js/ui/screens/meta.js"></script><script src="js/ui/boot.js"></script>
+<script>
+// モック個体を構成(メモリ内newGame=サンドボックスlocalStorage。本セーブは遮断済みで読まれも書かれもしない)
+window.addEventListener("load", () => setTimeout(() => {
+  Game.newGame();
+  Game.state.coins = 999999;
+  const mk = (name, morph, traits, fixed) => {
+    const sp = SPECIES.find((s) => s.id === "kanahebi");
+    const lz = Game.makeLizard(sp.id, morph, { hue: sp.hue, sat: sp.sat, light: sp.light, pattern: "stripe", traits }, "adult");
+    lz.injuredT = 0; lz.breedCd = 0; lz._mockName = name;
+    if (fixed) lz.fixedTraits = fixed;
+    Game.addLizard(lz, true);
+    return lz;
+  };
+  const host = Game.state.lizards[0]; host.injuredT = 0; host.breedCd = 0; // 相手選択の主
+  Game.state.lizards = [host]; // 候補を4パターンだけに固定(スクショの走査性)
+  mk("①2枚持ち+固定", "normal", [{ key: "mimikakushi" }, { key: "hagane" }], ["mimikakushi"]); // 固定印+合成専用特性
+  mk("②1枚(固定なし)", "normal", [{ key: "shinkai" }]);
+  mk("③特性なし", "normal", []);
+  mk("④レジェンダリー", "legendary", []);
+  UI.openBreedPicker(host);
+}, 250));
+</script>
+</body>
+</html>

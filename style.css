@@ -1511,6 +1511,27 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 .cv-btn .cv-to { font-weight: 700; display: inline-flex; align-items: center; gap: 2px; }
 .cv-btn .cv-to .icon { width: 1.3em; height: 1.3em; }
 
+/* ============ S3③ 繁殖ピッカーの特性チップ(表示のみ・寸法は全てここで調整=Ric実機) ============ */
+:root {
+  --tchip-area-w: 172px;   /* チップ領域の幅(行の走査性=全行で揃える) */
+  --tchip-fs: 11px;        /* チップ文字サイズ */
+  --tchip-icon: 1.05em;    /* 特性ロゴの大きさ */
+  --tchip-gap: 4px;        /* チップ間の余白 */
+  --tchip-seal: 0.95em;    /* 固定印の大きさ(小さく静かに) */
+  --breedrow-minh: 44px;   /* 候補行の最小高(特性なしでも高さを揃える) */
+}
+.list-row.breed-cand { min-height: var(--breedrow-minh); }
+.tchips { display: inline-flex; align-items: center; gap: var(--tchip-gap); width: var(--tchip-area-w); min-width: var(--tchip-area-w); overflow: hidden; }
+.tchip {
+  display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;
+  padding: 2px 7px 2px 5px; border-radius: var(--radius-pill, 999px);
+  background: linear-gradient(160deg, rgba(51, 38, 28, .95), rgba(36, 24, 18, .95));
+  border: 1px solid var(--ink-600, #4A3728); border-left: 2px solid var(--tc, #7c93d4);
+  font-size: calc(var(--tchip-fs) * var(--fs-scale, 1)); color: var(--paper-100, #F3E9D8);
+}
+.tchip .icon { width: var(--tchip-icon); height: var(--tchip-icon); color: var(--tc, #7c93d4); }
+.tchip .tc-seal { width: var(--tchip-seal); height: var(--tchip-seal); color: var(--stone-hi, #8E1826); margin-left: 1px; } /* 固定印=深紅・気配だけ */
+
 /* ============ modal ============ */
 #modal {
   position: fixed; inset: 0; background: var(--glass-bg);

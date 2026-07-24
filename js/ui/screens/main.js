@@ -132,6 +132,19 @@ Object.assign(UI, {
       </div>`;
   },
 
+  // S3③: 繁殖ピッカーの特性チップ(表示のみ・読み取り専用)。相手選択の時点で特性の有無と固定印が見える=2枚持ち=合成への道筋。
+  //   仕様: チップ=特性カードの縮小流用(ロゴ+名・最大2枚)/固定印=賢者の石の系譜(fix-seal・深紅・小さく静かに)/
+  //   確率・%は一切出さない/特性なし=空欄の領域を保持(行高を揃える)/レジェンダリー=領域ごと不在(横並びの外の別格)。
+  breedTraitChips(o) {
+    if (o.morphId === "legendary") return ""; // 領域ごと不在
+    const ks = (o.traits || []).map((t) => (t && t.key ? t.key : t)).filter((k) => typeof TRAITS !== "undefined" && TRAITS[k]).slice(0, 2);
+    const chips = ks.map((k) => {
+      const d = TRAITS[k];
+      return `<span class="tchip" style="--tc:${d.rim || d.color}">${Icon.svg(d.icon)}<span>${d.name}</span>${Game.isFixed(o, k) ? Icon.svg("fix-seal", "tc-seal") : ""}</span>`;
+    }).join("");
+    return `<span class="tchips">${chips}</span>`;
+  },
+
   // S3: 個体の特性を「特性カード」で表示(UISkills §12)。各特性=色アクセント＋SVGロゴ＋名＋固定印。無印は控えめに「特性なし」。
   traitCardsHtml(lz) {
     const ks = (lz.traits || []).map((t) => (t && t.key ? t.key : t)).filter((k) => typeof TRAITS !== "undefined" && TRAITS[k]);
@@ -230,10 +243,11 @@ Object.assign(UI, {
         const sp = speciesById(o.speciesId), mo = morphById(o.morphId), col = Render.lizardColor(o);
         const cost = Game.breedCost(lz, o);
         const row = document.createElement("div");
-        row.className = "list-row";
+        row.className = "list-row breed-cand";
         row.innerHTML =
           `<span class="sw" style="display:inline-block;width:18px;height:12px;border-radius:6px;background:${col.css};border:1px solid #0006"></span>` +
           `<div class="grow"><b>${Game.lizardName(o)}</b><div class="desc">${"★".repeat(sp.stars)} ${mo.name} / Lv${o.level || 1}</div></div>` +
+          this.breedTraitChips(o) +
           `<button ${Game.state.coins < cost ? "disabled" : ""}>${Icon.svg("coin")}${fmt(cost)}</button>`;
         row.querySelector("button").addEventListener("click", () => {
           if (Game.breed(lz.id, o.id)) { this.closeModal(); }
