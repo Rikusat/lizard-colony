@@ -1531,14 +1531,9 @@ body.dread #frame { border-color: rgba(224, 83, 59, calc(.6 * var(--dread))); }
 }
 .tchip .icon { width: var(--tchip-icon); height: var(--tchip-icon); color: var(--tc, #7c93d4); }
 .tchip .tc-seal { width: var(--tchip-seal); height: var(--tchip-seal); color: var(--stone-hi, #8E1826); margin-left: 1px; } /* 固定印=深紅・気配だけ */
-/* 仕上げ2: レジェンダリー名の虹の系譜(微細装飾・走査性優先=虹グラデ全面禁止)。案A/案B併存→Ric選択後に一本化 */
-.leg-name--a { color: var(--amber-400, #E4BC3A); } /* 案A: 名前=琥珀+前置✦(暖・静かな金の格) */
-.leg-name--a::before { content: "✦ "; }
-.leg-name--b::before { /* 案B: 名前=通常色のまま・✦1文字だけ七色(legendary-tagの縮小引用) */
-  content: "✦ ";
-  background: linear-gradient(90deg, #E4BC3A, #7BD986, #4FC3E8, #9B6BD6, #E0533B);
-  -webkit-background-clip: text; background-clip: text; color: transparent;
-}
+/* 仕上げ2(Ric選択=案A・2026-07-24): レジェンダリー名=琥珀+前置✦(暖・静かな金の格・虹グラデ全面禁止=走査性維持) */
+.leg-name { color: var(--amber-400, #E4BC3A); }
+.leg-name::before { content: "✦ "; }
 
 /* ============ modal ============ */
 #modal {

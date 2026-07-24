@@ -1714,6 +1714,7 @@ Ric検出: `test-integration.html` が **9 PASS/1 FAIL**(「ID6のsnakeボス(�
   - **node**: tests/*.js 全部(現在10本。※初出時「11本」は誤記=2026-07-24 Ric指摘で実測訂正: git全期間で削除0件・§5ddd記載時点も10本)
   - **ブラウザ(headless Chrome・titleがPASS n/FAIL m)**: ①`test-integration.html`=実UI/実DOM/実Roulette経路(報酬フロー/署名描画ゲート§5ii/引き連れUI撤去/Gold漏れ§5aa) ②`test-hqlab-qa.html`(3解像度・#nowで実時間fps)=本部の canvas往復/滞在中進行/12機能実操作/合成・投資実クリック/当たり判定
   - **boot**: index.html console0
+  - **撮影規律(2026-07-24追記)**: QA/提示用スクショは**アニメ完了状態で撮影**する。headlessのvirtual-timeはCSS/staggerアニメを凍結し「最終行だけ薄い」等の偽の欠陥を写す(§5jjjの実例=stagger×virtual-time凍結)。判定に使うスクショはアニメ無効化(devページ側)or実時間待機で撮ること。
 - **ブラウザ側ページ一覧(dev・.vercelignore・localhost:3000/)**: 判定系=`test-integration.html`/`test-hqlab-qa.html`(#now)。目視プレビュー系=`test-lizards.html`(全種族の魂)/`test-traits.html`(特性S1見た目+S4遺伝+S5固定デモ)/`test-traitcards.html`(特性カードUI)/`test-trait-roster.html`(ロスター18種×3体=暗色判別基準)/`test-hqlab.html`(本部v1.0旧試作)/`test-hqlab-pixel.html`(v2.0視点比較)/`test-field.html`/`test-bench.html`/`test-v3.html`(既存)。
 - **本部の実機URL**: ゲーム内トップバー**「本部」ボタン**(トグル)。直行=`localhost:3000/index.html#hqlab`(現在状態)/`#hqlab-full`(全設備T4プレビュー)/`#hqlab-desks|tank|rocket|shelf`(各パネル直行)。
 

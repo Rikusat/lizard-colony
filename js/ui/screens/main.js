@@ -244,10 +244,10 @@ Object.assign(UI, {
         const cost = Game.breedCost(lz, o);
         const row = document.createElement("div");
         row.className = "list-row breed-cand";
-        const isLeg = mo.legendary; // 仕上げ2: レジェンダリー名=虹の系譜(走査性を壊さない微細装飾・案A既定/案Bはstyle.cssに併存=Ric選択後に一本化)
+        const isLeg = mo.legendary; // 仕上げ2(Ric選択=案A): レジェンダリー名=琥珀+✦(.leg-name)
         row.innerHTML =
           `<span class="sw" style="display:inline-block;width:18px;height:12px;border-radius:6px;background:${col.css};border:1px solid #0006"></span>` +
-          `<div class="grow"><b class="${isLeg ? "leg-name leg-name--a" : ""}">${Game.lizardName(o)}</b><div class="desc">${mo.name} / Lv${o.level || 1}</div></div>` +
+          `<div class="grow"><b class="${isLeg ? "leg-name" : ""}">${Game.lizardName(o)}</b><div class="desc">${mo.name} / Lv${o.level || 1}</div></div>` +
           this.breedTraitChips(o) +
           `<button ${Game.state.coins < cost ? "disabled" : ""}>${Icon.svg("coin")}${fmt(cost)}</button>`;
         row.querySelector("button").addEventListener("click", () => {
