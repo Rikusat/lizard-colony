@@ -23,8 +23,8 @@ const RAMP = {
 };
 // 部屋パラメータ(★Ric調整)。密度・摩耗・揺らぎ・木目はここ+CFG(labRoomTiers)。
 const LABV = {
-  W0: 400, H0: 270, T: 16, cols: 22, rows: 14, rx: 24, ry: 34,
-  rampSteps: 4, floorJitter: 1, grainLines: 2,
+  W0: 400, H0: 300, T: 16, cols: 22, rows: 14, rx: 24, ry: 64,
+  rampSteps: 4, floorJitter: 1, grainLines: 2, wallH: 58, // §5ooo: 奥壁を+30px拡張(巨大監視スクリーンの壁面。床レイアウト不変)
   out: "rgb(13,11,9)", label: "rgba(150,142,128,.9)",
 };
 // シーン定義(配置=案Aから不変)。tier=出現する部屋tier(1開設/2稼働/3過密)。
@@ -34,7 +34,8 @@ const LAB_SCENE = {
     { t: "rocket", x: 17, y: 9 }, { t: "shelfMain", x: 1, y: 7 },
   ],
   props: [ // プロップ16種(非インタラクティブ)
-    { t: "pipe", x: 0, y: 0, tier: 1 }, { t: "board", x: 6, y: 0, tier: 2 },
+    // §5ooo: 壁面プロップはスクリーンを避けて再配置(pipe=壁最上部を横断しスクリーン背後へ / board=左マージンへ)
+    { t: "pipe", x: 0, y: 0, tier: 1 }, { t: "board", x: 0.2, y: 0, tier: 2 },
     { t: "light", x: 5, y: 4, tier: 1 }, { t: "light", x: 12, y: 7, tier: 1 }, { t: "light", x: 17, y: 5, tier: 2 },
     { t: "oreCrate", x: 19, y: 2, tier: 1 }, { t: "oreCrate", x: 20, y: 3, tier: 2 }, { t: "oreCrate", x: 19, y: 6, tier: 3 }, { t: "oreCrate", x: 1, y: 12, tier: 3 },
     { t: "shelfJars", x: 13, y: 1, tier: 2 }, { t: "shelfJars", x: 15, y: 1, tier: 3 },
@@ -62,6 +63,7 @@ Object.assign(UI, {
     const btn = document.getElementById("btn-hq"); if (btn) btn.classList.add("at-lab");
     this._hqlabBind();
     this.renderHqLab();
+    this._startLabVideo(); // §5ooo: 巨大監視スクリーンの生中継(方式1・スクリーン領域のみの差分描画)
   },
   closeHqLab() {
     const main = document.querySelector("main"), lab = document.getElementById("hqlab");
@@ -156,10 +158,11 @@ Object.assign(UI, {
       this._pxl(c, X, Y, T, 1, this._rc("floor", 3));
       if (roomTier >= 2 && wear.has(gx + "," + gy)) this._dth(c, X + 2, Y + 4, T - 4, T - 7, this._rc("floor", 0)); // 摩耗=稼働後のみ
     }
-    // --- 壁(パネル分割+上辺明抜き+巾木2段+側壁+手前縁) ---
-    this._pxl(c, RX - 6, RY - 26, LABV.cols * T + 12, 26, this._rc("wall", 1));
-    this._pxl(c, RX - 6, RY - 26, LABV.cols * T + 12, 2, this._rc("wall", 3));
-    for (let i = 1; i < 8; i++) this._pxl(c, RX - 6 + i * (LABV.cols * T + 12) / 8, RY - 24, 1, 19, this._rc("wall", 0));
+    // --- 壁(§5ooo拡張: 高い奥壁=監視スクリーンの壁面。パネル分割+上辺明抜き+巾木2段+側壁+手前縁) ---
+    const WH = LABV.wallH;
+    this._pxl(c, RX - 6, RY - WH, LABV.cols * T + 12, WH, this._rc("wall", 1));
+    this._pxl(c, RX - 6, RY - WH, LABV.cols * T + 12, 2, this._rc("wall", 3));
+    for (let i = 1; i < 8; i++) this._pxl(c, RX - 6 + i * (LABV.cols * T + 12) / 8, RY - WH + 2, 1, WH - 11, this._rc("wall", 0));
     this._pxl(c, RX - 6, RY - 7, LABV.cols * T + 12, 2, this._rc("wall", 2));
     this._pxl(c, RX - 6, RY - 5, LABV.cols * T + 12, 5, this._rc("wall", 0));
     this._pxl(c, RX - 6, RY, 6, LABV.rows * T, this._rc("wall", 0));
@@ -178,6 +181,9 @@ Object.assign(UI, {
       const fn = this._labSpr[it.t];
       if (fn) fn.call(this, c, pt.x, pt.y, it);
     }
+    // --- 巨大監視スクリーン(§5ooo・T1常設=統率は成長より先にある)。プロップの後に描く=壁面(pipe)がスクリーン背後へ回る ---
+    if (CFG.labScreenOn) this._labDrawScreenHousing(c);
+    else this._labScreenLowRect = null;
     // --- 整数倍ブリット ---
     const k = Math.max(1, Math.floor(Math.min(W / LABV.W0, H / LABV.H0)));
     const bx = Math.floor((W - LABV.W0 * k) / 2), by = Math.floor((H - LABV.H0 * k) / 2);
@@ -192,20 +198,103 @@ Object.assign(UI, {
     lbl(5.2, 5.2, "投資端末"); lbl(17.6, 7.2, "錬成槽"); lbl(18.6, 13.2, "宇宙港"); lbl(2.1, 12.2, "標本棚");
   },
 
+  // ---------------- 巨大監視スクリーン(§5ooo「本部はこちらを見ている」) ----------------
+  // 筐体・ベゼル=GBA規律(RAMP/セレクティブ輪郭/整数倍)。映像面のみ滑らかなブラー画=整数倍規律の意図的な例外
+  // (二つの場所の質感対比を映像面が媒介する・HANDOFF §5ooo に明記)。装飾は走査線のみ(監視装置の記号)。
+  _labScreenLowRect: null,
+  _labDrawScreenHousing(c) {
+    const T = LABV.T, RX = LABV.rx, RY = LABV.ry;
+    const vw = Math.min(CFG.labScreenTilesW * T, LABV.cols * T - 32), vh = CFG.labScreenVidH;
+    const hw = vw + 6, hh = vh + 6;
+    const hx = RX + Math.round((LABV.cols * T - hw) / 2), hy = RY - LABV.wallH;
+    this._pxl(c, hx, hy, hw, hh, this._rc("metal", 0));            // 筐体
+    this._pxl(c, hx + 1, hy + 1, hw - 2, 1, this._rc("metal", 2)); // ベゼル内の面取り
+    this._pxl(c, hx + 1, hy + hh - 2, hw - 2, 1, this._rc("metal", 1));
+    this._pxl(c, hx + 3, hy + 3, vw, vh, "rgb(9,11,14)");          // 映像面(消灯下地。生中継が上書き)
+    this._ol(c, hx, hy, hw, hh, "metal");                          // セレクティブ輪郭
+    this._labScreenLowRect = { x: hx + 3, y: hy + 3, w: vw, h: vh };
+  },
+
+  // ---- 生中継(方式1): 同一ドキュメントの飼育槽canvasを低頻度でブラー転写。スクリーン領域のみの差分描画 ----
+  _startLabVideo() {
+    if (this._labVidOn) return;
+    this._labVidOn = true;
+    this._labVidLast = 0;
+    const step = () => {
+      if (!this.hqLabOpen() || !CFG.labScreenOn) { this._labVidOn = false; return; } // ページを離れたら自然停止
+      const now = performance.now();
+      if (now - this._labVidLast >= 1000 / Math.max(1, CFG.labScreenFps)) {
+        this._labVidLast = now;
+        this._drawLabScreenVideo(now / 1000);
+      }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  },
+  _drawLabScreenVideo(tSec) {
+    const r = this._labScreenLowRect, b = this._labBlit;
+    const cv = document.getElementById("hqlab-canvas"), src = document.getElementById("game");
+    if (!r || !b || !cv || !src || !src.width || !src.height) return;
+    const g = cv.getContext("2d");
+    const dx = b.bx + r.x * b.k, dy = b.by + r.y * b.k, dw = r.w * b.k, dh = r.h * b.k;
+    // 飼育槽の中央を切り出し(cover=アスペクト維持・UIは映さず盤面のみ)
+    const da = dw / dh;
+    let sw = src.width, sh = src.height, sx = 0, sy = 0;
+    if (sw / sh > da) { sw = Math.round(sh * da); sx = Math.round((src.width - sw) / 2); }
+    else { sh = Math.round(sw / da); sy = Math.round((src.height - sh) / 2); }
+    if (!this._labVid) this._labVid = document.createElement("canvas");
+    const tmp = this._labVid, tw = Math.round(dw), th = Math.round(dh);
+    if (tmp.width !== tw || tmp.height !== th) { tmp.width = tw; tmp.height = th; }
+    const tc = tmp.getContext("2d");
+    tc.imageSmoothingEnabled = true;
+    // 強ブラー=気配の解像度。ctx.filter対応=filter / 非対応=縮小→拡大の近似ブラーへ自動フォールバック
+    let filterOk = false;
+    try { tc.filter = `blur(${CFG.labScreenBlur}px)`; filterOk = typeof tc.filter === "string" && tc.filter.indexOf("blur") === 0; } catch (e) {}
+    if (filterOk) {
+      tc.drawImage(src, sx, sy, sw, sh, 0, 0, tw, th);
+      tc.filter = "none";
+    } else {
+      if (!this._labVidSmall) this._labVidSmall = document.createElement("canvas");
+      const sm = this._labVidSmall, f = Math.max(2, Math.round(CFG.labScreenBlur * 1.5));
+      const smw = Math.max(8, Math.round(tw / f)), smh = Math.max(6, Math.round(th / f));
+      if (sm.width !== smw || sm.height !== smh) { sm.width = smw; sm.height = smh; }
+      const sc = sm.getContext("2d");
+      sc.imageSmoothingEnabled = true;
+      sc.drawImage(src, sx, sy, sw, sh, 0, 0, smw, smh);
+      tc.drawImage(sm, 0, 0, smw, smh, 0, 0, tw, th);
+    }
+    // 生気=緩やかな明滅(生中継の実動きに重ねるだけ・reduced-motionで停止)
+    const reduced = (typeof Motion !== "undefined") && Motion.reduced;
+    if (!reduced && CFG.labScreenShimmer > 0) {
+      const a = (Math.sin(tSec * 1.7) * 0.5 + 0.5) * CFG.labScreenShimmer;
+      tc.fillStyle = "rgba(0,0,0," + a.toFixed(3) + ")";
+      tc.fillRect(0, 0, tw, th);
+    }
+    // 走査線(監視装置の記号・CFGでON/OFF+濃度。揺らぎはreducedで停止)
+    if (CFG.labScreenScanOn && CFG.labScreenScanAlpha > 0) {
+      tc.fillStyle = "rgba(8,10,12," + CFG.labScreenScanAlpha + ")";
+      const drift = reduced ? 0 : Math.floor(tSec * 8) % 3;
+      for (let yy = drift; yy < th; yy += 3) tc.fillRect(0, yy, tw, 1);
+    }
+    g.drawImage(tmp, dx, dy); // 等倍転写=部屋全体は再描画しない(差分描画)
+  },
+
   // ---------------- スプライト(GBA規律・検証カット基準) ----------------
   _labSpr: {
     desk(c, x, y) { // 投資端末: 金属=鋭ハイライト+パネル分割+通気スリット+画面2トーン+深紅波形
+      const north = this._labLayoutVariant === "b"; // §5ooo案ロ: 管制室型=モニタ群を北辺(スクリーン側)へ向ける
+      const my = north ? y + 3 : y + 5;             // モニタ行のy(案ロ=北辺寄せ)
       this._dth(c, x + 1, y + 28, 64, 3, this._rc("floor", 0));
       this._pxl(c, x, y, 64, 30, this._rc("metal", 1));
       this._pxl(c, x, y, 64, 4, this._rc("metal", 2)); this._pxl(c, x, y, 64, 1, this._rc("metal", 3));
       this._pxl(c, x, y + 26, 64, 4, this._rc("metal", 0));
       this._pxl(c, x + 32, y + 2, 1, 26, this._rc("metal", 0));
       for (let i = 0; i < 4; i++) this._pxl(c, x + 52, y + 8 + i * 4, 8, 1, this._rc("metal", 0));
-      this._pxl(c, x + 5, y + 5, 22, 14, this._rc("metal", 0));
-      this._pxl(c, x + 7, y + 7, 18, 10, this._rc("water", 1)); this._pxl(c, x + 7, y + 7, 18, 3, this._rc("water", 2)); this._pxl(c, x + 8, y + 15, 16, 1, this._rc("water", 0));
-      this._pxl(c, x + 30, y + 7, 15, 11, this._rc("metal", 0)); this._pxl(c, x + 32, y + 9, 11, 7, this._rc("crimson", 0));
+      this._pxl(c, x + 5, my, 22, 14, this._rc("metal", 0));
+      this._pxl(c, x + 7, my + 2, 18, 10, this._rc("water", 1)); this._pxl(c, x + 7, my + 2, 18, 3, this._rc("water", 2)); this._pxl(c, x + 8, my + 10, 16, 1, this._rc("water", 0));
+      this._pxl(c, x + 30, my + 2, 15, 11, this._rc("metal", 0)); this._pxl(c, x + 32, my + 4, 11, 7, this._rc("crimson", 0));
       c.strokeStyle = this._rc("crimson", 2); c.beginPath();
-      for (let i = 0; i <= 10; i++) { const yy = y + 12.5 + ((i % 4 === 1) ? -2 : (i % 4 === 3) ? 2 : 0); i ? c.lineTo(x + 33 + i, yy) : c.moveTo(x + 33, yy); }
+      for (let i = 0; i <= 10; i++) { const yy = my + 7.5 + ((i % 4 === 1) ? -2 : (i % 4 === 3) ? 2 : 0); i ? c.lineTo(x + 33 + i, yy) : c.moveTo(x + 33, yy); }
       c.stroke();
       this._pxl(c, x + 48, y + 21, 10, 6, this._rc("paper", 3)); this._pxl(c, x + 48, y + 25, 10, 2, this._rc("paper", 1));
       this._ol(c, x, y, 64, 30, "metal");
@@ -257,12 +346,12 @@ Object.assign(UI, {
     shelfJars(c, x, y) { this._pxl(c, x, y, 28, 12, this._rc("wood", 1)); this._pxl(c, x, y, 28, 2, this._rc("wood", 3)); this._pxl(c, x + 2, y + 10, 24, 1, this._rc("wood", 0)); for (let j = 0; j < 5; j++) { this._pxl(c, x + 2 + j * 5, y + 3, 3, 7, this._rc("water", 1)); this._pxl(c, x + 3 + j * 5, y + 4, 1, 5, this._rc("water", 2)); this._pxl(c, x + 2 + j * 5, y + 2, 3, 1, this._rc("glass", 2)); } this._ol(c, x, y, 28, 12, "wood"); },
     papers(c, x, y) { this._pxl(c, x, y, 12, 10, this._rc("paper", 2)); this._pxl(c, x, y + 8, 12, 2, this._rc("paper", 1)); this._pxl(c, x + 2, y - 2, 12, 10, this._rc("paper", 3)); this._pxl(c, x + 2, y + 6, 12, 2, this._rc("paper", 2)); this._pxl(c, x + 4, y, 8, 1, this._rc("paper", 0)); this._pxl(c, x + 4, y + 2, 6, 1, this._rc("paper", 0)); c.strokeStyle = this._rc("paper", 1); c.strokeRect(x + 2.5, y - 1.5, 11, 9); },
     cables(c, x, y) { c.lineWidth = 2; c.strokeStyle = this._rc("metal", 0); c.beginPath(); c.moveTo(x, y + 8); c.bezierCurveTo(x + 6, y, x + 10, y + 14, x + 16, y + 5); c.stroke(); c.lineWidth = 1; c.strokeStyle = this._rc("crimson", 1); c.beginPath(); c.moveTo(x + 1, y + 10); c.bezierCurveTo(x + 7, y + 3, x + 9, y + 15, x + 15, y + 8); c.stroke(); c.strokeStyle = this._rc("metal", 2); c.beginPath(); c.moveTo(x, y + 7); c.bezierCurveTo(x + 6, y - 1, x + 10, y + 13, x + 16, y + 4); c.stroke(); },
-    waveMon(c, x, y) { this._dth(c, x + 1, y + 15, 22, 2, this._rc("floor", 0)); this._pxl(c, x, y, 22, 16, this._rc("metal", 1)); this._pxl(c, x, y, 22, 1, this._rc("metal", 3)); this._pxl(c, x + 2, y + 2, 18, 12, this._rc("crimson", 0)); c.strokeStyle = this._rc("crimson", 2); c.beginPath(); for (let i = 0; i <= 16; i++) { const yy = y + 8.5 + ((i % 4 === 1) ? -3 : (i % 4 === 3) ? 3 : 0); i ? c.lineTo(x + 3 + i, yy) : c.moveTo(x + 3, yy); } c.stroke(); this._pxl(c, x + 3, y + 3, 6, 1, this._rc("crimson", 1)); this._ol(c, x, y, 22, 16, "metal"); },
+    waveMon(c, x, y) { const north = this._labLayoutVariant === "b"; const sy2 = north ? y + 1 : y + 2; this._dth(c, x + 1, y + 15, 22, 2, this._rc("floor", 0)); this._pxl(c, x, y, 22, 16, this._rc("metal", 1)); this._pxl(c, x, y, 22, 1, this._rc("metal", 3)); if (north) this._pxl(c, x + 2, y + 13, 18, 2, this._rc("metal", 0)); /* §5ooo案ロ: 南辺スタンド=画面が北(スクリーン側)を向く */ this._pxl(c, x + 2, sy2, 18, 12, this._rc("crimson", 0)); c.strokeStyle = this._rc("crimson", 2); c.beginPath(); for (let i = 0; i <= 16; i++) { const yy = sy2 + 6.5 + ((i % 4 === 1) ? -3 : (i % 4 === 3) ? 3 : 0); i ? c.lineTo(x + 3 + i, yy) : c.moveTo(x + 3, yy); } c.stroke(); this._pxl(c, x + 3, sy2 + 1, 6, 1, this._rc("crimson", 1)); this._ol(c, x, y, 22, 16, "metal"); },
     tubeRack(c, x, y) { this._pxl(c, x, y + 6, 18, 6, this._rc("metal", 1)); this._pxl(c, x, y + 6, 18, 1, this._rc("metal", 3)); this._pxl(c, x, y + 11, 18, 1, this._rc("metal", 0)); for (let j = 0; j < 4; j++) { const cx2 = x + 2 + j * 4; this._pxl(c, cx2, y, 2, 9, this._rc("glass", 1)); this._pxl(c, cx2, y + 4, 2, 4, j % 2 ? this._rc("crimson", 2) : this._rc("water", 2)); this._pxl(c, cx2, y, 1, 3, this._rc("glass", 3)); } },
     oreCrate(c, x, y) { this._dth(c, x + 1, y + 14, 20, 3, this._rc("floor", 0)); this._pxl(c, x, y, 20, 16, this._rc("wood", 1)); this._pxl(c, x, y, 20, 3, this._rc("wood", 2)); this._pxl(c, x, y, 20, 1, this._rc("wood", 3)); this._pxl(c, x + 3, y + 6, 14, 1, this._rc("wood", 0)); this._pxl(c, x + 3, y + 11, 14, 1, this._rc("wood", 0)); for (const [bx2, by2] of [[0, 0], [17, 0], [0, 13], [17, 13]]) this._pxl(c, x + bx2, y + by2, 3, 3, this._rc("metal", 2)); this._pxl(c, x + 4, y + 3, 5, 4, this._rc("amber", 2)); this._pxl(c, x + 5, y + 3, 2, 1, this._rc("amber", 3)); this._pxl(c, x + 11, y + 4, 5, 4, this._rc("water", 2)); this._pxl(c, x + 12, y + 4, 2, 1, this._rc("water", 3)); this._ol(c, x, y, 20, 16, "wood"); },
     cart(c, x, y) { this._dth(c, x + 1, y + 14, 26, 3, this._rc("floor", 0)); this._pxl(c, x, y, 26, 12, this._rc("metal", 1)); this._pxl(c, x, y, 26, 2, this._rc("metal", 2)); this._pxl(c, x, y, 26, 1, this._rc("metal", 3)); this._pxl(c, x, y + 10, 26, 2, this._rc("metal", 0)); this._pxl(c, x + 2, y + 12, 4, 3, this._rc("metal", 0)); this._pxl(c, x + 20, y + 12, 4, 3, this._rc("metal", 0)); this._pxl(c, x + 4, y + 3, 8, 6, this._rc("wood", 1)); this._pxl(c, x + 4, y + 3, 8, 1, this._rc("wood", 3)); this._ol(c, x, y, 26, 12, "metal"); },
     mold(c, x, y, it) { const L = (it.len || 5) * LABV.T; this._pxl(c, x, y, L, 3, this._rc("metal", 0)); this._pxl(c, x, y, L, 1, this._rc("metal", 2)); for (let i = 0; i < L; i += 12) this._pxl(c, x + i, y + 1, 1, 2, this._rc("metal", 1)); },
-    pipe(c) { const RX = LABV.rx, RY = LABV.ry, W = LABV.cols * LABV.T; this._pxl(c, RX - 4, RY - 22, W + 8, 3, this._rc("metal", 1)); this._pxl(c, RX - 4, RY - 22, W + 8, 1, this._rc("metal", 3)); for (let i = 0; i < 7; i++) this._pxl(c, RX + 20 + i * 50, RY - 23, 3, 5, this._rc("metal", 0)); this._dth(c, RX + 60, RY - 19, 6, 4, this._rc("paper", 3)); },
+    pipe(c) { const RX = LABV.rx, RY = LABV.ry - LABV.wallH + 8, W = LABV.cols * LABV.T; this._pxl(c, RX - 4, RY, W + 8, 3, this._rc("metal", 1)); this._pxl(c, RX - 4, RY, W + 8, 1, this._rc("metal", 3)); for (let i = 0; i < 7; i++) this._pxl(c, RX + 20 + i * 50, RY - 1, 3, 5, this._rc("metal", 0)); this._dth(c, RX + 60, RY + 3, 6, 4, this._rc("paper", 3)); }, // §5ooo: 壁最上部へ(スクリーン背後を横断)
     ladder(c, x, y) { this._pxl(c, x, y, 3, 26, this._rc("amber", 1)); this._pxl(c, x, y, 1, 26, this._rc("amber", 3)); this._pxl(c, x + 11, y, 3, 26, this._rc("amber", 1)); this._pxl(c, x + 13, y, 1, 26, this._rc("amber", 0)); for (let i = 0; i < 4; i++) { this._pxl(c, x + 3, y + 3 + i * 6, 8, 2, this._rc("amber", 2)); this._pxl(c, x + 3, y + 4 + i * 6, 8, 1, this._rc("amber", 0)); } c.strokeStyle = this._rc("amber", 0); c.strokeRect(x + 0.5, y + 0.5, 13, 25); },
     trash(c, x, y) { this._dth(c, x, y + 11, 11, 2, this._rc("floor", 0)); this._pxl(c, x, y, 10, 12, this._rc("metal", 1)); this._pxl(c, x + 1, y, 1, 12, this._rc("metal", 2)); this._pxl(c, x + 8, y, 2, 12, this._rc("metal", 0)); this._pxl(c, x, y, 10, 2, this._rc("metal", 3)); this._pxl(c, x + 2, y - 2, 6, 2, this._rc("paper", 3)); this._ol(c, x, y, 10, 12, "metal"); },
     cup(c, x, y) { this._pxl(c, x, y, 5, 5, this._rc("paper", 3)); this._pxl(c, x, y + 3, 5, 2, this._rc("paper", 1)); this._pxl(c, x + 5, y + 1, 2, 2, this._rc("paper", 2)); this._pxl(c, x + 1, y + 1, 3, 1, this._rc("wood", 1)); },
@@ -274,13 +363,15 @@ Object.assign(UI, {
 });
 
 // dev用: #hqlab で本部を開く(#hqlab-desks等でパネル/#hqlab-t1|t2|t3=部屋tierの表示のみ上書き/#hqlab-fullは互換=T3)。
+// §5ooo比較試作: #hqlab-lb=案ロ(管制室型・T3) / #hqlab-t3=案イ(現配置維持・T3)。
 if (typeof window !== "undefined") window.addEventListener("load", () => {
-  const m = location.hash.match(/^#hqlab(?:-(desks|tank|rocket|shelf|full|t1|t2|t3))?$/);
+  const m = location.hash.match(/^#hqlab(?:-(desks|tank|rocket|shelf|full|t1|t2|t3|lb))?$/);
   if (m && UI.openHqLab) setTimeout(() => {
     if (m[1] === "full" || m[1] === "t3") UI._labRoomTierOverride = 3;
     else if (m[1] === "t2") UI._labRoomTierOverride = 2;
     else if (m[1] === "t1") UI._labRoomTierOverride = 1;
+    else if (m[1] === "lb") { UI._labRoomTierOverride = 3; UI._labLayoutVariant = "b"; }
     UI.openHqLab();
-    if (m[1] && !/^t[123]$|^full$/.test(m[1])) UI.openLabPanel(m[1]);
+    if (m[1] && !/^t[123]$|^full$|^lb$/.test(m[1])) UI.openLabPanel(m[1]);
   }, 60);
 });

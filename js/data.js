@@ -214,6 +214,15 @@ const CFG = {
       { amethyst: 1, orichalcum: 4 },     // T3→T4
     ],
   },
+  // 本部=巨大監視スクリーン(§5ooo「本部はこちらを見ている」・表示のみ・★全てRic調整)
+  labScreenOn: true,          // スクリーンの表示(T1から常設=統率は成長より先にある)
+  labScreenTilesW: 16,        // 映像面の幅(タイル数)。壁面プロップ(掲示/パイプ)はこれを避けて再配置
+  labScreenVidH: 44,          // 映像面の高さ(低解像度px)
+  labScreenFps: 12,           // 生中継の転写頻度(方式1・10〜15fps目安)
+  labScreenBlur: 6,           // 強ブラー(表示px)=気配の解像度(個体特定・特性・UIは読めない)
+  labScreenScanOn: true,      // 走査線(監視装置の記号)。既定=薄くON
+  labScreenScanAlpha: 0.07,   // 走査線の濃度
+  labScreenShimmer: 0.05,     // 映像の緩やかな明滅量(0=なし。reduced-motionでは自動停止)
   labTileScale: 2.0,          // 本部のタイル+設備の一体倍率(大きさ)。★Ric実機調整
   labFacScale: 1.0,           // 設備のみの追加倍率(比較用・既定1=一体拡大方式)
   genesisFxSec: 1.5,        // 創世エフェクトの尺(深紅の錬成)
