@@ -274,14 +274,14 @@ const CFG = {
   resBioPerDex: 10,         // 図鑑新規登録
   resFoodPerFeederLv: 0.05, // 巣Lvごとの食料供給(/秒)。§8.12で餌場から巣へ統合(定数名は歴史的に据置)
   resEnergyPerDevLv: 0.02,  // 惑星開発Lvごとのエネルギー(/秒)
-  autoFeedFoodCost: 0.02,   // 自動給餌1回の食料消費
+  autoFeedFoodCost: 0.02,   // 【撤廃済・Ric裁定 2026-07-24 §5nnn】巣の自動給餌は機構ごと撤廃(コード参照なし・記録として残置)
   // §8.12: 餌場・繁殖施設を撤廃し効果を巣(nest.lv)へ統合。天井維持=nest上限Lv8で旧施設の最大相当。
   nestBreedCdPerLv: 0.075,    // 繁殖CD -7.5%/Lv (旧 繁殖施設 -4%×15=-60% → 巣Lv8で-60%)
   nestSpeciesMutPerLv: 0.0075,// 上位種変異 +0.75%/Lv (旧 +0.4%×15=6% → Lv8で6%)
   nestMorphMutPerLv: 0.015,   // モーフ変異 +1.5%/Lv (旧 +0.8%×15=12% → Lv8で12%)
   nestLegendPerLv: 0.0013,    // 伝説 +0.13%/Lv (旧 +0.07%×15≈1.05% → Lv8で≈1.04%)
   nestCricketPerLv: 0.625,    // コオロギ自然湧き +0.625/秒/Lv (旧 餌場 +0.5×10=5/秒 → Lv8で5/秒)
-  nestAutoFeedPerLv: 1.25,    // 自動給餌 1.25匹/秒/Lv (旧 餌場 1匹/Lv×10=10 → Lv8で10匹/秒)
+  nestAutoFeedPerLv: 1.25,    // 【撤廃済・Ric裁定 2026-07-24 §5nnn】給餌の自動化はクランク経路のみ(コード参照なし・記録として残置)
   nestOmenLv: 3,              // 卵のレア予兆を出す巣Lv閾値(旧 繁殖施設Lv3)
   nestReserveLv: 5,           // 繁殖予約が解禁される巣Lv閾値(旧 繁殖施設Lv5)
   sciencePerDepth: 1,       // 探索の深層(6層以降)1層ごとの研究力

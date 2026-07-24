@@ -808,6 +808,20 @@ const Game = {
     if (this.raid) { this.raid = null; s.raidTimer = CFG.raidInterval; }
     this.event = null; this.selectedId = null;
 
+    // §5nnn(2026-07-24 Ric承認): 惑星切替時のルーレット球残留対策 — 旧惑星遺伝子を乗せた球が
+    // 新惑星で着地し他惑星種の卵を生む混入窓(1〜2秒)を閉じる。報酬機会は失わせない(損失感ゼロ):
+    // 未発射remaining+飛翔中球数を控え、切替完了後に新コロニーの代表遺伝で再セッション化して全数返却する。
+    // 聖域非接触=盤の確率・幾何には触れず、放出器(startReward)を正規APIで再始動するだけ。
+    let rewardBack = null;
+    if (typeof Roulette !== "undefined" && Roulette.reward && typeof Roulette.reward.remaining === "number") {
+      const flying = Array.isArray(Roulette.balls) ? Roulette.balls.length : 0;
+      const back = (Roulette.reward.remaining || 0) + flying;
+      if (back > 0) rewardBack = { back, mode: Roulette.reward.jackpotMode };
+      Roulette.endReward(); // reward+飛翔球をクリア(resetはrewardを残すためendRewardを使う)
+    } else if (typeof Roulette !== "undefined" && Array.isArray(Roulette.balls) && Roulette.balls.length) {
+      Roulette.balls.length = 0; // 報酬外の残留球(理論上ない=発射は報酬モード専用)も念のため排出
+    }
+
     // 現コロニーをworldへ書き戻し
     const active = this.activeStageData();
     const idx = this.world.stages.findIndex((st) => st.stageId === active.stageId);
@@ -849,6 +863,12 @@ const Game = {
     for (const lz of s.lizards) this.ensureRuntime(lz);
     if (!s.nextRaid) this.rollNextRaid();
     this.settleDisplay(); // 3.12.2: 惑星切替で表示20を即確定(移動先が大コロニーでもfps安定)
+
+    // §5nnn: 控えた報酬機会を新コロニーの代表遺伝(=純血)で全数返却(rouletteRepGeneは空コロニーでもnull安全)
+    if (rewardBack && typeof Roulette !== "undefined" && Roulette.startReward) {
+      Roulette.startReward(rewardBack.back, this.rouletteRepGene(), rewardBack.mode);
+      UI.toast(`${Icon.svg("spark")} 報酬の球${rewardBack.back}発はこの惑星で撃ち直せる(持ち越し)`);
+    }
 
     UI.toast(`${Icon.svg(target.icon)} コロニー「${target.name}」へ移動 — ${target.envText}`);
     if (pioneered) {
@@ -2083,18 +2103,10 @@ const Game = {
     if (this._allyT >= 1) {
       this._allyT = 0;
       if (this.allyLv("gecko")) s.crickets = (s.crickets || 0) + 0.1 * this.allyLv("gecko"); // V5.2: コオロギ拾いを復活
-      // §8.12: 自動給餌(巣が担う)。毎秒 巣Lv×係数 匹へ餌やり。食料供給を燃料にする(§3.1.3)
-      const feedN = Math.round(this.nestLv() * CFG.nestAutoFeedPerLv);
-      if (feedN > 0 && this.res("food") >= CFG.autoFeedFoodCost) {
-        let n = 0;
-        for (const lz of s.lizards) {
-          if (n >= feedN || this.res("food") < CFG.autoFeedFoodCost) break;
-          if (lz.injuredT > 0 || this.isHidden(lz)) continue;
-          if (!this.feed(lz, true, true)) break; // cricketOnly: コオロギ切れで停止(Goldは引かない=クランク非稼働で資産が減らない)
-          this.addRes("food", -CFG.autoFeedFoodCost);
-          n++;
-        }
-      }
+      // 【恒久設計方針・Ric裁定 2026-07-24(HANDOFF §5nnn)】給餌の自動化は「クランク経路(state.dial.auto→feedAll)」のみ。
+      // 巣・施設・その他いかなる経路にも自動給餌を作らないこと。
+      // ここには旧「§8.12 巣の自動給餌」があったが、523be66(餌場→巣統合)で駆動が nestLv()(最低1=常時ON)化し
+      // 無操作でも毎秒発火する想定外の機構となったため撤廃した(ゲート復活ではなく機構ごと廃止)。再実装禁止。
       // §8.12: 繁殖予約(巣Lv5+・ONのとき自動でクイック繁殖)
       if (s.autoBreed && this.nestLv() >= CFG.nestReserveLv) {
         this._autoBreedT = (this._autoBreedT || 0) + 1;
