@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>建造計画パネル 静的モック(開発用・Ric承認前)</title>
+<!-- 研究デスクUI再設計(Ric裁定 2026-07-24):「作業リストから、発射までの計画書へ」。
+     本ページ=静的モック(表示のみ・hq.js非接触・実ロジック不使用のプレビュー)。
+     状態例: ドックS3到達・建造投資はチタン充足/オリハルコン不足・変換はbio不足・研究は済/可/不足/ロック混在。
+     スタイルは本実装時に UISkills へ追記してから style.css へ移植する(モックはページ内スコープ)。
+     文言/色/沈み度は本実装で CFG.plan* 化。localStorageサンドボックス=本セーブ非接触。.vercelignoreでdev限定。 -->
+<script>
+(function () {
+  const mem = {};
+  const shim = { getItem: (k) => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: (k) => { delete mem[k]; }, clear: () => { for (const k in mem) delete mem[k]; } };
+  Object.defineProperty(window, "localStorage", { value: shim, configurable: false });
+})();
+</script>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="style.css">
+<style>
+/* ==== 建造計画モック(ページ内スコープ。本実装でUISkills追記→style.cssへ) ==== */
+#modal-box { animation: none !important; }
+.plan-tracker { display: flex; align-items: flex-end; gap: 0; padding: 10px 6px 14px; margin-bottom: 12px;
+  border-bottom: 1px solid rgba(190,214,235,.08); flex-wrap: wrap; row-gap: 14px; }
+.pt-node { display: flex; flex-direction: column; align-items: center; width: 52px; position: relative; }
+.pt-glyph { display: block; opacity: .38; }
+.pt-node.done .pt-glyph { opacity: .8; }
+.pt-node.cur .pt-glyph { opacity: 1; filter: drop-shadow(0 0 6px rgba(236,195,90,.55)); }
+.pt-node.goal .pt-glyph { opacity: .66; filter: drop-shadow(0 0 4px rgba(236,195,90,.35)); }
+.pt-label { font-size: 10px; color: var(--sub); margin-top: 3px; letter-spacing: .04em; }
+.pt-node.cur .pt-label { color: #ecc35a; font-weight: 700; }
+.pt-link { flex: 1 1 14px; min-width: 10px; height: 2px; margin-bottom: 26px; background: rgba(190,214,235,.35); }
+.pt-link.dash { background: none; border-top: 2px dashed rgba(190,214,235,.16); height: 0; }
+/* 建造投資=青写真の気配 */
+.plan-build { border: 1px solid rgba(127,185,204,.22); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px;
+  background: linear-gradient(180deg, rgba(39,66,79,.20), rgba(16,21,28,.55)),
+    repeating-linear-gradient(0deg, transparent 0 15px, rgba(127,185,204,.045) 15px 16px),
+    repeating-linear-gradient(90deg, transparent 0 15px, rgba(127,185,204,.045) 15px 16px); }
+.plan-build h3 { margin: 0 0 8px; font-size: calc(14px * var(--fs-scale,1)); display: flex; align-items: center; gap: 8px; }
+.plan-build h3 .next { color: #ecc35a; }
+.pb-body { display: flex; gap: 14px; align-items: center; }
+.pb-mats { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+/* 素材表示の統一書式: [アイコン] 素材名 保有X / 必要Y */
+.mat { display: flex; align-items: center; gap: 7px; font-size: calc(13px * var(--fs-scale,1)); padding: 3px 8px; border-radius: 6px; }
+.mat .mname { color: var(--sub); font-size: calc(11.5px * var(--fs-scale,1)); }
+.mat.ok { background: rgba(236,195,90,.07); color: #e8d9a8; }
+.mat.ok .mhave { color: #ecc35a; font-weight: 700; }
+.mat.ng { opacity: .62; }
+.mat.ng .lack { color: #d8404e; font-weight: 700; opacity: 1; margin-left: 4px; }
+.pb-btn button { font-size: calc(14px * var(--fs-scale,1)); padding: 10px 18px; }
+.pb-btn button:disabled { opacity: .45; }
+/* 変換: 保有内蔵 */
+.plan-cv { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.plan-cv .cv-btn { display: flex; flex-direction: column; align-items: stretch; gap: 2px; }
+.plan-cv .cv-main { display: flex; align-items: center; gap: 4px; }
+.plan-cv .cv-have { font-size: calc(10.5px * var(--fs-scale,1)); color: var(--sub); text-align: left; }
+.plan-cv .cv-btn.ng { opacity: .5; }
+.plan-cv .cv-btn.ng .cv-have b { color: #d8404e; }
+/* 研究=書類の気配(従・圧を下げる) */
+.plan-research { border-left: 2px solid rgba(232,217,168,.10); padding-left: 8px; background: linear-gradient(180deg, rgba(242,238,228,.015), transparent); }
+.plan-research .list-row { padding-top: 5px; padding-bottom: 5px; }
+.plan-research .mat { padding: 1px 6px; font-size: calc(12px * var(--fs-scale,1)); }
+.plan-research .locked { opacity: .45; cursor: help; }
+/* 手持ち資源=一段沈めた俯瞰 */
+.plan-pocket { opacity: .55; font-size: calc(11.5px * var(--fs-scale,1)); color: var(--sub); padding: 8px 4px 0; border-top: 1px solid rgba(190,214,235,.06); margin-top: 10px; }
+#note { position: fixed; left: 8px; bottom: 8px; z-index: 99999; background: rgba(13,10,6,.9); color: #c9b8a2; font: 12px system-ui; padding: 8px 12px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div id="note">建造計画モック — S3到達・チタン充足/オリハルコン不足・bio変換不足・研究は済/可/不足/ロック混在</div>
+<header id="topbar"><div id="brand"></div>
+  <div class="res"><b id="ui-coins">0</b><small id="ui-cps"></small></div>
+  <div class="res"><b id="ui-crickets-top">0</b></div><div class="res"><b id="ui-gems">0</b></div><div class="res"><b id="ui-stones">0</b></div>
+  <nav><button id="btn-map"></button><button id="btn-hq"></button><span id="hq-badge"></span><button id="btn-dex"></button><span id="dex-badge"></span>
+  <button id="btn-missions"></button><span id="mission-badge"></span><button id="btn-stats"></button><span id="stats-badge"></span><button id="btn-settings"></button></nav>
+</header>
+<div id="hq-bar"><div id="rank-bar"></div><span id="hq-bar-label"><b id="ui-rank">1</b></span></div>
+<main><aside id="left"><div class="card"><button id="btn-cricket"><span id="cricket-lot-lbl"></span></button><button id="btn-fac"></button></div>
+  <div id="slit-device"><canvas id="slit-canvas"></canvas></div></aside>
+  <section id="center"><div id="frame"><canvas id="game" width="1280" height="720"></canvas>
+    <div id="raid-hud"><div class="rh-line"><span id="raid-timer"></span></div><div id="next-boss" class="hidden"></div><button id="btn-raid-now"></button></div>
+    <div id="toasts"></div></div><div id="raid-banner" class="hidden"></div><div id="detail" class="hidden"></div></section></main>
+<section id="hqlab" class="hidden"><header id="hqlab-head"><button id="hqlab-back">←</button><h2>本部</h2><span id="hqlab-lv"></span></header>
+  <div id="hqlab-wrap"><canvas id="hqlab-canvas" width="1000" height="620"></canvas></div></section>
+<div id="modal" class="hidden"><div id="modal-box"><header><h2 id="modal-title"></h2><button id="modal-close">×</button></header><div id="modal-body"></div></div></div>
+
+<script src="js/data.js"></script><script src="js/game.js"></script><script src="js/render.js"></script>
+<script src="js/roulette.js"></script><script src="js/slit.js"></script>
+<script src="js/ui/core.js"></script><script src="js/ui/icons.js"></script><script src="js/ui/components.js"></script><script src="js/ui/motion.js"></script>
+<script src="js/ui/hero/hero.js"></script><script src="js/ui/hero/nest-reveal.js"></script><script src="js/ui/hero/boss.js"></script>
+<script src="js/ui/hero/meteorite.js"></script><script src="js/ui/hero/rocket.js"></script><script src="js/ui/hero/species-reveal.js"></script><script src="js/ui/hero/boss-reward.js"></script>
+<script src="js/ui/screens/main.js"></script><script src="js/ui/screens/feeder-skins.js"></script><script src="js/ui/screens/feeder.js"></script>
+<script src="js/ui/screens/roulette.js"></script><script src="js/ui/screens/slit.js"></script><script src="js/ui/screens/breeding.js"></script>
+<script src="js/ui/screens/equipment.js"></script><script src="js/ui/screens/planet-map.js"></script><script src="js/ui/screens/nest.js"></script>
+<script src="js/ui/screens/hq.js"></script><script src="js/ui/screens/hqlab.js"></script><script src="js/ui/screens/dex.js"></script><script src="js/ui/screens/meta.js"></script><script src="js/ui/boot.js"></script>
+<script>
+// ============================================================
+// 建造計画モック: 表示のみ(実行ボタンは飾り)。実データ(RESEARCH/ORES/CFG)から生成し状態はシードで再現。
+// ============================================================
+window.addEventListener("load", () => setTimeout(() => {
+  Game.newGame();
+  // 状態シード(モックの混在状態): ドックS3(labInvest=1)・チタン5/オリハルコン1・bio300・science500・coins285k・recipe1済
+  Game.state.labInvest = { desks: 1 };
+  Game.state.coins = 285000;
+  Game.addOre("titaniumOre", 5); Game.addOre("orichalcum", 1);
+  Game.addRes("bio", 300); Game.addRes("science", 500);
+  Game.state.research.recipe1 = true;
+
+  const stageNames = ["基礎骨組み", "下部船体", "エンジン組付", "上部船体+配管", "外装+塗装", "発射準備"];
+  const cur = 3; // S3到達(シードと一致)
+
+  // 統一書式: [アイコン] 素材名 保有X / 必要Y(全域で唯一の書式)
+  function matRow(icon, name, have, need) {
+    const ok = have >= need;
+    return `<span class="mat ${ok ? "ok" : "ng"}">${Icon.svg(icon)}<span class="mname">${name}</span>
+      <span class="mhave">保有${fmt(have)}</span><span class="msep">/</span><span>必要${fmt(need)}</span>
+      ${ok ? "" : `<span class="lack">あと${fmt(need - have)}</span>`}</span>`;
+  }
+  const oreName = (id) => (ORES.find((o) => o.id === id) || { name: id }).name;
+  const oreIcon = (id) => (ORES.find((o) => o.id === id) || { icon: id }).icon;
+
+  UI.openModal(`${Icon.svg("build")} 建造計画`, (body) => {
+    // 1) 発射へのみちのりトラッカー
+    let tr = `<div class="plan-tracker">`;
+    for (let s = 1; s <= 6; s++) {
+      const cls = s < cur ? "done" : s === cur ? "cur" : "";
+      tr += `<div class="pt-node ${cls}"><canvas class="pt-glyph" data-st="${s}" width="30" height="44"></canvas><span class="pt-label">S${s}</span></div>`;
+      tr += `<div class="pt-link ${s < cur ? "" : "dash"}"></div>`;
+    }
+    tr += `<div class="pt-node goal"><canvas class="pt-glyph" data-st="7" width="30" height="44"></canvas><span class="pt-label">発射</span></div></div>`;
+    // 2) 建造投資ブロック(次の工程+統一書式素材+投じる)
+    const cost = Game.labInvestCost("desks"); // 実コスト(inv=1 → {orichalcum:2, titaniumOre:4})
+    const mats = Object.keys(cost).map((o) => matRow(oreIcon(o), oreName(o), Game.ore(o), cost[o])).join("");
+    const canInvest = Object.keys(cost).every((o) => Game.ore(o) >= cost[o]);
+    const bd = `
+      <div class="plan-build">
+        <h3>${Icon.svg("build")} 建造投資 — 次の工程: <span class="next">S4 ${stageNames[3]}</span>
+          <canvas class="pt-glyph" data-st="4" width="26" height="38" style="opacity:.9"></canvas></h3>
+        <div class="pb-body">
+          <div class="pb-mats">${mats}</div>
+          <div class="pb-btn"><button ${canInvest ? "" : "disabled"}>${Icon.svg("build")} 投じる</button></div>
+        </div>
+      </div>`;
+    // 3) 変換(保有内蔵)
+    const cvBtn = (fromIcon, fromName, fromCost, fromHave, toIcon, toN) => {
+      const ok = fromHave >= fromCost;
+      return `<button class="cv-btn ${ok ? "" : "ng"}" ${ok ? "" : "disabled"}>
+        <span class="cv-main"><span class="cv-from">${Icon.svg(fromIcon)}${fmt(fromCost)}</span><span class="cv-arr">▶</span><span class="cv-to">${Icon.svg(toIcon)}+${toN}</span></span>
+        <span class="cv-have">${fromName} 保有<b>${fmt(fromHave)}</b>${ok ? "" : ` <b>あと${fmt(fromCost - fromHave)}</b>`}</span></button>`;
+    };
+    const cv = `<div class="plan-cv">
+      ${cvBtn("coin", "ゴールド", CFG.goldToFoodRate * CFG.convertBatch, Game.state.coins, "food", CFG.convertBatch)}
+      ${cvBtn("coin", "ゴールド", CFG.goldToEnergyRate * CFG.convertBatch, Game.state.coins, "energy", CFG.convertBatch)}
+      ${cvBtn("bio", "生態データ", CFG.bioToScienceRate * CFG.convertBatch, Game.res("bio"), "science", CFG.convertBatch)}
+    </div>`;
+    // 4) 研究リスト(現行項目・順序維持+統一書式。ロック=錠前+ホバーで開放条件)
+    let rs = `<div class="plan-research">`;
+    const resIconName = { science: "研究力", coins: "ゴールド", orichalcum: "オリハルコン", stones: "賢者の石" };
+    for (const r of RESEARCH) {
+      const done = Game.state.research[r.id];
+      const locked = r.req && !Game.state.research[r.req];
+      const pairs = [];
+      if (r.cost.science) pairs.push(["science", resIconName.science, Game.res("science"), r.cost.science]);
+      if (r.cost.coins) pairs.push(["coin", resIconName.coins, Game.state.coins, r.cost.coins]);
+      if (r.cost.orichalcum) pairs.push(["orichalcum", resIconName.orichalcum, Game.ore("orichalcum"), r.cost.orichalcum]);
+      if (r.cost.stones) pairs.push(["stone", resIconName.stones, Game.stones(), r.cost.stones]);
+      const canBuy = !done && !locked && pairs.every((p) => p[2] >= p[3]);
+      const reqName = locked ? (RESEARCH.find((x) => x.id === r.req) || {}).name : "";
+      rs += `<div class="list-row${done ? " done" : ""}${locked ? " locked" : ""}" ${locked ? `title="開放条件: ${reqName} の完了"` : ""}>
+        <span class="fic">${Icon.svg(done ? "check" : locked ? "lock" : "science")}</span>
+        <div class="grow"><b>${r.name}</b></div>
+        ${done ? `<span class="lv">済</span>` : locked ? `<span style="color:var(--sub)">${Icon.svg("lock")}</span>`
+          : `<span style="display:flex;gap:4px;flex-wrap:wrap">${pairs.map((p) => matRow(p[0], p[1], p[2], p[3])).join("")}</span><button ${canBuy ? "" : "disabled"}>${Icon.svg("science")}</button>`}
+      </div>`;
+    }
+    rs += `</div>`;
+    // 5) 手持ち資源(俯瞰・一段沈める)
+    const pocket = `<div class="plan-pocket">手持ち資源 —
+      ${Icon.svg("bio")}${fmt(Game.res("bio"))} ${Icon.svg("food")}${fmt(Game.res("food"))} ${Icon.svg("energy")}${fmt(Game.res("energy"))}
+      ${Icon.svg("science")}${fmt(Game.res("science"))} ${Icon.svg("coin")}${fmt(Game.state.coins)}
+      ${ORES.map((o) => `${Icon.svg(o.icon)}${fmt(Game.ore(o.id))}`).join(" ")}</div>`;
+    body.innerHTML = tr + bd + cv + rs + pocket;
+    // トラッカーのミニシルエット(ドック6段ラフと同じ言語)
+    for (const cvel of body.querySelectorAll(".pt-glyph")) drawGlyph(cvel, parseInt(cvel.dataset.st, 10));
+  });
+
+  // 6段ミニシルエット(30×44): ドックの絵とパネルの計画を同じ言語で繋ぐ
+  function drawGlyph(cv, st) {
+    const c = cv.getContext("2d"), W = cv.width, H = cv.height;
+    const cx = W / 2, bw = W * 0.52, base = H - 6;
+    const frame = "#5a6f84", hull = "#8fa2b5", amber = "#ecc35a";
+    c.clearRect(0, 0, W, H);
+    c.fillStyle = "#232c36"; c.fillRect(cx - bw * 0.8, base, bw * 1.6, 2.5); // 台座
+    const secH = (H - 14) / 4;
+    const y = (i) => base - secH * i;
+    const skel = (yTop, hh) => { c.strokeStyle = frame; c.lineWidth = 1; c.strokeRect(cx - bw / 2, yTop, bw, hh); c.beginPath(); c.moveTo(cx - bw / 2, yTop); c.lineTo(cx + bw / 2, yTop + hh); c.moveTo(cx + bw / 2, yTop); c.lineTo(cx - bw / 2, yTop + hh); c.stroke(); };
+    const solid = (yTop, hh) => { c.fillStyle = hull; c.fillRect(cx - bw / 2, yTop, bw, hh); };
+    if (st === 7) { // 発射(終点=目標)
+      solid(y(3), secH * 3);
+      c.fillStyle = hull; c.beginPath(); c.moveTo(cx - bw / 2, y(3)); c.quadraticCurveTo(cx, y(3) - secH, cx + bw / 2, y(3)); c.closePath(); c.fill();
+      c.fillStyle = amber; c.beginPath(); c.moveTo(cx - bw * 0.35, base); c.lineTo(cx, base + 5); c.lineTo(cx + bw * 0.35, base); c.closePath(); c.fill();
+      return;
+    }
+    if (st >= 2) solid(y(1), secH); else skel(y(1), secH);
+    if (st >= 4) { solid(y(2), secH); solid(y(3), secH); } else { skel(y(2), secH); skel(y(3), secH); }
+    if (st >= 3) { c.fillStyle = "#3a4450"; for (const ex of [-bw * 0.28, bw * 0.28]) { c.beginPath(); c.moveTo(cx + ex - 3, base); c.lineTo(cx + ex, base - 4); c.lineTo(cx + ex + 3, base); c.closePath(); c.fill(); } }
+    if (st >= 5) { c.fillStyle = hull; c.beginPath(); c.moveTo(cx - bw / 2, y(3)); c.quadraticCurveTo(cx, y(3) - secH, cx + bw / 2, y(3)); c.closePath(); c.fill(); c.fillStyle = "#a11c2c"; c.fillRect(cx - bw / 2, y(2) - 2, bw, 2.5); }
+    if (st >= 6) { c.fillStyle = amber; c.fillRect(cx - bw / 2 - 2, y(2), 2, 2); c.fillRect(cx + bw / 2, y(2), 2, 2); c.fillRect(cx - 1, y(3) - secH * 0.6, 2, 3); }
+  }
+}, 400));
+</script>
+</body>
+</html>
