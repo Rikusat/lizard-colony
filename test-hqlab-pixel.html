@@ -42,6 +42,7 @@ const MODES = {
   b: { name: "#b Core Keeper系 — 壁と照明が主役・暗部許可・光が空間を切り取る", proj: "top", lighting: true, bright: false, sat: 0.9 },
   c: { name: "#c PS1研究所系 — 深アイソメ・低彩度・配管とダクトの無骨な施設", proj: "iso", lighting: false, bright: false, sat: 0.55 },
 };
+MODES.v = { name: "#v 検証カット — 左:現行#a(8bit) vs 右:GBA/GBC後期(色ランプ+材質+セレクティブ輪郭)", proj: "verify", lighting: false, bright: true, sat: 1.0 };
 const mode = MODES[(location.hash || "#a").slice(1)] || MODES.a;
 document.getElementById("title").textContent = "スタイル比較 — " + mode.name;
 
@@ -214,7 +215,140 @@ function renderIso() {
   for (const it of items) (draw[it.t] || (() => {}))(it);
 }
 
-if (mode.proj === "top") renderTop(); else renderIso();
+// ============================================================
+// 検証カット(#v): 同一カットを 現行流儀(左) と GBA規律(右) で並置。GBA側が全展開の基準になる。
+// GBA規律: 素材ごとの色ランプ3〜4段/純黒輪郭禁止(最暗色・上辺は明色抜き)/材質の描き分け/大面積の分割/CFG化。
+// ============================================================
+const VCFG = { rampSteps: 4, floorJitter: 1, wearDensity: 0.5, grainLines: 2 }; // Ric調整(段数/揺らぎ/摩耗/木目)
+const RAMP = { // 素材ランプ(最暗0→基本1→明2→ハイライト3)。白タイル+深紅/琥珀の規律内で段数を増やす
+  floor: [[196,190,178],[214,208,196],[226,220,208],[238,233,222]],
+  wall: [[104,100,92],[150,146,136],[186,182,172],[212,208,198]],
+  metal: [[64,68,74],[104,108,116],[148,152,160],[206,210,218]],
+  wood: [[92,68,42],[136,104,66],[170,138,94],[200,172,130]],
+  paper: [[186,180,166],[218,212,198],[242,238,228],[252,250,244]],
+  water: [[52,110,150],[84,152,192],[120,190,220],[172,222,242]],
+  crimson: [[86,10,22],[142,24,38],[186,52,64],[222,104,104]],
+  amber: [[132,94,18],[188,142,30],[222,178,54],[244,214,118]],
+};
+const rc = (m, i) => { const v = RAMP[m][Math.min(i, VCFG.rampSteps - 1)]; return "rgb(" + v[0] + "," + v[1] + "," + v[2] + ")"; };
+function ditherC(x, y, w, h, col) { c.fillStyle = col; for (let yy = Math.round(y); yy < y + h; yy++) for (let xx = Math.round(x) + (yy % 2); xx < x + w; xx += 2) c.fillRect(xx, yy, 1, 1); }
+function renderVerify() {
+  px(0, 0, W0, H0, C.ink, 0.4);
+  const T = 16, CUT = { cols: 11, rows: 7 };
+  const hash2 = (a, b) => (((a + 7) * 73856093) ^ ((b + 3) * 19349663)) >>> 0;
+  const cut = [
+    { t: "desk", x: 1, y: 1 }, { t: "tank", x: 7, y: 1 },
+    { t: "shelfMain", x: 0, y: 4.4 }, { t: "oreCrate", x: 3.4, y: 4.6 },
+    { t: "papers", x: 5.2, y: 4.4 }, { t: "ext", x: 6.6, y: 5 },
+  ];
+  const wear = new Set(["3,3","4,3","5,3","6,3","7,3","3,4","7,4"]);
+  function drawCut(RX, RY, gba, label) {
+    if (!gba) {
+      px(RX - 4, RY - 20, CUT.cols * T + 8, 20, C.wall, 1); px(RX - 4, RY - 3, CUT.cols * T + 8, 3, C.wallDk, 1);
+      c.strokeStyle = css(C.ink, 1); c.strokeRect(RX - 4.5, RY - 20.5, CUT.cols * T + 9, CUT.rows * T + 24);
+    } else {
+      px(RX - 4, RY - 20, CUT.cols * T + 8, 20, rc("wall", 1)); px(RX - 4, RY - 20, CUT.cols * T + 8, 2, rc("wall", 3));
+      for (let i = 1; i < 6; i++) px(RX - 4 + i * (CUT.cols * T + 8) / 6, RY - 18, 1, 15, rc("wall", 0));
+      px(RX - 4, RY - 5, CUT.cols * T + 8, 2, rc("wall", 2)); px(RX - 4, RY - 3, CUT.cols * T + 8, 3, rc("wall", 0));
+      c.strokeStyle = rc("wall", 0); c.strokeRect(RX - 4.5, RY - 20.5, CUT.cols * T + 9, CUT.rows * T + 24);
+    }
+    for (let gx = 0; gx < CUT.cols; gx++) for (let gy = 0; gy < CUT.rows; gy++) {
+      const X = RX + gx * T, Y = RY + gy * T;
+      if (!gba) { px(X, Y, T, T, (gx + gy) % 2 ? C.floorAlt : C.floor, 1); px(X, Y, T, 1, C.floorAlt, 0.92); px(X, Y, 1, T, C.floorAlt, 0.92); }
+      else {
+        const base = (gx + gy) % 2 ? 1 : 2;
+        const j = (hash2(gx, gy) % 2) * VCFG.floorJitter;
+        px(X, Y, T, T, rc("floor", Math.min(3, base + j)));
+        px(X, Y + T - 1, T, 1, rc("floor", 0)); px(X + T - 1, Y, 1, T, rc("floor", 0));
+        px(X, Y, T, 1, rc("floor", 3));
+        if (wear.has(gx + "," + gy)) ditherC(X + 2, Y + 4, T - 4, T - 7, rc("floor", 0));
+      }
+    }
+    const at = (gx, gy) => ({ x: RX + gx * T, y: RY + gy * T });
+    if (!gba) {
+      const O = (x, y, w, h) => { c.strokeStyle = css(C.ink, 1); c.strokeRect(Math.round(x) + 0.5, Math.round(y) + 0.5, w, h); };
+      for (const it of cut) {
+        const p = at(it.x, it.y);
+        if (it.t === "desk") { px(p.x, p.y, 64, 30, C.metal, 1); px(p.x + 6, p.y + 6, 20, 12, C.ink, 1); px(p.x + 8, p.y + 8, 16, 8, C.screen, 1); px(p.x + 30, p.y + 8, 14, 9, C.ink, 1); px(p.x + 32, p.y + 10, 10, 5, C.screen, 0.9); O(p.x, p.y, 64, 30); }
+        if (it.t === "tank") { px(p.x, p.y, 48, 48, C.metalDk, 1); px(p.x + 3, p.y + 3, 42, 42, C.water, 0.8); px(p.x + 20, p.y + 20, 8, 8, C.crimson, 1); O(p.x, p.y, 48, 48); }
+        if (it.t === "shelfMain") { px(p.x, p.y, 32, 40, C.wood, 1); for (let r = 0; r < 2; r++) for (let jj = 0; jj < 3; jj++) px(p.x + 5 + jj * 9, p.y + 5 + r * 15, 6, 9, C.water, 1.1); O(p.x, p.y, 32, 40); }
+        if (it.t === "oreCrate") { px(p.x, p.y, 20, 16, C.wood, 1); px(p.x + 3, p.y + 4, 5, 4, C.amber, 1); px(p.x + 9, p.y + 5, 5, 4, C.water, 1.1); O(p.x, p.y, 20, 16); }
+        if (it.t === "papers") { px(p.x, p.y, 12, 10, C.paper, 1); px(p.x + 2, p.y - 2, 12, 10, C.paper, 0.94); O(p.x + 2, p.y - 2, 12, 10); }
+        if (it.t === "ext") { px(p.x, p.y, 6, 12, C.crimson, 1); O(p.x, p.y, 6, 12); }
+      }
+      c.fillStyle = "#c9b8a2"; c.font = "8px system-ui"; c.fillText(label, RX, RY + CUT.rows * T + 12);
+      return;
+    }
+    const OL = (x, y, w, h, m) => { c.strokeStyle = rc(m, 0); c.strokeRect(Math.round(x) + 0.5, Math.round(y) + 0.5, w, h); px(x + 1, y, w - 1, 1, rc(m, 3)); };
+    for (const it of cut) {
+      const p = at(it.x, it.y);
+      if (it.t === "desk") {
+        ditherC(p.x + 1, p.y + 28, 64, 3, rc("floor", 0));
+        px(p.x, p.y, 64, 30, rc("metal", 1));
+        px(p.x, p.y, 64, 4, rc("metal", 2)); px(p.x, p.y, 64, 1, rc("metal", 3));
+        px(p.x, p.y + 26, 64, 4, rc("metal", 0));
+        px(p.x + 32, p.y + 2, 1, 26, rc("metal", 0));
+        for (let i = 0; i < 4; i++) px(p.x + 52, p.y + 8 + i * 4, 8, 1, rc("metal", 0));
+        px(p.x + 5, p.y + 5, 22, 14, rc("metal", 0)); px(p.x + 7, p.y + 7, 18, 10, rc("water", 1)); px(p.x + 7, p.y + 7, 18, 3, rc("water", 2)); px(p.x + 8, p.y + 15, 16, 1, rc("water", 0));
+        px(p.x + 30, p.y + 7, 15, 11, rc("metal", 0)); px(p.x + 32, p.y + 9, 11, 7, rc("crimson", 0));
+        c.strokeStyle = rc("crimson", 2); c.beginPath();
+        for (let i = 0; i <= 10; i++) { const yy = p.y + 12.5 + ((i % 4 === 1) ? -2 : (i % 4 === 3) ? 2 : 0); if (i) c.lineTo(p.x + 33 + i, yy); else c.moveTo(p.x + 33, yy); }
+        c.stroke();
+        px(p.x + 48, p.y + 21, 10, 6, rc("paper", 3)); px(p.x + 48, p.y + 25, 10, 2, rc("paper", 1));
+        OL(p.x, p.y, 64, 30, "metal");
+      }
+      if (it.t === "tank") {
+        ditherC(p.x + 1, p.y + 46, 48, 3, rc("floor", 0));
+        px(p.x, p.y, 48, 48, rc("metal", 1));
+        px(p.x, p.y, 48, 2, rc("metal", 3)); px(p.x, p.y + 46, 48, 2, rc("metal", 0));
+        for (const b of [[2,2],[44,2],[2,44],[44,44]]) px(p.x + b[0], p.y + b[1], 2, 2, rc("metal", 3));
+        px(p.x + 4, p.y + 4, 40, 40, rc("water", 1));
+        ditherC(p.x + 5, p.y + 5, 38, 8, rc("water", 2));
+        px(p.x + 5, p.y + 5, 38, 1, rc("water", 3));
+        px(p.x + 6, p.y + 38, 36, 5, rc("water", 0));
+        ditherC(p.x + 16, p.y + 16, 16, 4, rc("crimson", 1));
+        px(p.x + 20, p.y + 19, 8, 8, rc("crimson", 2)); px(p.x + 21, p.y + 20, 3, 2, rc("crimson", 3));
+        OL(p.x, p.y, 48, 48, "metal");
+      }
+      if (it.t === "shelfMain") {
+        ditherC(p.x + 1, p.y + 38, 32, 3, rc("floor", 0));
+        px(p.x, p.y, 32, 40, rc("wood", 1));
+        px(p.x, p.y, 32, 2, rc("wood", 3));
+        for (let i = 0; i < VCFG.grainLines; i++) px(p.x + 6 + i * 16, p.y + 3, 1, 35, rc("wood", 0));
+        for (let r = 0; r < 2; r++) {
+          px(p.x + 2, p.y + 15 + r * 15, 28, 2, rc("wood", 0));
+          for (let jj = 0; jj < 3; jj++) { const jx = p.x + 5 + jj * 9, jy = p.y + 5 + r * 15; px(jx, jy, 6, 9, rc("water", 1)); px(jx + 1, jy + 1, 2, 7, rc("water", 2)); px(jx, jy, 6, 2, rc("metal", 2)); }
+        }
+        OL(p.x, p.y, 32, 40, "wood");
+      }
+      if (it.t === "oreCrate") {
+        ditherC(p.x + 1, p.y + 14, 20, 3, rc("floor", 0));
+        px(p.x, p.y, 20, 16, rc("wood", 1)); px(p.x, p.y, 20, 3, rc("wood", 2)); px(p.x, p.y, 20, 1, rc("wood", 3));
+        px(p.x + 3, p.y + 6, 14, 1, rc("wood", 0)); px(p.x + 3, p.y + 11, 14, 1, rc("wood", 0));
+        for (const b of [[0,0],[17,0],[0,13],[17,13]]) px(p.x + b[0], p.y + b[1], 3, 3, rc("metal", 2));
+        px(p.x + 4, p.y + 3, 5, 4, rc("amber", 2)); px(p.x + 5, p.y + 3, 2, 1, rc("amber", 3));
+        px(p.x + 11, p.y + 4, 5, 4, rc("water", 2)); px(p.x + 12, p.y + 4, 2, 1, rc("water", 3));
+        OL(p.x, p.y, 20, 16, "wood");
+      }
+      if (it.t === "papers") {
+        px(p.x, p.y, 12, 10, rc("paper", 2)); px(p.x, p.y + 8, 12, 2, rc("paper", 1));
+        px(p.x + 2, p.y - 2, 12, 10, rc("paper", 3)); px(p.x + 2, p.y + 6, 12, 2, rc("paper", 2));
+        px(p.x + 4, p.y, 8, 1, rc("paper", 0)); px(p.x + 4, p.y + 2, 6, 1, rc("paper", 0));
+        c.strokeStyle = rc("paper", 1); c.strokeRect(p.x + 2.5, p.y - 1.5, 11, 9);
+      }
+      if (it.t === "ext") {
+        ditherC(p.x, p.y + 11, 7, 2, rc("floor", 0));
+        px(p.x, p.y, 6, 12, rc("crimson", 1)); px(p.x + 1, p.y, 1, 12, rc("crimson", 3)); px(p.x + 4, p.y, 2, 12, rc("crimson", 0));
+        px(p.x + 1, p.y - 2, 3, 2, rc("metal", 2)); px(p.x + 1, p.y - 2, 3, 1, rc("metal", 3));
+        c.strokeStyle = rc("crimson", 0); c.strokeRect(p.x + 0.5, p.y + 0.5, 5, 11);
+      }
+    }
+    c.fillStyle = "#c9b8a2"; c.font = "8px system-ui"; c.fillText(label, RX, RY + CUT.rows * T + 12);
+  }
+  drawCut(18, 60, false, "現行 #a (8bit: ベタ1色+黒輪郭)");
+  drawCut(18 + CUT.cols * T + 30, 60, true, "GBA/GBC後期 (色ランプ3-4段+材質+セレクティブ輪郭)");
+}
+if (mode.proj === "top") renderTop(); else if (mode.proj === "verify") renderVerify(); else renderIso();
 // 整数倍ブリット
 g.imageSmoothingEnabled = false;
 g.fillStyle = "#0d0b09"; g.fillRect(0, 0, cv.width, cv.height);
