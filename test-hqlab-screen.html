@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>本部 監視スクリーン — 惑星別の映り確認(開発用・§5ooo)</title>
+<!-- §5ooo QA: 本部を「特定の惑星から開いた」状態を再現し、スクリーンの映り(背景明度差)を確認する。
+     ハッシュ #p2=ネオヴェルデ / #p8=グラキス(既定=#p2)。+bで案ロ(例: #p8b)。
+     localStorageは下でサンドボックス化=本セーブに一切触れない。.vercelignoreでdev限定。 -->
+<script>
+// 本セーブ非接触の保証: 実localStorageを遮断しメモリ実装に差し替え(スクリプト読込より先に実行)
+(function () {
+  const mem = {};
+  const shim = { getItem: (k) => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: (k) => { delete mem[k]; }, clear: () => { for (const k in mem) delete mem[k]; } };
+  Object.defineProperty(window, "localStorage", { value: shim, configurable: false });
+})();
+</script>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="style.css">
+<style>#note{position:fixed;left:8px;bottom:8px;z-index:99999;background:rgba(13,10,6,.9);color:#c9b8a2;font:12px system-ui;padding:8px 12px;border-radius:8px}</style>
+</head>
+<body>
+<div id="note">§5ooo 監視スクリーン: 惑星別の映り確認(#p2=ネオヴェルデ/#p8=グラキス・+b=案ロ)</div>
+<header id="topbar"><div id="brand"></div>
+  <div class="res"><b id="ui-coins">0</b><small id="ui-cps"></small></div>
+  <div class="res"><b id="ui-crickets-top">0</b></div><div class="res"><b id="ui-gems">0</b></div><div class="res"><b id="ui-stones">0</b></div>
+  <nav><button id="btn-map"></button><button id="btn-hq"></button><span id="hq-badge"></span><button id="btn-dex"></button><span id="dex-badge"></span>
+  <button id="btn-missions"></button><span id="mission-badge"></span><button id="btn-stats"></button><span id="stats-badge"></span><button id="btn-settings"></button></nav>
+</header>
+<div id="hq-bar"><div id="rank-bar"></div><span id="hq-bar-label"><b id="ui-rank">1</b></span></div>
+<main><aside id="left"><div class="card"><button id="btn-cricket"><span id="cricket-lot-lbl"></span></button><button id="btn-fac"></button></div>
+  <div id="slit-device"><canvas id="slit-canvas"></canvas></div></aside>
+  <section id="center"><div id="frame"><canvas id="game" width="1280" height="720"></canvas>
+    <div id="raid-hud"><div class="rh-line"><span id="raid-timer"></span></div><div id="next-boss" class="hidden"></div><button id="btn-raid-now"></button></div>
+    <div id="toasts"></div></div><div id="raid-banner" class="hidden"></div><div id="detail" class="hidden"></div></section></main>
+<section id="hqlab" class="hidden"><header id="hqlab-head"><button id="hqlab-back">←</button><h2>本部</h2><span id="hqlab-lv"></span></header>
+  <div id="hqlab-wrap"><canvas id="hqlab-canvas" width="1000" height="620"></canvas></div></section>
+<div id="modal" class="hidden"><div id="modal-box"><header><h2 id="modal-title"></h2><button id="modal-close">×</button></header><div id="modal-body"></div></div></div>
+
+<script src="js/data.js"></script><script src="js/game.js"></script><script src="js/render.js"></script>
+<script src="js/roulette.js"></script><script src="js/slit.js"></script>
+<script src="js/ui/core.js"></script><script src="js/ui/icons.js"></script><script src="js/ui/components.js"></script><script src="js/ui/motion.js"></script>
+<script src="js/ui/hero/hero.js"></script><script src="js/ui/hero/nest-reveal.js"></script><script src="js/ui/hero/boss.js"></script>
+<script src="js/ui/hero/meteorite.js"></script><script src="js/ui/hero/rocket.js"></script><script src="js/ui/hero/species-reveal.js"></script><script src="js/ui/hero/boss-reward.js"></script>
+<script src="js/ui/screens/main.js"></script><script src="js/ui/screens/feeder-skins.js"></script><script src="js/ui/screens/feeder.js"></script>
+<script src="js/ui/screens/roulette.js"></script><script src="js/ui/screens/slit.js"></script><script src="js/ui/screens/breeding.js"></script>
+<script src="js/ui/screens/equipment.js"></script><script src="js/ui/screens/planet-map.js"></script><script src="js/ui/screens/nest.js"></script>
+<script src="js/ui/screens/hq.js"></script><script src="js/ui/screens/hqlab.js"></script><script src="js/ui/screens/dex.js"></script><script src="js/ui/screens/meta.js"></script><script src="js/ui/boot.js"></script>
+<script>
+// #now: 同期実行の実時間ベンチ(virtual-timeはperformance.nowを凍結するため、QAページ#nowと同じくパース時に同期計測)
+if (location.hash === "#now") {
+  Game.newGame();
+  UI._labRoomTierOverride = 3;
+  UI.openHqLab();
+  const t0 = performance.now(); for (let i = 0; i < 120; i++) UI._drawLabScreenVideo(i / 12);
+  const vidMs = (performance.now() - t0) / 120;
+  const t1 = performance.now(); for (let i = 0; i < 60; i++) UI.renderHqLab();
+  const roomMs = (performance.now() - t1) / 60;
+  document.title = `SCRFPS video=${vidMs.toFixed(3)}ms/回(${CFG.labScreenFps}fps=${(vidMs * CFG.labScreenFps).toFixed(2)}ms/秒) room=${roomMs.toFixed(2)}ms`;
+}
+// 指定惑星へ正規手順(selectStage=純血ペア開拓)で移動→固有種を数匹追加→本部を開く(メモリ内・本セーブ非接触)
+if (location.hash !== "#now") window.addEventListener("load", () => setTimeout(() => {
+  const m = location.hash.match(/^#p(\d+)(b?)$/);
+  const planet = m ? parseInt(m[1], 10) : 2;
+  Game.newGame();
+  Game.state.rank = 999;
+  Game.raid = null;
+  if (planet !== 1) Game.selectStage(planet);
+  const pool = Game.breedablePool();
+  for (let i = 0; i < 10; i++) {
+    const sp = pool[i % pool.length];
+    const lz = Game.makeLizard(sp.id, "normal", { hue: sp.hue, sat: sp.sat, light: sp.light, pattern: ["stripe", "spot", "band", "none"][i % 4], traits: [] }, "adult");
+    Game.addLizard(lz, true);
+  }
+  if (m && m[2] === "b") UI._labLayoutVariant = "b";
+  UI._labRoomTierOverride = 3;
+  // QAプローブ: 生中継の実行回数と条件をtitleへ(headlessの--dump-domで読む)
+  const orig = UI._drawLabScreenVideo.bind(UI);
+  let vidN = 0, startN = 0, rafN = 0;
+  const origStart = UI._startLabVideo.bind(UI);
+  const origRaf = window.requestAnimationFrame.bind(window);
+  window.requestAnimationFrame = function (cb) { rafN++; return origRaf(cb); };
+  UI._startLabVideo = function () { startN++; origStart(); };
+  let vidErr = "-", dstPix = "-";
+  UI._drawLabScreenVideo = function (t) {
+    vidN++;
+    try { orig(t); } catch (e) { vidErr = String(e).slice(0, 60); }
+    try { const cv2 = document.getElementById("hqlab-canvas"), r = UI._labScreenLowRect, b = UI._labBlit;
+      const d = cv2.getContext("2d").getImageData(Math.round(b.bx + (r.x + r.w / 2) * b.k), Math.round(b.by + (r.y + r.h / 2) * b.k), 2, 2).data;
+      dstPix = [d[0], d[1], d[2]].join(","); } catch (e) { dstPix = "err"; }
+  };
+  setInterval(() => { const src = document.getElementById("game");
+    let pix = "-";
+    try { const d = src.getContext("2d").getImageData(src.width / 2 - 2, src.height / 2 - 2, 4, 4).data;
+      let r = 0, g = 0, b2 = 0, a = 0; for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b2 += d[i + 2]; a += d[i + 3]; }
+      const n = d.length / 4; pix = [r, g, b2, a].map((v) => Math.round(v / n)).join(","); } catch (e) { pix = "err"; }
+    document.title = `start=${startN} vid=${vidN} raf=${rafN} rect=${!!UI._labScreenLowRect} srcPix=${pix} dstPix=${dstPix} err=${vidErr}`; }, 300);
+  setTimeout(() => {
+    UI.openHqLab();
+    UI.update(); // sigを先に確定=撮影直前のrAF復活フレームでupdate()が部屋を再描画して映像を上書きするレースを防ぐ(headless限定の撮影対策)
+    // headless(virtual-time)は初回ペイント後にrAFが止まるため、撮影用にsetTimerで生中継を強制駆動(実ブラウザはrAF駆動で不要)
+    let k = 0;
+    const force = setInterval(() => { UI._drawLabScreenVideo(performance.now() / 1000); if (++k > 20) clearInterval(force); }, 120);
+    // 負荷実測(§5ooo報告用): 生中継1回の同期コスト(test-hqlab-qa #nowと同方式)+部屋フル再描画コスト
+    setTimeout(() => {
+      const t0 = performance.now(); for (let i = 0; i < 120; i++) UI._drawLabScreenVideo(i / 12);
+      const vidMs = (performance.now() - t0) / 120;
+      const t1 = performance.now(); for (let i = 0; i < 60; i++) UI.renderHqLab();
+      const roomMs = (performance.now() - t1) / 60;
+      console.log(`[SCRFPS] video=${vidMs.toFixed(3)}ms/回(${CFG.labScreenFps}fps=${(vidMs * CFG.labScreenFps).toFixed(2)}ms/秒) room=${roomMs.toFixed(2)}ms`);
+      document.title = `SCRFPS video=${vidMs.toFixed(3)}ms room=${roomMs.toFixed(2)}ms | ` + document.title;
+      UI._drawLabScreenVideo(1.3); // ベンチ後に映像を戻す(スクショ用)
+    }, 3200);
+  }, 700); // 飼育槽を数フレーム回してから開く(スクリーンに実配置が映る)
+}, 250));
+</script>
+</body>
+</html>
