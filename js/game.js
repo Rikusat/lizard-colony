@@ -791,7 +791,7 @@ const Game = {
     let v = 0;
     for (const id in this.state.research) {
       const r = researchById(id);
-      if (r && r.eff[key]) v += r.eff[key];
+      if (r && r.eff && r.eff[key]) v += r.eff[key]; // effなし研究(レシピ解読等)はボーナス0(無ガードだと購入後にTypeError=§5vvv)
     }
     return v;
   },

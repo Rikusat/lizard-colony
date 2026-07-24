@@ -89,6 +89,12 @@ console.log("== 2) dockStages写像+3) 宇宙港rocketStages無傷(実コード)
   }
   check("dock写像: labInvest 0/1/2/3 → S1/S3/S5/S6", [0, 1, 2, 3].every((i) => got[i] === expect[i]), JSON.stringify(got));
   check("宇宙港の建造ロジック(rocketStageNeed)が従来値", Game.rocketStageNeed() === 20, String(Game.rocketStageNeed()));
+
+  // 4) researchBonus: effを持たない研究(レシピ解読)を購入済みでも落ちない(建造計画モックで露出したクラッシュの再発防止)
+  Game.state.research.recipe1 = true;
+  let bonusOk = true, bonusV = null;
+  try { bonusV = Game.researchBonus("hatch"); } catch (e) { bonusOk = false; }
+  check("researchBonus: レシピ購入済みでもTypeErrorなし(eff無し研究=0)", bonusOk && typeof bonusV === "number", `ok=${bonusOk} v=${bonusV}`);
 }
 
 console.log("\n============================================");
