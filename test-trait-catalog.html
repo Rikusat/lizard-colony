@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>特性カタログ — 獲得情報つき全18特性+血統6レシピ(開発用)</title>
+<!-- 再監査アーク③(2026-07-24): ロスター(見た目確認)と別軸の「獲得情報カタログ」。
+     1行=1特性: 両固有種(惑星1 カナヘビ/ニホントカゲ)で実レンダ+創世可否+レシピ位置。
+     下段=血統6レシピ: 素材A+素材B→成果C を実レンダで並べ、血統原則(素材モチーフの残存)を目視確認。
+     localStorageは下でサンドボックス化=本セーブに一切触れない。.vercelignoreでdev限定。 -->
+<script>
+// 本セーブ非接触の保証: 実localStorageを遮断しメモリ実装に差し替え(スクリプト読込より先に実行)
+(function () {
+  const mem = {};
+  const shim = { getItem: (k) => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: (k) => { delete mem[k]; }, clear: () => { for (const k in mem) delete mem[k]; } };
+  Object.defineProperty(window, "localStorage", { value: shim, configurable: false });
+})();
+</script>
+<style>
+  body { background: #4a352f; margin: 0; color: #e8dccb; font-family: system-ui, sans-serif; }
+  h1 { font-size: 15px; padding: 10px 16px 0; margin: 0; font-weight: 600; }
+  h2 { font-size: 14px; padding: 14px 16px 0; margin: 0; font-weight: 600; }
+  p.note { font-size: 12px; padding: 2px 16px 8px; margin: 0; color: #c9b8a2; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<h1>特性カタログ — 全18特性の獲得情報(創世可否・レシピ位置)+両固有種の実レンダ</h1>
+<p class="note">左=惑星1の両固有種(ニホンカナヘビ/ニホントカゲ)。バッジ: 創世可=賢者の石で創世できる12基本 / 合成専用=レシピでのみ生まれる6特性(tier6)。</p>
+<canvas id="game" width="860" height="2180"></canvas>
+<h2>血統6レシピ — 素材A + 素材B → 成果C(すべて実レンダ)</h2>
+<p class="note">血統原則(§8): 素材のモチーフが成果の意匠に視認できること。共通の徴=深紅の芯線。</p>
+<canvas id="recipes" width="900" height="820"></canvas>
+<script src="js/data.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script>
+// メモリ上だけで動作しセーブに触れない開発用ページ。TRAITS/RECIPESが単一の真実(追加のたび行が増える)。
+globalThis.UI = { toast: () => {} };
+Game.newGame(); Game.state.lizards = [];
+Render.init(); Render.time = 1.3;
+const ctx = Render.ctx;
+const spA = SPECIES.find((s) => s.id === "kanahebi"), spB = SPECIES.find((s) => s.id === "nihontokage");
+const draw1 = (species, c, x, y, traits) => {
+  const lz = Game.makeLizard(species.id, "normal", { hue: species.hue, sat: species.sat, light: species.light, pattern: "stripe", traits }, "adult");
+  lz.x = x; lz.y = y; lz.tx = x; lz.ty = y; lz.angle = 0.12; lz.moving = false;
+  Render.drawLizard(c, lz, true);
+};
+// レシピ位置の索引: key → "レシピn 素材A/素材B" or "レシピn 成果(合成専用)"
+const rolePos = {};
+RECIPES.forEach((r) => {
+  rolePos[r.a] = (rolePos[r.a] ? rolePos[r.a] + " / " : "") + `レシピ${r.order} 素材A`;
+  rolePos[r.b] = (rolePos[r.b] ? rolePos[r.b] + " / " : "") + `レシピ${r.order} 素材B`;
+  rolePos[r.result] = `レシピ${r.order} 成果`;
+});
+const badge = (c, x, y, text, bg, fg) => {
+  c.font = "11px system-ui";
+  const w = c.measureText(text).width + 12;
+  c.fillStyle = bg; c.beginPath(); c.roundRect(x, y - 11, w, 16, 8); c.fill();
+  c.fillStyle = fg; c.fillText(text, x + 6, y + 1);
+  return x + w + 6;
+};
+ctx.fillStyle = "#5c4238"; ctx.fillRect(0, 0, 860, 2180);
+Object.keys(TRAITS).forEach((key, r) => {
+  const d = TRAITS[key], y = 120 + r * 112, tr = [{ key }];
+  draw1(spA, ctx, 500, y, tr);
+  draw1(spB, ctx, 720, y, tr);
+  ctx.fillStyle = d.rim || "#f0d9a8"; ctx.font = "13px system-ui"; ctx.fillText("●", 16, y - 14);
+  ctx.fillStyle = "#f0d9a8"; ctx.fillText(d.name, 34, y - 14);
+  let bx = 16;
+  if (d.synth) bx = badge(ctx, bx, y + 6, "合成専用", "#3d2431", "#e8a0c8");
+  else bx = badge(ctx, bx, y + 6, "創世可", "#24381f", "#a8e08a");
+  if (rolePos[key]) bx = badge(ctx, bx, y + 6, rolePos[key], "#38301f", "#e0cf8a");
+  ctx.fillStyle = "#c9b8a2"; ctx.font = "11px system-ui"; ctx.fillText(d.desc || "", 16, y + 26);
+});
+// ---- 血統6レシピ(素材A+素材B→成果C) ----
+const cv2 = document.getElementById("recipes"), c2 = cv2.getContext("2d");
+c2.fillStyle = "#5c4238"; c2.fillRect(0, 0, 900, 820);
+RECIPES.forEach((rec, i) => {
+  const y = 110 + i * 130;
+  draw1(spA, c2, 210, y, [{ key: rec.a }]);
+  draw1(spA, c2, 470, y, [{ key: rec.b }]);
+  draw1(spA, c2, 760, y, [{ key: rec.result }]);
+  c2.fillStyle = "#f0d9a8"; c2.font = "16px system-ui";
+  c2.fillText("+", 330, y); c2.fillText("→", 590, y);
+  c2.font = "12px system-ui";
+  c2.fillText(`レシピ${rec.order}`, 16, y - 40);
+  c2.fillStyle = "#c9b8a2"; c2.font = "11px system-ui";
+  c2.fillText(TRAITS[rec.a].name, 160, y + 44);
+  c2.fillText(TRAITS[rec.b].name, 420, y + 44);
+  c2.fillStyle = "#e8a0c8"; c2.fillText(TRAITS[rec.result].name, 700, y + 44);
+});
+</script>
+</body>
+</html>
