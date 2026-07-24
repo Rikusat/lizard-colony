@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>本部v3 構図カット — 正面仰視の管制室(開発用・Ric構図承認前)</title>
+<!-- 本部v3 全面転換(Ric指示 2026-07-24)の「構図カット」: T2相当の静止構図を1枚で確立する。
+     テーゼ:「スクリーンが部屋なのではない。スクリーンの光が部屋である」。
+     ハッシュ #p2=ネオヴェルデ / #p8=グラキス(既定=#p2)。
+     生中継=方式1の流用(#gameをブラー転写・12fps)。リムライト/床明度はスクリーン平均色から算出=映る惑星で部屋の照らされ方が変わる。
+     本ページの CTRLV(パレット/調整値)は構図承認後に data.js の CFG + 本実装(hqctrl)へ移植する。
+     localStorageは下でサンドボックス化=本セーブに一切触れない。.vercelignoreでdev限定。旧俯瞰実装(hqlab.js)には一切触れない。 -->
+<script>
+(function () {
+  const mem = {};
+  const shim = { getItem: (k) => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: (k) => { delete mem[k]; }, clear: () => { for (const k in mem) delete mem[k]; } };
+  Object.defineProperty(window, "localStorage", { value: shim, configurable: false });
+})();
+</script>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="style.css">
+<style>
+  #ctrl-stage { position: fixed; inset: 0; z-index: 9000; background: #0d1116; display: flex; align-items: center; justify-content: center; }
+  #ctrl-cv { width: min(100vw, 177.8vh); height: auto; image-rendering: auto; }
+  #note { position: fixed; left: 8px; bottom: 8px; z-index: 99999; background: rgba(13,10,6,.9); color: #c9b8a2; font: 12px system-ui; padding: 8px 12px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div id="note">本部v3 構図カット(T2相当・正面仰視の管制室) — #p2=ネオヴェルデ/#p8=グラキス</div>
+<header id="topbar"><div id="brand"></div>
+  <div class="res"><b id="ui-coins">0</b><small id="ui-cps"></small></div>
+  <div class="res"><b id="ui-crickets-top">0</b></div><div class="res"><b id="ui-gems">0</b></div><div class="res"><b id="ui-stones">0</b></div>
+  <nav><button id="btn-map"></button><button id="btn-hq"></button><span id="hq-badge"></span><button id="btn-dex"></button><span id="dex-badge"></span>
+  <button id="btn-missions"></button><span id="mission-badge"></span><button id="btn-stats"></button><span id="stats-badge"></span><button id="btn-settings"></button></nav>
+</header>
+<div id="hq-bar"><div id="rank-bar"></div><span id="hq-bar-label"><b id="ui-rank">1</b></span></div>
+<main><aside id="left"><div class="card"><button id="btn-cricket"><span id="cricket-lot-lbl"></span></button><button id="btn-fac"></button></div>
+  <div id="slit-device"><canvas id="slit-canvas"></canvas></div></aside>
+  <section id="center"><div id="frame"><canvas id="game" width="1280" height="720"></canvas>
+    <div id="raid-hud"><div class="rh-line"><span id="raid-timer"></span></div><div id="next-boss" class="hidden"></div><button id="btn-raid-now"></button></div>
+    <div id="toasts"></div></div><div id="raid-banner" class="hidden"></div><div id="detail" class="hidden"></div></section></main>
+<section id="hqlab" class="hidden"><header id="hqlab-head"><button id="hqlab-back">←</button><h2>本部</h2><span id="hqlab-lv"></span></header>
+  <div id="hqlab-wrap"><canvas id="hqlab-canvas" width="1000" height="620"></canvas></div></section>
+<div id="modal" class="hidden"><div id="modal-box"><header><h2 id="modal-title"></h2><button id="modal-close">×</button></header><div id="modal-body"></div></div></div>
+
+<div id="ctrl-stage"><canvas id="ctrl-cv" width="1280" height="720"></canvas></div>
+
+<script src="js/data.js"></script><script src="js/game.js"></script><script src="js/render.js"></script>
+<script src="js/roulette.js"></script><script src="js/slit.js"></script>
+<script src="js/ui/core.js"></script><script src="js/ui/icons.js"></script><script src="js/ui/components.js"></script><script src="js/ui/motion.js"></script>
+<script src="js/ui/hero/hero.js"></script><script src="js/ui/hero/nest-reveal.js"></script><script src="js/ui/hero/boss.js"></script>
+<script src="js/ui/hero/meteorite.js"></script><script src="js/ui/hero/rocket.js"></script><script src="js/ui/hero/species-reveal.js"></script><script src="js/ui/hero/boss-reward.js"></script>
+<script src="js/ui/screens/main.js"></script><script src="js/ui/screens/feeder-skins.js"></script><script src="js/ui/screens/feeder.js"></script>
+<script src="js/ui/screens/roulette.js"></script><script src="js/ui/screens/slit.js"></script><script src="js/ui/screens/breeding.js"></script>
+<script src="js/ui/screens/equipment.js"></script><script src="js/ui/screens/planet-map.js"></script><script src="js/ui/screens/nest.js"></script>
+<script src="js/ui/screens/hq.js"></script><script src="js/ui/screens/hqlab.js"></script><script src="js/ui/screens/dex.js"></script><script src="js/ui/screens/meta.js"></script><script src="js/ui/boot.js"></script>
+<script>
+// ============================================================
+// 本部v3 管制室 — 構図カット(T2相当)。承認後に data.js CFG + js/ui/screens/ へ移植する単一の試作。
+// ============================================================
+// 新パレット(1箇所集約=旧RAMPの構造踏襲・知識はここだけ)。暗部/計器/リムライトの3系統。
+const CTRLV = {
+  W: 1280, H: 720,
+  pal: {
+    // 暗部(冷暗基調)
+    room: "#0d1116", wallDeep: "#0a0e13", floor: "#0b0f15",
+    consoleBody: "#10151c", consoleTop: "#151b24", consoleEdge: "#1d2530",
+    bezel: "#1a2028", bezelHi: "#2a3340", screenOff: "#0a0d12",
+    silhouette: "#07090c",
+    // 計器(深紅/琥珀/水色=既存の色言語を継承)
+    crimson: "#a11c2c", crimsonHi: "#d8404e", amber: "#c08d1d", amberHi: "#ecc35a",
+    deskGlow: "#27424f", deskGlowHi: "#7fb9cc",
+    // リムライト(スクリーン光。実際の色はスクリーン平均色にこの係数を掛けて算出)
+    rimBase: [190, 214, 235],
+  },
+  // 調整値(承認後に CFG.ctrl* として data.js へ)
+  blur: 2.5,          // 気配→「見下ろす監視映像」の解像度(旧6より弱く。個体シルエット可・UI不可読)
+  scanAlpha: 0.055,   // 走査線(維持・薄く)
+  rimAmount: 1.0,     // リムライト量(スクリーン平均輝度×これ)
+  spillAmount: 0.85,  // 床への光こぼれ量
+  floorBase: 0.05,    // 暗部の底明度(スクリーンが暗くても完全な黒にしない)
+  rows: 3, seats: [7, 6, 4], // 席列(奥→手前)・T2=半分着席
+  fps: 12,
+};
+// スクリーン矩形(上部65%を占有)
+const SCR = { x: 96, y: 26, w: CTRLV.W - 192, h: 452 };
+
+function ctrlInit() {
+  const m = location.hash.match(/^#p(\d+)$/);
+  const planet = m ? parseInt(m[1], 10) : 2;
+  Game.newGame(); Game.state.rank = 999; Game.raid = null;
+  if (planet !== 1) Game.selectStage(planet);
+  const pool = Game.breedablePool();
+  for (let i = 0; i < 10; i++) {
+    const sp = pool[i % pool.length];
+    Game.addLizard(Game.makeLizard(sp.id, "normal", { hue: sp.hue, sat: sp.sat, light: sp.light, pattern: ["stripe", "spot", "band", "none"][i % 4], traits: [] }, "adult"), true);
+  }
+
+  const cv = document.getElementById("ctrl-cv"), g = cv.getContext("2d");
+  const P = CTRLV.pal;
+
+  // ---- 静的レイヤ(部屋+席列+シルエット。リム/光こぼれは毎tick動的) ----
+  const roomLayer = document.createElement("canvas"); roomLayer.width = CTRLV.W; roomLayer.height = CTRLV.H;
+  // シルエットの座席占有(T2=半分・決定論の固定配置)
+  const seated = [[1, 0, 1, 0, 1, 0, 1], [0, 1, 0, 1, 1, 0], [1, 0, 1, 0]];
+  function renderRoom() {
+    const c = roomLayer.getContext("2d");
+    c.fillStyle = P.room; c.fillRect(0, 0, CTRLV.W, CTRLV.H);
+    // 奥壁(スクリーンの外周は最暗=光はスクリーンから)
+    c.fillStyle = P.wallDeep; c.fillRect(0, 0, CTRLV.W, SCR.y + SCR.h + 26);
+    // T2: 側面サブモニタ群(左右の縦列・点灯)
+    for (const sideX of [26, CTRLV.W - 78]) {
+      for (let i = 0; i < 4; i++) {
+        const my = 90 + i * 104;
+        c.fillStyle = P.bezel; c.fillRect(sideX, my, 52, 74);
+        c.fillStyle = P.deskGlow; c.fillRect(sideX + 4, my + 4, 44, 58);
+        c.fillStyle = P.deskGlowHi; c.globalAlpha = 0.55; c.fillRect(sideX + 4, my + 4, 44, 3); c.globalAlpha = 1;
+        c.fillStyle = i % 2 ? P.crimson : P.amber; c.fillRect(sideX + 4, my + 66, 10, 4);
+      }
+    }
+    // 主スクリーンのベゼル(映像面はtickで転写)
+    c.fillStyle = P.bezel; c.fillRect(SCR.x - 10, SCR.y - 10, SCR.w + 20, SCR.h + 20);
+    c.fillStyle = P.bezelHi; c.fillRect(SCR.x - 10, SCR.y - 10, SCR.w + 20, 2);
+    c.fillStyle = P.screenOff; c.fillRect(SCR.x, SCR.y, SCR.w, SCR.h);
+    // 床(段状の管制フロア)
+    c.fillStyle = P.floor; c.fillRect(0, SCR.y + SCR.h + 26, CTRLV.W, CTRLV.H);
+    // 席列(奥→手前へ段差+拡大=浅い遠近)。行ごとに: 段差ライン→コンソール帯→机上灯→シルエット
+    for (let r = 0; r < CTRLV.rows; r++) {
+      const rowY = 520 + r * 64, rowH = 34 + r * 8, inset = 120 - r * 44;
+      c.fillStyle = P.consoleEdge; c.fillRect(0, rowY - 4, CTRLV.W, 2); // 段差ライン
+      c.fillStyle = P.consoleBody; c.fillRect(inset, rowY, CTRLV.W - inset * 2, rowH);
+      c.fillStyle = P.consoleTop; c.fillRect(inset, rowY, CTRLV.W - inset * 2, 6);
+      const n = CTRLV.seats[r], span = (CTRLV.W - inset * 2) / n;
+      for (let s = 0; s < n; s++) {
+        const sx = inset + span * (s + 0.5);
+        // 机上のミニ画面と計器灯(冷光+深紅/琥珀のみ)
+        c.fillStyle = P.deskGlow; c.fillRect(sx - 14, rowY + 8, 28, 10 + r * 2);
+        c.fillStyle = P.deskGlowHi; c.globalAlpha = 0.5; c.fillRect(sx - 14, rowY + 8, 28, 2); c.globalAlpha = 1;
+        c.fillStyle = (s + r) % 3 === 0 ? P.crimsonHi : P.amberHi;
+        c.fillRect(sx + 20, rowY + 10, 3, 3);
+        // 着席シルエット(黒い影・顔や個性は描かない。リムはtickで載せる)
+        if (seated[r][s]) {
+          const hw = 17 + r * 5, hh = 26 + r * 8, hr = 8 + r * 2.5; // 肩幅/肩高/頭半径(手前ほど大きい)
+          c.fillStyle = P.silhouette;
+          c.beginPath(); // 肩
+          c.moveTo(sx - hw, rowY);
+          c.quadraticCurveTo(sx - hw, rowY - hh, sx - hw * 0.35, rowY - hh);
+          c.lineTo(sx + hw * 0.35, rowY - hh);
+          c.quadraticCurveTo(sx + hw, rowY - hh, sx + hw, rowY);
+          c.closePath(); c.fill();
+          c.beginPath(); c.arc(sx, rowY - hh - hr * 0.7, hr, 0, Math.PI * 2); c.fill(); // 頭
+        }
+      }
+    }
+  }
+  renderRoom();
+
+  // ---- 生中継(方式1流用): 弱ブラー転写+平均色→リムライト/光こぼれ ----
+  // 半解像度転写: ブラー面はSCRの1/2で描き合成時に拡大(ブラーが隠すため品質同等・コスト1/4)
+  const VK = 2;
+  const vid = document.createElement("canvas"); vid.width = Math.round(SCR.w / VK); vid.height = Math.round(SCR.h / VK);
+  const lum = document.createElement("canvas"); lum.width = 16; lum.height = 9; // 平均色サンプラ
+  let avg = [40, 50, 60];
+  function drawVideo(tSec) {
+    const src = document.getElementById("game");
+    if (!src || !src.width) return;
+    const vc = vid.getContext("2d");
+    vc.imageSmoothingEnabled = true;
+    const da = SCR.w / SCR.h;
+    let sw = src.width, sh = src.height, sx = 0, sy = 0;
+    if (sw / sh > da) { sw = Math.round(sh * da); sx = (src.width - sw) / 2; }
+    else { sh = Math.round(sw / da); sy = (src.height - sh) / 2; }
+    try { vc.filter = `blur(${(CTRLV.blur / VK).toFixed(2)}px)`; } catch (e) {}
+    vc.drawImage(src, sx, sy, sw, sh, 0, 0, vid.width, vid.height);
+    try { vc.filter = "none"; } catch (e) {}
+    // 走査線(維持・薄く。半解像度面に2px間隔=合成後ほぼ3-4px周期)
+    vc.fillStyle = `rgba(8,10,12,${CTRLV.scanAlpha})`;
+    const drift = Math.floor(tSec * 8) % 2;
+    for (let yy = drift; yy < vid.height; yy += 2) vc.fillRect(0, yy, vid.width, 1);
+    // 平均色(=部屋の照らされ方の源)
+    const lc = lum.getContext("2d");
+    lc.drawImage(vid, 0, 0, 16, 9);
+    const d = lc.getImageData(0, 0, 16, 9).data;
+    let r = 0, gg = 0, b = 0;
+    for (let i = 0; i < d.length; i += 4) { r += d[i]; gg += d[i + 1]; b += d[i + 2]; }
+    const n = d.length / 4; avg = [r / n, gg / n, b / n];
+  }
+
+  function composite(tSec) {
+    g.drawImage(roomLayer, 0, 0);
+    g.imageSmoothingEnabled = true;
+    g.drawImage(vid, 0, 0, vid.width, vid.height, SCR.x, SCR.y, SCR.w, SCR.h);
+    const L = (avg[0] * 0.299 + avg[1] * 0.587 + avg[2] * 0.114) / 255; // 平均輝度0-1
+    // 光こぼれ: スクリーン下端から席列へ(平均色で着色=惑星で部屋の色が変わる)
+    const spill = g.createLinearGradient(0, SCR.y + SCR.h, 0, CTRLV.H);
+    const tint = `${Math.round(avg[0])},${Math.round(avg[1])},${Math.round(avg[2])}`;
+    spill.addColorStop(0, `rgba(${tint},${(CTRLV.floorBase + L * CTRLV.spillAmount * 0.30).toFixed(3)})`);
+    spill.addColorStop(0.5, `rgba(${tint},${(CTRLV.floorBase * 0.6 + L * CTRLV.spillAmount * 0.10).toFixed(3)})`);
+    spill.addColorStop(1, `rgba(${tint},0.01)`);
+    g.fillStyle = spill; g.fillRect(0, SCR.y + SCR.h, CTRLV.W, CTRLV.H - SCR.y - SCR.h);
+    // スクリーンの淡い後光(ベゼル外周)
+    g.globalAlpha = 0.10 + L * 0.12; g.fillStyle = `rgb(${tint})`;
+    g.fillRect(SCR.x - 16, SCR.y - 16, SCR.w + 32, 4); g.fillRect(SCR.x - 16, SCR.y + SCR.h + 12, SCR.w + 32, 4);
+    g.globalAlpha = 1;
+    // リムライト: シルエットと段差の上縁(輝度連動)
+    const rim = CTRLV.pal.rimBase, ra = Math.min(0.85, (0.12 + L * 0.75) * CTRLV.rimAmount);
+    g.strokeStyle = `rgba(${rim[0]},${rim[1]},${rim[2]},${ra.toFixed(3)})`;
+    g.lineWidth = 1.6;
+    for (let r2 = 0; r2 < CTRLV.rows; r2++) {
+      const rowY = 520 + r2 * 64, inset = 120 - r2 * 44;
+      g.globalAlpha = 0.5; g.strokeStyle = `rgba(${rim[0]},${rim[1]},${rim[2]},${(ra * 0.5).toFixed(3)})`;
+      g.beginPath(); g.moveTo(inset, rowY); g.lineTo(CTRLV.W - inset, rowY); g.stroke(); g.globalAlpha = 1;
+      g.strokeStyle = `rgba(${rim[0]},${rim[1]},${rim[2]},${ra.toFixed(3)})`;
+      const n = CTRLV.seats[r2], span = (CTRLV.W - inset * 2) / n;
+      for (let s = 0; s < n; s++) {
+        if (!seated[r2][s]) continue;
+        const sx = inset + span * (s + 0.5), hw = 17 + r2 * 5, hh = 26 + r2 * 8, hr = 8 + r2 * 2.5;
+        g.beginPath(); g.arc(sx, rowY - hh - hr * 0.7, hr, Math.PI * 1.15, Math.PI * 1.85); g.stroke(); // 頭頂のリム
+        g.beginPath(); g.moveTo(sx - hw * 0.9, rowY - hh * 0.92); g.quadraticCurveTo(sx - hw * 0.3, rowY - hh, sx + hw * 0.3, rowY - hh); g.stroke(); // 肩のリム
+      }
+    }
+  }
+
+  // 12fps駆動(setTimer=headless/実機共通。実装移植時は本部滞在中のみのrAFスロットルへ)
+  setInterval(() => { const t = performance.now() / 1000; drawVideo(t); composite(t); }, 1000 / CTRLV.fps);
+
+  // 負荷実測(報告用): 転写+合成の同期コスト。#now=パース時同期実行(virtual-timeの時計凍結を回避)
+  if (location.hash === "#now") {
+    const t0 = performance.now();
+    for (let i = 0; i < 120; i++) { drawVideo(i / 12); composite(i / 12); }
+    const ms = (performance.now() - t0) / 120;
+    document.title = `CTRLFPS tick=${ms.toFixed(3)}ms/回(12fps=${(ms * 12).toFixed(2)}ms/秒)`;
+  }
+}
+if (location.hash === "#now") ctrlInit();
+else window.addEventListener("load", () => setTimeout(ctrlInit, 700));
+</script>
+</body>
+</html>
