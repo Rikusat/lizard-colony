@@ -147,19 +147,25 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       ok("合成: 水槽UIから実行=シズミマチ誕生・素材2つ昇華・石消費", !!sbtn && Game.hasTrait(mz, "shizumimachi") && !Game.hasTrait(mz, "shinkai") && !Game.hasTrait(mz, "neon") && Game.stones() === st0 - Game.stoneSynthCost(Game.recipeByResult("shizumimachi")), "stones " + st0 + "→" + Game.stones());
       UI.closeModal(); UI.closeHqLab();
 
-      // ===== 当たり判定の整合(本部v3=管制室・設計座標1280×720。各設備の代表点がそのzoneを返す) =====
-      // 更新履歴: 旧=俯瞰×GBAのタイル座標(UI._labTile)。v3全面転換(管制室)で設計座標の直接指定へ追随(2026-07-24)。
+      // ===== 当たり判定の整合(本部v4=組立ドック案い・設計座標1280×720。各設備の代表点がそのzoneを返す) =====
+      // 更新履歴: 旧=俯瞰GBAタイル→v3管制室→v4組立ドック(2026-07-24)。rocket=ロケット本体クリック(宇宙港の昇格統合)。
       UI.openHqLab();
-      var reps = { desks: [640, 680], tank: [1236, 300], shelf: [44, 200], rocket: [44, 400] };
+      var reps = { desks: [485, 648], tank: [268, 375], shelf: [130, 375], rocket: [950, 400] };
       for (var zk in reps) {
         var zp = { x: reps[zk][0], y: reps[zk][1] };
-        ok("判定: " + zk + " の代表点がzone一致(v3設計座標)", UI._hqlabZoneAt(zp.x, zp.y) === zk, JSON.stringify(zp) + "→" + UI._hqlabZoneAt(zp.x, zp.y));
+        ok("判定: " + zk + " の代表点がzone一致(v4ドック座標)", UI._hqlabZoneAt(zp.x, zp.y) === zk, JSON.stringify(zp) + "→" + UI._hqlabZoneAt(zp.x, zp.y));
       }
-      // 判定→実クリック経路: 表示座標(fitスケール)→設計座標の逆変換でパネルが開く
+      // 判定→実クリック経路: 表示座標(fitスケール)→設計座標の逆変換でパネルが開く(投資端末+ロケット本体=旧宇宙港)
       var labCv2 = document.getElementById("hqlab-canvas"), bl = UI._labBlit, rr = labCv2.getBoundingClientRect();
-      var dx = rr.left + (bl.bx + 640 * bl.k) * rr.width / labCv2.width, dy = rr.top + (bl.by + 680 * bl.k) * rr.height / labCv2.height;
-      labCv2.dispatchEvent(new MouseEvent("click", { clientX: dx, clientY: dy, bubbles: true }));
-      ok("判定: 主席コンソール実クリックでデスク群パネルが開く", !!document.getElementById("modal-body").querySelector("#lab-invest"));
+      function dockClick(px, py) {
+        var dx = rr.left + (bl.bx + px * bl.k) * rr.width / labCv2.width, dy = rr.top + (bl.by + py * bl.k) * rr.height / labCv2.height;
+        labCv2.dispatchEvent(new MouseEvent("click", { clientX: dx, clientY: dy, bubbles: true }));
+      }
+      dockClick(485, 648);
+      ok("判定: 投資端末実クリックでデスク群パネルが開く", !!document.getElementById("modal-body").querySelector("#lab-invest"));
+      UI.closeModal();
+      dockClick(950, 400);
+      ok("判定: ロケット本体実クリックで宇宙港パネルが開く(昇格統合)", /段階|完成/.test(document.getElementById("modal-body").textContent));
       UI.closeModal();
       // ===== fps実測(フル再描画/静的blit方式の確認) =====
       var t0 = performance.now(); for (var fi = 0; fi < 120; fi++) UI.renderHqLab();
