@@ -282,8 +282,7 @@ Object.assign(UI, {
   // ---------------- スプライト(GBA規律・検証カット基準) ----------------
   _labSpr: {
     desk(c, x, y) { // 投資端末: 金属=鋭ハイライト+パネル分割+通気スリット+画面2トーン+深紅波形
-      const north = this._labLayoutVariant === "b"; // §5ooo案ロ: 管制室型=モニタ群を北辺(スクリーン側)へ向ける
-      const my = north ? y + 3 : y + 5;             // モニタ行のy(案ロ=北辺寄せ)
+      const my = y + 3; // §5ooo案ロ採用(Ric裁定・一本化): 管制室型=モニタ群を北辺(監視スクリーン側)へ向ける
       this._dth(c, x + 1, y + 28, 64, 3, this._rc("floor", 0));
       this._pxl(c, x, y, 64, 30, this._rc("metal", 1));
       this._pxl(c, x, y, 64, 4, this._rc("metal", 2)); this._pxl(c, x, y, 64, 1, this._rc("metal", 3));
@@ -346,7 +345,7 @@ Object.assign(UI, {
     shelfJars(c, x, y) { this._pxl(c, x, y, 28, 12, this._rc("wood", 1)); this._pxl(c, x, y, 28, 2, this._rc("wood", 3)); this._pxl(c, x + 2, y + 10, 24, 1, this._rc("wood", 0)); for (let j = 0; j < 5; j++) { this._pxl(c, x + 2 + j * 5, y + 3, 3, 7, this._rc("water", 1)); this._pxl(c, x + 3 + j * 5, y + 4, 1, 5, this._rc("water", 2)); this._pxl(c, x + 2 + j * 5, y + 2, 3, 1, this._rc("glass", 2)); } this._ol(c, x, y, 28, 12, "wood"); },
     papers(c, x, y) { this._pxl(c, x, y, 12, 10, this._rc("paper", 2)); this._pxl(c, x, y + 8, 12, 2, this._rc("paper", 1)); this._pxl(c, x + 2, y - 2, 12, 10, this._rc("paper", 3)); this._pxl(c, x + 2, y + 6, 12, 2, this._rc("paper", 2)); this._pxl(c, x + 4, y, 8, 1, this._rc("paper", 0)); this._pxl(c, x + 4, y + 2, 6, 1, this._rc("paper", 0)); c.strokeStyle = this._rc("paper", 1); c.strokeRect(x + 2.5, y - 1.5, 11, 9); },
     cables(c, x, y) { c.lineWidth = 2; c.strokeStyle = this._rc("metal", 0); c.beginPath(); c.moveTo(x, y + 8); c.bezierCurveTo(x + 6, y, x + 10, y + 14, x + 16, y + 5); c.stroke(); c.lineWidth = 1; c.strokeStyle = this._rc("crimson", 1); c.beginPath(); c.moveTo(x + 1, y + 10); c.bezierCurveTo(x + 7, y + 3, x + 9, y + 15, x + 15, y + 8); c.stroke(); c.strokeStyle = this._rc("metal", 2); c.beginPath(); c.moveTo(x, y + 7); c.bezierCurveTo(x + 6, y - 1, x + 10, y + 13, x + 16, y + 4); c.stroke(); },
-    waveMon(c, x, y) { const north = this._labLayoutVariant === "b"; const sy2 = north ? y + 1 : y + 2; this._dth(c, x + 1, y + 15, 22, 2, this._rc("floor", 0)); this._pxl(c, x, y, 22, 16, this._rc("metal", 1)); this._pxl(c, x, y, 22, 1, this._rc("metal", 3)); if (north) this._pxl(c, x + 2, y + 13, 18, 2, this._rc("metal", 0)); /* §5ooo案ロ: 南辺スタンド=画面が北(スクリーン側)を向く */ this._pxl(c, x + 2, sy2, 18, 12, this._rc("crimson", 0)); c.strokeStyle = this._rc("crimson", 2); c.beginPath(); for (let i = 0; i <= 16; i++) { const yy = sy2 + 6.5 + ((i % 4 === 1) ? -3 : (i % 4 === 3) ? 3 : 0); i ? c.lineTo(x + 3 + i, yy) : c.moveTo(x + 3, yy); } c.stroke(); this._pxl(c, x + 3, sy2 + 1, 6, 1, this._rc("crimson", 1)); this._ol(c, x, y, 22, 16, "metal"); },
+    waveMon(c, x, y) { const sy2 = y + 1; this._dth(c, x + 1, y + 15, 22, 2, this._rc("floor", 0)); this._pxl(c, x, y, 22, 16, this._rc("metal", 1)); this._pxl(c, x, y, 22, 1, this._rc("metal", 3)); this._pxl(c, x + 2, y + 13, 18, 2, this._rc("metal", 0)); /* §5ooo案ロ採用: 南辺スタンド=画面が北(監視スクリーン側)を向く */ this._pxl(c, x + 2, sy2, 18, 12, this._rc("crimson", 0)); c.strokeStyle = this._rc("crimson", 2); c.beginPath(); for (let i = 0; i <= 16; i++) { const yy = sy2 + 6.5 + ((i % 4 === 1) ? -3 : (i % 4 === 3) ? 3 : 0); i ? c.lineTo(x + 3 + i, yy) : c.moveTo(x + 3, yy); } c.stroke(); this._pxl(c, x + 3, sy2 + 1, 6, 1, this._rc("crimson", 1)); this._ol(c, x, y, 22, 16, "metal"); },
     tubeRack(c, x, y) { this._pxl(c, x, y + 6, 18, 6, this._rc("metal", 1)); this._pxl(c, x, y + 6, 18, 1, this._rc("metal", 3)); this._pxl(c, x, y + 11, 18, 1, this._rc("metal", 0)); for (let j = 0; j < 4; j++) { const cx2 = x + 2 + j * 4; this._pxl(c, cx2, y, 2, 9, this._rc("glass", 1)); this._pxl(c, cx2, y + 4, 2, 4, j % 2 ? this._rc("crimson", 2) : this._rc("water", 2)); this._pxl(c, cx2, y, 1, 3, this._rc("glass", 3)); } },
     oreCrate(c, x, y) { this._dth(c, x + 1, y + 14, 20, 3, this._rc("floor", 0)); this._pxl(c, x, y, 20, 16, this._rc("wood", 1)); this._pxl(c, x, y, 20, 3, this._rc("wood", 2)); this._pxl(c, x, y, 20, 1, this._rc("wood", 3)); this._pxl(c, x + 3, y + 6, 14, 1, this._rc("wood", 0)); this._pxl(c, x + 3, y + 11, 14, 1, this._rc("wood", 0)); for (const [bx2, by2] of [[0, 0], [17, 0], [0, 13], [17, 13]]) this._pxl(c, x + bx2, y + by2, 3, 3, this._rc("metal", 2)); this._pxl(c, x + 4, y + 3, 5, 4, this._rc("amber", 2)); this._pxl(c, x + 5, y + 3, 2, 1, this._rc("amber", 3)); this._pxl(c, x + 11, y + 4, 5, 4, this._rc("water", 2)); this._pxl(c, x + 12, y + 4, 2, 1, this._rc("water", 3)); this._ol(c, x, y, 20, 16, "wood"); },
     cart(c, x, y) { this._dth(c, x + 1, y + 14, 26, 3, this._rc("floor", 0)); this._pxl(c, x, y, 26, 12, this._rc("metal", 1)); this._pxl(c, x, y, 26, 2, this._rc("metal", 2)); this._pxl(c, x, y, 26, 1, this._rc("metal", 3)); this._pxl(c, x, y + 10, 26, 2, this._rc("metal", 0)); this._pxl(c, x + 2, y + 12, 4, 3, this._rc("metal", 0)); this._pxl(c, x + 20, y + 12, 4, 3, this._rc("metal", 0)); this._pxl(c, x + 4, y + 3, 8, 6, this._rc("wood", 1)); this._pxl(c, x + 4, y + 3, 8, 1, this._rc("wood", 3)); this._ol(c, x, y, 26, 12, "metal"); },
@@ -363,15 +362,14 @@ Object.assign(UI, {
 });
 
 // dev用: #hqlab で本部を開く(#hqlab-desks等でパネル/#hqlab-t1|t2|t3=部屋tierの表示のみ上書き/#hqlab-fullは互換=T3)。
-// §5ooo比較試作: #hqlab-lb=案ロ(管制室型・T3) / #hqlab-t3=案イ(現配置維持・T3)。
+// §5ooo: 監視スクリーンの構図=案ロ(管制室型)へ一本化(Ric裁定 2026-07-24。旧#hqlab-lb比較ハッシュは整理済)。
 if (typeof window !== "undefined") window.addEventListener("load", () => {
-  const m = location.hash.match(/^#hqlab(?:-(desks|tank|rocket|shelf|full|t1|t2|t3|lb))?$/);
+  const m = location.hash.match(/^#hqlab(?:-(desks|tank|rocket|shelf|full|t1|t2|t3))?$/);
   if (m && UI.openHqLab) setTimeout(() => {
     if (m[1] === "full" || m[1] === "t3") UI._labRoomTierOverride = 3;
     else if (m[1] === "t2") UI._labRoomTierOverride = 2;
     else if (m[1] === "t1") UI._labRoomTierOverride = 1;
-    else if (m[1] === "lb") { UI._labRoomTierOverride = 3; UI._labLayoutVariant = "b"; }
     UI.openHqLab();
-    if (m[1] && !/^t[123]$|^full$|^lb$/.test(m[1])) UI.openLabPanel(m[1]);
+    if (m[1] && !/^t[123]$|^full$/.test(m[1])) UI.openLabPanel(m[1]);
   }, 60);
 });

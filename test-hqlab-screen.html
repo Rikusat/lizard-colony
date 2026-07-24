@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>本部 監視スクリーン — 惑星別の映り確認(開発用・§5ooo)</title>
 <!-- §5ooo QA: 本部を「特定の惑星から開いた」状態を再現し、スクリーンの映り(背景明度差)を確認する。
-     ハッシュ #p2=ネオヴェルデ / #p8=グラキス(既定=#p2)。+bで案ロ(例: #p8b)。
+     ハッシュ #p2=ネオヴェルデ / #p8=グラキス(既定=#p2)。構図=案ロ(管制室型・一本化済)。
      localStorageは下でサンドボックス化=本セーブに一切触れない。.vercelignoreでdev限定。 -->
 <script>
 // 本セーブ非接触の保証: 実localStorageを遮断しメモリ実装に差し替え(スクリプト読込より先に実行)
@@ -19,7 +19,7 @@
 <style>#note{position:fixed;left:8px;bottom:8px;z-index:99999;background:rgba(13,10,6,.9);color:#c9b8a2;font:12px system-ui;padding:8px 12px;border-radius:8px}</style>
 </head>
 <body>
-<div id="note">§5ooo 監視スクリーン: 惑星別の映り確認(#p2=ネオヴェルデ/#p8=グラキス・+b=案ロ)</div>
+<div id="note">§5ooo 監視スクリーン: 惑星別の映り確認(#p2=ネオヴェルデ/#p8=グラキス・構図=案ロ一本化済)</div>
 <header id="topbar"><div id="brand"></div>
   <div class="res"><b id="ui-coins">0</b><small id="ui-cps"></small></div>
   <div class="res"><b id="ui-crickets-top">0</b></div><div class="res"><b id="ui-gems">0</b></div><div class="res"><b id="ui-stones">0</b></div>
@@ -71,7 +71,6 @@ if (location.hash !== "#now") window.addEventListener("load", () => setTimeout((
     const lz = Game.makeLizard(sp.id, "normal", { hue: sp.hue, sat: sp.sat, light: sp.light, pattern: ["stripe", "spot", "band", "none"][i % 4], traits: [] }, "adult");
     Game.addLizard(lz, true);
   }
-  if (m && m[2] === "b") UI._labLayoutVariant = "b";
   UI._labRoomTierOverride = 3;
   // QAプローブ: 生中継の実行回数と条件をtitleへ(headlessの--dump-domで読む)
   const orig = UI._drawLabScreenVideo.bind(UI);
