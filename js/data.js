@@ -214,15 +214,16 @@ const CFG = {
       { amethyst: 1, orichalcum: 4 },     // T3→T4
     ],
   },
-  // 本部=巨大監視スクリーン(§5ooo「本部はこちらを見ている」・表示のみ・★全てRic調整)
-  labScreenOn: true,          // スクリーンの表示(T1から常設=統率は成長より先にある)
-  labScreenTilesW: 16,        // 映像面の幅(タイル数)。壁面プロップ(掲示/パイプ)はこれを避けて再配置
-  labScreenVidH: 44,          // 映像面の高さ(低解像度px)
-  labScreenFps: 12,           // 生中継の転写頻度(方式1・10〜15fps目安)
-  labScreenBlur: 6,           // 強ブラー(表示px)=気配の解像度(個体特定・特性・UIは読めない)
-  labScreenScanOn: true,      // 走査線(監視装置の記号)。既定=薄くON
-  labScreenScanAlpha: 0.07,   // 走査線の濃度
-  labScreenShimmer: 0.05,     // 映像の緩やかな明滅量(0=なし。reduced-motionでは自動停止)
+  // 本部v3=正面仰視の管制室(Ric承認構図の全展開・表示のみ・★全てRic調整)。旧labScreen*(俯瞰v2)は本ブロックへ置換
+  ctrlFps: 12,                // 生中継の転写頻度(方式1・10〜15fps目安)
+  ctrlBlur: 2.5,              // 弱ブラー=「見下ろす監視映像」の解像度(個体シルエット可・UI/特性は不可読)
+  ctrlScanAlpha: 0.055,       // 走査線の濃度(0=OFF)。揺らぎはreduced-motionで停止
+  ctrlRimAmount: 1.0,         // リムライト量(スクリーン平均輝度×これ)
+  ctrlSpillAmount: 0.85,      // 床への光こぼれ量(平均色で着色=映る惑星で部屋の色が変わる)
+  ctrlFloorBase: 0.05,        // 暗部の底明度(最暗の惑星でも完全な黒にしない)
+  ctrlLumMin: 0.06,           // 平均輝度の下限クランプ(最暗惑星でシルエットが沈み切らない)
+  ctrlLumMax: 0.85,           // 平均輝度の上限クランプ(最明惑星で白飛びさせない)
+  ctrlSeats: [7, 6, 4],       // 席数(奥→手前)。着席はtier別マップ(T1=影3/T2=半分/T3=満席)
   labTileScale: 2.0,          // 本部のタイル+設備の一体倍率(大きさ)。★Ric実機調整
   labFacScale: 1.0,           // 設備のみの追加倍率(比較用・既定1=一体拡大方式)
   genesisFxSec: 1.5,        // 創世エフェクトの尺(深紅の錬成)
