@@ -15,11 +15,11 @@
 </script>
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="style.css">
-<style>#modal-box{animation:none !important} /* headlessスクショ用: virtual-timeでmodal-inが凍結するため */
+<style>#modal-box,#modal-body .list-row{animation:none !important;opacity:1 !important;transform:none !important} /* headlessスクショ用: virtual-timeでmodal-inが凍結するため */
 #note{position:fixed;left:8px;bottom:8px;z-index:99999;background:rgba(13,10,6,.9);color:#c9b8a2;font:12px system-ui;padding:8px 12px;border-radius:8px}</style>
 </head>
 <body>
-<div id="note">S3③ モック確認: ①ミミカクシ(固定印)+ハガネ ②シンカイのみ ③特性なし ④レジェンダリー(チップ領域ごと不在)</div>
+<div id="note">S3③ 仕上げ確認: ★撤去済(Lvは残置)・行4=案A(琥珀+✦)/行5=案B(✦のみ七色)・チップ領域はレジェンダリーのみ不在</div>
 <header id="topbar"><div id="brand"></div>
   <div class="res"><b id="ui-coins">0</b><small id="ui-cps"></small></div>
   <div class="res"><b id="ui-crickets-top">0</b></div><div class="res"><b id="ui-gems">0</b></div><div class="res"><b id="ui-stones">0</b></div>
@@ -66,6 +66,20 @@ window.addEventListener("load", () => setTimeout(() => {
   mk("③特性なし", "normal", []);
   mk("④レジェンダリー", "legendary", []);
   UI.openBreedPicker(host);
+  // 仕上げ2の比較: レジェンダリー行を複製し案B(✦のみ七色)へ差し替え=1画面で案A/案Bを並置(モック表示のみ)
+  setTimeout(() => {
+    const rows = document.querySelectorAll("#modal-body .list-row.breed-cand");
+    const legRow = rows[rows.length - 1];
+    if (legRow) {
+      const alt = legRow.cloneNode(true);
+      const nm = alt.querySelector(".leg-name");
+      if (nm) { nm.classList.remove("leg-name--a"); nm.classList.add("leg-name--b"); }
+      const tag = document.createElement("div");
+      tag.style.cssText = "color:#c9b8a2;font:11px system-ui;margin:6px 0 2px";
+      tag.textContent = "↑案A(名前=琥珀+✦) / ↓案B(名前=通常色・✦のみ七色)";
+      legRow.after(alt); legRow.after(tag);
+    }
+  }, 80);
 }, 250));
 </script>
 </body>

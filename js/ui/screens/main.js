@@ -240,13 +240,14 @@ Object.assign(UI, {
       }
       body.innerHTML = `<p style="font-size:calc(12px * var(--fs-scale,1));color:var(--sub);margin-bottom:8px">相手を選ぶと卵が生まれます(コスト ${Icon.svg("coin")}は種のレア度で変動)。</p>`;
       for (const o of mates) {
-        const sp = speciesById(o.speciesId), mo = morphById(o.morphId), col = Render.lizardColor(o);
+        const mo = morphById(o.morphId), col = Render.lizardColor(o); // ★レア度表記は撤去(判断⑦(i)を表示層全体へ・内部数値非接触)
         const cost = Game.breedCost(lz, o);
         const row = document.createElement("div");
         row.className = "list-row breed-cand";
+        const isLeg = mo.legendary; // 仕上げ2: レジェンダリー名=虹の系譜(走査性を壊さない微細装飾・案A既定/案Bはstyle.cssに併存=Ric選択後に一本化)
         row.innerHTML =
           `<span class="sw" style="display:inline-block;width:18px;height:12px;border-radius:6px;background:${col.css};border:1px solid #0006"></span>` +
-          `<div class="grow"><b>${Game.lizardName(o)}</b><div class="desc">${"★".repeat(sp.stars)} ${mo.name} / Lv${o.level || 1}</div></div>` +
+          `<div class="grow"><b class="${isLeg ? "leg-name leg-name--a" : ""}">${Game.lizardName(o)}</b><div class="desc">${mo.name} / Lv${o.level || 1}</div></div>` +
           this.breedTraitChips(o) +
           `<button ${Game.state.coins < cost ? "disabled" : ""}>${Icon.svg("coin")}${fmt(cost)}</button>`;
         row.querySelector("button").addEventListener("click", () => {
