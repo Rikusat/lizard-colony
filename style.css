@@ -2330,27 +2330,8 @@ button.holding::after {
    常時2カラム=どのPC幅でも縦あふれを構造的に回避(単カラム積層は短い高さで溢れた)。狭幅では飼育槽が縮むのみ。
    スマホ最適化は対象外(UISkills §7) */
 
-/* ==== 建造計画パネル(UISkills §13・本部v4) ==== */
+/* ==== 研究デスクパネル(UISkills §13 R4改訂・統一書式ほかUX改善のみ=トラッカー/青写真はR4-1で退役) ==== */
 .plan-root { --plan-cur: #ecc35a; --plan-lack: #d8404e; --plan-dim: .62; }
-.plan-tracker { display: flex; align-items: flex-end; gap: 0; padding: 10px 6px 14px; margin-bottom: 12px;
-  border-bottom: 1px solid rgba(190,214,235,.08); flex-wrap: wrap; row-gap: 14px; }
-.pt-node { display: flex; flex-direction: column; align-items: center; width: 52px; }
-.pt-glyph { display: block; opacity: .38; }
-.pt-node.done .pt-glyph { opacity: .8; }
-.pt-node.cur .pt-glyph { opacity: 1; filter: drop-shadow(0 0 6px var(--plan-glow, rgba(236,195,90,.55))); }
-.pt-node.goal .pt-glyph { opacity: .66; filter: drop-shadow(0 0 4px rgba(236,195,90,.35)); }
-.pt-label { font-size: calc(10px * var(--fs-scale, 1)); color: var(--sub); margin-top: 3px; letter-spacing: .04em; }
-.pt-node.cur .pt-label { color: var(--plan-cur); font-weight: 700; }
-.pt-link { flex: 1 1 14px; min-width: 10px; height: 2px; margin-bottom: 26px; background: rgba(190,214,235,.35); }
-.pt-link.dash { background: none; border-top: 2px dashed rgba(190,214,235,.16); height: 0; }
-.plan-build { border: 1px solid rgba(127,185,204,.22); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px;
-  background: linear-gradient(180deg, rgba(39,66,79,.20), rgba(16,21,28,.55)),
-    repeating-linear-gradient(0deg, transparent 0 15px, rgba(127,185,204,.045) 15px 16px),
-    repeating-linear-gradient(90deg, transparent 0 15px, rgba(127,185,204,.045) 15px 16px); }
-.plan-build h3 { margin: 0 0 8px; font-size: calc(14px * var(--fs-scale,1)); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.plan-build h3 .next { color: var(--plan-cur); }
-.pb-body { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
-.pb-mats { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 5px; }
 .mat { display: flex; align-items: center; gap: 7px; font-size: calc(13px * var(--fs-scale,1)); padding: 3px 8px; border-radius: 6px; }
 .mat .mname { color: var(--sub); font-size: calc(11.5px * var(--fs-scale,1)); }
 .mat.ok { background: rgba(236,195,90,.07); color: #e8d9a8; }

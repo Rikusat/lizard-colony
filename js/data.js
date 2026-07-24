@@ -214,32 +214,13 @@ const CFG = {
       { amethyst: 1, orichalcum: 4 },     // T3→T4
     ],
   },
-  // 本部v4=組立ドック(案い垂直・Ric構図承認の全展開・表示のみ・★全てRic調整)。v3席列専用のctrl*は削除済
-  ctrlFps: 12,                // ブース窓の生中継頻度(方式1・10〜15fps目安)
+  // R4-1(2026-07-25): v3/v4系CFG(dock*/dockStages/planGlyph系)は退役=git記録。生中継はモニタ用に3キーのみ存続。
+  ctrlFps: 12,                // 壁掛けモニタの生中継頻度(方式1・10〜15fps目安)
   ctrlBlur: 2.5,              // 弱ブラー=監視映像の解像度(個体シルエット可・UI/特性は不可読)
   ctrlScanAlpha: 0.055,       // 走査線の濃度(0=OFF)。揺らぎはreduced-motionで停止
-  // ドック建造6段(みちのりの背骨): labInvest("desks")進行度のしきい値→S1..S6。
-  //   ★[A]判断点: 現行labInvestCosts.desksは3段(値0〜3)のため、この既定では通る節目はS1→S3→S5→S6の4つ。
-  //   6節目をフルに通すには投資段数の追加(labInvestCosts.desksの拡張=コスト[A]調整)とセットでしきい値を再配分する。
-  //   ※キー名の教訓(2026-07-24): 当初 rocketStages と命名し既存キー(宇宙港=段階別必要イリジウム:下方)と衝突→後勝ちで常にS1となる本番バグ。dockStagesへ改名+cfg_sanityテストで重複キーを恒久監視。
-  dockStages: [0, 1, 1, 2, 2, 3],
-  dockSupplyW: [1.5, 3, 5],   // 供給線の太さ(設備tier T1/T2/T3)。T3は本数も増える(第2系統)
-  dockWorkLight: 1.0,         // 作業灯量(コーンの濃さ/本数の係数)
-  dockBoothW: 240,            // 管制ブース窓の幅(設計px)
-  dockBoothH: 130,            // 管制ブース窓の高さ(設計px)
-  dockFlashSec: 1.2,          // 節目演出=建造段階が上がった直後の作業灯一斉瞬き(通知なし・reduced-motionは無し)
-  // ドック質感(§5yyy「夜間工事の熱」・表示のみ・★Ric調整)
-  dockAmbient: 0.14,          // 暗部の底上げ(0=従来の黒/1=最大リフト)。「消灯した廃ドック」→「作業灯の夜間工事」へ
-  dockLightPool: 1.0,         // 作業灯の光だまり強度(床・船体に落ちる円)
-  dockSparkRate: 1.0,         // 溶接火花の頻度/強度(0=停止)。reduced-motionでは明滅なし(静的火花)
-  dockCrew: 3,                // 作業員シルエットの基準人数(S段階で増減・スケールの物差し)
-  dockPropDensity: 1.0,       // 資材(木箱/パネル材/車両)の密度係数(全体係数)
-  dockStageDensity: [0.4, 0.6, 1.0, 1.2, 1.5, 0.25], // 段階連動の密度曲線(山型: S1立ち上げ→S5最大→S6撤収の静けさ)
-  // 建造計画パネル(UISkills §13・表示のみ・★Ric調整)
-  planGlyphW: 30,             // みちのりトラッカー節点ミニ絵の幅
-  planGlyphH: 44,             // 同・高さ
-  planCurColor: "#ecc35a",    // 現在地の琥珀
-  planCurGlow: "rgba(236,195,90,.55)", // 現在地の点灯(drop-shadow)
+  labMonitorOn: true,         // 小型壁掛けモニタ(生中継の縮小残置=「本部はこちらを見ている」の気配)。false=消灯
+  // 研究デスクパネル(UISkills §13 R4改訂・統一書式の色/文言・★Ric調整)
+  planCurColor: "#ecc35a",    // 充足の琥珀
   planLackColor: "#d8404e",   // 不足「あと◯」の深紅
   planLackWord: "あと",       // 不足文言
   planDimOpacity: 0.62,       // 不足行・沈みボタンの明度

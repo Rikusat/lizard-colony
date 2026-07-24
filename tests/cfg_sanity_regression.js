@@ -77,17 +77,15 @@ console.log("== 2) dockStages写像+3) 宇宙港rocketStages無傷(実コード)
   vm.runInContext(code, sandbox, { filename: "concat.js" });
   const { Game, CFG, UI } = sandbox.__exp;
 
-  check("dockStagesが6節(表示しきい値)", Array.isArray(CFG.dockStages) && CFG.dockStages.length === 6, JSON.stringify(CFG.dockStages));
+  // R4-1(2026-07-25): dockStages写像はロケット構想撤廃で退役(git記録)。宇宙港rocketStagesの無傷監視は継続。
+  check("dockStagesは退役済(未定義)", CFG.dockStages === undefined, JSON.stringify(CFG.dockStages));
   check("宇宙港rocketStages=5段の必要イリジウム(無傷)", Array.isArray(CFG.rocketStages) && CFG.rocketStages.length === 5 && CFG.rocketStages[0] === 20, JSON.stringify(CFG.rocketStages));
-
   Game.newGame();
-  const expect = { 0: 1, 1: 3, 2: 5, 3: 6 }; // 既定しきい値[0,1,1,2,2,3]で通る節目
-  const got = {};
-  for (const inv of [0, 1, 2, 3]) {
-    Game.state.labInvest = { desks: inv };
-    got[inv] = UI.dockRocketStage();
-  }
-  check("dock写像: labInvest 0/1/2/3 → S1/S3/S5/S6", [0, 1, 2, 3].every((i) => got[i] === expect[i]), JSON.stringify(got));
+  check("労RoomTier写像: labInvest 0/1/2 → T1/T2/T3(投資→部屋の成長へ回帰)", (() => {
+    const got = [];
+    for (const inv of [0, 1, 2]) { Game.state.labInvest = { desks: inv }; got.push(UI.labRoomTier()); }
+    return got[0] === 1 && got[1] === 2 && got[2] === 3;
+  })());
   check("宇宙港の建造ロジック(rocketStageNeed)が従来値", Game.rocketStageNeed() === 20, String(Game.rocketStageNeed()));
 
   // 4) researchBonus: effを持たない研究(レシピ解読)を購入済みでも落ちない(建造計画モックで露出したクラッシュの再発防止)

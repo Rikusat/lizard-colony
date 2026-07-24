@@ -22,69 +22,31 @@ Object.assign(UI, {
     return pairs.map((p) => `<span class="lab-cost${p.have >= p.n ? "" : " cost-ng"}">${Icon.svg(p.icon)}${p.n}</span>`).join("");
   },
 
-  // ---------------- デスク群=建造計画(UISkills §13「作業リストから、発射までの計画書へ」) ----------------
-  // 表示のみの再設計: 投資/変換/研究のロジック・コスト・機能ID(#lab-invest等=QA契約)は完全不変。
-  // 素材表示の統一書式=「[アイコン] 素材名 保有X / 必要Y」(充足=琥珀点灯/不足=沈み+「あと◯」深紅=明度と文言の二重化)。
-  _planStageNames: ["基礎骨組み", "下部船体", "エンジン組付", "上部船体+配管", "外装+塗装", "発射準備"],
+  // ---------------- デスク群=研究デスク(R4-1: ロケット要素撤去・UISkills §13 R4改訂) ----------------
+  // 維持するUX改善(ロケットと独立): 素材の統一書式「[アイコン] 素材名 保有X / 必要Y」(充足=琥珀/不足=沈み+あと◯深紅)・
+  // 変換ボタンの保有内蔵・研究ロック行のホバー開放条件・手持ち資源の降格表示。機能ID/ロジックは完全不変。
   _planMat(icon, name, have, need) {
     const ok = have >= need;
     return `<span class="mat ${ok ? "ok" : "ng"}">${Icon.svg(icon)}<span class="mname">${name}</span>
       <span class="mhave">保有${fmt(have)}</span><span>/</span><span>必要${fmt(need)}</span>
       ${ok ? "" : `<span class="lack">${CFG.planLackWord || "あと"}${fmt(need - have)}</span>`}</span>`;
   },
-  // 節点ミニ絵(ドック6段と同じ言語)。st=1..6、7=発射(終点)
-  _planGlyph(cv, st) {
-    const c = cv.getContext("2d"), W = cv.width, H = cv.height;
-    const cx = W / 2, bw = W * 0.52, base = H - 6;
-    const frame = "#5a6f84", hull = "#8fa2b5", amber = CFG.planCurColor || "#ecc35a";
-    c.clearRect(0, 0, W, H);
-    c.fillStyle = "#232c36"; c.fillRect(cx - bw * 0.8, base, bw * 1.6, 2.5);
-    const secH = (H - 14) / 4;
-    const y = (i) => base - secH * i;
-    const skel = (yTop, hh) => { c.strokeStyle = frame; c.lineWidth = 1; c.strokeRect(cx - bw / 2, yTop, bw, hh); c.beginPath(); c.moveTo(cx - bw / 2, yTop); c.lineTo(cx + bw / 2, yTop + hh); c.moveTo(cx + bw / 2, yTop); c.lineTo(cx - bw / 2, yTop + hh); c.stroke(); };
-    const solid = (yTop, hh) => { c.fillStyle = hull; c.fillRect(cx - bw / 2, yTop, bw, hh); };
-    if (st === 7) {
-      solid(y(3), secH * 3);
-      c.fillStyle = hull; c.beginPath(); c.moveTo(cx - bw / 2, y(3)); c.quadraticCurveTo(cx, y(3) - secH, cx + bw / 2, y(3)); c.closePath(); c.fill();
-      c.fillStyle = amber; c.beginPath(); c.moveTo(cx - bw * 0.35, base); c.lineTo(cx, base + 5); c.lineTo(cx + bw * 0.35, base); c.closePath(); c.fill();
-      return;
-    }
-    if (st >= 2) solid(y(1), secH); else skel(y(1), secH);
-    if (st >= 4) { solid(y(2), secH); solid(y(3), secH); } else { skel(y(2), secH); skel(y(3), secH); }
-    if (st >= 3) { c.fillStyle = "#3a4450"; for (const ex of [-bw * 0.28, bw * 0.28]) { c.beginPath(); c.moveTo(cx + ex - 3, base); c.lineTo(cx + ex, base - 4); c.lineTo(cx + ex + 3, base); c.closePath(); c.fill(); } }
-    if (st >= 5) { c.fillStyle = hull; c.beginPath(); c.moveTo(cx - bw / 2, y(3)); c.quadraticCurveTo(cx, y(3) - secH, cx + bw / 2, y(3)); c.closePath(); c.fill(); c.fillStyle = "#a11c2c"; c.fillRect(cx - bw / 2, y(2) - 2, bw, 2.5); }
-    if (st >= 6) { c.fillStyle = amber; c.fillRect(cx - bw / 2 - 2, y(2), 2, 2); c.fillRect(cx + bw / 2, y(2), 2, 2); c.fillRect(cx - 1, y(3) - secH * 0.6, 2, 3); }
-  },
   openLabDesks() {
-    this.openModal(`${Icon.svg("build")} 建造計画`, (body) => {
+    this.openModal(`${Icon.svg("hq")} 研究デスク`, (body) => {
       const s = Game.state;
-      const cur = this.dockRocketStage ? this.dockRocketStage() : 1;
       const inv = Game.labInvestLv("desks"), cost = Game.labInvestCost("desks");
-      const gw = CFG.planGlyphW || 30, gh = CFG.planGlyphH || 44;
       const oreOf = (id) => ORES.find((x) => x.id === id) || { icon: id, name: id };
       const ero = Math.round(s.erosion || 0);
-      // ①発射へのみちのりトラッカー(S2/S4未到達節点も表示=全体像を隠さない)
-      let tr = `<div class="plan-tracker">`;
-      for (let st = 1; st <= 6; st++) {
-        const cls = st < cur ? "done" : st === cur ? "cur" : "";
-        tr += `<div class="pt-node ${cls}"><canvas class="pt-glyph" data-st="${st}" width="${gw}" height="${gh}"></canvas><span class="pt-label">S${st}</span></div>`;
-        tr += `<div class="pt-link ${st < cur ? "" : "dash"}"></div>`;
-      }
-      tr += `<div class="pt-node goal"><canvas class="pt-glyph" data-st="7" width="${gw}" height="${gh}"></canvas><span class="pt-label">発射</span></div></div>`;
-      // ②建造投資ブロック(格上げ・青写真の気配)。次の工程=現在地の次に建つ部位
-      const nextStage = Math.min(6, cur + 1);
+      // 設備投資(統一書式の素材列+不足で沈む投じる)
       const mats = cost ? Object.keys(cost).map((o) => this._planMat(oreOf(o).icon, oreOf(o).name, Game.ore(o), cost[o])).join("") : "";
       const canInvest = cost && Object.keys(cost).every((o) => Game.ore(o) >= cost[o]);
-      const bd = `
-        <div class="plan-build" id="lab-invest">
-          <h3>${Icon.svg("build")} 建造投資 — ${cost ? `次の工程: <span class="next">S${nextStage} ${this._planStageNames[nextStage - 1]}</span>
-            <canvas class="pt-glyph" data-st="${nextStage}" width="${Math.round(gw * 0.87)}" height="${Math.round(gh * 0.87)}" style="opacity:.9"></canvas>` : `<span class="next">全工程完了 — 発射準備よし</span>`}</h3>
-          ${cost ? `<div class="pb-body">
-            <div class="pb-mats">${mats}</div>
-            <div class="pb-btn"><button id="lab-invest-btn" ${canInvest ? "" : "disabled"}>${Icon.svg("build")} 投じる</button></div>
-          </div>` : ""}
+      const invest = `
+        <div class="list-row" id="lab-invest">
+          <span class="fic">${Icon.svg("build")}</span>
+          <div class="grow"><b>設備投資 T${Math.min(4, 1 + inv)}/4</b></div>
+          ${cost ? `<span style="display:flex;gap:4px;flex-wrap:wrap">${mats}</span><button id="lab-invest-btn" ${canInvest ? "" : "disabled"}>${Icon.svg("build")} 投じる</button>` : `<span class="lv">最大</span>`}
         </div>`;
-      // ③変換(保有内蔵・不足=沈み+あと◯)
+      // 変換(保有内蔵・不足=沈み+あと◯)
       const cvBtn = (id, fromIcon, fromName, fromCost, fromHave, toIcon) => {
         const ok = fromHave >= fromCost;
         return `<button id="${id}" class="cv-btn ${ok ? "" : "ng"}">
@@ -96,7 +58,6 @@ Object.assign(UI, {
         ${cvBtn("cv-energy", "coin", "ゴールド", CFG.goldToEnergyRate * CFG.convertBatch, s.coins, "energy")}
         ${cvBtn("cv-science", "bio", "生態データ", CFG.bioToScienceRate * CFG.convertBatch, Game.res("bio"), "science")}
       </div>`;
-      // 惑星開発+侵食(機能維持・従来行)
       const devEro = `
         <div class="list-row">
           <span class="fic">${Icon.svg("build")}</span><div class="grow"><b>惑星開発 Lv${s.devLv || 0}/${CFG.devMaxLv}</b></div>
@@ -107,21 +68,19 @@ Object.assign(UI, {
           <div class="bar" style="flex:1"><div style="width:${ero}%;background:linear-gradient(90deg,#8a3a2a,#e05b41)"></div></div>
           <b>${ero}%</b>
         </div>`;
-      // ⑤手持ち資源(俯瞰・一段沈める)
       const pocket = `<div class="plan-pocket">手持ち資源 —
         ${Icon.svg("bio")}${fmt(Game.res("bio"))} ${Icon.svg("food")}${fmt(Game.res("food"))} ${Icon.svg("energy")}${fmt(Game.res("energy"))}
         ${Icon.svg("science")}${fmt(Game.res("science"))} ${Icon.svg("coin")}${fmt(s.coins)}
         ${ORES.map((o) => `${Icon.svg(o.icon)}${fmt(Game.ore(o.id))}`).join(" ")}</div>`;
-      body.innerHTML = `<div class="plan-root" style="--plan-cur:${CFG.planCurColor || "#ecc35a"};--plan-glow:${CFG.planCurGlow || "rgba(236,195,90,.55)"};--plan-lack:${CFG.planLackColor || "#d8404e"};--plan-dim:${CFG.planDimOpacity != null ? CFG.planDimOpacity : 0.62}">
-        ${tr}${bd}${cv}${devEro}<div id="research-list" class="plan-research"></div>${pocket}</div>`;
-      for (const g of body.querySelectorAll(".pt-glyph")) this._planGlyph(g, parseInt(g.dataset.st, 10));
+      body.innerHTML = `<div class="plan-root" style="--plan-cur:${CFG.planCurColor || "#ecc35a"};--plan-lack:${CFG.planLackColor || "#d8404e"};--plan-dim:${CFG.planDimOpacity != null ? CFG.planDimOpacity : 0.62}">
+        ${invest}${cv}${devEro}<div id="research-list" class="plan-research"></div>${pocket}</div>`;
       const invBtn = body.querySelector("#lab-invest-btn");
       if (invBtn) invBtn.addEventListener("click", () => { if (Game.labInvestPay("desks")) this._labRefresh("desks"); });
       body.querySelector("#cv-food").addEventListener("click", () => { Game.convertGold("food"); this._labRefresh("desks"); });
       body.querySelector("#cv-energy").addEventListener("click", () => { Game.convertGold("energy"); this._labRefresh("desks"); });
       body.querySelector("#cv-science").addEventListener("click", () => { Game.convertBio(); this._labRefresh("desks"); });
       body.querySelector("#hq-dev").addEventListener("click", () => { Game.buyDev(); this._labRefresh("desks"); });
-      // ④研究(現行項目・順序維持+統一書式。ロック=錠前+ホバーで開放条件)
+      // 研究(現行項目・順序維持+統一書式。ロック=錠前+ホバーで開放条件)
       const list = body.querySelector("#research-list");
       const resName = { science: "研究力", coins: "ゴールド", orichalcum: "オリハルコン", stones: "賢者の石" };
       for (const r of RESEARCH) {
