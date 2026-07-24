@@ -20,6 +20,14 @@ const DOCKPAL = {
   mark: "rgba(190,214,235,.16)", // 次段階の気配(点線マーキング=説明しない)
   bezel: "#1a2028", bezelHi: "#2a3340", screenOff: "#0a0d12",
   label: "rgba(205,216,228,.92)", labelBg: "rgba(10,13,18,.85)",
+  // §5yyy 質感引き上げ(線から面へ/夜間工事の熱)
+  hullShadow: "#2b333e", hullSeam: "#232b35", hullEdge: "#8fa5b8",
+  duct: "#12181f", ductHi: "#1c242e",
+  hazard: "#8a6d20", hazardDim: "#3a3320",
+  crew: "#05070a", crewRim: "rgba(216,200,150,.5)",
+  crate: "#1a2028", crateHi: "#2a3340", panelMat: "#26303c",
+  poolWarm: "216,170,80", // 光だまり(rgbの素・alphaは計算)
+  steam: "rgba(200,214,224,.10)",
 };
 // 設計空間(1280×720固定・表示はfitスケール)
 const DOCKW = {
@@ -60,6 +68,55 @@ function dkPipe(c, pts, w, col) {
   c.stroke();
   c.fillStyle = col;
   for (const [jx, jy] of pts.slice(1, -1)) c.fillRect(jx - w * 0.9, jy - w * 0.9, w * 1.8, w * 1.8);
+}
+// §5yyy: 面+明暗3段+エッジハイライト(「線から面へ」の基本部品)
+function dkFace(c, x, y, w, h, base, light, dark, edge) {
+  c.fillStyle = base; c.fillRect(x, y, w, h);
+  c.fillStyle = light; c.fillRect(x, y, Math.max(2, w * 0.14), h);       // 左=受光帯
+  c.fillStyle = dark; c.fillRect(x + w - Math.max(2, w * 0.16), y, Math.max(2, w * 0.16), h); // 右=陰帯
+  if (edge) { c.fillStyle = edge; c.fillRect(x, y, w, 1.5); }             // 上端エッジハイライト
+}
+// 作業員シルエット(v3の逆光影を縮小流用・顔なし・スケールの物差し)
+function dkCrewSil(c, x, baseY, h, rimA) {
+  const hw = h * 0.32, hr = h * 0.19;
+  c.fillStyle = DOCKPAL.crew;
+  c.beginPath();
+  c.moveTo(x - hw, baseY);
+  c.quadraticCurveTo(x - hw, baseY - h * 0.72, x - hw * 0.35, baseY - h * 0.72);
+  c.lineTo(x + hw * 0.35, baseY - h * 0.72);
+  c.quadraticCurveTo(x + hw, baseY - h * 0.72, x + hw, baseY);
+  c.closePath(); c.fill();
+  c.beginPath(); c.arc(x, baseY - h * 0.72 - hr * 0.7, hr, 0, Math.PI * 2); c.fill();
+  if (rimA > 0.02) { // 作業灯側のリム
+    c.strokeStyle = `rgba(216,200,150,${rimA.toFixed(3)})`; c.lineWidth = 1.2;
+    c.beginPath(); c.arc(x, baseY - h * 0.72 - hr * 0.7, hr, Math.PI * 1.2, Math.PI * 1.8); c.stroke();
+  }
+}
+// 資材: 鉱石木箱(面で描く)
+function dkCrate(c, x, y, w, h) {
+  dkFace(c, x, y, w, h, DOCKPAL.crate, DOCKPAL.crateHi, "#12181f", "#3a4552");
+  c.fillStyle = "#12181f"; c.fillRect(x + 2, y + h * 0.45, w - 4, 1.5);
+  c.fillStyle = DOCKPAL.amber; c.globalAlpha = 0.5; c.fillRect(x + w * 0.3, y + 3, w * 0.18, 3); c.globalAlpha = 1;
+}
+// 資材: パネル材の山(立てかけ)
+function dkPanels(c, x, baseY, n) {
+  for (let i = 0; i < n; i++) {
+    c.fillStyle = i % 2 ? DOCKPAL.panelMat : DOCKPAL.hull;
+    c.beginPath();
+    c.moveTo(x + i * 5, baseY); c.lineTo(x + 14 + i * 5, baseY - 40 - i * 2); c.lineTo(x + 20 + i * 5, baseY - 40 - i * 2); c.lineTo(x + 8 + i * 5, baseY);
+    c.closePath(); c.fill();
+  }
+  c.fillStyle = DOCKPAL.hullEdge; c.globalAlpha = 0.4; c.fillRect(x + (n - 1) * 5 + 14, baseY - 40 - (n - 1) * 2, 6, 1.5); c.globalAlpha = 1;
+}
+// 小型作業車両(フォークリフト風・1台)
+function dkVehicle(c, x, baseY) {
+  dkFace(c, x, baseY - 22, 44, 22, "#1c242e", "#2a3644", "#10151c", "#3a4a5a");
+  c.fillStyle = "#10151c"; c.fillRect(x + 30, baseY - 34, 12, 12);       // キャビン
+  c.fillStyle = DOCKPAL.deskGlow; c.fillRect(x + 32, baseY - 32, 8, 6);  // 窓
+  c.fillStyle = "#05070a";
+  c.beginPath(); c.arc(x + 10, baseY, 6, 0, Math.PI * 2); c.arc(x + 34, baseY, 6, 0, Math.PI * 2); c.fill();
+  c.fillStyle = "#242c36"; c.fillRect(x - 8, baseY - 16, 8, 3); c.fillRect(x - 8, baseY - 8, 8, 3); // フォーク
+  c.fillStyle = DOCKPAL.amberHi; c.fillRect(x + 40, baseY - 20, 3, 3);   // 回転灯(点滅はcomposite)
 }
 
 Object.assign(UI, {
@@ -164,36 +221,70 @@ Object.assign(UI, {
 
   _dockRenderRoom(c, stage, tier) {
     const P = DOCKPAL, W = DOCKW.W, H = DOCKW.H, RK = DOCKW.RK, G = DOCKW.gantry;
+    const amb = CFG.dockAmbient != null ? CFG.dockAmbient : 0.14;
+    const dens = CFG.dockPropDensity != null ? CFG.dockPropDensity : 1;
     c.clearRect(0, 0, W, H);
     c.fillStyle = P.room; c.fillRect(0, 0, W, H);
+    // --- 奥景: 壁+ダクト(暗・§5yyy奥行き3層の1層目) ---
     c.fillStyle = P.wallDeep; c.fillRect(0, 0, W, 620);
+    for (const [dy, dh] of [[86, 14], [170, 10]]) { // 横走りダクト
+      c.fillStyle = P.duct; c.fillRect(0, dy, W, dh);
+      c.fillStyle = P.ductHi; c.fillRect(0, dy, W, 2);
+      for (let x = 40; x < W; x += 120) { c.fillStyle = "#0a0e13"; c.fillRect(x, dy - 2, 6, dh + 4); }
+    }
+    c.globalAlpha = 0.55; // 縦ダクト(奥・中央の空白帯のみ=雑然させない)
+    for (const dx of [470, 640]) {
+      c.fillStyle = P.duct; c.fillRect(dx, 60, 12, 540);
+      c.fillStyle = P.ductHi; c.fillRect(dx, 60, 2, 540);
+    }
+    c.globalAlpha = 1;
+    // --- 床(面として成立させる: 明度帯+マーキングライン+ハザード) ---
     c.fillStyle = P.floor; c.fillRect(0, 620, W, 100);
+    const fg = c.createLinearGradient(0, 620, 0, H);
+    fg.addColorStop(0, "rgba(90,106,120,.10)"); fg.addColorStop(1, "rgba(90,106,120,.02)");
+    c.fillStyle = fg; c.fillRect(0, 620, W, 100);
     c.strokeStyle = "#12181f"; c.lineWidth = 1;
     for (let i = 0; i < 8; i++) { c.beginPath(); c.moveTo(0, 640 + i * 12); c.lineTo(W, 638 + i * 12); c.stroke(); }
-    // --- ガントリークレーン(塔+上腕。吊り荷=次に組む部位、完成後は撤去) ---
-    c.fillStyle = P.gantry; c.fillRect(G.x, G.y, 26, G.h);
-    c.fillStyle = P.gantryHi; c.fillRect(G.x, G.y, 4, G.h);
-    for (let i = 0; i < 9; i++) dkGirder(c, G.x + 2, 150 + i * 56, G.x + 24, 178 + i * 56, P.frameDim);
-    c.fillStyle = P.gantry; c.fillRect(G.x, G.y - 10, G.armW, 14);
-    c.fillStyle = P.gantryHi; c.fillRect(G.x, G.y - 10, G.armW, 3);
-    if (stage < 6) { // 吊り荷(建造中のみ)
-      dkGirder(c, 1000, G.y + 4, 1000, 208, P.frameDim);
-      if (stage < 5) { c.fillStyle = P.hull; c.fillRect(970, 208, 60, 26); c.fillStyle = P.hullHi; c.fillRect(970, 208, 5, 26); }
-      else { c.fillStyle = P.crimson; c.fillRect(976, 208, 48, 18); } // S5=塗装リフト(深紅パネル)
+    c.strokeStyle = "rgba(190,214,235,.10)"; c.lineWidth = 2; // 動線マーキング
+    c.beginPath(); c.moveTo(320, 700); c.lineTo(860, 682); c.stroke();
+    c.setLineDash([10, 8]); c.beginPath(); c.moveTo(340, 712); c.lineTo(880, 694); c.stroke(); c.setLineDash([]);
+    for (let i = 0; i < 14; i++) { // 発射パッド外周のハザード縞
+      c.fillStyle = i % 2 ? P.hazard : P.hazardDim; c.globalAlpha = 0.4;
+      c.fillRect(RK.x - w2(RK) - 26 + i * ((w2(RK) * 2 + 52) / 14), 676, (w2(RK) * 2 + 52) / 14 - 2, 5);
+      c.globalAlpha = 1;
     }
-    // --- 足場(建造中の作業部位の高さに追随: S3=エンジン部/S4=中部/S5=上部) ---
+    function w2(rk) { return rk.w * 0.9; }
+    // --- ガントリークレーン(面で描く: 塔=受光/陰帯・腕=厚み) ---
+    dkFace(c, G.x, G.y, 26, G.h, P.gantry, P.gantryHi, "#10151c", "#3a4a5a");
+    for (let i = 0; i < 9; i++) { // 筋交いは暗色の面取り三角
+      c.fillStyle = "#10151c";
+      c.beginPath(); c.moveTo(G.x + 4, 150 + i * 56); c.lineTo(G.x + 22, 178 + i * 56); c.lineTo(G.x + 22, 172 + i * 56); c.lineTo(G.x + 8, 150 + i * 56); c.closePath(); c.fill();
+    }
+    dkFace(c, G.x, G.y - 12, G.armW, 16, P.gantry, P.gantryHi, "#10151c", "#3a4a5a");
+    for (let x = G.x + 20; x < G.x + G.armW - 10; x += 34) { c.fillStyle = "#10151c"; c.fillRect(x, G.y - 9, 3, 10); } // 腕のリブ
+    if (stage < 6) { // 吊り荷(建造中のみ)
+      c.strokeStyle = "#39434f"; c.lineWidth = 2; c.beginPath(); c.moveTo(1000, G.y + 4); c.lineTo(1000, 208); c.stroke();
+      if (stage < 5) dkFace(c, 970, 208, 60, 26, P.hull, P.hullHi, P.hullShadow, P.hullEdge);
+      else dkFace(c, 976, 208, 48, 18, P.crimson, P.crimsonHi, "#5c1018", "#e88894"); // S5=塗装リフト
+    }
+    // --- 足場(厚みのある板+支柱の面) ---
     if (stage < 6) {
       const scafY = stage <= 3 ? 560 : stage === 4 ? 380 : 240;
       for (const [px2, py] of [[RK.x - 92, scafY], [RK.x - 92, scafY + 50], [RK.x + 108 - 60, scafY], [RK.x + 108 - 60, scafY + 50]]) {
-        c.fillStyle = P.scaffold; c.fillRect(px2, py, 60, 6);
-        dkGirder(c, px2 + 4, py + 6, px2 + 4, py + 40, P.frameDim); dkGirder(c, px2 + 54, py + 6, px2 + 54, py + 40, P.frameDim);
+        dkFace(c, px2, py, 60, 8, P.scaffold, "#31404e", "#161d25", "#4a5c6c");
+        c.fillStyle = "#1a222c"; c.fillRect(px2 + 3, py + 8, 3.5, 40); c.fillRect(px2 + 53, py + 8, 3.5, 40);
+        c.fillStyle = "#39434f"; c.fillRect(px2 + 3, py + 8, 1.2, 40); c.fillRect(px2 + 53, py + 8, 1.2, 40);
       }
+    }
+    // --- スケールの物差し: 資材+車両(密度=CFG.dockPropDensity・段階で増減は全展開で調整) ---
+    if (dens > 0) {
+      dkCrate(c, 760, 636, 34, 26); dkCrate(c, 800, 642, 30, 22);
+      if (dens >= 1) { dkCrate(c, 300, 630, 30, 22); dkPanels(c, 720, 700, 4); }
+      dkVehicle(c, 560, 706);
     }
     // --- ロケット本体(6段) ---
     this._dockRocket(c, RK.x, RK.baseY, RK.w, RK.h, stage);
-    if (stage === 3) { dkSpark(c, RK.x - 40, 630, 8); dkSpark(c, RK.x + 46, 604, 6); }
-    if (stage === 4) { dkSpark(c, RK.x - 44, 420, 6); }
-    if (stage === 5) { dkSpark(c, RK.x + 44, 250, 5); }
+    // ※溶接火花は§5yyyで転写tick(composite)の動的レイヤへ移設(明滅・reduced-motionは静的1回)
     // --- 設備(採用構図の配置・T2意匠を基準にtierで灯りが増える) ---
     this._dockBoothFrame(c);
     this._dockShelf(c, DOCKW.eq.shelf, tier);
@@ -213,6 +304,26 @@ Object.assign(UI, {
     c.fillStyle = P.amberHi;
     const pulses = tier >= 3 ? [[520, 668], [700, 646], [820, 664], [420, 630], [760, 690]] : tier >= 2 ? [[520, 668], [700, 646], [820, 664]] : [[600, 668]];
     for (const [dx2, dy2] of pulses) c.fillRect(dx2, dy2 - 1, 4, 3);
+    // --- 作業員シルエット(スケールの物差し。足場上+床・作業部位の近く) ---
+    const crewN = Math.max(0, Math.round((CFG.dockCrew != null ? CFG.dockCrew : 3)));
+    if (stage < 6 && crewN > 0) {
+      const scafY2 = stage <= 3 ? 560 : stage === 4 ? 380 : 240;
+      const spots = [[RK.x - 62, scafY2, 15], [RK.x + 80, scafY2 + 50, 15], [RK.x - 34, 668, 20], [RK.x + 140, 692, 20]]; // 床の2名は光だまり圏内=視認できる物差し
+      for (let i = 0; i < Math.min(crewN + 1, spots.length); i++) dkCrewSil(c, spots[i][0], spots[i][1], spots[i][2], 0.5);
+    }
+    // --- 手前層(奥行き3層の3層目): 手すり+資材の暗いシルエット ---
+    c.fillStyle = "rgba(4,6,9,.85)";
+    c.fillRect(0, H - 16, W, 16);
+    for (const [hx, hw2] of [[30, 300], [980, 270]]) { // 手すり(暗)
+      c.fillRect(hx, H - 34, hw2, 4);
+      for (let x = hx + 8; x < hx + hw2; x += 46) c.fillRect(x, H - 30, 4, 16);
+    }
+    c.beginPath(); c.moveTo(880, H); c.lineTo(905, H - 40); c.lineTo(955, H - 44); c.lineTo(980, H); c.closePath(); c.fill(); // 手前の資材影
+    // --- 暗部の底上げ(黒潰れ→夜間工事の暗さ。CFG.dockAmbient) ---
+    if (amb > 0) {
+      c.fillStyle = `rgba(96,116,136,${(amb * 0.30).toFixed(3)})`;
+      c.fillRect(0, 0, W, H);
+    }
   },
 
   // ロケット(6段=ラフ準拠: S1骨組み/S2下部船体/S3エンジン組付/S4上部船体+配管/S5外装+塗装/S6発射準備)
@@ -223,11 +334,18 @@ Object.assign(UI, {
     c.fillStyle = P.pad; c.fillRect(cx - w * 0.9, baseY, w * 1.8, 14);
     c.fillStyle = P.frameDim; c.fillRect(cx - w * 0.9, baseY, w * 1.8, 3);
     const hullRect = (yTop, hh, lit) => {
-      c.fillStyle = lit ? P.hullLit : P.hull; c.fillRect(cx - w / 2, yTop, w, hh);
-      c.fillStyle = P.hullHi; c.fillRect(cx - w / 2, yTop, 6, hh);
-      c.fillStyle = "#242c36"; c.fillRect(cx + w / 2 - 5, yTop, 5, hh);
-      c.strokeStyle = "#1a222c"; c.lineWidth = 1;
+      // §5yyy 線から面へ: 曲率を持つ明暗3段+パネル継ぎ目+エッジハイライト
+      const g2 = c.createLinearGradient(cx - w / 2, 0, cx + w / 2, 0);
+      g2.addColorStop(0, P.hullHi); g2.addColorStop(0.22, lit ? P.hullLit : P.hull);
+      g2.addColorStop(0.72, lit ? P.hull : P.hullShadow); g2.addColorStop(1, "#1e252e");
+      c.fillStyle = g2; c.fillRect(cx - w / 2, yTop, w, hh);
+      c.fillStyle = P.hullEdge; c.globalAlpha = 0.65; c.fillRect(cx - w / 2 + 2, yTop, 2.5, hh); c.globalAlpha = 1; // 受光エッジ
+      c.strokeStyle = P.hullSeam; c.lineWidth = 1;
       for (let i = 1; i < 3; i++) { c.beginPath(); c.moveTo(cx - w / 2, yTop + hh * i / 3); c.lineTo(cx + w / 2, yTop + hh * i / 3); c.stroke(); }
+      c.strokeStyle = "rgba(143,165,184,.14)"; // 継ぎ目のハイライト(下側)
+      for (let i = 1; i < 3; i++) { c.beginPath(); c.moveTo(cx - w / 2, yTop + hh * i / 3 + 1.2); c.lineTo(cx + w / 2, yTop + hh * i / 3 + 1.2); c.stroke(); }
+      c.fillStyle = "rgba(10,13,18,.5)";
+      for (const rx of [-w * 0.18, w * 0.3]) c.fillRect(cx + rx, yTop + 4, 2, hh - 8); // リベット列(縦)
     };
     const skeleton = (yTop, hh, alpha) => {
       c.globalAlpha = alpha != null ? alpha : 1;
@@ -396,8 +514,44 @@ Object.assign(UI, {
     }
     const st = this.dockRocketStage();
     const scafY = st <= 3 ? 540 : st === 4 ? 360 : 220;
-    if (st < 6) { dkWorkLight(g, DOCKW.RK.x - 78, scafY - 20, 1, 90, amt); dkWorkLight(g, DOCKW.RK.x + 92, scafY - 20, -1, 90, amt); }
-    else { dkWorkLight(g, DOCKW.RK.x - 78, 540, 1, 90, amt); dkWorkLight(g, DOCKW.RK.x + 92, 540, -1, 90, amt); }
+    const lx1 = DOCKW.RK.x - 78, lx2 = DOCKW.RK.x + 92, ly = st < 6 ? scafY - 20 : 540;
+    dkWorkLight(g, lx1, ly, 1, 90, amt); dkWorkLight(g, lx2, ly, -1, 90, amt);
+    // --- §5yyy 夜間工事の熱(転写tickに同居=フレーム毎の全再描画なし・reduced-motionは静的) ---
+    const t = tSec || 0;
+    const reduced = (typeof Motion !== "undefined") && Motion.reduced;
+    const pool = (CFG.dockLightPool != null ? CFG.dockLightPool : 1) * amt;
+    if (pool > 0) { // 作業灯の光だまり(床の円+船体の光帯)
+      const pulse = reduced ? 1 : 1 + 0.06 * Math.sin(t * 2.1);
+      for (const px of [lx1 + 40, lx2 - 40]) {
+        const rg = g.createRadialGradient(px, ly + 96, 6, px, ly + 96, 68 * pulse);
+        rg.addColorStop(0, `rgba(${P.poolWarm},${(0.13 * pool).toFixed(3)})`);
+        rg.addColorStop(1, `rgba(${P.poolWarm},0)`);
+        g.fillStyle = rg; g.beginPath(); g.ellipse(px, ly + 96, 68 * pulse, 26 * pulse, 0, 0, Math.PI * 2); g.fill();
+      }
+      g.fillStyle = `rgba(${P.poolWarm},${(0.06 * pool).toFixed(3)})`; // 船体に落ちる光
+      g.fillRect(DOCKW.RK.x - DOCKW.RK.w / 2, ly + 6, DOCKW.RK.w, 62);
+    }
+    const sparkRate = CFG.dockSparkRate != null ? CFG.dockSparkRate : 1;
+    if (st >= 3 && st < 6 && sparkRate > 0) { // 溶接火花(明滅=時間ハッシュ・乱数不使用=決定論)
+      const sites = st === 3 ? [[DOCKW.RK.x - 40, 630], [DOCKW.RK.x + 46, 604]] : st === 4 ? [[DOCKW.RK.x - 44, 420]] : [[DOCKW.RK.x + 44, 250]];
+      for (let i = 0; i < sites.length; i++) {
+        const ph = Math.sin(t * 9.7 * sparkRate + i * 2.3) + Math.sin(t * 23.3 * sparkRate + i * 5.1);
+        const on = reduced ? true : ph > -1.2; // 明滅=強弱主体(消えるのは稀・撮影/一目で「溶接中」と分かる)
+        if (on) dkSpark(g, sites[i][0], sites[i][1], reduced ? 6 : Math.max(3, 5 + Math.floor(ph * 2.2)));
+      }
+    }
+    if (st >= 3 && st < 6) { // 配管の蒸気(緩やかな漂い・reducedは静止)
+      const drift = reduced ? 0 : (t * 7) % 22;
+      g.fillStyle = P.steam;
+      g.beginPath();
+      g.arc(DOCKW.RK.x - 96, 600 - drift, 9 + drift * 0.35, 0, Math.PI * 2);
+      g.arc(DOCKW.RK.x - 88, 585 - drift * 1.2, 6 + drift * 0.25, 0, Math.PI * 2);
+      g.fill();
+    }
+    { // 計器の点滅(車両回転灯+供給脈・reducedは常灯)
+      const blink = reduced ? 1 : (Math.sin(t * 3.4) > 0 ? 1 : 0.25);
+      g.globalAlpha = blink; g.fillStyle = P.amberHi; g.fillRect(600, 686, 3, 3); g.globalAlpha = 1; // 車両回転灯
+    }
     // ホバー時のみ名称(浮遊ラベル全廃=v3方針継承)
     if (this._dockHover && DOCKW.names[this._dockHover]) {
       const R = DOCKW.zones[this._dockHover][0];
