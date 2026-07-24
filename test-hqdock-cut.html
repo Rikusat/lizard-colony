@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>本部v4 構図カット — 組立ドック2案(開発用・Ric構図承認前)</title>
+<!-- 本部v4 コンセプト再中心化(Ric裁定 2026-07-24):「本部とは、ロケットが組み上がっていく場所である」。
+     構図カット2案の比較(同一条件=建造S3相当・設備T2相当):
+       #i-p2 / #i-p8   = 案い【垂直ドック】(横視点・ロケット右寄り・高さ方向の未完成が「まだ先」を語る)
+       #ro-p2 / #ro-p8 = 案ろ【俯瞰ドック】(浅い俯瞰・中央ロケット・全設備が円環から注ぐ因果)
+       #stages         = ロケット建造6段のラフ(線画・構図非依存の背骨=どちらの案にも適用)
+     管制ブース窓=生中継の縮小残置(方式1流用・走査線・冷光)。スタイル=v3の滑らかCanvas+暗ドック+作業灯(深紅/琥珀)。
+     本ページのDOCKV(パレット/調整値)は構図承認後に data.js CFG + 本実装へ移植。
+     localStorageサンドボックス=本セーブ非接触。.vercelignoreでdev限定。本体(hqlab.js v3)には一切触れない。 -->
+<script>
+(function () {
+  const mem = {};
+  const shim = { getItem: (k) => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: (k) => { delete mem[k]; }, clear: () => { for (const k in mem) delete mem[k]; } };
+  Object.defineProperty(window, "localStorage", { value: shim, configurable: false });
+})();
+</script>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="style.css">
+<style>
+  #dock-stage { position: fixed; inset: 0; z-index: 9000; background: #0d1116; display: flex; align-items: center; justify-content: center; }
+  #dock-cv { width: min(100vw, 177.8vh); height: auto; }
+  #note { position: fixed; left: 8px; bottom: 8px; z-index: 99999; background: rgba(13,10,6,.9); color: #c9b8a2; font: 12px system-ui; padding: 8px 12px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div id="note">本部v4 構図カット(S3/T2統一) — #i-p2|#i-p8=案い垂直ドック / #ro-p2|#ro-p8=案ろ俯瞰ドック / #stages=6段ラフ</div>
+<header id="topbar"><div id="brand"></div>
+  <div class="res"><b id="ui-coins">0</b><small id="ui-cps"></small></div>
+  <div class="res"><b id="ui-crickets-top">0</b></div><div class="res"><b id="ui-gems">0</b></div><div class="res"><b id="ui-stones">0</b></div>
+  <nav><button id="btn-map"></button><button id="btn-hq"></button><span id="hq-badge"></span><button id="btn-dex"></button><span id="dex-badge"></span>
+  <button id="btn-missions"></button><span id="mission-badge"></span><button id="btn-stats"></button><span id="stats-badge"></span><button id="btn-settings"></button></nav>
+</header>
+<div id="hq-bar"><div id="rank-bar"></div><span id="hq-bar-label"><b id="ui-rank">1</b></span></div>
+<main><aside id="left"><div class="card"><button id="btn-cricket"><span id="cricket-lot-lbl"></span></button><button id="btn-fac"></button></div>
+  <div id="slit-device"><canvas id="slit-canvas"></canvas></div></aside>
+  <section id="center"><div id="frame"><canvas id="game" width="1280" height="720"></canvas>
+    <div id="raid-hud"><div class="rh-line"><span id="raid-timer"></span></div><div id="next-boss" class="hidden"></div><button id="btn-raid-now"></button></div>
+    <div id="toasts"></div></div><div id="raid-banner" class="hidden"></div><div id="detail" class="hidden"></div></section></main>
+<section id="hqlab" class="hidden"><header id="hqlab-head"><button id="hqlab-back">←</button><h2>本部</h2><span id="hqlab-lv"></span></header>
+  <div id="hqlab-wrap"><canvas id="hqlab-canvas" width="1000" height="620"></canvas></div></section>
+<div id="modal" class="hidden"><div id="modal-box"><header><h2 id="modal-title"></h2><button id="modal-close">×</button></header><div id="modal-body"></div></div></div>
+
+<div id="dock-stage"><canvas id="dock-cv" width="1280" height="720"></canvas></div>
+
+<script src="js/data.js"></script><script src="js/game.js"></script><script src="js/render.js"></script>
+<script src="js/roulette.js"></script><script src="js/slit.js"></script>
+<script src="js/ui/core.js"></script><script src="js/ui/icons.js"></script><script src="js/ui/components.js"></script><script src="js/ui/motion.js"></script>
+<script src="js/ui/hero/hero.js"></script><script src="js/ui/hero/nest-reveal.js"></script><script src="js/ui/hero/boss.js"></script>
+<script src="js/ui/hero/meteorite.js"></script><script src="js/ui/hero/rocket.js"></script><script src="js/ui/hero/species-reveal.js"></script><script src="js/ui/hero/boss-reward.js"></script>
+<script src="js/ui/screens/main.js"></script><script src="js/ui/screens/feeder-skins.js"></script><script src="js/ui/screens/feeder.js"></script>
+<script src="js/ui/screens/roulette.js"></script><script src="js/ui/screens/slit.js"></script><script src="js/ui/screens/breeding.js"></script>
+<script src="js/ui/screens/equipment.js"></script><script src="js/ui/screens/planet-map.js"></script><script src="js/ui/screens/nest.js"></script>
+<script src="js/ui/screens/hq.js"></script><script src="js/ui/screens/hqlab.js"></script><script src="js/ui/screens/dex.js"></script><script src="js/ui/screens/meta.js"></script><script src="js/ui/boot.js"></script>
+<script>
+// ============================================================
+// 本部v4 組立ドック — 構図カット(S3/T2)。承認後に data.js CFG + 本実装へ移植する単一の試作。
+// パレット=v3(CTRLPAL)の暗部/計器を継承し、ドック要素(骨組み/足場/火花/作業灯)を追加。
+// ============================================================
+const DOCKV = {
+  W: 1280, H: 720,
+  pal: {
+    room: "#0d1116", wallDeep: "#0a0e13", floor: "#0b0f15", pad: "#11161d",
+    frame: "#2a3340", frameDim: "#1d2530", hull: "#3a4450", hullHi: "#5a6a78", hullLit: "#6d8090",
+    scaffold: "#242c36", gantry: "#1a222c", gantryHi: "#2e3844",
+    crimson: "#a11c2c", crimsonHi: "#d8404e", amber: "#c08d1d", amberHi: "#ecc35a",
+    deskGlow: "#27424f", deskGlowHi: "#7fb9cc",
+    spark: "#ffd88a", workCone: "rgba(216,160,60,.10)",
+    mark: "rgba(190,214,235,.16)", // 次段階の気配(マーキング・薄く)
+    silhouette: "#07090c", label: "rgba(205,216,228,.92)",
+  },
+  boothBlur: 2.5, boothScan: 0.055, fps: 12,
+  supplyW: { 1: 1.5, 2: 3, 3: 5 }, // 供給線の太さ(設備tier→px)
+};
+
+const dcv = document.getElementById("dock-cv"), dg = dcv.getContext("2d");
+const P = DOCKV.pal;
+
+// ---------- 共通部品 ----------
+function girder(c, x0, y0, x1, y1, col) { c.strokeStyle = col; c.lineWidth = 2; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke(); }
+function sparkBurst(c, x, y, n) {
+  c.fillStyle = P.spark;
+  const pts = [[0, 0], [6, -4], [-5, -7], [3, -11], [-8, 2], [9, 3], [-2, -14], [7, -9]];
+  for (let i = 0; i < n; i++) { const p = pts[i % pts.length]; c.globalAlpha = 0.9 - i * 0.09; c.fillRect(x + p[0], y + p[1], 2, 2); }
+  c.globalAlpha = 0.5; c.fillStyle = "#fff2cc"; c.fillRect(x - 1, y - 1, 3, 3); c.globalAlpha = 1;
+}
+function workLight(c, x, y, dir, len) { // 作業灯(琥珀コーン)
+  c.fillStyle = P.workCone;
+  c.beginPath(); c.moveTo(x, y); c.lineTo(x + dir * len * 0.55, y + len); c.lineTo(x - dir * len * 0.35, y + len); c.closePath(); c.fill();
+  c.fillStyle = P.amberHi; c.fillRect(x - 2, y - 2, 5, 4);
+}
+function supplyPipe(c, pts, w, col) { // 供給線(設備→ロケット)
+  c.strokeStyle = col; c.lineWidth = w; c.beginPath();
+  c.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
+  c.stroke();
+  c.fillStyle = col;
+  for (const [jx, jy] of pts.slice(1, -1)) c.fillRect(jx - w * 0.9, jy - w * 0.9, w * 1.8, w * 1.8); // 継手
+}
+function boothWindow(c, R, vid) { // 管制ブース窓=監視スクリーンの縮小残置
+  c.fillStyle = "#1a2028"; c.fillRect(R.x - 6, R.y - 6, R.w + 12, R.h + 12);
+  c.fillStyle = "#2a3340"; c.fillRect(R.x - 6, R.y - 6, R.w + 12, 2);
+  if (vid) { c.imageSmoothingEnabled = true; c.drawImage(vid, 0, 0, vid.width, vid.height, R.x, R.y, R.w, R.h); }
+  else { c.fillStyle = "#0a0d12"; c.fillRect(R.x, R.y, R.w, R.h); }
+}
+
+// ---------- 設備(T2・両案共通の意匠部品) ----------
+function eqConsole(c, x, y, w, h) { // 投資端末(主席・深紅波形=継承)
+  c.fillStyle = "#10151c"; c.beginPath();
+  c.moveTo(x, y + h); c.quadraticCurveTo(x + w / 2, y - 12, x + w, y + h); c.closePath(); c.fill();
+  const wx = x + w / 2 - 34, wy = y + h - 40;
+  c.fillStyle = "#160a0e"; c.fillRect(wx, wy, 68, 20);
+  c.strokeStyle = P.crimsonHi; c.lineWidth = 1.4; c.beginPath();
+  for (let i = 0; i <= 16; i++) { const yy = wy + 10 + ((i % 4 === 1) ? -4 : (i % 4 === 3) ? 4 : 0); i ? c.lineTo(wx + 3 + i * 3.9, yy) : c.moveTo(wx + 3, yy); }
+  c.stroke();
+  c.fillStyle = P.deskGlow; c.fillRect(x + 10, y + h - 36, 26, 10); c.fillRect(x + w - 36, y + h - 36, 26, 10);
+}
+function eqTank(c, x, y, w, h) { // 錬成槽(深紅の液柱)
+  c.fillStyle = "#141a22"; c.fillRect(x, y, w, h);
+  const grad = c.createLinearGradient(0, y + 8, 0, y + h - 8);
+  grad.addColorStop(0, P.crimsonHi); grad.addColorStop(0.4, P.crimson); grad.addColorStop(1, "#3a0b13");
+  c.globalAlpha = 0.85; c.fillStyle = grad; c.fillRect(x + 7, y + 8, w - 14, h - 16); c.globalAlpha = 1;
+  c.fillStyle = "rgba(220,238,244,.5)"; c.fillRect(x + 9, y + 10, 2, h - 20);
+}
+function eqShelf(c, x, y, w, h) { // 標本棚(冷光+瓶影)
+  c.fillStyle = "#141a22"; c.fillRect(x, y, w, h);
+  for (let s = 0; s < 3; s++) {
+    const sy = y + 6 + s * (h - 12) / 3;
+    c.globalAlpha = 0.5; c.fillStyle = P.deskGlow; c.fillRect(x + 4, sy, w - 8, (h - 12) / 3 - 5); c.globalAlpha = 1;
+    c.fillStyle = "#060809";
+    for (let j = 0; j < 3; j++) c.fillRect(x + 8 + j * (w - 16) / 3, sy + 4, (w - 16) / 5, (h - 12) / 3 - 13);
+  }
+}
+function eqRack(c, x, y, w, h) { // サーバーラック(LED)
+  c.fillStyle = "#10151c"; c.fillRect(x, y, w, h);
+  for (let i = 0; i < 4; i++) {
+    const uy = y + 6 + i * (h - 10) / 4;
+    c.fillStyle = "#141a22"; c.fillRect(x + 4, uy, w - 8, (h - 10) / 4 - 4);
+    for (let d = 0; d < 3; d++) { c.fillStyle = d === 1 ? P.amberHi : "#3f8a55"; c.fillRect(x + w - 12 - d * 6, uy + 3, 3, 3); }
+  }
+}
+
+// ---------- ロケット(建造段階つき・垂直=案い/6段ラフ共用) ----------
+// stage: 1基礎骨組み/2下部船体/3エンジン組付/4上部船体+配管/5外装+塗装/6発射準備
+function rocketVertical(c, cx, baseY, w, totalH, stage, opt) {
+  const rough = opt && opt.rough;
+  const line = rough ? "#8fa2b5" : P.frame;
+  const secH = totalH / 5; // 下から: エンジン/下部/中部/上部/ノーズ
+  const secY = (i) => baseY - secH * i; // i=0が地面
+  // 発射台座
+  c.fillStyle = rough ? "transparent" : P.pad;
+  if (!rough) { c.fillRect(cx - w * 0.9, baseY, w * 1.8, 14); c.fillStyle = P.frameDim; c.fillRect(cx - w * 0.9, baseY, w * 1.8, 3); }
+  else { c.strokeStyle = line; c.lineWidth = 1.5; c.strokeRect(cx - w * 0.9, baseY, w * 1.8, 12); }
+  const hullRect = (yTop, hh, lit) => {
+    if (rough) { c.strokeStyle = line; c.lineWidth = 1.5; c.strokeRect(cx - w / 2, yTop, w, hh); return; }
+    c.fillStyle = lit ? P.hullLit : P.hull; c.fillRect(cx - w / 2, yTop, w, hh);
+    c.fillStyle = P.hullHi; c.fillRect(cx - w / 2, yTop, 6, hh);
+    c.fillStyle = "#242c36"; c.fillRect(cx + w / 2 - 5, yTop, 5, hh);
+    c.strokeStyle = "#1a222c"; c.lineWidth = 1;
+    for (let i = 1; i < 3; i++) { c.beginPath(); c.moveTo(cx - w / 2, yTop + hh * i / 3); c.lineTo(cx + w / 2, yTop + hh * i / 3); c.stroke(); }
+  };
+  const skeleton = (yTop, hh, alpha) => {
+    c.globalAlpha = alpha != null ? alpha : 1;
+    c.strokeStyle = rough ? line : P.frame; c.lineWidth = rough ? 1.2 : 2;
+    c.strokeRect(cx - w / 2, yTop, w, hh);
+    for (let i = 1; i < 3; i++) { c.beginPath(); c.moveTo(cx - w / 2, yTop + hh * i / 3); c.lineTo(cx + w / 2, yTop + hh * i / 3); c.stroke(); }
+    girder(c, cx - w / 2, yTop, cx + w / 2, yTop + hh, c.strokeStyle);
+    girder(c, cx + w / 2, yTop, cx - w / 2, yTop + hh, c.strokeStyle);
+    c.globalAlpha = 1;
+  };
+  const nose = (solid) => {
+    const ny = secY(4) - secH * 0.9;
+    if (solid && !rough) {
+      c.fillStyle = P.hullLit; c.beginPath();
+      c.moveTo(cx - w / 2, secY(4)); c.quadraticCurveTo(cx, ny, cx + w / 2, secY(4)); c.closePath(); c.fill();
+      c.fillStyle = P.amberHi; c.fillRect(cx - 4, secY(4) - secH * 0.5, 8, 10);
+    } else {
+      c.globalAlpha = solid ? 1 : 0.35;
+      c.strokeStyle = rough ? line : P.frame; c.lineWidth = rough ? 1.2 : 2;
+      c.beginPath(); c.moveTo(cx - w / 2, secY(4)); c.quadraticCurveTo(cx, ny, cx + w / 2, secY(4)); c.stroke();
+      c.globalAlpha = 1;
+    }
+  };
+  const engines = (fitted) => {
+    for (const ex of [-w * 0.28, 0, w * 0.28]) {
+      if (rough || !fitted) { c.strokeStyle = rough ? line : P.frame; c.lineWidth = 1.4; c.strokeRect(cx + ex - 9, baseY - 20, 18, 20); }
+      else { c.fillStyle = "#242c36"; c.beginPath(); c.moveTo(cx + ex - 10, baseY); c.lineTo(cx + ex - 5, baseY - 20); c.lineTo(cx + ex + 5, baseY - 20); c.lineTo(cx + ex + 10, baseY); c.closePath(); c.fill(); c.fillStyle = P.hullHi; c.fillRect(cx + ex - 5, baseY - 20, 3, 18); }
+    }
+  };
+  // --- 段階別 ---
+  if (stage >= 2) hullRect(secY(2), secH, false); else skeleton(secY(2), secH); // 下部船体
+  if (stage >= 4) hullRect(secY(3), secH, false); else skeleton(secY(3), secH, stage >= 3 ? 1 : 0.75); // 中部
+  if (stage >= 4) hullRect(secY(4), secH, false); else skeleton(secY(4), secH, stage >= 3 ? 0.75 : 0.4); // 上部
+  if (stage >= 1) skeleton(secY(1), secH, stage >= 2 ? 0 : 1); // S1=基礎骨組み(下部が組まれたら隠れる)
+  engines(stage >= 3);
+  nose(stage >= 5);
+  if (stage === 4 && !rough) { // 配管敷設の気配
+    c.strokeStyle = P.deskGlowHi; c.globalAlpha = 0.5; c.lineWidth = 1.4;
+    c.beginPath(); c.moveTo(cx - w / 2 + 8, secY(4)); c.lineTo(cx - w / 2 + 8, secY(2)); c.stroke(); c.globalAlpha = 1;
+  }
+  if (stage >= 5 && !rough) { // 外装+塗装(深紅の帯=コロニーの紋)
+    c.fillStyle = P.crimson; c.fillRect(cx - w / 2, secY(3) - 8, w, 8);
+    c.fillStyle = P.crimsonHi; c.fillRect(cx - w / 2, secY(3) - 8, w, 2);
+  }
+  if (stage >= 6 && !rough) { // 発射準備(全灯+蒸気)
+    for (const ly of [secY(2), secY(3), secY(4)]) { c.fillStyle = P.amberHi; c.fillRect(cx - w / 2 - 4, ly - 3, 3, 3); c.fillRect(cx + w / 2 + 1, ly - 3, 3, 3); }
+    c.globalAlpha = 0.18; c.fillStyle = "#cfe0ea"; c.beginPath(); c.arc(cx - w * 0.7, baseY - 6, 18, 0, Math.PI * 2); c.arc(cx + w * 0.75, baseY - 10, 14, 0, Math.PI * 2); c.fill(); c.globalAlpha = 1;
+  }
+  // 次段階の気配(マーキング・薄く=説明しない)
+  if (!rough && stage < 5) {
+    c.strokeStyle = P.mark; c.setLineDash([5, 5]); c.lineWidth = 1.5;
+    if (stage < 2) c.strokeRect(cx - w / 2, secY(2), w, secH);
+    else if (stage < 4) c.strokeRect(cx - w / 2, secY(4), w, secH);
+    else { c.beginPath(); c.moveTo(cx - w / 2, secY(4)); c.quadraticCurveTo(cx, secY(4) - secH * 0.9, cx + w / 2, secY(4)); c.stroke(); }
+    c.setLineDash([]);
+  }
+}
+
+// ---------- 案い【垂直ドック】 ----------
+function renderPlanI(vid) {
+  const c = dg, W = DOCKV.W, H = DOCKV.H;
+  c.fillStyle = P.room; c.fillRect(0, 0, W, H);
+  c.fillStyle = P.wallDeep; c.fillRect(0, 0, W, 620);
+  c.fillStyle = P.floor; c.fillRect(0, 620, W, 100);
+  c.strokeStyle = "#12181f"; c.lineWidth = 1;
+  for (let i = 0; i < 8; i++) { c.beginPath(); c.moveTo(0, 640 + i * 12); c.lineTo(W, 638 + i * 12); c.stroke(); }
+  const RKX = 950, RKW = 130, RKB = 660, RKH = 520;
+  // ガントリークレーン(左の塔+上腕がロケットへ)
+  c.fillStyle = P.gantry; c.fillRect(770, 120, 26, 540);
+  c.fillStyle = P.gantryHi; c.fillRect(770, 120, 4, 540);
+  for (let i = 0; i < 9; i++) girder(c, 772, 150 + i * 56, 794, 178 + i * 56, P.frameDim);
+  c.fillStyle = P.gantry; c.fillRect(770, 110, 320, 14);
+  c.fillStyle = P.gantryHi; c.fillRect(770, 110, 320, 3);
+  // クレーンフック=船体パネルを吊る(S3=次の中部パネル)
+  girder(c, 1000, 124, 1000, 208, P.frameDim);
+  c.fillStyle = P.hull; c.fillRect(970, 208, 60, 26);
+  c.fillStyle = P.hullHi; c.fillRect(970, 208, 5, 26);
+  // 足場(エンジン部の周囲=S3の作業現場)
+  for (const [px2, py] of [[860, 560], [860, 610], [1060, 560], [1060, 610]]) {
+    c.fillStyle = P.scaffold; c.fillRect(px2, py, 60, 6);
+    girder(c, px2 + 4, py + 6, px2 + 4, py + 40, P.frameDim); girder(c, px2 + 54, py + 6, px2 + 54, py + 40, P.frameDim);
+  }
+  workLight(c, 872, 540, 1, 90); workLight(c, 1108, 540, -1, 90);
+  // ロケット本体(S3)
+  rocketVertical(c, RKX, RKB, RKW, RKH, 3);
+  sparkBurst(c, RKX - 40, 630, 8); sparkBurst(c, RKX + 46, 604, 6);
+  // --- 設備(左〜下)+供給線 ---
+  const booth = { x: 60, y: 70, w: 240, h: 130 };
+  boothWindow(c, booth, vid);
+  c.fillStyle = "#10151c"; c.fillRect(booth.x - 6, booth.y + booth.h + 6, booth.w + 12, 24); // ブース台座
+  eqShelf(c, 70, 300, 120, 150);
+  eqTank(c, 230, 290, 76, 170);
+  eqConsole(c, 380, 600, 210, 96);
+  eqRack(c, 640, 590, 90, 106);
+  // 供給線(T2の太さ・全設備→ロケット基部へ)
+  const sw2 = DOCKV.supplyW[2];
+  supplyPipe(c, [[306, 380], [340, 380], [340, 646], [880, 646]], sw2, "#2a3340");           // 錬成槽→
+  supplyPipe(c, [[190, 430], [210, 470], [210, 664], [878, 664]], sw2 * 0.7, "#242c36");     // 標本棚→
+  supplyPipe(c, [[590, 668], [880, 668]], sw2, "#2a3340");                                   // 投資端末→
+  supplyPipe(c, [[730, 640], [820, 640], [880, 655]], sw2 * 0.7, "#242c36");                 // ラック→
+  c.fillStyle = P.amberHi; for (const [dx2, dy2] of [[520, 668], [700, 646], [820, 664]]) c.fillRect(dx2, dy2 - 1, 4, 3); // 供給の脈(静)
+  // 注記
+  c.fillStyle = P.label; c.font = "600 14px system-ui";
+  c.fillText("案い【垂直ドック】 S3=エンジン組付・T2", 24, 700);
+}
+
+// ---------- 案ろ【俯瞰ドック】 ----------
+function renderPlanRo(vid) {
+  const c = dg, W = DOCKV.W, H = DOCKV.H;
+  c.fillStyle = P.room; c.fillRect(0, 0, W, H);
+  const cx = 640, cy = 400;
+  // 発射パッド(円環+マーキング)
+  c.fillStyle = P.pad; c.beginPath(); c.ellipse(cx, cy, 300, 195, 0, 0, Math.PI * 2); c.fill();
+  c.strokeStyle = "#1d2530"; c.lineWidth = 2; c.beginPath(); c.ellipse(cx, cy, 300, 195, 0, 0, Math.PI * 2); c.stroke();
+  c.strokeStyle = "#232d38"; c.beginPath(); c.ellipse(cx, cy, 210, 136, 0, 0, Math.PI * 2); c.stroke();
+  c.strokeStyle = P.mark; c.setLineDash([8, 8]); c.beginPath(); c.ellipse(cx, cy, 120, 78, 0, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
+  // ロケット(浅い俯瞰=縦置きを上から60°・縦圧縮+断面リング)。S3=下部実体/上部骨組み
+  const rw = 120, rH = 320, rB = cy + 120; // 画面上で下=手前(エンジン)・上=奥(ノーズ)
+  c.save();
+  c.translate(cx, 0); c.scale(1, 0.72); c.translate(-cx, 130);
+  rocketVertical(c, cx, rB, rw, rH * 1.4, 3);
+  c.restore();
+  sparkBurst(c, cx - 42, cy + 158, 8); sparkBurst(c, cx + 38, cy + 168, 6);
+  // ガントリー=パッド北のアーチ+作業灯
+  c.fillStyle = P.gantry; c.fillRect(cx - 180, cy - 190, 360, 12);
+  c.fillStyle = P.gantryHi; c.fillRect(cx - 180, cy - 190, 360, 3);
+  girder(c, cx - 180, cy - 178, cx - 180, cy - 120, P.frameDim); girder(c, cx + 180, cy - 178, cx + 180, cy - 120, P.frameDim);
+  workLight(c, cx - 150, cy - 176, 1, 70); workLight(c, cx + 150, cy - 176, -1, 70);
+  // --- 設備=円環状(供給線が中心へ注ぐ) ---
+  const booth = { x: cx - 120, y: 40, w: 240, h: 110 };
+  boothWindow(c, booth, vid);
+  eqTank(c, 1080, 300, 76, 170);
+  eqShelf(c, 110, 300, 120, 150);
+  eqConsole(c, cx - 105, 600, 210, 96);
+  eqRack(c, 1000, 560, 90, 106);
+  const sw2 = DOCKV.supplyW[2];
+  supplyPipe(c, [[1080, 385], [900, 400], [800, 400]], sw2, "#2a3340");        // 錬成槽→中心
+  supplyPipe(c, [[230, 385], [400, 400], [480, 400]], sw2 * 0.7, "#242c36");   // 標本棚→
+  supplyPipe(c, [[cx, 600], [cx, 545]], sw2, "#2a3340");                        // 投資端末→
+  supplyPipe(c, [[1045, 560], [940, 480], [830, 445]], sw2 * 0.7, "#242c36");  // ラック→
+  supplyPipe(c, [[cx, 150], [cx, 205]], sw2 * 0.7, "#242c36");                  // ブース→(管制)
+  c.fillStyle = P.amberHi; for (const [dx2, dy2] of [[860, 398], [430, 400], [cx - 2, 570]]) c.fillRect(dx2, dy2 - 1, 4, 3);
+  c.fillStyle = P.label; c.font = "600 14px system-ui";
+  c.fillText("案ろ【俯瞰ドック】 S3=エンジン組付・T2", 24, 700);
+}
+
+// ---------- 6段ラフ(線画・構図非依存の背骨) ----------
+function renderStages() {
+  const c = dg, W = DOCKV.W, H = DOCKV.H;
+  c.fillStyle = P.room; c.fillRect(0, 0, W, H);
+  const names = ["S1 基礎骨組み", "S2 下部船体", "S3 エンジン組付", "S4 上部船体+配管", "S5 外装+塗装", "S6 発射準備"];
+  for (let s = 1; s <= 6; s++) {
+    const px2 = 40 + (s - 1) * 200;
+    c.strokeStyle = "#1d2530"; c.strokeRect(px2, 60, 180, 560);
+    rocketVertical(c, px2 + 90, 560, 90, 400, s, { rough: s < 3 ? false : false });
+    if (s === 3) { sparkBurst(c, px2 + 60, 545, 6); }
+    c.fillStyle = P.label; c.font = "600 13px system-ui";
+    c.fillText(names[s - 1], px2 + 12, 646);
+  }
+  c.fillStyle = P.label; c.font = "600 15px system-ui";
+  c.fillText("ロケット建造6段ラフ(構図非依存の背骨・進捗=labInvest写像/しきい値=CFG.rocketStages[]予定)", 40, 40);
+}
+
+// ---------- 起動+管制窓の生中継(方式1流用) ----------
+const hm = location.hash.match(/^#(i|ro)-p(\d+)$/);
+const mode = location.hash === "#stages" ? "stages" : (hm ? hm[1] : "i");
+const planet = hm ? parseInt(hm[2], 10) : 2;
+
+if (mode === "stages") {
+  renderStages();
+} else {
+  window.addEventListener("load", () => setTimeout(() => {
+    Game.newGame(); Game.state.rank = 999; Game.raid = null;
+    if (planet !== 1) Game.selectStage(planet);
+    const pool = Game.breedablePool();
+    for (let i = 0; i < 10; i++) {
+      const sp = pool[i % pool.length];
+      Game.addLizard(Game.makeLizard(sp.id, "normal", { hue: sp.hue, sat: sp.sat, light: sp.light, pattern: ["stripe", "spot", "band", "none"][i % 4], traits: [] }, "adult"), true);
+    }
+    // 管制窓の生中継(半解像度+走査線=v3実装の流用)
+    const vw = 240, vh = 130;
+    const vid = document.createElement("canvas"); vid.width = vw / 2; vid.height = vh / 2;
+    function drawBooth(tSec) {
+      const src = document.getElementById("game");
+      if (!src || !src.width) return;
+      const vc = vid.getContext("2d");
+      vc.imageSmoothingEnabled = true;
+      const da = vid.width / vid.height;
+      let sw = src.width, sh = src.height, sx = 0, sy = 0;
+      if (sw / sh > da) { sw = Math.round(sh * da); sx = (src.width - sw) / 2; } else { sh = Math.round(sw / da); sy = (src.height - sh) / 2; }
+      try { vc.filter = `blur(${(DOCKV.boothBlur / 2).toFixed(2)}px)`; } catch (e) {}
+      vc.drawImage(src, sx, sy, sw, sh, 0, 0, vid.width, vid.height);
+      try { vc.filter = "none"; } catch (e) {}
+      vc.fillStyle = `rgba(8,10,12,${DOCKV.boothScan})`;
+      const drift = Math.floor(tSec * 8) % 2;
+      for (let yy = drift; yy < vid.height; yy += 2) vc.fillRect(0, yy, vid.width, 1);
+    }
+    function frame(tSec) { drawBooth(tSec); (mode === "ro" ? renderPlanRo : renderPlanI)(vid); }
+    setInterval(() => frame(performance.now() / 1000), 1000 / DOCKV.fps);
+    frame(0);
+  }, 700));
+}
+</script>
+</body>
+</html>
