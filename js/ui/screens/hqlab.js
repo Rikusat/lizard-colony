@@ -2,11 +2,11 @@
 // screens/hqlab — 本部v4「組立ドック(案い・垂直)」(Ric構図承認→全展開)
 // テーゼ:「本部とは、ロケットが組み上がっていく場所である」。
 // 主役=建造中のロケット+ドック(ガントリー/足場/作業灯)。鉱石投資(labInvest)が進むほど
-// ロケットが物理的に組み上がる(6段=CFG.rocketStages写像・進捗を数字でなく実物で見せる)。
+// ロケットが物理的に組み上がる(6段=CFG.dockStages写像・進捗を数字でなく実物で見せる)。
 // 設備(投資端末/錬成槽/標本棚/ラック)はドック周囲で働き、供給線が設備tier(labRoomTiers)で太る=二重成長軸。
 // 管制ブース窓=旧監視スクリーンの縮小残置(生中継=方式1流用・走査線)。宇宙港=ドックへ昇格統合(ロケット本体クリック=旧宇宙港パネル)。
 // v3管制室(スクリーン65%+席列+シルエット)はRic裁定で廃棄(記録=git+test-hqctrl-cut.html)。
-// 表示層のみ=パネル(hq.js)/投資ロジック/セーブ/飼育槽側コード非接触。調整値=CFG(rocketStages/dock*/ctrl*)。
+// 表示層のみ=パネル(hq.js)/投資ロジック/セーブ/飼育槽側コード非接触。調整値=CFG(dockStages/dock*/ctrl*)。
 // =============================================================
 
 // パレット(1箇所集約。v3の暗部/計器を継承+ドック系)
@@ -109,11 +109,11 @@ Object.assign(UI, {
     const th = CFG.labRoomTiers || [1, 2];
     return inv >= th[1] ? 3 : inv >= th[0] ? 2 : 1;
   },
-  // ロケット側6段(CFG.rocketStages=labInvest進行度のしきい値6つ。降順走査で現段階)
+  // ロケット側6段(CFG.dockStages=labInvest進行度のしきい値6つ。降順走査で現段階)
   dockRocketStage() {
     if (this._dockStageOverride) return this._dockStageOverride;
     const inv = Game.labInvestLv("desks");
-    const th = CFG.rocketStages || [0, 1, 1, 2, 2, 3];
+    const th = CFG.dockStages || [0, 1, 1, 2, 2, 3];
     let st = 1;
     for (let i = 0; i < th.length; i++) if (inv >= th[i]) st = i + 1;
     return Math.max(1, Math.min(6, st));

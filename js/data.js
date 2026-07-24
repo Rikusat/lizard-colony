@@ -218,10 +218,11 @@ const CFG = {
   ctrlFps: 12,                // ブース窓の生中継頻度(方式1・10〜15fps目安)
   ctrlBlur: 2.5,              // 弱ブラー=監視映像の解像度(個体シルエット可・UI/特性は不可読)
   ctrlScanAlpha: 0.055,       // 走査線の濃度(0=OFF)。揺らぎはreduced-motionで停止
-  // ロケット建造6段(みちのりの背骨): labInvest("desks")進行度のしきい値→S1..S6。
+  // ドック建造6段(みちのりの背骨): labInvest("desks")進行度のしきい値→S1..S6。
   //   ★[A]判断点: 現行labInvestCosts.desksは3段(値0〜3)のため、この既定では通る節目はS1→S3→S5→S6の4つ。
   //   6節目をフルに通すには投資段数の追加(labInvestCosts.desksの拡張=コスト[A]調整)とセットでしきい値を再配分する。
-  rocketStages: [0, 1, 1, 2, 2, 3],
+  //   ※キー名の教訓(2026-07-24): 当初 rocketStages と命名し既存キー(宇宙港=段階別必要イリジウム:下方)と衝突→後勝ちで常にS1となる本番バグ。dockStagesへ改名+cfg_sanityテストで重複キーを恒久監視。
+  dockStages: [0, 1, 1, 2, 2, 3],
   dockSupplyW: [1.5, 3, 5],   // 供給線の太さ(設備tier T1/T2/T3)。T3は本数も増える(第2系統)
   dockWorkLight: 1.0,         // 作業灯量(コーンの濃さ/本数の係数)
   dockBoothW: 240,            // 管制ブース窓の幅(設計px)
