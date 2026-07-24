@@ -1664,6 +1664,18 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
   - ID1〜ID9 [済] / **ID10 記録係アノール[本]**: 石板を抱えた学者肌の小トカゲ+金の刻印の脈動(1-2体)。※新arch=戦闘効果は今後。
   - **★全10惑星の味方描画 完成**（ID1〜ID10）。移送先id味方(ID2/6/7/8/9)=既存効果型を再有効化／新arch味方(ID3/4/5/10)=可視・育成のみ(効果は今後)。後修正候補: ID2-5・ID10がやや小型・背景と同化気味(存在感up余地)／ID9はラクーンか廃炉山椒魚か(Ric選択)。
 
+### 5xxx. ★本番デプロイ — 建造計画パネル本実装+②researchBonus本番実証(2026-07-24・成功)
+Ric裁定2件の実施。**READY / https://lizardcolony.vercel.app**。
+- **②researchBonus(先行)**: 修正は§5wwwデプロイで本番反映済(md5一致)だったため追加デプロイ不要と判断し、**本番実証のみ実施**: 使い捨てプロファイル+?tune=1でレシピ購入(buyResearch recipe1=true)→researchBonus("hatch")=0(クラッシュなし)→ボス報酬経路(レア中央+卵帯)で卵+2・console/pageerror 0件。
+- **①建造計画 本実装(手順どおりUISkills §13を先行追記→style.css/hq.jsへ移植)**:
+  - openLabDesks全面書換=「建造計画」: ①みちのりトラッカー(S1〜S6ミニ絵=`UI._planGlyph`・ドック6段と同じ言語+終点「発射」。現在地琥珀/通過実線/未到達点線/S2・S4も表示) ②建造投資ブロック格上げ(青写真の気配・「次の工程: S(現在+1)」=次に建つ部位・統一書式素材+不足で沈む投じる) ③変換=保有内蔵+不足沈み ④研究=現行項目・順序維持+統一書式+ロック行title=開放条件 ⑤手持ち資源=降格存続(opacity .55)。
+  - **統一書式`.mat`「[アイコン] 素材名 保有X / 必要Y」を全域適用**(建造投資2行/変換3ボタン/研究12項目)。充足=琥珀点灯/不足=沈み+「あと◯」深紅(明度+文言の二重化)。
+  - **CFG.plan***: GlyphW/H・CurColor・CurGlow・LackColor・LackWord・DimOpacity(色はパネルルートのCSS変数へ)。
+  - **機能ID/ロジック完全不変**: #lab-invest/#lab-invest-btn/#cv-*/#hq-dev/#hq-invasion/#research-list=QA契約維持。**QAの12機能実操作が全て従来どおりPASS=表示のみの証明**。
+- **QA**: 本部QA 3解像度**29/0**・node13本・統合11/11・boot console0。**縦長430pxでトラッカーが2段に折り返して可読**(実測スクショ)。
+- **本番実証**: hq.js/style.css/index.html=**md5 IDENTICAL**(※`?cb=`なし素URLはエッジキャッシュで旧応答があり得る=実機は?v=ハッシュ付きロードで新鮮・以後の照合はcb付きで行う)・本番URL+tuneで混在状態(オリハルコン不足あと1/チタン充足)の全景スクショ・pageerror 0件。
+- **次: 指示待ち(自走禁止)・S6着手禁止を維持。**
+
 ### 5www. ★本番デプロイ — dev支援 Dev.grant(?tune=1限定・2026-07-24・成功/本番実証済)
 Ric指示。**READY / https://lizardcolony.vercel.app**。boot.js末尾に tune ゲートを新設(従来tune分岐は存在しなかったため本件が初出=以後のdevフックはここに同居)。
 - **仕様**: `?tune=1` セッションのみ `window.Dev` を生成(通常アクセスは undefined=UI露出ゼロ)。`Dev.grant({stones:10})`=主要資源の付与。対応キー14=stones/coins/gems/crickets/bio/food/energy/science+鉱石6種(ORES内部名)。引数なし=キー一覧をconsole表示。**付与は既存の加算関数のみ**(addStone/addRes/addOre/確立済みの直接加算パターン)=下限0・表示更新は既存ロジック。**負値・非数・非整数・未知キーは拒否**。実行時 `DEV GRANT {...}` ログ+Game.save()+UI.update()。聖域非接触(資源加算のみ)。
