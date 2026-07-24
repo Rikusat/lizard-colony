@@ -228,6 +228,14 @@ const CFG = {
   dockBoothW: 240,            // 管制ブース窓の幅(設計px)
   dockBoothH: 130,            // 管制ブース窓の高さ(設計px)
   dockFlashSec: 1.2,          // 節目演出=建造段階が上がった直後の作業灯一斉瞬き(通知なし・reduced-motionは無し)
+  // 建造計画パネル(UISkills §13・表示のみ・★Ric調整)
+  planGlyphW: 30,             // みちのりトラッカー節点ミニ絵の幅
+  planGlyphH: 44,             // 同・高さ
+  planCurColor: "#ecc35a",    // 現在地の琥珀
+  planCurGlow: "rgba(236,195,90,.55)", // 現在地の点灯(drop-shadow)
+  planLackColor: "#d8404e",   // 不足「あと◯」の深紅
+  planLackWord: "あと",       // 不足文言
+  planDimOpacity: 0.62,       // 不足行・沈みボタンの明度
   labTileScale: 2.0,          // 本部のタイル+設備の一体倍率(大きさ)。★Ric実機調整
   labFacScale: 1.0,           // 設備のみの追加倍率(比較用・既定1=一体拡大方式)
   genesisFxSec: 1.5,        // 創世エフェクトの尺(深紅の錬成)
