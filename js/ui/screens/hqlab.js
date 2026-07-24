@@ -276,11 +276,22 @@ Object.assign(UI, {
         c.fillStyle = "#39434f"; c.fillRect(px2 + 3, py + 8, 1.2, 40); c.fillRect(px2 + 53, py + 8, 1.2, 40);
       }
     }
-    // --- スケールの物差し: 資材+車両(密度=CFG.dockPropDensity・段階で増減は全展開で調整) ---
-    if (dens > 0) {
-      dkCrate(c, 760, 636, 34, 26); dkCrate(c, 800, 642, 30, 22);
-      if (dens >= 1) { dkCrate(c, 300, 630, 30, 22); dkPanels(c, 720, 700, 4); }
-      dkVehicle(c, 560, 706);
+    // --- スケールの物差し: 資材+車両(密度=山型の段階曲線×全体係数=規律⑥) ---
+    const sd = ((CFG.dockStageDensity || [0.4, 0.6, 1.0, 1.2, 1.5, 0.25])[stage - 1] || 1) * dens;
+    this._dockHasVehicle = sd >= 0.5 && stage < 6;
+    if (sd > 0) {
+      if (sd >= 0.3) dkCrate(c, 760, 636, 34, 26);
+      if (sd >= 0.55) dkCrate(c, 800, 642, 30, 22);
+      if (sd >= 0.9) { dkCrate(c, 300, 630, 30, 22); dkPanels(c, 720, 700, 4); }
+      if (sd >= 1.2) { dkCrate(c, 838, 646, 26, 18); dkPanels(c, 340, 704, 3); dkCrate(c, 260, 636, 26, 20); } // S5=資材最大
+      if (this._dockHasVehicle) dkVehicle(c, 560, 706);
+    }
+    if (stage >= 6) { // S6=撤収の静けさ+発射待機の全灯(パッド外周の常灯列)
+      for (let i = 0; i < 6; i++) {
+        const px3 = RK.x - RK.w * 0.9 - 20 + i * ((RK.w * 1.8 + 40) / 5);
+        c.fillStyle = P.amberHi; c.fillRect(px3, 652, 4, 4);
+        c.fillStyle = `rgba(${P.poolWarm},.12)`; c.beginPath(); c.ellipse(px3 + 2, 660, 16, 6, 0, 0, Math.PI * 2); c.fill();
+      }
     }
     // --- ロケット本体(6段) ---
     this._dockRocket(c, RK.x, RK.baseY, RK.w, RK.h, stage);
@@ -304,12 +315,13 @@ Object.assign(UI, {
     c.fillStyle = P.amberHi;
     const pulses = tier >= 3 ? [[520, 668], [700, 646], [820, 664], [420, 630], [760, 690]] : tier >= 2 ? [[520, 668], [700, 646], [820, 664]] : [[600, 668]];
     for (const [dx2, dy2] of pulses) c.fillRect(dx2, dy2 - 1, 4, 3);
-    // --- 作業員シルエット(スケールの物差し。足場上+床・作業部位の近く) ---
-    const crewN = Math.max(0, Math.round((CFG.dockCrew != null ? CFG.dockCrew : 3)));
-    if (stage < 6 && crewN > 0) {
+    // --- 作業員シルエット(スケールの物差し。人数=山型曲線×CFG.dockCrew・S6=撤収0名) ---
+    const crewBase = Math.max(0, Math.round((CFG.dockCrew != null ? CFG.dockCrew : 3)));
+    const crewN = stage >= 6 ? 0 : Math.max(1, Math.min(4, Math.round(crewBase * ((CFG.dockStageDensity || [0.4, 0.6, 1, 1.2, 1.5, 0.25])[stage - 1] || 1))));
+    if (crewN > 0) {
       const scafY2 = stage <= 3 ? 560 : stage === 4 ? 380 : 240;
-      const spots = [[RK.x - 62, scafY2, 15], [RK.x + 80, scafY2 + 50, 15], [RK.x - 34, 668, 20], [RK.x + 140, 692, 20]]; // 床の2名は光だまり圏内=視認できる物差し
-      for (let i = 0; i < Math.min(crewN + 1, spots.length); i++) dkCrewSil(c, spots[i][0], spots[i][1], spots[i][2], 0.5);
+      const spots = [[RK.x - 62, scafY2, 15], [RK.x - 34, 668, 20], [RK.x + 80, scafY2 + 50, 15], [RK.x + 140, 692, 20]]; // 床は光だまり圏内=視認できる物差し
+      for (let i = 0; i < Math.min(crewN, spots.length); i++) dkCrewSil(c, spots[i][0], spots[i][1], spots[i][2], 0.5);
     }
     // --- 手前層(奥行き3層の3層目): 手すり+資材の暗いシルエット ---
     c.fillStyle = "rgba(4,6,9,.85)";
@@ -360,6 +372,13 @@ Object.assign(UI, {
     if (stage >= 4) hullRect(secY(3), secH, false); else skeleton(secY(3), secH, stage >= 3 ? 1 : 0.75);
     if (stage >= 4) hullRect(secY(4), secH, false); else skeleton(secY(4), secH, stage >= 3 ? 0.75 : 0.4);
     if (stage < 2) skeleton(secY(1), secH, 1); // S1=基礎骨組み
+    else { // §5zzz: スラスト構造(船体底部⇔エンジンベイ。空白だと機体が浮いて見える=S5で顕在化した持ち越しの修正)
+      c.fillStyle = "#141a22"; c.fillRect(cx - w / 2 + 18, secY(1), w - 36, secH - 20); // ベイ暗部
+      c.fillStyle = "rgba(143,165,184,.12)"; c.fillRect(cx - w / 2 + 18, secY(1), w - 36, 2);
+      c.fillStyle = "#1a222c"; // 支持柱
+      c.fillRect(cx - w / 2 + 6, secY(1), 9, secH - 18); c.fillRect(cx + w / 2 - 15, secY(1), 9, secH - 18);
+      c.fillStyle = "#2e3844"; c.fillRect(cx - w / 2 + 6, secY(1), 2, secH - 18); c.fillRect(cx + w / 2 - 15, secY(1), 2, secH - 18);
+    }
     // エンジン(S3+で実体)
     for (const ex of [-w * 0.28, 0, w * 0.28]) {
       if (stage >= 3) {
@@ -521,7 +540,7 @@ Object.assign(UI, {
     const reduced = (typeof Motion !== "undefined") && Motion.reduced;
     const pool = (CFG.dockLightPool != null ? CFG.dockLightPool : 1) * amt;
     if (pool > 0) { // 作業灯の光だまり(床の円+船体の光帯)
-      const pulse = reduced ? 1 : 1 + 0.06 * Math.sin(t * 2.1);
+      const pulse = (reduced || st >= 6) ? 1 : 1 + 0.06 * Math.sin(t * 2.1); // S6=張り詰めた静けさ(揺れない光)
       for (const px of [lx1 + 40, lx2 - 40]) {
         const rg = g.createRadialGradient(px, ly + 96, 6, px, ly + 96, 68 * pulse);
         rg.addColorStop(0, `rgba(${P.poolWarm},${(0.13 * pool).toFixed(3)})`);
@@ -548,9 +567,9 @@ Object.assign(UI, {
       g.arc(DOCKW.RK.x - 88, 585 - drift * 1.2, 6 + drift * 0.25, 0, Math.PI * 2);
       g.fill();
     }
-    { // 計器の点滅(車両回転灯+供給脈・reducedは常灯)
+    if (this._dockHasVehicle) { // 計器の点滅(車両回転灯・reducedは常灯。S6=車両撤収済みで非表示)
       const blink = reduced ? 1 : (Math.sin(t * 3.4) > 0 ? 1 : 0.25);
-      g.globalAlpha = blink; g.fillStyle = P.amberHi; g.fillRect(600, 686, 3, 3); g.globalAlpha = 1; // 車両回転灯
+      g.globalAlpha = blink; g.fillStyle = P.amberHi; g.fillRect(600, 686, 3, 3); g.globalAlpha = 1;
     }
     // ホバー時のみ名称(浮遊ラベル全廃=v3方針継承)
     if (this._dockHover && DOCKW.names[this._dockHover]) {

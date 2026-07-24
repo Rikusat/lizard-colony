@@ -233,7 +233,8 @@ const CFG = {
   dockLightPool: 1.0,         // 作業灯の光だまり強度(床・船体に落ちる円)
   dockSparkRate: 1.0,         // 溶接火花の頻度/強度(0=停止)。reduced-motionでは明滅なし(静的火花)
   dockCrew: 3,                // 作業員シルエットの基準人数(S段階で増減・スケールの物差し)
-  dockPropDensity: 1.0,       // 資材(木箱/パネル材/車両)の密度係数
+  dockPropDensity: 1.0,       // 資材(木箱/パネル材/車両)の密度係数(全体係数)
+  dockStageDensity: [0.4, 0.6, 1.0, 1.2, 1.5, 0.25], // 段階連動の密度曲線(山型: S1立ち上げ→S5最大→S6撤収の静けさ)
   // 建造計画パネル(UISkills §13・表示のみ・★Ric調整)
   planGlyphW: 30,             // みちのりトラッカー節点ミニ絵の幅
   planGlyphH: 44,             // 同・高さ
