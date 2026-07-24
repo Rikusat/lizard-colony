@@ -1664,6 +1664,14 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
   - ID1〜ID9 [済] / **ID10 記録係アノール[本]**: 石板を抱えた学者肌の小トカゲ+金の刻印の脈動(1-2体)。※新arch=戦闘効果は今後。
   - **★全10惑星の味方描画 完成**（ID1〜ID10）。移送先id味方(ID2/6/7/8/9)=既存効果型を再有効化／新arch味方(ID3/4/5/10)=可視・育成のみ(効果は今後)。後修正候補: ID2-5・ID10がやや小型・背景と同化気味(存在感up余地)／ID9はラクーンか廃炉山椒魚か(Ric選択)。
 
+### 5lll. ★掃除2件デプロイ — legend読込削除+旧8bitスプライト削除(2026-07-24・表示挙動不変を証明/本番実証済)
+Ric指示(合格条件=何も変わらない)。**READY / https://lizardcolony.vercel.app** 反映=`376a0e4`(三者同期clean)。
+- **①legend.js死コード整理(実測証明)**: `heroLegendBirth`の呼出=**test-v3.html:843の1件のみ**(grep全域・本番js内0件=game.js:1427はPhase9撤去済コメントのみ)。**削除**=script読込タグ4箇所(index.html+devハーネス3=読むだけで呼ばない・grepで証明)。**残置(自制)**=`js/ui/hero/legend.js`本体+test-v3読込(実参照あり=死んでいない)/関連CSS`.hero-legend`系(test-v3がstyle.css読込で使用)。**候補報告**: legend.js本体+専用CSS(~20行)はtest-v3を廃棄する日に一括削除可(今回は温存)。
+- **②旧8bitスプライト削除(許可確定)**: test-hqlab-pixel.htmlの3案レンダラ+#v左パネルを削除→「GBA基準カット(採用版の記録)」へ縮約。**残置資産**=SCENE定義(採用配置の原本)/RAMP(色ランプ基準)/整数倍ブリット枠組み。削除前の最終状態スクショ記録済(会話ログ)。
+- **不変の証明**: 本部canvas=before/after **md5 IDENTICAL(厳密)**・ピッカー=目視同一(box内md5差=半透明モーダルに透けるblur背景の撮影ゆらぎと特定)・飼育槽=目視同一(ランダム配置)。QA3層PASS(node10/統合11:11/本部27:0)+boot console0。
+- **本番実証**: 本番indexからlegend読込消滅(grep0)・**本番index=ローカル完全一致**(md5差=CRLF/LF改行のみと特定・正規化diff空)・本番console0/4xx0。bump-cacheは32アセット(legend除外)・hash据え置き=空コミットなし。
+- **次: 指示待ち(自走禁止)・S6着手禁止を維持。**
+
 ### 5kkk. ★本番デプロイ — S3③クローズ(案A一本化・2026-07-24・成功/本番実証済)
 Ric選択=**案A(名前琥珀+✦)**。一本化(`.leg-name`へ統合・案B完全削除=grep0件)→bump-cache→deploy。**READY / https://lizardcolony.vercel.app** 反映=`5583581`(HEAD=origin=本番・三者同期clean)。
 - **本番実証**: asset hash 本番=ローカル一致(main.js/style.css/icons.js)・**本番配信アセットでピッカーを開いた実機スクショ**(モック個体・本番js/css読込・console/404なし)——★撤去済/特性チップ2枚+深紅固定印/空欄行高揃い/レジェンダリー=✦琥珀名+チップ領域不在、を全て確認。
