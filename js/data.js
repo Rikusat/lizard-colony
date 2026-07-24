@@ -205,6 +205,7 @@ const CFG = {
   // 本部=研究施設(hq_lab)の設備tier閾値(全て既存stateからの派生=セーブ非接触・★たたき台=Ric調整)
   labTankTiers: [1, 3, 5],    // 実験用水槽: 解読済みレシピ数でT2/T3/T4
   labShelfTiers: [8, 18, 28], // 標本棚: 図鑑登録数でT2/T3/T4(ロケットはrocket状態から直接導出)
+  labRoomTiers: [1, 2],       // 部屋の密度tier(T1開設/T2稼働/T3過密): labInvest(鉱石投資)がこの回数以上でT2/T3。★たたき台
   // デスク群=鉱石投資で育つ(hq_lab v2.0 §5.3案B・投資1回=1段T1→T4)。★コストは全てたたき台=Ric実機調整
   labInvestCosts: {
     desks: [

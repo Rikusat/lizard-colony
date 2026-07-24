@@ -150,10 +150,10 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
 
       // ===== 改修後: 当たり判定の整合(拡大+再配分後・各設備の代表点がそのzoneを返す) =====
       UI.openHqLab();
-      var reps = { desks: [3.2, 3.0], tank: [9.0, 2.0], shelf: [1.2, 6.8], rocket: [10.2, 6.6] };
+      var reps = { desks: [4.5, 3.0], tank: [17.5, 4.5], shelf: [2.0, 9.0], rocket: [18.5, 10.5] };
       for (var zk in reps) {
-        var zp = UI._iso(reps[zk][0], reps[zk][1]); // 低解像度座標(ファミコン方式)
-        ok("判定: " + zk + " の代表点がzone一致(整数倍拡大に追従)", UI._hqlabZoneAt(zp.x, zp.y - 4) === zk, JSON.stringify(zp) + "→" + UI._hqlabZoneAt(zp.x, zp.y - 4));
+        var zp = UI._labTile(reps[zk][0], reps[zk][1]); // 低解像度座標(案A×GBA=トップダウン)
+        ok("判定: " + zk + " の代表点がzone一致(整数倍拡大に追従)", UI._hqlabZoneAt(zp.x, zp.y) === zk, JSON.stringify(zp) + "→" + UI._hqlabZoneAt(zp.x, zp.y));
       }
       // ===== fps実測(フル再描画/静的blit方式の確認) =====
       var t0 = performance.now(); for (var fi = 0; fi < 120; fi++) UI.renderHqLab();

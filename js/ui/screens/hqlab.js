@@ -1,29 +1,60 @@
 // =============================================================
-// screens/hqlab — 本部=研究施設ページ(hq_lab.md v2.0・案A=アイソメ×ファミコン)
-// 箱庭: 境界のある一室(床の縁+低い巾木・外は暗)。一望できる。
-// 質感: 低解像度(256×176)に描き imageSmoothingEnabled=false で整数倍拡大=本物のドット感。
-//   フラット色面・限定パレット・硬エッジ・AAなし。影は硬い単色。暖色=錬成槽の深紅+ロケット先端の琥珀のみ。
-// 表示は既存stateの派生+labInvest(デスク群のみ・§5.3案B)。機能パネルは hq.js。
+// screens/hqlab — 本部=研究施設ページ(hq_lab v2.0・案A=カイロ系俯瞰×GBA/GBC後期規律)
+// 検証カット(#v・Ric承認)を基準に全展開。6規律:
+//  ①色ランプ3〜4段(RAMP=単一の真実) ②純黒輪郭禁止(最暗色+上辺は明色抜き=セレクティブ)
+//  ③材質の描き分け(金属=鋭ハイライト/紙=柔段差/木=木目/液=ディザ+明線) ④大面積の分割(床=揺らぎ+目地+摩耗・壁=パネル)
+//  ⑤白タイル+深紅/琥珀の規律内でランプ化 ⑥整数倍拡大死守・グラデ/AAなし(手打ちディザ可)
+// tier成長3段(T1開設/T2稼働/T3過密)=労Invest(鉱石投資進行度)へのマッピングのみ(ロジック/セーブ非接触)。
 // =============================================================
 
-// 限定パレット(ファミコン風・★Ric実機調整)
-const LAB_P = {
-  W0: 256, H0: 176, tileW: 16, tileH: 8, cols: 13, rows: 10, ox: 128, oy: 40,
-  out: "#14100d",
-  floor: "#e0d8c8", floorAlt: "#d0c8b8",
-  base: "#8a8478", baseDk: "#555046", edge: "#3a3630",
-  shadow: "#bcb4a4",       // 接地影(硬い単色・ぼかしなし)
-  grey1: "#c8c4b8", grey2: "#98948a", grey3: "#6a665c", dark: "#3a3630", ink: "#242018",
-  screen: "#7ad4e8", water: "#6ab4d8", waterHi: "#9ad4ec", glass: "#cfe8f0",
-  crimson: "#8E1826", amber: "#d8a828", white: "#f4f0e6",
-  led1: "#7fd98a", led2: "#d8a828",
-  label: "rgba(96,88,76,.95)",
+// 色ランプ(最暗0→基本1→明2→ハイライト3)。★新素材はここへ追加して申告(色知識の集約)。
+const RAMP = {
+  floor: [[196, 190, 178], [214, 208, 196], [226, 220, 208], [238, 233, 222]],
+  wall: [[104, 100, 92], [150, 146, 136], [186, 182, 172], [212, 208, 198]],
+  metal: [[64, 68, 74], [104, 108, 116], [148, 152, 160], [206, 210, 218]],
+  wood: [[92, 68, 42], [136, 104, 66], [170, 138, 94], [200, 172, 130]],
+  paper: [[186, 180, 166], [218, 212, 198], [242, 238, 228], [252, 250, 244]],
+  water: [[52, 110, 150], [84, 152, 192], [120, 190, 220], [172, 222, 242]],
+  crimson: [[86, 10, 22], [142, 24, 38], [186, 52, 64], [222, 104, 104]],
+  amber: [[132, 94, 18], [188, 142, 30], [222, 178, 54], [244, 214, 118]],
+  // 全展開で追加した素材(報告済み): glass=ガラスの明線(錬成槽/瓶の縁) / led=稼働ランプの緑(サーバーラック)
+  glass: [[150, 178, 190], [190, 214, 224], [220, 238, 244], [244, 252, 254]],
+  led: [[26, 88, 44], [56, 140, 78], [96, 186, 118], [152, 226, 166]],
+};
+// 部屋パラメータ(★Ric調整)。密度・摩耗・揺らぎ・木目はここ+CFG(labRoomTiers)。
+const LABV = {
+  W0: 400, H0: 270, T: 16, cols: 22, rows: 14, rx: 24, ry: 34,
+  rampSteps: 4, floorJitter: 1, grainLines: 2,
+  out: "rgb(13,11,9)", label: "rgba(150,142,128,.9)",
+};
+// シーン定義(配置=案Aから不変)。tier=出現する部屋tier(1開設/2稼働/3過密)。
+const LAB_SCENE = {
+  equip: [ // 機能設備(常設・当たり判定あり)
+    { t: "desk", x: 3, y: 2 }, { t: "rack", x: 9, y: 1 }, { t: "tank", x: 16, y: 3 },
+    { t: "rocket", x: 17, y: 9 }, { t: "shelfMain", x: 1, y: 7 },
+  ],
+  props: [ // プロップ16種(非インタラクティブ)
+    { t: "pipe", x: 0, y: 0, tier: 1 }, { t: "board", x: 6, y: 0, tier: 2 },
+    { t: "light", x: 5, y: 4, tier: 1 }, { t: "light", x: 12, y: 7, tier: 1 }, { t: "light", x: 17, y: 5, tier: 2 },
+    { t: "oreCrate", x: 19, y: 2, tier: 1 }, { t: "oreCrate", x: 20, y: 3, tier: 2 }, { t: "oreCrate", x: 19, y: 6, tier: 3 }, { t: "oreCrate", x: 1, y: 12, tier: 3 },
+    { t: "shelfJars", x: 13, y: 1, tier: 2 }, { t: "shelfJars", x: 15, y: 1, tier: 3 },
+    { t: "waveMon", x: 7, y: 2, tier: 2 }, { t: "tubeRack", x: 5, y: 3, tier: 2 }, { t: "tubeRack", x: 15, y: 4, tier: 3 }, { t: "tubeRack", x: 12, y: 12, tier: 3 },
+    { t: "papers", x: 2, y: 4, tier: 2 }, { t: "papers", x: 6, y: 5, tier: 3 }, { t: "papers", x: 12, y: 3, tier: 3 }, { t: "papers", x: 9, y: 11, tier: 3 },
+    { t: "cables", x: 8, y: 4, tier: 2 }, { t: "cables", x: 11, y: 2, tier: 3 }, { t: "cables", x: 6, y: 12, tier: 3 },
+    { t: "cart", x: 13, y: 6, tier: 2 }, { t: "cart", x: 19, y: 11.5, tier: 3 },
+    { t: "ladder", x: 10, y: 9, tier: 3 }, { t: "trash", x: 4, y: 6, tier: 2 }, { t: "trash", x: 16, y: 7, tier: 3 },
+    { t: "cup", x: 4.6, y: 2.4, tier: 2 }, { t: "cup", x: 13.5, y: 6.3, tier: 3 },
+    { t: "ext", x: 8, y: 12.4, tier: 1 }, { t: "ext", x: 0.3, y: 6, tier: 2 },
+    { t: "mold", x: 3, y: 8, len: 8, tier: 2 }, { t: "mold", x: 14, y: 10, len: 6, tier: 3 },
+    { t: "stain", x: 7, y: 7, tier: 2 }, { t: "stain", x: 18, y: 12, tier: 3 }, { t: "stain", x: 2, y: 11, tier: 3 },
+  ],
+  wear: ["7,4", "8,4", "9,4", "10,4", "11,4", "12,4", "13,4", "14,4", "15,4", "7,5", "15,5"], // 摩耗(デスク⇔槽の通路のみ)
 };
 
 Object.assign(UI, {
   // ---------------- ページ制御 ----------------
   openHqLab() {
-    Game._badgeHq = false; // §9-C4 開いたら新着ドットを消す
+    Game._badgeHq = false;
     const main = document.querySelector("main"), lab = document.getElementById("hqlab");
     if (!main || !lab) return;
     main.classList.add("hidden");
@@ -40,74 +71,60 @@ Object.assign(UI, {
     const btn = document.getElementById("btn-hq"); if (btn) btn.classList.remove("at-lab");
   },
   hqLabOpen() { const lab = document.getElementById("hqlab"); return !!(lab && !lab.classList.contains("hidden")); },
-
   _hqlabBind() {
     if (this._hqlabBound) return; this._hqlabBound = true;
     const back = document.getElementById("hqlab-back");
     if (back) back.addEventListener("click", () => this.closeHqLab());
     const cv = document.getElementById("hqlab-canvas");
     if (cv) {
-      const toLow = (e) => { // 表示px→低解像度px(整数倍ブリットの逆変換)
-        const r = cv.getBoundingClientRect(), b = this._labBlit || { k: 1, bx: 0, by: 0 };
-        return { x: ((e.clientX - r.left) * cv.width / r.width - b.bx) / b.k, y: ((e.clientY - r.top) * cv.height / r.height - b.by) / b.k };
-      };
+      const toLow = (e) => { const r = cv.getBoundingClientRect(), b = this._labBlit || { k: 1, bx: 0, by: 0 }; return { x: ((e.clientX - r.left) * cv.width / r.width - b.bx) / b.k, y: ((e.clientY - r.top) * cv.height / r.height - b.by) / b.k }; };
       cv.addEventListener("click", (e) => { const p = toLow(e); const z = this._hqlabZoneAt(p.x, p.y); if (z) this.openLabPanel(z); });
       cv.addEventListener("mousemove", (e) => { const p = toLow(e); cv.style.cursor = this._hqlabZoneAt(p.x, p.y) ? "pointer" : "default"; });
     }
     window.addEventListener("resize", () => { if (this.hqLabOpen()) this.renderHqLab(); });
   },
 
-  // ---------------- 設備tier(混在駆動=施設ごとの物語・Ric承認) ----------------
-  // デスク群=鉱石投資(labInvest・案B) / 水槽=解読レシピ数 / ロケット=rocket状態 / 標本棚=図鑑登録数(観賞=収集の成果)
-  labTiers() {
-    if (this._labTierOverride) return this._labTierOverride; // dev表示用(状態は変えない)
+  // ---------------- tier ----------------
+  // 部屋の密度tier(T1開設/T2稼働/T3過密)=鉱石投資進行度labInvestへのマッピングのみ(CFG.labRoomTiers・ロジック/セーブ非接触)
+  labRoomTier() {
+    if (this._labRoomTierOverride) return this._labRoomTierOverride;
+    const inv = Game.labInvestLv("desks");
+    const th = CFG.labRoomTiers || [1, 2];
+    return inv >= th[1] ? 3 : inv >= th[0] ? 2 : 1;
+  },
+  labTiers() { // 既存互換(update()の変化検知・設備別の派生tier)
+    if (this._labTierOverride) return this._labTierOverride;
     const tierOf = (v, th) => (v >= th[2] ? 4 : v >= th[1] ? 3 : v >= th[0] ? 2 : 1);
     const decoded = (typeof RECIPES !== "undefined") ? RECIPES.filter((r) => Game.recipeDecoded(r)).length : 0;
     const rk = Game.ensureRocket();
     return {
-      desks: Math.min(4, 1 + Game.labInvestLv("desks")), // 投資1回=1段(T1→T4)
+      desks: Math.min(4, 1 + Game.labInvestLv("desks")),
       tank: tierOf(decoded, CFG.labTankTiers),
       rocket: rk.done ? 4 : rk.stage >= 2 ? 3 : (rk.stage >= 1 || rk.invested > 0) ? 2 : 1,
       shelf: tierOf(Object.keys(Game.state.dex || {}).length, CFG.labShelfTiers),
+      room: this.labRoomTier(),
     };
   },
 
-  // ---------------- 座標系(低解像度空間) ----------------
-  _iso(gx, gy) { return { x: LAB_P.ox + (gx - gy) * LAB_P.tileW / 2, y: LAB_P.oy + (gx + gy) * LAB_P.tileH / 2 }; },
-  _px(c, x, y, w, h, col) { c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); },
-  _flat(c, pts, fill, line) { // フラット多角形(塗り+1px硬線)
-    c.beginPath(); c.moveTo(Math.round(pts[0].x) + 0.5, Math.round(pts[0].y) + 0.5);
-    for (let i = 1; i < pts.length; i++) c.lineTo(Math.round(pts[i].x) + 0.5, Math.round(pts[i].y) + 0.5);
-    c.closePath();
-    if (fill) { c.fillStyle = fill; c.fill(); }
-    if (line) { c.strokeStyle = line; c.lineWidth = 1; c.stroke(); }
-  },
-  // フラットなアイソメ箱(3面+上面の硬い輪郭・グラデ/ぼかしなし)
-  _box(c, gx, gy, w, d, h, top, left, right, line) {
-    const p00 = this._iso(gx, gy), p10 = this._iso(gx + w, gy), p11 = this._iso(gx + w, gy + d), p01 = this._iso(gx, gy + d);
-    const up = (p) => ({ x: p.x, y: p.y - h });
-    this._flat(c, [up(p01), up(p11), p11, p01], left);
-    this._flat(c, [up(p10), up(p11), p11, p10], right);
-    this._flat(c, [up(p00), up(p10), up(p11), up(p01)], top, line || LAB_P.ink);
-    return { p00, p10, p11, p01 };
-  },
-  _shadow(c, gx, gy, w, d) { // 接地影=硬い単色の菱形(床トーンを一段沈める)
-    const p00 = this._iso(gx - 0.05, gy - 0.05), p10 = this._iso(gx + w + 0.12, gy - 0.05), p11 = this._iso(gx + w + 0.12, gy + d + 0.12), p01 = this._iso(gx - 0.05, gy + d + 0.12);
-    this._flat(c, [p00, p10, p11, p01], LAB_P.shadow);
+  // ---------------- 座標(低解像度・トップダウン) ----------------
+  _labTile(gx, gy) { return { x: LABV.rx + gx * LABV.T, y: LABV.ry + gy * LABV.T }; },
+  _rc(m, i) { const v = RAMP[m][Math.min(i, LABV.rampSteps - 1)]; return `rgb(${v[0]},${v[1]},${v[2]})`; },
+  _pxl(c, x, y, w, h, col) { c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); },
+  _dth(c, x, y, w, h, col) { c.fillStyle = col; for (let yy = Math.round(y); yy < y + h; yy++) for (let xx = Math.round(x) + (yy % 2); xx < x + w; xx += 2) c.fillRect(xx, yy, 1, 1); },
+  _ol(c, x, y, w, h, m) { // セレクティブ輪郭(最暗+上辺明抜き)
+    c.strokeStyle = this._rc(m, 0); c.lineWidth = 1; c.strokeRect(Math.round(x) + 0.5, Math.round(y) + 0.5, w, h);
+    this._pxl(c, x + 1, y, w - 1, 1, this._rc(m, 3));
   },
 
-  // ---------------- 当たり判定(低解像度座標・標的広め) ----------------
+  // ---------------- 当たり判定(機能設備のみ・プロップ非対象) ----------------
   _hqlabZones() {
-    const zr = (gx0, gy0, gx1, gy1, hUp) => {
-      const pts = [this._iso(gx0, gy0), this._iso(gx1, gy0), this._iso(gx1, gy1), this._iso(gx0, gy1)];
-      const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
-      return { x0: Math.min(...xs) - 3, x1: Math.max(...xs) + 3, y0: Math.min(...ys) - hUp, y1: Math.max(...ys) + 3 };
-    };
+    const T = LABV.T;
+    const zr = (gx, gy, wT, hT) => { const p = this._labTile(gx, gy); return { x0: p.x - 3, y0: p.y - 3, x1: p.x + wT * T + 3, y1: p.y + hT * T + 3 }; };
     return [
-      { key: "desks", rects: [zr(1.6, 1.4, 6.0, 4.6, 14), zr(0.2, 0.2, 2.0, 4.0, 26)] }, // 机の島+ラック+侵食モニタ
-      { key: "tank", rects: [zr(7.6, 0.8, 11.6, 3.2, 20)] },
-      { key: "shelf", rects: [zr(0.3, 5.3, 3.2, 9.4, 24)] },
-      { key: "rocket", rects: [zr(8.6, 5.2, 12.2, 8.6, 48)] },
+      { key: "desks", rects: [zr(3, 2, 4, 2), zr(9, 1, 2, 1)] },   // 投資端末+サーバーラック
+      { key: "tank", rects: [zr(16, 3, 3, 3)] },
+      { key: "rocket", rects: [zr(17, 9, 3, 3)] },
+      { key: "shelf", rects: [zr(1, 7, 2, 4)] },
     ];
   },
   _hqlabZoneAt(x, y) {
@@ -115,201 +132,155 @@ Object.assign(UI, {
     return null;
   },
 
-  // ---------------- 描画(静的シーン=開いた時/変化時のみ) ----------------
+  // ---------------- 描画(静的シーン) ----------------
   renderHqLab() {
     const cv = document.getElementById("hqlab-canvas"), wrap = document.getElementById("hqlab-wrap");
     if (!cv || !wrap) return;
     const W = Math.max(320, wrap.clientWidth), H = Math.max(240, wrap.clientHeight);
     if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
     const lv = document.getElementById("hqlab-lv"); if (lv) lv.textContent = `HQ Lv${Game.hqLevel()} — 全惑星恒久バフ 生産+${(Game.hqLevel() * 0.2).toFixed(1)}%`;
-    // --- 低解像度バッファへドット絵を描く ---
-    if (!this._labLow) { this._labLow = document.createElement("canvas"); this._labLow.width = LAB_P.W0; this._labLow.height = LAB_P.H0; }
+    if (!this._labLow) { this._labLow = document.createElement("canvas"); this._labLow.width = LABV.W0; this._labLow.height = LABV.H0; }
     const c = this._labLow.getContext("2d");
-    const tiers = this.labTiers();
-    this._px(c, 0, 0, LAB_P.W0, LAB_P.H0, LAB_P.out); // 外は暗
-    // 床(箱庭=境界あり・2色市松・フラット)
-    for (let gx = 0; gx < LAB_P.cols; gx++) for (let gy = 0; gy < LAB_P.rows; gy++) {
-      const p0 = this._iso(gx, gy), p1 = this._iso(gx + 1, gy), p2 = this._iso(gx + 1, gy + 1), p3 = this._iso(gx, gy + 1);
-      this._flat(c, [p0, p1, p2, p3], (gx + gy) % 2 === 0 ? LAB_P.floor : LAB_P.floorAlt);
+    const T = LABV.T, RX = LABV.rx, RY = LABV.ry, roomTier = this.labRoomTier();
+    const hash2 = (a, b) => (((a + 7) * 73856093) ^ ((b + 3) * 19349663)) >>> 0;
+    this._pxl(c, 0, 0, LABV.W0, LABV.H0, LABV.out); // 照明の外
+    // --- 床(揺らぎ+目地+摩耗) ---
+    const wear = new Set(LAB_SCENE.wear);
+    for (let gx = 0; gx < LABV.cols; gx++) for (let gy = 0; gy < LABV.rows; gy++) {
+      const X = RX + gx * T, Y = RY + gy * T;
+      const base = (gx + gy) % 2 ? 1 : 2;
+      const j = (hash2(gx, gy) % 2) * LABV.floorJitter;
+      this._pxl(c, X, Y, T, T, this._rc("floor", Math.min(3, base + j)));
+      this._pxl(c, X, Y + T - 1, T, 1, this._rc("floor", 0));
+      this._pxl(c, X + T - 1, Y, 1, T, this._rc("floor", 0));
+      this._pxl(c, X, Y, T, 1, this._rc("floor", 3));
+      if (roomTier >= 2 && wear.has(gx + "," + gy)) this._dth(c, X + 2, Y + 4, T - 4, T - 7, this._rc("floor", 0)); // 摩耗=稼働後のみ
     }
-    // 縁: 手前2辺=低い巾木(高さ4px・高い壁なし)/奥2辺=1pxの硬線
-    const A = this._iso(0, 0), B = this._iso(LAB_P.cols, 0), C2 = this._iso(LAB_P.cols, LAB_P.rows), D = this._iso(0, LAB_P.rows);
-    this._flat(c, [B, C2, { x: C2.x, y: C2.y + 4 }, { x: B.x, y: B.y + 4 }], LAB_P.baseDk);
-    this._flat(c, [D, C2, { x: C2.x, y: C2.y + 4 }, { x: D.x, y: D.y + 4 }], LAB_P.base);
-    c.strokeStyle = LAB_P.edge; c.lineWidth = 1;
-    c.beginPath(); c.moveTo(D.x + 0.5, D.y + 0.5); c.lineTo(A.x + 0.5, A.y + 0.5); c.lineTo(B.x + 0.5, B.y + 0.5); c.stroke();
-    // 設備(奥→手前)
-    this._labTank(c, tiers.tank);
-    this._labDesks(c, tiers.desks);
-    this._labShelf(c, tiers.shelf);
-    this._labRocket(c, tiers.rocket);
-    // --- 整数倍拡大ブリット(ドット感) ---
-    const k = Math.max(2, Math.floor(Math.min(W / LAB_P.W0, H / LAB_P.H0)));
-    const bx = Math.floor((W - LAB_P.W0 * k) / 2), by = Math.floor((H - LAB_P.H0 * k) / 2);
+    // --- 壁(パネル分割+上辺明抜き+巾木2段+側壁+手前縁) ---
+    this._pxl(c, RX - 6, RY - 26, LABV.cols * T + 12, 26, this._rc("wall", 1));
+    this._pxl(c, RX - 6, RY - 26, LABV.cols * T + 12, 2, this._rc("wall", 3));
+    for (let i = 1; i < 8; i++) this._pxl(c, RX - 6 + i * (LABV.cols * T + 12) / 8, RY - 24, 1, 19, this._rc("wall", 0));
+    this._pxl(c, RX - 6, RY - 7, LABV.cols * T + 12, 2, this._rc("wall", 2));
+    this._pxl(c, RX - 6, RY - 5, LABV.cols * T + 12, 5, this._rc("wall", 0));
+    this._pxl(c, RX - 6, RY, 6, LABV.rows * T, this._rc("wall", 0));
+    this._pxl(c, RX - 5, RY, 2, LABV.rows * T, this._rc("wall", 2));
+    this._pxl(c, RX + LABV.cols * T, RY, 6, LABV.rows * T, this._rc("wall", 0));
+    this._pxl(c, RX + LABV.cols * T + 1, RY, 2, LABV.rows * T, this._rc("wall", 1));
+    this._pxl(c, RX - 6, RY + LABV.rows * T, LABV.cols * T + 12, 5, this._rc("wall", 0));
+    this._pxl(c, RX - 6, RY + LABV.rows * T, LABV.cols * T + 12, 2, this._rc("wall", 2));
+    // --- 設備+プロップ(tierフィルタ・yソート=描画順) ---
+    const items = [];
+    for (const e of LAB_SCENE.equip) items.push(e);
+    for (const p of LAB_SCENE.props) if ((p.tier || 1) <= roomTier) items.push(p);
+    items.sort((p, q) => p.y - q.y);
+    for (const it of items) {
+      const pt = this._labTile(it.x, it.y);
+      const fn = this._labSpr[it.t];
+      if (fn) fn.call(this, c, pt.x, pt.y, it);
+    }
+    // --- 整数倍ブリット ---
+    const k = Math.max(1, Math.floor(Math.min(W / LABV.W0, H / LABV.H0)));
+    const bx = Math.floor((W - LABV.W0 * k) / 2), by = Math.floor((H - LABV.H0 * k) / 2);
     this._labBlit = { k, bx, by };
     const g = cv.getContext("2d");
     g.imageSmoothingEnabled = false;
-    g.fillStyle = LAB_P.out; g.fillRect(0, 0, W, H);
-    g.drawImage(this._labLow, 0, 0, LAB_P.W0, LAB_P.H0, bx, by, LAB_P.W0 * k, LAB_P.H0 * k);
-    // 名札(共通UI層=ブリット後に通常フォントで控えめに。シーン内はドットのみ)
-    g.fillStyle = LAB_P.label; g.font = "12px system-ui";
-    const lbl = (gx, gy, t) => { const p = this._iso(gx, gy); g.fillText(t, bx + p.x * k - g.measureText(t).width / 2, by + p.y * k); };
-    lbl(3.8, 5.4, "研究デスク"); lbl(9.8, 3.7, "実験用水槽"); lbl(1.8, 10.1, "標本棚・記録"); lbl(10.6, 9.2, "宇宙港");
+    g.fillStyle = LABV.out; g.fillRect(0, 0, W, H);
+    g.drawImage(this._labLow, 0, 0, LABV.W0, LABV.H0, bx, by, LABV.W0 * k, LABV.H0 * k);
+    // 名札(共通UI層・シーン内はドットのみ)
+    g.fillStyle = LABV.label; g.font = "12px system-ui";
+    const lbl = (gx, gy, t) => { const p = this._labTile(gx, gy); g.fillText(t, bx + p.x * k - g.measureText(t).width / 2, by + p.y * k); };
+    lbl(5.2, 5.2, "投資端末"); lbl(17.6, 7.2, "錬成槽"); lbl(18.6, 13.2, "宇宙港"); lbl(2.1, 12.2, "標本棚");
   },
 
-  // ---- パソコンデスク群(鉱石投資で育つ=labInvest・§5.3案B)+自立式の侵食モニタ ----
-  _labDesks(c, tier) {
-    const P = LAB_P;
-    const desk = (gx, gy, w, d) => {
-      this._shadow(c, gx, gy, w, d);
-      this._box(c, gx, gy, w, d, 6, P.grey1, P.grey2, P.grey3);
-    };
-    const monitor = (gx, gy, w) => {
-      this._box(c, gx, gy, w, 0.12, 5, P.dark, P.dark, P.ink, P.ink);
-      const s0 = this._iso(gx + 0.06, gy + 0.12), s1 = this._iso(gx + w - 0.06, gy + 0.12);
-      this._flat(c, [{ x: s0.x, y: s0.y - 4.5 }, { x: s1.x, y: s1.y - 4.5 }, { x: s1.x, y: s1.y - 1 }, { x: s0.x, y: s0.y - 1 }], P.screen);
-    };
-    if (tier >= 4) { // サーバーラック(LEDは点=静的)
-      for (const gy0 of [0.5, 1.7]) {
-        this._shadow(c, 0.4, gy0, 0.6, 1.0);
-        this._box(c, 0.4, gy0, 0.6, 1.0, 22, P.grey3, P.dark, P.ink);
-        for (let i = 0; i < 3; i++) {
-          const p = this._iso(1.0, gy0 + 0.2 + i * 0.25);
-          this._px(c, p.x, p.y - 17 + i * 3, 1, 1, i % 2 === 0 ? P.led1 : P.led2);
-        }
-      }
-    }
-    if (tier >= 3) { // 自立式の侵食モニタ(帯=深紅・見れば分かる§9)
-      const a = this._iso(1.5, 0.5), b = this._iso(2.7, 0.5);
-      this._shadow(c, 1.5, 0.42, 1.2, 0.16);
-      c.strokeStyle = P.dark; c.lineWidth = 1;
-      c.beginPath(); c.moveTo(a.x + 0.5, a.y + 0.5); c.lineTo(a.x + 0.5, a.y - 8.5); c.moveTo(b.x + 0.5, b.y + 0.5); c.lineTo(b.x + 0.5, b.y - 8.5); c.stroke();
-      this._flat(c, [{ x: a.x - 1, y: a.y - 18 }, { x: b.x + 1, y: b.y - 18 }, { x: b.x + 1, y: b.y - 8 }, { x: a.x - 1, y: a.y - 8 }], P.dark, P.ink);
-      this._px(c, a.x + 1, a.y - 16, b.x - a.x - 2, 6, P.screen);
-      const ero = Math.min(1, Math.max(0, (Game.state.erosion || 0) / 100));
-      this._px(c, a.x + 1, a.y - 12, Math.max(1, (b.x - a.x - 2) * ero), 2, P.crimson);
-    }
-    const w = tier >= 3 ? 2.4 : 1.6;
-    desk(2.2, 2.0, w, 0.9);
-    if (tier >= 3) { monitor(2.35, 2.05, 0.6); monitor(3.1, 2.05, 0.8); monitor(4.05, 2.05, 0.5); }
-    else monitor(2.5, 2.05, 0.7);
-    if (tier >= 2) { desk(2.2, 3.3, 1.5, 0.9); monitor(2.5, 3.35, 0.7); }
-    // 丸椅子
-    this._shadow(c, 2.9, 3.05 - (tier >= 2 ? -0.35 : 0.45), 0.35, 0.35);
-    this._box(c, 2.9, 3.05 - (tier >= 2 ? -0.35 : 0.45), 0.35, 0.35, 4, P.grey1, P.grey2, P.grey3);
-  },
-
-  // ---- 実験用水槽(錬成の場・唯一の暖色=深紅は槽内のみ) ----
-  _labTank(c, tier) {
-    const P = LAB_P;
-    const tank = (gx, gy, w, d, h, crimson) => {
-      this._shadow(c, gx, gy, w, d);
-      this._box(c, gx, gy, w, d, 2, P.grey2, P.grey3, P.dark); // 台座
-      const wl = Math.round(h * 0.62);
-      this._box(c, gx + 0.06, gy + 0.06, w - 0.12, d - 0.12, wl, P.waterHi, P.water, P.water, P.water); // 水(フラット2トーン)
-      if (crimson) { const m = this._iso(gx + w / 2, gy + d / 2); this._px(c, m.x - 1, m.y - wl + 1, 3, 3, P.crimson); } // 賢者の石の芯
-      // ガラス=輪郭のみ(1px明線)
-      const p00 = this._iso(gx, gy), p10 = this._iso(gx + w, gy), p11 = this._iso(gx + w, gy + d), p01 = this._iso(gx, gy + d);
-      const up = (p) => ({ x: p.x, y: p.y - h });
-      c.strokeStyle = P.glass; c.lineWidth = 1;
-      c.beginPath();
-      c.moveTo(up(p00).x + 0.5, up(p00).y + 0.5); c.lineTo(up(p10).x + 0.5, up(p10).y + 0.5); c.lineTo(up(p11).x + 0.5, up(p11).y + 0.5); c.lineTo(up(p01).x + 0.5, up(p01).y + 0.5); c.closePath();
-      c.moveTo(up(p11).x + 0.5, up(p11).y + 0.5); c.lineTo(p11.x + 0.5, p11.y + 0.5);
-      c.moveTo(up(p01).x + 0.5, up(p01).y + 0.5); c.lineTo(p01.x + 0.5, p01.y + 0.5);
-      c.moveTo(up(p10).x + 0.5, up(p10).y + 0.5); c.lineTo(p10.x + 0.5, p10.y + 0.5);
+  // ---------------- スプライト(GBA規律・検証カット基準) ----------------
+  _labSpr: {
+    desk(c, x, y) { // 投資端末: 金属=鋭ハイライト+パネル分割+通気スリット+画面2トーン+深紅波形
+      this._dth(c, x + 1, y + 28, 64, 3, this._rc("floor", 0));
+      this._pxl(c, x, y, 64, 30, this._rc("metal", 1));
+      this._pxl(c, x, y, 64, 4, this._rc("metal", 2)); this._pxl(c, x, y, 64, 1, this._rc("metal", 3));
+      this._pxl(c, x, y + 26, 64, 4, this._rc("metal", 0));
+      this._pxl(c, x + 32, y + 2, 1, 26, this._rc("metal", 0));
+      for (let i = 0; i < 4; i++) this._pxl(c, x + 52, y + 8 + i * 4, 8, 1, this._rc("metal", 0));
+      this._pxl(c, x + 5, y + 5, 22, 14, this._rc("metal", 0));
+      this._pxl(c, x + 7, y + 7, 18, 10, this._rc("water", 1)); this._pxl(c, x + 7, y + 7, 18, 3, this._rc("water", 2)); this._pxl(c, x + 8, y + 15, 16, 1, this._rc("water", 0));
+      this._pxl(c, x + 30, y + 7, 15, 11, this._rc("metal", 0)); this._pxl(c, x + 32, y + 9, 11, 7, this._rc("crimson", 0));
+      c.strokeStyle = this._rc("crimson", 2); c.beginPath();
+      for (let i = 0; i <= 10; i++) { const yy = y + 12.5 + ((i % 4 === 1) ? -2 : (i % 4 === 3) ? 2 : 0); i ? c.lineTo(x + 33 + i, yy) : c.moveTo(x + 33, yy); }
       c.stroke();
-    };
-    tank(8.2, 1.2, 1.1, 1.1, 12, tier >= 3);
-    if (tier >= 2) {
-      tank(9.8, 1.1, 0.8, 0.8, 17, false);
-      const a = this._iso(10.2, 1.5); // 連絡管(硬い1px線)
-      c.strokeStyle = P.grey2; c.lineWidth = 1;
-      c.beginPath(); c.moveTo(a.x + 0.5, a.y - 19.5); c.lineTo(a.x + 0.5, a.y - 22.5); c.lineTo(this._iso(8.8, 1.7).x + 0.5, a.y - 22.5); c.stroke();
-    }
-    if (tier >= 4) tank(7.0, 1.4, 0.7, 0.7, 9, false);
-  },
-
-  // ---- ロケット(宇宙港・先端の琥珀=もう一つの暖色) ----
-  _labRocket(c, tier) {
-    const P = LAB_P;
-    const gx = 9.6, gy = 5.8;
-    this._shadow(c, gx - 0.3, gy - 0.3, 1.7, 1.7);
-    this._box(c, gx - 0.3, gy - 0.3, 1.7, 1.7, 2, P.grey2, P.grey3, P.dark); // 発射台
-    if (tier === 1) {
-      this._box(c, gx, gy + 0.2, 0.5, 0.5, 5, P.white, P.grey1, P.grey2);
-      this._box(c, gx + 0.7, gy + 0.6, 0.6, 0.35, 3, P.white, P.grey1, P.grey2);
-      const t = this._iso(gx + 0.5, gy);
-      this._flat(c, [{ x: t.x, y: t.y - 1 }, { x: t.x + 5, y: t.y - 3 }, { x: t.x + 1, y: t.y - 6 }], P.amber, P.ink);
-      return;
-    }
-    const H = tier === 2 ? 26 : 36;
-    if (tier === 2) { // 骨組み(硬い1px線)
-      c.strokeStyle = P.grey2; c.lineWidth = 1;
-      const cs = [this._iso(gx + 0.2, gy + 0.2), this._iso(gx + 0.9, gy + 0.2), this._iso(gx + 0.9, gy + 0.9), this._iso(gx + 0.2, gy + 0.9)];
-      for (const p of cs) { c.beginPath(); c.moveTo(p.x + 0.5, p.y - 2); c.lineTo(p.x + 0.5, p.y - 2 - H); c.stroke(); }
-      for (let i = 1; i <= 3; i++) {
-        const y = 2 + H * i / 3;
-        c.beginPath(); c.moveTo(cs[0].x + 0.5, cs[0].y - y); c.lineTo(cs[1].x + 0.5, cs[1].y - y); c.lineTo(cs[2].x + 0.5, cs[2].y - y); c.lineTo(cs[3].x + 0.5, cs[3].y - y); c.closePath(); c.stroke();
+      this._pxl(c, x + 48, y + 21, 10, 6, this._rc("paper", 3)); this._pxl(c, x + 48, y + 25, 10, 2, this._rc("paper", 1));
+      this._ol(c, x, y, 64, 30, "metal");
+    },
+    tank(c, x, y) { // 錬成槽: 金属リム+ボルト+液面ディザ+明線+深紅の芯(唯一の暖色その1)
+      this._dth(c, x + 1, y + 46, 48, 3, this._rc("floor", 0));
+      this._pxl(c, x, y, 48, 48, this._rc("metal", 1));
+      this._pxl(c, x, y, 48, 2, this._rc("metal", 3)); this._pxl(c, x, y + 46, 48, 2, this._rc("metal", 0));
+      for (const [bx2, by2] of [[2, 2], [44, 2], [2, 44], [44, 44]]) this._pxl(c, x + bx2, y + by2, 2, 2, this._rc("metal", 3));
+      this._pxl(c, x + 4, y + 4, 40, 40, this._rc("water", 1));
+      this._dth(c, x + 5, y + 5, 38, 8, this._rc("water", 2));
+      this._pxl(c, x + 5, y + 5, 38, 1, this._rc("glass", 3));
+      this._pxl(c, x + 6, y + 38, 36, 5, this._rc("water", 0));
+      this._dth(c, x + 16, y + 16, 16, 4, this._rc("crimson", 1));
+      this._pxl(c, x + 20, y + 19, 8, 8, this._rc("crimson", 2)); this._pxl(c, x + 21, y + 20, 3, 2, this._rc("crimson", 3));
+      this._ol(c, x, y, 48, 48, "metal");
+    },
+    rocket(c, x, y) { // 宇宙港: 発射口+機体上面+琥珀の先端(唯一の暖色その2)
+      this._dth(c, x + 1, y + 46, 48, 3, this._rc("floor", 0));
+      this._pxl(c, x, y, 48, 48, this._rc("metal", 0));
+      this._pxl(c, x + 2, y + 2, 44, 44, this._rc("metal", 1));
+      for (const [bx2, by2] of [[3, 3], [42, 3], [3, 42], [42, 42]]) this._pxl(c, x + bx2, y + by2, 3, 3, this._rc("amber", 1)); // 警告マーカー
+      this._pxl(c, x + 8, y + 8, 32, 32, this._rc("metal", 2)); this._pxl(c, x + 8, y + 8, 32, 2, this._rc("metal", 3));
+      this._pxl(c, x + 14, y + 14, 20, 20, this._rc("paper", 2)); this._pxl(c, x + 14, y + 14, 20, 2, this._rc("paper", 3)); // 機体(白)
+      this._pxl(c, x + 19, y + 19, 10, 10, this._rc("amber", 2)); this._pxl(c, x + 20, y + 20, 4, 3, this._rc("amber", 3)); // 先端(琥珀)
+      this._pxl(c, x + 22, y + 5, 4, 3, this._rc("crimson", 2)); // 管制灯
+      this._ol(c, x, y, 48, 48, "metal");
+    },
+    shelfMain(c, x, y) { // 標本棚(大): 木目+棚板影+瓶2トーン+金属蓋
+      this._dth(c, x + 1, y + 62, 32, 3, this._rc("floor", 0));
+      this._pxl(c, x, y, 32, 64, this._rc("wood", 1));
+      this._pxl(c, x, y, 32, 2, this._rc("wood", 3));
+      for (let i = 0; i < LABV.grainLines; i++) this._pxl(c, x + 6 + i * 16, y + 3, 1, 59, this._rc("wood", 0));
+      for (let r = 0; r < 4; r++) {
+        this._pxl(c, x + 2, y + 14 + r * 15, 28, 2, this._rc("wood", 0));
+        for (let j = 0; j < 3; j++) { const jx = x + 5 + j * 9, jy = y + 4 + r * 15; this._pxl(c, jx, jy, 6, 9, this._rc("water", 1)); this._pxl(c, jx + 1, jy + 1, 2, 7, this._rc("water", 2)); this._pxl(c, jx, jy, 6, 2, this._rc("metal", 2)); }
       }
-      return;
-    }
-    this._box(c, gx + 0.25, gy + 0.25, 0.65, 0.65, H, P.white, P.grey1, P.grey2); // 機体(フラット2トーン)
-    const t = this._iso(gx + 0.57, gy + 0.57);
-    c.strokeStyle = P.grey2; c.lineWidth = 1; // 継ぎ目
-    c.beginPath(); c.moveTo(t.x - 5, t.y - H * 0.5 - 2); c.lineTo(t.x + 5, t.y - H * 0.5 - 2); c.stroke();
-    if (tier >= 4) {
-      this._flat(c, [{ x: t.x - 5, y: t.y - H - 1 }, { x: t.x + 5, y: t.y - H - 1 }, { x: t.x, y: t.y - H - 10 }], P.amber, P.ink); // 琥珀の先端
-      const fL = this._iso(gx + 0.2, gy + 0.95), fR = this._iso(gx + 0.95, gy + 0.95);
-      this._flat(c, [{ x: fL.x, y: fL.y - 2 }, { x: fL.x - 4, y: fL.y + 1 }, { x: fL.x, y: fL.y - 11 }], P.grey2, P.ink);
-      this._flat(c, [{ x: fR.x, y: fR.y - 2 }, { x: fR.x + 4, y: fR.y + 1 }, { x: fR.x, y: fR.y - 11 }], P.grey2, P.ink);
-      this._px(c, t.x - 1, t.y - H * 0.78, 2, 2, P.screen); // 小窓
-    } else {
-      c.strokeStyle = P.grey2;
-      c.beginPath(); c.moveTo(t.x - 3.5, t.y - H); c.lineTo(t.x - 3.5, t.y - H - 5); c.moveTo(t.x + 3.5, t.y - H); c.lineTo(t.x + 3.5, t.y - H - 5); c.stroke();
-    }
-  },
-
-  // ---- 標本棚/記録(収集の成果が景色になる・投資対象外)+自立スタンドの星図盤 ----
-  _labShelf(c, tier) {
-    const P = LAB_P;
-    const unit = (gx, gy) => {
-      this._shadow(c, gx, gy, 0.55, 1.2);
-      const H = 18;
-      this._box(c, gx, gy, 0.55, 1.2, H, P.grey1, P.grey2, P.grey3);
-      for (let i = 1; i <= 2; i++) { // 棚板(1px)+標本瓶(2×3pxフラット)
-        const y = Math.round(H * i / 3);
-        const a = this._iso(gx + 0.55, gy + 0.06), b = this._iso(gx + 0.55, gy + 1.14);
-        c.strokeStyle = P.grey3; c.lineWidth = 1;
-        c.beginPath(); c.moveTo(a.x + 0.5, a.y - y + 0.5); c.lineTo(b.x + 0.5, b.y - y + 0.5); c.stroke();
-        if (tier >= 2) for (let j = 0; j < 3; j++) {
-          const p = this._iso(gx + 0.55, gy + 0.22 + j * 0.3);
-          this._px(c, p.x - 1, p.y - y - 4, 2, 3, P.glass);
-          this._px(c, p.x - 1, p.y - y - 5, 2, 1, P.grey2);
-        }
-      }
-    };
-    unit(0.8, 5.8);
-    if (tier >= 4) unit(0.8, 7.2);
-    if (tier >= 3) { // 自立スタンドの星図盤(フラット紺+星1px)
-      const gx = 2.0, gy = 7.9;
-      this._shadow(c, gx, gy - 0.1, 1.1, 0.16);
-      const a = this._iso(gx, gy), b = this._iso(gx + 1.1, gy);
-      c.strokeStyle = P.grey3; c.lineWidth = 1;
-      c.beginPath(); c.moveTo(a.x + 0.5, a.y + 0.5); c.lineTo(a.x + 0.5, a.y - 7.5); c.moveTo(b.x + 0.5, b.y + 0.5); c.lineTo(b.x + 0.5, b.y - 7.5); c.stroke();
-      this._flat(c, [{ x: a.x - 1, y: a.y - 17 }, { x: b.x + 1, y: b.y - 17 }, { x: b.x + 1, y: b.y - 7 }, { x: a.x - 1, y: a.y - 7 }], "#2c3440", P.ink);
-      for (const [fx, fy] of [[0.15, -14], [0.4, -10], [0.7, -13], [0.55, -9], [0.85, -12]]) {
-        this._px(c, a.x + (b.x - a.x) * fx, a.y + fy, 1, 1, P.white);
-      }
-    }
+      this._ol(c, x, y, 32, 64, "wood");
+    },
+    rack(c, x, y) { // サーバーラック: 金属+スリット+LED(緑/琥珀・点滅させない)
+      this._dth(c, x + 1, y + 14, 32, 3, this._rc("floor", 0));
+      this._pxl(c, x, y, 32, 16, this._rc("metal", 0));
+      this._pxl(c, x + 2, y + 2, 28, 12, this._rc("metal", 1));
+      this._pxl(c, x + 2, y + 2, 28, 1, this._rc("metal", 2));
+      for (let i = 0; i < 3; i++) this._pxl(c, x + 4, y + 5 + i * 3, 18, 1, this._rc("metal", 0)); // スリット
+      for (let i = 0; i < 3; i++) this._pxl(c, x + 25, y + 4 + i * 3, 2, 2, i === 1 ? this._rc("amber", 2) : this._rc("led", 2));
+      this._ol(c, x, y, 32, 16, "metal");
+    },
+    shelfJars(c, x, y) { this._pxl(c, x, y, 28, 12, this._rc("wood", 1)); this._pxl(c, x, y, 28, 2, this._rc("wood", 3)); this._pxl(c, x + 2, y + 10, 24, 1, this._rc("wood", 0)); for (let j = 0; j < 5; j++) { this._pxl(c, x + 2 + j * 5, y + 3, 3, 7, this._rc("water", 1)); this._pxl(c, x + 3 + j * 5, y + 4, 1, 5, this._rc("water", 2)); this._pxl(c, x + 2 + j * 5, y + 2, 3, 1, this._rc("glass", 2)); } this._ol(c, x, y, 28, 12, "wood"); },
+    papers(c, x, y) { this._pxl(c, x, y, 12, 10, this._rc("paper", 2)); this._pxl(c, x, y + 8, 12, 2, this._rc("paper", 1)); this._pxl(c, x + 2, y - 2, 12, 10, this._rc("paper", 3)); this._pxl(c, x + 2, y + 6, 12, 2, this._rc("paper", 2)); this._pxl(c, x + 4, y, 8, 1, this._rc("paper", 0)); this._pxl(c, x + 4, y + 2, 6, 1, this._rc("paper", 0)); c.strokeStyle = this._rc("paper", 1); c.strokeRect(x + 2.5, y - 1.5, 11, 9); },
+    cables(c, x, y) { c.lineWidth = 2; c.strokeStyle = this._rc("metal", 0); c.beginPath(); c.moveTo(x, y + 8); c.bezierCurveTo(x + 6, y, x + 10, y + 14, x + 16, y + 5); c.stroke(); c.lineWidth = 1; c.strokeStyle = this._rc("crimson", 1); c.beginPath(); c.moveTo(x + 1, y + 10); c.bezierCurveTo(x + 7, y + 3, x + 9, y + 15, x + 15, y + 8); c.stroke(); c.strokeStyle = this._rc("metal", 2); c.beginPath(); c.moveTo(x, y + 7); c.bezierCurveTo(x + 6, y - 1, x + 10, y + 13, x + 16, y + 4); c.stroke(); },
+    waveMon(c, x, y) { this._dth(c, x + 1, y + 15, 22, 2, this._rc("floor", 0)); this._pxl(c, x, y, 22, 16, this._rc("metal", 1)); this._pxl(c, x, y, 22, 1, this._rc("metal", 3)); this._pxl(c, x + 2, y + 2, 18, 12, this._rc("crimson", 0)); c.strokeStyle = this._rc("crimson", 2); c.beginPath(); for (let i = 0; i <= 16; i++) { const yy = y + 8.5 + ((i % 4 === 1) ? -3 : (i % 4 === 3) ? 3 : 0); i ? c.lineTo(x + 3 + i, yy) : c.moveTo(x + 3, yy); } c.stroke(); this._pxl(c, x + 3, y + 3, 6, 1, this._rc("crimson", 1)); this._ol(c, x, y, 22, 16, "metal"); },
+    tubeRack(c, x, y) { this._pxl(c, x, y + 6, 18, 6, this._rc("metal", 1)); this._pxl(c, x, y + 6, 18, 1, this._rc("metal", 3)); this._pxl(c, x, y + 11, 18, 1, this._rc("metal", 0)); for (let j = 0; j < 4; j++) { const cx2 = x + 2 + j * 4; this._pxl(c, cx2, y, 2, 9, this._rc("glass", 1)); this._pxl(c, cx2, y + 4, 2, 4, j % 2 ? this._rc("crimson", 2) : this._rc("water", 2)); this._pxl(c, cx2, y, 1, 3, this._rc("glass", 3)); } },
+    oreCrate(c, x, y) { this._dth(c, x + 1, y + 14, 20, 3, this._rc("floor", 0)); this._pxl(c, x, y, 20, 16, this._rc("wood", 1)); this._pxl(c, x, y, 20, 3, this._rc("wood", 2)); this._pxl(c, x, y, 20, 1, this._rc("wood", 3)); this._pxl(c, x + 3, y + 6, 14, 1, this._rc("wood", 0)); this._pxl(c, x + 3, y + 11, 14, 1, this._rc("wood", 0)); for (const [bx2, by2] of [[0, 0], [17, 0], [0, 13], [17, 13]]) this._pxl(c, x + bx2, y + by2, 3, 3, this._rc("metal", 2)); this._pxl(c, x + 4, y + 3, 5, 4, this._rc("amber", 2)); this._pxl(c, x + 5, y + 3, 2, 1, this._rc("amber", 3)); this._pxl(c, x + 11, y + 4, 5, 4, this._rc("water", 2)); this._pxl(c, x + 12, y + 4, 2, 1, this._rc("water", 3)); this._ol(c, x, y, 20, 16, "wood"); },
+    cart(c, x, y) { this._dth(c, x + 1, y + 14, 26, 3, this._rc("floor", 0)); this._pxl(c, x, y, 26, 12, this._rc("metal", 1)); this._pxl(c, x, y, 26, 2, this._rc("metal", 2)); this._pxl(c, x, y, 26, 1, this._rc("metal", 3)); this._pxl(c, x, y + 10, 26, 2, this._rc("metal", 0)); this._pxl(c, x + 2, y + 12, 4, 3, this._rc("metal", 0)); this._pxl(c, x + 20, y + 12, 4, 3, this._rc("metal", 0)); this._pxl(c, x + 4, y + 3, 8, 6, this._rc("wood", 1)); this._pxl(c, x + 4, y + 3, 8, 1, this._rc("wood", 3)); this._ol(c, x, y, 26, 12, "metal"); },
+    mold(c, x, y, it) { const L = (it.len || 5) * LABV.T; this._pxl(c, x, y, L, 3, this._rc("metal", 0)); this._pxl(c, x, y, L, 1, this._rc("metal", 2)); for (let i = 0; i < L; i += 12) this._pxl(c, x + i, y + 1, 1, 2, this._rc("metal", 1)); },
+    pipe(c) { const RX = LABV.rx, RY = LABV.ry, W = LABV.cols * LABV.T; this._pxl(c, RX - 4, RY - 22, W + 8, 3, this._rc("metal", 1)); this._pxl(c, RX - 4, RY - 22, W + 8, 1, this._rc("metal", 3)); for (let i = 0; i < 7; i++) this._pxl(c, RX + 20 + i * 50, RY - 23, 3, 5, this._rc("metal", 0)); this._dth(c, RX + 60, RY - 19, 6, 4, this._rc("paper", 3)); },
+    ladder(c, x, y) { this._pxl(c, x, y, 3, 26, this._rc("amber", 1)); this._pxl(c, x, y, 1, 26, this._rc("amber", 3)); this._pxl(c, x + 11, y, 3, 26, this._rc("amber", 1)); this._pxl(c, x + 13, y, 1, 26, this._rc("amber", 0)); for (let i = 0; i < 4; i++) { this._pxl(c, x + 3, y + 3 + i * 6, 8, 2, this._rc("amber", 2)); this._pxl(c, x + 3, y + 4 + i * 6, 8, 1, this._rc("amber", 0)); } c.strokeStyle = this._rc("amber", 0); c.strokeRect(x + 0.5, y + 0.5, 13, 25); },
+    trash(c, x, y) { this._dth(c, x, y + 11, 11, 2, this._rc("floor", 0)); this._pxl(c, x, y, 10, 12, this._rc("metal", 1)); this._pxl(c, x + 1, y, 1, 12, this._rc("metal", 2)); this._pxl(c, x + 8, y, 2, 12, this._rc("metal", 0)); this._pxl(c, x, y, 10, 2, this._rc("metal", 3)); this._pxl(c, x + 2, y - 2, 6, 2, this._rc("paper", 3)); this._ol(c, x, y, 10, 12, "metal"); },
+    cup(c, x, y) { this._pxl(c, x, y, 5, 5, this._rc("paper", 3)); this._pxl(c, x, y + 3, 5, 2, this._rc("paper", 1)); this._pxl(c, x + 5, y + 1, 2, 2, this._rc("paper", 2)); this._pxl(c, x + 1, y + 1, 3, 1, this._rc("wood", 1)); },
+    ext(c, x, y) { this._dth(c, x, y + 11, 7, 2, this._rc("floor", 0)); this._pxl(c, x, y, 6, 12, this._rc("crimson", 1)); this._pxl(c, x + 1, y, 1, 12, this._rc("crimson", 3)); this._pxl(c, x + 4, y, 2, 12, this._rc("crimson", 0)); this._pxl(c, x + 1, y - 2, 3, 2, this._rc("metal", 2)); this._pxl(c, x + 1, y - 2, 3, 1, this._rc("metal", 3)); c.strokeStyle = this._rc("crimson", 0); c.strokeRect(x + 0.5, y + 0.5, 5, 11); },
+    board(c, x, y) { this._pxl(c, x, y - 20, 40, 16, this._rc("paper", 3)); this._pxl(c, x, y - 20, 40, 1, this._rc("paper", 2)); this._pxl(c, x, y - 5, 40, 1, this._rc("metal", 2)); c.strokeStyle = this._rc("paper", 0); c.beginPath(); c.moveTo(x + 4, y - 14); c.lineTo(x + 20, y - 14); c.moveTo(x + 4, y - 10); c.lineTo(x + 28, y - 10); c.stroke(); c.strokeStyle = this._rc("crimson", 1); c.beginPath(); c.moveTo(x + 24, y - 16); c.lineTo(x + 34, y - 8); c.stroke(); c.strokeStyle = this._rc("metal", 0); c.strokeRect(x + 0.5, y - 20.5, 40, 16); this._pxl(c, x + 1, y - 20, 39, 1, this._rc("metal", 3)); },
+    stain(c, x, y) { this._dth(c, x, y, 14, 8, this._rc("floor", 0)); this._dth(c, x + 3, y + 2, 8, 4, this._rc("floor", 1)); },
+    light(c, x, y) { this._pxl(c, x + 3, y + 3, 10, 10, this._rc("metal", 2)); this._pxl(c, x + 4, y + 4, 8, 8, this._rc("paper", 3)); this._pxl(c, x + 5, y + 5, 6, 6, "rgb(255,252,238)"); this._pxl(c, x + 5, y + 5, 3, 2, "rgb(255,255,250)"); },
   },
 });
 
-// dev用: index.html#hqlab で直接本部を開く(#hqlab-desks等でパネル/#hqlab-fullで全設備T4表示)。本番挙動に影響なし。
+// dev用: #hqlab で本部を開く(#hqlab-desks等でパネル/#hqlab-t1|t2|t3=部屋tierの表示のみ上書き/#hqlab-fullは互換=T3)。
 if (typeof window !== "undefined") window.addEventListener("load", () => {
-  const m = location.hash.match(/^#hqlab(?:-(desks|tank|rocket|shelf|full))?$/);
+  const m = location.hash.match(/^#hqlab(?:-(desks|tank|rocket|shelf|full|t1|t2|t3))?$/);
   if (m && UI.openHqLab) setTimeout(() => {
-    if (m[1] === "full") UI._labTierOverride = { desks: 4, tank: 4, rocket: 4, shelf: 4 };
+    if (m[1] === "full" || m[1] === "t3") UI._labRoomTierOverride = 3;
+    else if (m[1] === "t2") UI._labRoomTierOverride = 2;
+    else if (m[1] === "t1") UI._labRoomTierOverride = 1;
     UI.openHqLab();
-    if (m[1] && m[1] !== "full") UI.openLabPanel(m[1]);
+    if (m[1] && !/^t[123]$|^full$/.test(m[1])) UI.openLabPanel(m[1]);
   }, 60);
 });
