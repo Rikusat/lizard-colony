@@ -19,7 +19,7 @@
   <button id="btn-missions"></button><span id="mission-badge"></span><button id="btn-stats"></button><span id="stats-badge"></span><button id="btn-settings"></button></nav>
 </header>
 <div id="hq-bar"><div id="rank-bar"></div><span id="hq-bar-label"><b id="ui-rank">1</b></span></div>
-<main><aside id="left"><div class="card"><button id="btn-cricket"><span id="cricket-lot-lbl"></span></button><button id="btn-fac"></button></div>
+<main><aside id="left"><div class="card"><button id="btn-cricket"><span id="cricket-lot-lbl"></span></button><button id="btn-fac"></button><button id="btn-breed-menu"></button></div>
   <div id="slit-device"><canvas id="slit-canvas"></canvas></div></aside>
   <section id="center"><div id="frame"><canvas id="game" width="1280" height="720"></canvas>
     <div id="raid-hud"><div class="rh-line"><span id="raid-timer"></span></div><div id="next-boss" class="hidden"></div><button id="btn-raid-now"></button></div>
@@ -135,6 +135,46 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       // 新着ドット: openHqLabで消える
       Game._badgeHq = true; UI.openHqLab();
       ok("機能: 新着ドットは本部を開くと消える", Game._badgeHq === false);
+
+      // ===== R1: 繁殖ピッカーv2(実操作: タイル→A/B→切替→クイック→確定=Game.breed同一経路) =====
+      Game.newGame(); Game.state.coins = 100000; Game.raid = null;
+      Game.state.lizards = [];
+      (function () {
+        var sp = SPECIES.find(function (x) { return x.id === "kanahebi"; }), sp2 = SPECIES.find(function (x) { return x.id === "nihontokage"; });
+        function mk(spec, morph, trs) {
+          var lz = Game.makeLizard(spec.id, morph, { hue: spec.hue, sat: spec.sat, light: spec.light, pattern: "stripe", traits: (trs || []).map(function (k) { return { key: k }; }) }, "adult");
+          lz.injuredT = 0; lz.breedCd = 0; Game.addLizard(lz, true); return lz;
+        }
+        mk(sp, "normal", ["mimikakushi"]); mk(sp, "normal", []); mk(sp, "albino", ["shinkai"]); mk(sp2, "normal", []);
+      })();
+      document.getElementById("btn-breed-menu").click();
+      ok("R1: 左メニュー繁殖クリックでピッカーv2が開く", !!document.querySelector("#modal-body .sp-tiles"));
+      var t1 = document.querySelector('.sp-tile[data-tile="kanahebi:normal"]');
+      t1.click();
+      ok("R1: タイル選択でAスロットに個体(チップ領域つき)", !!UI._bmState.a && !!document.querySelector("#modal-body .sp-slot canvas"));
+      var aBefore = UI._bmState.a;
+      var navBtn = document.querySelector('[data-nav="A:1"]');
+      if (navBtn) navBtn.click();
+      ok("R1: ◀▶で同タイル内の個体が切替わる", UI._bmState.a !== aBefore, aBefore + "→" + UI._bmState.a);
+      document.querySelector('.sp-tile[data-tile="nihontokage:normal"]').click();
+      ok("R1: 2枚目のタイルでBスロットが埋まる", !!UI._bmState.b);
+      document.getElementById("bm-quick").click();
+      ok("R1: クイック選出でA/Bが埋まる(選出のみ)", !!UI._bmState.a && !!UI._bmState.b);
+      // 確定=Game.breed同一経路の証明(スパイ+効果検証)
+      var bArgs = null, origBreed = Game.breed.bind(Game);
+      Game.breed = function (aId, bId, silent) { bArgs = [aId, bId]; return origBreed(aId, bId, silent); };
+      var selA = UI._bmState.a, selB = UI._bmState.b;
+      var eggs0 = Game.state.eggs.length, coins0b = Game.state.coins;
+      var la = Game.state.lizards.find(function (x) { return x.id === selA; });
+      var lb = Game.state.lizards.find(function (x) { return x.id === selB; });
+      var costAB = Game.breedCost(la, lb);
+      document.getElementById("bm-go").click();
+      ok("R1: 確定=Game.breed(選出A,B)が唯一の実行経路(旧UIと同一関数)", !!bArgs && bArgs[0] === selA && bArgs[1] === selB, JSON.stringify(bArgs));
+      ok("R1: 繁殖成立=卵+1・コスト消費・CD開始(ロジック不変)", Game.state.eggs.length === eggs0 + 1 && Game.state.coins === coins0b - costAB && la.breedCd > 0, "eggs+" + (Game.state.eggs.length - eggs0) + " Δcoins=" + (coins0b - Game.state.coins) + " cd=" + Math.round(la.breedCd));
+      Game.breed = origBreed;
+      UI.closeModal();
+      Game.state.research.recipe1 = true; // R1節のnewGameで消えた解読状態を復元(後続の合成テスト前提)
+      Game.state.coins = 10000000; Game.addRes("bio", 5000);
 
       // ===== R3: 繁殖CDリセット(⬡実操作) =====
       Game.addOre("amethyst", 5);

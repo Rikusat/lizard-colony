@@ -230,33 +230,5 @@ Object.assign(UI, {
     });
   },
 
-  // 3.11.4: トカゲクリック→この個体を親に、相手を選んで繁殖(ルーレットと併存する繁殖経路)
-  // trait_system.md の将来の特性表示を載せられるよう、相手を行リストで見せる構造(今は先回りしない=YAGNI)
-  openBreedPicker(lz) {
-    this.openModal(`${Icon.svg("breed")} 繁殖 — ${Game.lizardName(lz)} の相手を選ぶ`, (body) => {
-      const mates = Game.state.lizards.filter((o) => o.id !== lz.id && Game.canBreed(o));
-      if (!mates.length) {
-        body.innerHTML = `<p style="color:var(--sub)">繁殖できる相手がいません(アダルト・非負傷・クールダウン外・在槽の個体が必要)。</p>`;
-        return;
-      }
-      body.innerHTML = `<p style="font-size:calc(12px * var(--fs-scale,1));color:var(--sub);margin-bottom:8px">相手を選ぶと卵が生まれます(コスト ${Icon.svg("coin")}は種のレア度で変動)。</p>`;
-      for (const o of mates) {
-        const mo = morphById(o.morphId), col = Render.lizardColor(o); // ★レア度表記は撤去(判断⑦(i)を表示層全体へ・内部数値非接触)
-        const cost = Game.breedCost(lz, o);
-        const row = document.createElement("div");
-        row.className = "list-row breed-cand";
-        const isLeg = mo.legendary; // 仕上げ2(Ric選択=案A): レジェンダリー名=琥珀+✦(.leg-name)
-        row.innerHTML =
-          `<span class="sw" style="display:inline-block;width:18px;height:12px;border-radius:6px;background:${col.css};border:1px solid #0006"></span>` +
-          `<div class="grow"><b class="${isLeg ? "leg-name" : ""}">${Game.lizardName(o)}</b><div class="desc">${mo.name} / Lv${o.level || 1}</div></div>` +
-          this.breedTraitChips(o) +
-          `<button ${Game.state.coins < cost ? "disabled" : ""}>${Icon.svg("coin")}${fmt(cost)}</button>`;
-        row.querySelector("button").addEventListener("click", () => {
-          if (Game.breed(lz.id, o.id)) { this.closeModal(); }
-          else this.openBreedPicker(lz); // 失敗時は再描画(状態更新)
-        });
-        body.appendChild(row);
-      }
-    });
-  },
+  // R1(2026-07-25): 旧・相手選択リスト(openBreedPicker)は繁殖ピッカーv2へ完全置換(breeding.js openBreedMenu/openBreedPicker委譲・git記録+撤去前スクショ=§6R.11)
 });

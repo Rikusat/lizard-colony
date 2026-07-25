@@ -58,6 +58,7 @@ const UI = {
     if (cricketBtn) attachHold(cricketBtn, () => Game.buyCrickets(undefined, true));
     on("btn-map", () => this.openMap()); // 3.10.2: 惑星バー撤廃→右上マップボタンから惑星マップ
     on("btn-dex", () => this.openDex());
+    on("btn-breed-menu", () => this.openBreedMenu()); // R1: 繁殖=左メニュー常設
     on("btn-missions", () => this.openMissions());
     on("btn-settings", () => this.openSettings());
     on("btn-raid-now", () => Game.raidNow());

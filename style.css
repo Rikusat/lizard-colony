@@ -2376,3 +2376,29 @@ button.holding::after {
   #hqlab-menu .hm-tx { display: none; }
   #hqlab-menu button { justify-content: center; padding: 13px 6px; }
 }
+
+/* ==== 繁殖ピッカーv2(UISkills §15・R1) ==== */
+.sp-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--sp-tile-w, 150px), 1fr)); gap: 10px; margin-bottom: 12px; }
+.sp-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 8px 8px;
+  background: var(--ink-700, #241c14); border: 1px solid var(--ink-600, #37301f); border-radius: 10px; cursor: pointer; }
+.sp-tile:hover { border-color: var(--amber-500, #C9A227); }
+.sp-tile canvas { display: block; }
+.sp-tile b { font-size: calc(13px * var(--fs-scale,1)); }
+.sp-tile .cnt { font-size: calc(11px * var(--fs-scale,1)); color: var(--sub); }
+.sp-tile.picked-a::after { content: "A"; position: absolute; top: 6px; left: 8px; color: #0e0c08; background: var(--amber-400, #E4BC3A);
+  font-weight: 800; border-radius: 6px; padding: 1px 7px; }
+.sp-tile.picked-b::after { content: "B"; position: absolute; top: 6px; left: 8px; color: #0e0c08; background: var(--life, #7bd986);
+  font-weight: 800; border-radius: 6px; padding: 1px 7px; }
+.sp-tile.grayed { opacity: .35; pointer-events: none; filter: grayscale(.6); }
+.sp-slots { display: flex; gap: 12px; align-items: stretch; border-top: 1px solid rgba(190,214,235,.08); padding-top: 12px; flex-wrap: wrap; }
+.sp-slot { flex: 1; min-width: 260px; display: flex; gap: 10px; align-items: center; background: var(--ink-700, #241c14);
+  border: 1px solid var(--ink-600, #37301f); border-radius: 10px; padding: 8px 10px; min-height: var(--sp-slot-h, 92px); }
+.sp-slot .tag { font-weight: 800; color: var(--amber-400, #E4BC3A); font-size: calc(15px * var(--fs-scale,1)); }
+.sp-slot .empty { color: var(--sub); font-size: calc(12px * var(--fs-scale,1)); }
+.sp-slot .who { flex: 1; min-width: 0; }
+.sp-slot .who b { font-size: calc(13px * var(--fs-scale,1)); display: block; }
+.sp-slot .who .desc { color: var(--sub); font-size: calc(11px * var(--fs-scale,1)); }
+.sp-nav { display: flex; flex-direction: column; gap: 4px; }
+.sp-nav button { padding: 3px 8px; }
+.sp-actions { display: flex; gap: 10px; margin-top: 12px; justify-content: flex-end; flex-wrap: wrap; }
+.sp-actions .quick { border-color: var(--amber-500, #C9A227); }

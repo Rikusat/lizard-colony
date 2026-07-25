@@ -220,6 +220,12 @@ const CFG = {
   holoTrackSec: 5,            // 個体追跡ロックオンの巡回間隔(秒・決定論=乱数不使用)
   amethystCdResetCost: 2,     // R3: 繁殖CDリセット1回のアメジスト消費(★[A]調整)
   // 本部右メニュー(UISkills §14・表示のみ・★Ric調整)
+  // R1(2026-07-25承認): 繁殖UI刷新=種×モーフタイル+A/Bスロット+クイック繁殖(希少スコア)。選出のみUI側・実行/CD/確率/遺伝は不変
+  breedScoreW: { dex: 1000, recipe: 100, rare: 10, fixed: 1 }, // 希少スコア重み(桁分離=優先度(1)図鑑>(2)レシピ>(3)希少特性>(4)固定印)★
+  breedScoreUpMut: false,     // dex到達に上位種変異先を含めるか(既定OFF=承認どおり)
+  breedTileMinW: 150,         // 種×モーフタイルの最小幅(px)
+  breedSlotMinH: 92,          // A/Bスロットの最小高(px)
+  breedCountBadge: true,      // タイルの所持数/繁殖可バッジ表示
   hqMenuWidth: 200,           // 右メニュー幅(px・広幅時)。裁定=フォント拡大に合わせ拡幅
   hqMenuFontScale: 1.0,       // 裁定①: フォント係数(和名16px/サブ10.5px×これ・アイコン比例)
   hqMenuLayout: "spread",     // 裁定①: "spread"=ヘッダ下〜ティッカー上に均等分布(既定)/"stack"=上詰め(温存)
