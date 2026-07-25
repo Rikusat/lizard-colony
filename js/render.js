@@ -3765,7 +3765,11 @@ const Render = {
   // スプライトキャッシュ署名の特性成分。無印/レジェンダリー(徴を描かない)は "" =従来と同一=無印個体のピクセル不変。
   _traitSig(lz) {
     if (lz.morphId === "legendary" || !lz.traits || !lz.traits.length) return "";
-    return lz.traits.map((t) => (t && t.key ? t.key : t)).join(",");
+    const keys = lz.traits.map((t) => (t && t.key ? t.key : t));
+    let sig = keys.join(",");
+    // R5-b: シズミマチの窓明滅はスプライトキャッシュを0.5s粒度で更新(保持個体のみ=負荷最小・CFGでOFF可)
+    if (CFG.shizuBlinkOn !== false && keys.includes("shizumimachi")) sig += "|b" + Math.floor(this.time * 2);
+    return sig;
   },
   // ミミカクシ: 眼〜頬を仮面状の帯で覆う。地=体色を大きく暗く落とし、上縁に特性色(藍/鈍色)の徴。眼は仮面の穴から覗く。
   traitMimikakushi(ctx, g, def) {
@@ -4088,28 +4092,82 @@ const Render = {
   },
 
   // シズミマチ: 体側の窓灯の格子。血統=シンカイの点列→街の窓(点が四角い灯へ) / ネオンの蛍光線→窓に混ざるピンクの灯。
+  // R5-b基準(2026-07-25承認・方向(i)沈んだ都市の窓灯り): シンカイ(深海)+ネオン(光)の血統が
+  // 「海に沈んだ都市の、まだ消えていない窓灯り」へ昇華。遠目=密度/近目=ディテール。静かで重い。
+  // 全て上乗せ表現(魂非接触)。手触りはCFG.shizu*(窓数/配置ゆらぎ/滲み/消灯率/明滅=Ric実機判定)。
   traitShizumimachi(ctx, g, def) {
     const { S, body, L } = g; if (!S || !body) return;
-    const cyan = "#5FA8C9", pink = "#D957B0";
+    const warm = "#FFD98A", cyan = "#5FA8C9", pink = "#D957B0", deep = "#16344A";
+    const rows = CFG.shizuWinRows != null ? CFG.shizuWinRows : 3;
+    const cols = CFG.shizuWinCols != null ? CFG.shizuWinCols : 9;
+    const glow = CFG.shizuGlow != null ? CFG.shizuGlow : 5;
+    const dim = CFG.shizuDim != null ? CFG.shizuDim : 0.28;      // 消えた窓の率(沈黙の重さ)
+    const halo = CFG.shizuHalo != null ? CFG.shizuHalo : 0.16;   // 街明かりの滲み(遠景の格)
+    const blinkOn = CFG.shizuBlinkOn !== false;
+    const blinkSp = CFG.shizuBlinkSpeed != null ? CFG.shizuBlinkSpeed : 0.5;
+    const h2 = (a, b) => { let h = (a * 374761393 + b * 668265263) ^ (a << 7); h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967295; };
     ctx.save(); ctx.clip(body);
-    // 窓灯2段(上段=大きめ・下段=小さめ。cyan基調にpinkが混ざる=ネオンの面影)
-    for (let row = 0; row < 2; row++) {
-      for (let i = 0; i < 6 - row; i++) {
-        const t = 0.42 + i * 0.062 + row * 0.03;
-        const s = S(t);
-        const wx = s.p.x, wy = s.p.y + s.w * (0.12 + row * 0.34);
-        const wsz = Math.max(1.6, L * (row === 0 ? 0.017 : 0.013));
-        const c = (i * 2 + row) % 5 === 3 ? pink : cyan; // 5窓に1つピンク
-        ctx.fillStyle = c; ctx.globalAlpha = 0.92 - row * 0.2;
-        ctx.shadowColor = c; ctx.shadowBlur = 2.5;
+    // ① 水没面(シンカイの昇華): 体の下半へ深青の静かな沈み(グラデの1枚だけ=装飾でなく水位)
+    const s0 = S(0.40), s1 = S(0.82);
+    const grad = ctx.createLinearGradient(0, s0.p.y - s0.w * 0.1, 0, s0.p.y + s0.w * 0.9);
+    grad.addColorStop(0, "rgba(22,52,74,0)"); grad.addColorStop(1, "rgba(22,52,74,0.62)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(Math.min(s1.p.x, s0.p.x) - L, s0.p.y - s0.w, Math.abs(s1.p.x - s0.p.x) + L * 2, s0.w * 2.4);
+    // 水位線: 沈んだ高さを1本の淡いシアンで示す(血統=シンカイの読解点)
+    ctx.strokeStyle = cyan; ctx.globalAlpha = 0.30; ctx.lineWidth = Math.max(0.6, L * 0.004);
+    ctx.beginPath();
+    for (let i = 0; i <= 8; i++) { const sw = S(0.40 + i * 0.05); const y = sw.p.y - sw.w * 0.08; i ? ctx.lineTo(sw.p.x, y) : ctx.moveTo(sw.p.x, y); }
+    ctx.stroke(); ctx.globalAlpha = 1;
+    // 街明かりの滲み: 胴の中心に暖色の面光(遠目=群れの中でも「街を抱えている」と読める格)
+    if (halo > 0) {
+      const sc = S(0.58);
+      const gl = ctx.createRadialGradient(sc.p.x, sc.p.y + sc.w * 0.25, 1, sc.p.x, sc.p.y + sc.w * 0.25, L * 0.30);
+      gl.addColorStop(0, "rgba(232,192,112," + halo + ")"); gl.addColorStop(0.55, "rgba(95,168,201," + (halo * 0.6).toFixed(3) + ")"); gl.addColorStop(1, "rgba(95,168,201,0)");
+      ctx.fillStyle = gl; ctx.fillRect(sc.p.x - L * 0.32, sc.p.y - sc.w, L * 0.64, sc.w * 2.4);
+    }
+    // ② 窓灯り群(街区): 不揃いなグリッド・大小・暖色/シアン+ごく稀にピンク(ネオンの残光)・一部は消灯
+    const t = (typeof Render !== "undefined" ? Render.time : 0) * blinkSp;
+    for (let r = 0; r < rows; r++) {
+      for (let i = 0; i < cols - (r % 2); i++) {
+        const u = 0.40 + (i + (r % 2) * 0.5) * (0.40 / cols);
+        const sPt = S(u);
+        const jx = (h2(i, r) - 0.5) * L * 0.012, jy = (h2(i + 7, r) - 0.5) * L * 0.02;
+        const wx = sPt.p.x + jx, wy = sPt.p.y + sPt.w * (0.02 + r * 0.3) + jy;
+        const wsz = Math.max(1.6, L * (0.012 + h2(i, r + 3) * 0.012));
+        const roll = h2(i, r + 9);
+        if (roll < dim) { // 消えた窓=暗い枠だけ(街の沈黙)
+          ctx.globalAlpha = 0.35; ctx.fillStyle = deep; ctx.shadowBlur = 0;
+          ctx.fillRect(wx - wsz / 2, wy - wsz * 0.7, wsz, wsz * 1.4);
+          continue;
+        }
+        const c = roll > 0.93 ? pink : (roll > 0.55 ? warm : cyan);
+        let a = 0.9 - r * 0.14;
+        if (blinkOn) { // ごく一部の窓だけが眠るように明滅(止まっても成立=基礎は常灯)
+          const ph = h2(i * 3, r * 5);
+          if (ph > 0.8) a *= 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(t * 6.28 * (0.4 + ph * 0.3) + ph * 40));
+        }
+        ctx.globalAlpha = a;
+        ctx.fillStyle = c; ctx.shadowColor = c; ctx.shadowBlur = glow;
         ctx.fillRect(wx - wsz / 2, wy - wsz * 0.7, wsz, wsz * 1.4);
+        if (wsz > L * 0.015) { ctx.globalAlpha = a * 0.6; ctx.fillRect(wx - wsz / 2, wy - wsz * 0.7, wsz, wsz * 0.3); } // 大窓は上縁が明るい(ディテール)
       }
     }
     ctx.shadowBlur = 0;
-    // 深紅の芯線(街の地平線=窓の下に一筋)
-    ctx.strokeStyle = "#8E1826"; ctx.globalAlpha = 0.75; ctx.lineWidth = Math.max(0.8, L * 0.006); ctx.lineCap = "round";
+    // ③ ネオンの残光(血統): 沈んだ看板の縦筋2本(細く・静か)
+    for (const [ui, hcol] of [[0.52, pink], [0.66, cyan]]) {
+      const sp2 = S(ui);
+      ctx.strokeStyle = hcol; ctx.globalAlpha = 0.65; ctx.lineWidth = Math.max(0.9, L * 0.005);
+      ctx.shadowColor = hcol; ctx.shadowBlur = glow * 0.8;
+      ctx.beginPath();
+      ctx.moveTo(sp2.p.x, sp2.p.y - sp2.w * 0.15);
+      ctx.lineTo(sp2.p.x + L * 0.008, sp2.p.y + sp2.w * 0.55);
+      ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+    // ④ 深紅の芯線(維持): 街の地平線=窓群の下に一筋(合成の格・共通の徴)
+    ctx.strokeStyle = "#8E1826"; ctx.globalAlpha = 0.78; ctx.lineWidth = Math.max(0.8, L * 0.006); ctx.lineCap = "round";
     ctx.beginPath();
-    for (let i = 0; i <= 8; i++) { const s = S(0.43 + i * 0.043); const y = s.p.y + s.w * 0.62; i ? ctx.lineTo(s.p.x, y) : ctx.moveTo(s.p.x, y); }
+    for (let i = 0; i <= 8; i++) { const sp3 = S(0.43 + i * 0.043); const y = sp3.p.y + sp3.w * 0.62; i ? ctx.lineTo(sp3.p.x, y) : ctx.moveTo(sp3.p.x, y); }
     ctx.stroke();
     ctx.restore();
   },

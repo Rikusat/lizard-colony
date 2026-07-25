@@ -248,6 +248,14 @@ const CFG = {
   labTileScale: 2.0,          // 本部のタイル+設備の一体倍率(大きさ)。★Ric実機調整
   labFacScale: 1.0,           // 設備のみの追加倍率(比較用・既定1=一体拡大方式)
   genesisFxSec: 1.5,        // 創世エフェクトの尺(深紅の錬成)
+  // R5-b シズミマチ基準(方向(i)沈んだ都市の窓灯り・★全てRic実機判定)
+  shizuWinRows: 3,          // 窓灯りの段数
+  shizuWinCols: 9,          // 窓灯りの列数(奇数段は-1)
+  shizuGlow: 5,             // 灯の滲み量(shadowBlur px)
+  shizuDim: 0.28,           // 消えた窓の率(街の沈黙)
+  shizuHalo: 0.16,          // 街明かりの滲み(胴中央の面光・遠景で格を出す。0=無効)
+  shizuBlinkOn: true,       // ごく一部の窓の明滅(false=完全静止でも成立)
+  shizuBlinkSpeed: 0.5,     // 明滅速度倍率
   // 群衆対策(表示のみ・収益/戦闘は全個体が対象のまま)
   maxVisibleLizards: 70,    // フィールドに同時表示する上限。超過分は巣穴で休憩
   restSwapPerSec: 3,        // 平常時に毎秒この匹数まで休憩⇔活動を入れ替え(漸進=ちらつき防止)

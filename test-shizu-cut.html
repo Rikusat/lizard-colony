@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>R5-b基準カット — シズミマチ「沈んだ都市の窓灯り」(開発用・Ric判定前)</title>
+<!-- R5-b(方向(i)確定): 現意匠と刷新の並置比較(近目=拡大レンダ×両固有種/遠目=飼育槽実寸の群れ)。
+     旧意匠=git記録の旧traitShizumimachiを本ページ内に複製し関数スワップで同一フレーム描画(本体は刷新版のみ)。
+     localStorageサンドボックス=本セーブ非接触。.vercelignoreでdev限定。ローカルのみ・デプロイなし。 -->
+<script>
+(function () {
+  const mem = {};
+  const shim = { getItem: (k) => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: (k) => { delete mem[k]; }, clear: () => { for (const k in mem) delete mem[k]; } };
+  Object.defineProperty(window, "localStorage", { value: shim, configurable: false });
+})();
+</script>
+<style>
+  body { background: #221a12; margin: 0; color: #e8dccb; font-family: system-ui, sans-serif; }
+  h1 { font-size: 15px; padding: 10px 16px 0; margin: 0; font-weight: 600; }
+  p.note { font-size: 12px; padding: 2px 16px 8px; margin: 0; color: #c9b8a2; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<h1>シズミマチ基準カット — 現意匠(上段) vs 刷新「沈んだ都市の窓灯り」(下段)・左=カナヘビ/右=ニホントカゲ</h1>
+<p class="note">3基準: (a)希少感=格の差 (b)血統=シンカイ(深青の水没面)+ネオン(灯・看板の残光)の昇華 (c)魂非接触=上乗せのみ。芯線=街の地平線として維持。</p>
+<canvas id="game" width="10" height="10" style="display:none"></canvas>
+<canvas id="cmp" width="900" height="560"></canvas>
+<h1>遠目 — 飼育槽実寸(通常個体の群れの中の1匹)</h1>
+<canvas id="far" width="900" height="300"></canvas>
+<script src="js/data.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script>
+globalThis.UI = { toast: () => {} };
+Game.newGame(); Game.state.lizards = [];
+Render.init(); Render.time = 1.3;
+
+// ---- 旧意匠(git記録 4b1262f時点のtraitShizumimachi・比較用に複製) ----
+function oldShizu(ctx, g, def) {
+  const { S, body, L } = g; if (!S || !body) return;
+  const cyan = "#5FA8C9", pink = "#D957B0";
+  ctx.save(); ctx.clip(body);
+  for (let row = 0; row < 2; row++) {
+    for (let i = 0; i < 6 - row; i++) {
+      const t = 0.42 + i * 0.062 + row * 0.03;
+      const s = S(t);
+      const wx = s.p.x, wy = s.p.y + s.w * (0.12 + row * 0.34);
+      const wsz = Math.max(1.6, L * (row === 0 ? 0.017 : 0.013));
+      const c = (i * 2 + row) % 5 === 3 ? pink : cyan;
+      ctx.fillStyle = c; ctx.globalAlpha = 0.92 - row * 0.2;
+      ctx.shadowColor = c; ctx.shadowBlur = 2.5;
+      ctx.fillRect(wx - wsz / 2, wy - wsz * 0.7, wsz, wsz * 1.4);
+    }
+  }
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "#8E1826"; ctx.globalAlpha = 0.75; ctx.lineWidth = Math.max(0.8, L * 0.006); ctx.lineCap = "round";
+  ctx.beginPath();
+  for (let i = 0; i <= 8; i++) { const s = S(0.43 + i * 0.043); const y = s.p.y + s.w * 0.62; i ? ctx.lineTo(s.p.x, y) : ctx.moveTo(s.p.x, y); }
+  ctx.stroke();
+  ctx.restore();
+}
+
+const spA = SPECIES.find((s) => s.id === "kanahebi"), spB = SPECIES.find((s) => s.id === "nihontokage");
+function mk(sp) {
+  const lz = Game.makeLizard(sp.id, "normal", { hue: sp.hue, sat: sp.sat, light: sp.light, pattern: "stripe", traits: [{ key: "shizumimachi" }] }, "adult");
+  return lz;
+}
+function drawAt(ctx, lz, x, y, scale) {
+  lz.x = x / scale; lz.y = y / scale; lz.tx = lz.x; lz.ty = lz.y; lz.angle = 0.12; lz.moving = false;
+  ctx.save(); ctx.scale(scale, scale);
+  Render.drawLizard(ctx, lz, true);
+  ctx.restore();
+}
+// ---- 近目比較(2.0倍・現vs刷新×両種) ----
+const c1 = document.getElementById("cmp").getContext("2d");
+c1.fillStyle = "#2c2118"; c1.fillRect(0, 0, 900, 560);
+c1.font = "13px system-ui"; c1.fillStyle = "#c9b8a2";
+c1.fillText("現意匠(2段11窓)", 20, 24); c1.fillText("刷新: 沈んだ都市の窓灯り(水没面+街区+看板残光+芯線)", 20, 300);
+const newFn = Render.traitShizumimachi;
+Render.traitShizumimachi = oldShizu; Render._lizCache && Render._lizCache.clear && Render._lizCache.clear();
+drawAt(c1, mk(spA), 240, 160, 2.0); drawAt(c1, mk(spB), 660, 160, 2.0);
+Render.traitShizumimachi = newFn; Render._lizCache && Render._lizCache.clear && Render._lizCache.clear();
+drawAt(c1, mk(spA), 240, 440, 2.0); drawAt(c1, mk(spB), 660, 440, 2.0);
+// ---- 遠目(実寸1.0×・通常個体の群れ+シズミマチ1匹) ----
+const c2 = document.getElementById("far").getContext("2d");
+c2.fillStyle = "#b39869"; c2.fillRect(0, 0, 900, 300);
+const spots = [[110, 90], [260, 200], [420, 110], [700, 90], [820, 210], [180, 250], [560, 250], [760, 160], [340, 60]];
+spots.forEach(([x, y], i) => {
+  const sp = i % 2 ? spA : spB;
+  const lz = Game.makeLizard(sp.id, "normal", { hue: sp.hue, sat: sp.sat, light: sp.light, pattern: ["stripe", "spot", "none"][i % 3], traits: [] }, "adult");
+  drawAt(c2, lz, x, y, 1.0);
+});
+drawAt(c2, mk(spA), 480, 180, 1.0); // 群れの中の1匹(格の差の判定用)
+c2.strokeStyle = "#e4bc3a"; c2.globalAlpha = .5; c2.strokeRect(430, 150, 104, 62); c2.globalAlpha = 1;
+</script>
+</body>
+</html>
