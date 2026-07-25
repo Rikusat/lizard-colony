@@ -1664,6 +1664,24 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
   - ID1〜ID9 [済] / **ID10 記録係アノール[本]**: 石板を抱えた学者肌の小トカゲ+金の刻印の脈動(1-2体)。※新arch=戦闘効果は今後。
   - **★全10惑星の味方描画 完成**（ID1〜ID10）。移送先id味方(ID2/6/7/8/9)=既存効果型を再有効化／新arch味方(ID3/4/5/10)=可視・育成のみ(効果は今後)。後修正候補: ID2-5・ID10がやや小型・背景と同化気味(存在感up余地)／ID9はラクーンか廃炉山椒魚か(Ric選択)。
 
+### 6R.23 ★R5-bクローズ — 15種一括デプロイ(案X)+本番実証+V5R全体完了(2026-07-25・本番反映済)
+B4承認=15種完成。準備計画1〜4を実施しR5-bをクローズ。**READY / lizardcolony-qrnyxih7l / production**。
+- **1. カタログ更新**: test-trait-catalog.html=R5-b刷新/維持バッジ+全面刷新注記(データ駆動=実レンダ自動反映)。18行+6レシピ列の実レンダをスクショ検証。
+- **2. 全ゲート再走**: node13本FAIL0+audit16 / hqlab-qa 48/0 / 統合11/11 / boot console0。
+- **3. 同乗ゼロの証明→デプロイ承認成立**: 本番=2443f8d(R5-b直前)とmd5完全一致(render/data/game)を実測→差分`2443f8d..HEAD`=R5-b 5コミット(26bb9b8/d8870d0/08db734/b3cf29f/70e0add)+カタログ488ca2c+bump 9b84973のみ。**本番に載る変更=js/data.js+js/render.jsの2ファイルだけ**(test-*.html/HANDOFF=.vercelignore除外・game.js無接触)。
+- **4. デプロイ+本番実証**: bump-cache(32アセット)→`npx vercel --prod`=READY。本番md5=ローカル一致(render 7a847ccb/data eeb0a06f/game c2eb5af1=不変)・index200・devペー ジ404。**実証(清潔プロファイル・本番URL)**: ①シズミマチ/リンカイ保持個体=新意匠で実描画(スクショ) ②Dev.grant→`genesisTraitRand`=yougan付与・4石消費・新意匠表示 ③無印個体=_traitSig""=従来ピクセル不変(trait_regression保証+目視) ④console errors 0。
+- **R5-b総括**: 基準=シズミマチ「沈んだ都市の窓灯り」(方向(i)・修正1回=遠目の格)→B1(4種・ネオン修正1回)→B2(4種・オウゴンヅカ修正1回)→B3(3種・一発)→B4(3種・一発)。**維持3種=ミミカクシ/ヴォイド/ハクシは無接触**(ムメイ/リンカイが幾何引用で血統を継承)。全て「素材の物語的昇華」文法・体クリップ内上乗せ・魂非接触・決定論(動く8種は0.5s粒度バケット+CFGでOFF可)・**CFG計46キー**(基準7+B1 14+B2 10+B3 8+B4 7。※6R.22の「39」は誤記=正しくは46)。比較資産=test-shizu-cut/b1〜b4-cut.html(旧意匠のgit記録複製・血統列6本)。
+- **V5R仕様書(R1〜R5)全体完了宣言**: R4本部(HOLO COMMAND)✅→R3アメジスト✅→R2ルーレット鉱物報酬✅→R1繁殖UI刷新✅→R5-a genesisランダム化✅→R5-b意匠15種刷新✅。**§5sのV5Rアーク登録は全消し込み**。
+- **[A]詰めリスト最新版(5セッション構成・Ric開幕用)**は本節末尾: →**§6R.23-A**。
+- **次: 指示待ち。S6着手禁止を維持。**
+
+#### 6R.23-A [A]詰めリスト(2026-07-25版・実装済CFGをRicが実機で詰める。CCは推測で動かさない)
+- **①戦闘セッション**: bossHpMultByStage(惑星別)/新arch味方効果(dormouseDps/moleAtkBuff/anoleDps/fireflyGrace)/署名頻度(sigBossChance・stage.bosses構成)/eliteScale・eliteAuraR/A/Phase7味方スケール(allyScaleByTier・allyScaleElite・allyVisSizePerTier・allyVisHeadsPerTier・allyVisHeadMax)/巣口避難(nestFleeSpeedMult 3.5・nestEntryRadius 44)/特性遺伝の緩さ(traitInheritBase 0.8・traitTierPenalty 0.12・traitInheritFloor 0.15)。
+- **②眺めセッション(ビジュアル)**: **R5-b 46キー**=shizu7(WinRows/WinCols/Glow/Dim/Halo/BlinkOn/BlinkSpeed)・shinkai4(Depth/LampR/Snow/PulseOn)・neon4(Signs/Rain/BlinkOn/BlinkSpeed)・yougan3(Cracks/Glow/PulseOn)・hyoga3(Layers/Frost/Spikes)・chrono3(DialR/Gears/TickOn)・amida3(Rails/Glow/WalkOn)・triad2(Size/Splat)・ougon2(Leaf/Shade)・cherenko3(Glow/Caustics/Floor)・hagane3(BandW/Hamon/Heat)・mumei2(Patch/Fade)・kontengi2(Teeth/OrbitOn)・houkan2(Size/Glow)・rinkai3(Glow/Rays/PulseOn)/SIG_PAL各値・allyBoost倍率(署名ボス・味方の濃さ)/モーション⑥(poseBobPx/Speed・spotVisitChance・spotDwellMin/Max・capacity)+**魂geometry変化(頭下げ・伏せ)の許可可否=保留判断**/planetTravelSec 3.0体感。
+- **③経済セッション**: stoneGenesisRandCost 4(創世)/amethystCdResetCost 2(CDリセット)/roulPrizeNormal/Elite(鉱物量)・roulRewardBalls+EliteBonus(球数)/**卵の供給源の再バランス**(R2卵撤廃の付記=繁殖/隕石/アメジスト/里帰りのみへ)/breedScoreW(クイック繁殖の重み=辞書式の逆転調整可)/labInvest 3段のコスト調整(旧6段化案の引き継ぎ)。
+- **④本部手触りセッション**: labTileScale 2.0(部屋の大きさ)/hqMenu系(右メニューのフォント/spread)/holoBootOn/Speed/TrackSec(起動演出)/ctrlFps/Blur/ScanAlpha(生中継の質感)/roulAutoCloseSec 1.0(閉幕の間)。
+- **⑤命名セッション**: **特性15種の名称再点検**(意匠刷新で名と絵の距離が変わった=全て仮称のまま。改名提案可の裁定済み・命名はRic)/敵味方の名称(廃炉山椒魚ほか全て仮)/Phase9残(里帰り祝福トースト・新着ドット微調整=軽微)。
+
 ### 6R.22 ★R5-b B4展開(最終) — コンテンギ/ホウカン/リンカイ(2026-07-25・ローカルのみ=未デプロイ・Ric判定待ち)
 B3承認(調整なし)を受け最終バッチB4を3種制作。全て合成=深紅の芯線維持・血統列3本(親4種=B2刷新済みの新意匠同士/ヴォイド=維持)。
 - **コンテンギ「歯車の輪があみだの路に重なる天球」**(クロノ+アミダグラ): 二重軌道環(維持)に**歯車の歯**を刻む(クロノ血統)+環間の**あみだの渡し**と節点(アミダグラ血統)+**天球を巡る星2つ**(アミダグラの灯の昇華・0.5sで一歩・OFF=止まった天球)。芯線=第一環の下弧(維持)。
@@ -2487,7 +2505,7 @@ Ric方針「進めれるところまで・品質/バランスは後で一括指�
 ### 5s. ★Ricレビュー待ちタスク一覧（2026-07-21・すべて実装せず記録のみ＝Ric実機判定が要る）
 一区切り。以下はすべて**Ricの実機確認・判断が要る**ため自律では進めない（記録のみ）。
 
-**【V5R 要求仕様アーク群(docs/director_requests_v5R.md・2026-07-25登録・実施順 R4→R3→R2→R1→R5・各アーク開始はRic指示)】**
+**【V5R 要求仕様アーク群(docs/director_requests_v5R.md・2026-07-25登録・実施順 R4→R3→R2→R1→R5)】→ ✅全アーク完了(2026-07-25・§6R.23で全体完了宣言・R5-b 15種一括デプロイ済)。以下の登録記述は履歴として保存。**
 - **R4 本部復元**: GBA俯瞰研究室の忠実復元(ベース=`7e60025`)+ロケット/管制室撤廃+小型壁掛けモニタ(生中継縮小・CFG OFF可)+建造計画→研究デスク(統一書式等UX改善は維持)。→R4-1着手済(§6R参照)・R4-2=Ric再判定+改善パス。
 - **R3 アメジスト新設**: トップバー(石の左)・ダイヤ<アメジスト<石の序列意匠・繁殖CDリセット用途・ORES既存アメジストとの統合/分離設計提案が先行ゲート。
 - **R2 ルーレット報酬改定**: 卵撤廃→通常=ダイヤ球/虹=アメジスト・大ボス=アメジスト球/虹=賢者の石。**R2-0事前監査(獲得可能性)が実装前必須**・物理/確率聖域・MC実測。完了後[A]経済に「卵の供給源の再バランス」を追加。
