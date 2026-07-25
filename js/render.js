@@ -1807,6 +1807,21 @@ const Render = {
     return { dx: Math.round(dx), dy: Math.round(dy) };
   },
 
+  // V5M①: 静止時の尾ゆらぎ倍率(決定論=id+時刻バケット・乱数不使用)。8秒窓の一部だけ緩く波打ち、
+  //   OFF/移動中/負傷/reduced-motionでは常に1=既定の0.02L(従来とピクセル一致)。★頻度/振幅はCFG(Ric実機)。
+  _motTailK(lz) {
+    if (CFG.motTailOn === false || lz.moving || lz.injuredT > 0) return 1;
+    if (window.Motion && Motion.reduced) return 1;
+    const win = 8, t = this.time + (lz.id % 97) * 1.7;
+    const bk = Math.floor(t / win);
+    const h = Game.motHash(lz.id, bk); // fmix32=小入力でも一様(ゲーム側と同一実装を参照)
+    if (h >= (CFG.motTailRate || 0.2)) return 1;
+    const local = t - bk * win;
+    if (local > 3) return 1; // 窓の先頭3秒だけ=波打って、また止まる
+    const k = Math.sin((local / 3) * Math.PI); // なめらかに入って抜ける
+    return 1 + ((CFG.motTailAmp || 2.2) - 1) * k;
+  },
+
   // 生き物本体(魂)。呼び出し側で lz.x,lz.y へ translate 済みの前提はなく、ここで translate する。
   // ※ this.time を使う動的アニメ(尾のしなり・歩行・アオジタの舌)を含むが、"呼ばれた瞬間の this.time" で描くため
   //   直接描画でもキャッシュ焼き込みでも、同一時刻なら出力はピクセル一致(キャッシュは焼く/blitの振り分けのみ)。
@@ -1850,7 +1865,8 @@ const Render = {
     // --- 背骨サンプリング (t=0 尾先 → 1 鼻先、地面が y=0) ---
     const N = 34;
     const pts = [], nrm = [], wid = [];
-    const tailAmp = L * (moving ? 0.05 : 0.02);
+    // V5M①: 静止時の尾のアイドルゆらぎ(倍率K=既定1でピクセル完全一致・既存の位相駆動再焼きに自然に乗る)
+    const tailAmp = L * (moving ? 0.05 : 0.02 * this._motTailK(lz));
     for (let i = 0; i <= N; i++) {
       const t = i / N;
       // §9.1 自切: 再生していない尾先側(t<tailCutStart)は断面(tailCutStart)へ畳む=尾が短い断端に見える
@@ -2201,6 +2217,28 @@ const Render = {
       ctx.setLineDash([6, 5]); ctx.lineDashOffset = -this.time * 24;
       ctx.beginPath(); ctx.ellipse(-L * 0.06, 0, L * 0.55, L * 0.12, 0, 0, 7); ctx.stroke();
       ctx.setLineDash([]);
+    }
+    // V5M②: 舌出し(ちろちろ)。魂の上乗せ描画=スプライトキャッシュ非接触。個体idで位相分散・決定論。
+    //   アオジタ(固有の青い舌が既にある)/移動中/負傷/スポット姿勢中/reduced-motionでは出さない。
+    if (CFG.motTongueOn !== false && !(window.Motion && Motion.reduced)
+      && !lz.moving && lz.injuredT <= 0 && !lz.spot && sp.id !== "aojita") {
+      const win = CFG.motTongueWin || 45, dur = CFG.motTongueDur || 0.5;
+      const tt = this.time + (lz.id % 89) * 3.37;
+      const local = tt % win;
+      if (local < dur) {
+        const face = Math.cos(lz.angle) >= 0 ? 1 : -1;
+        const nx = 0.485 * L * face, ny = -0.368 * L; // 鼻先(LIZ_SIDE_KEYS末端)
+        const ext = Math.sin((local / dur) * Math.PI); // 出て、引っ込む
+        const len = L * 0.09 * ext;
+        ctx.strokeStyle = "#C25B6A"; ctx.lineCap = "round";
+        ctx.lineWidth = Math.max(0.8, L * 0.010);
+        ctx.beginPath(); ctx.moveTo(nx, ny); ctx.lineTo(nx + len * face, ny - L * 0.008); ctx.stroke();
+        ctx.lineWidth = Math.max(0.6, L * 0.007); // 先割れ
+        ctx.beginPath(); ctx.moveTo(nx + len * face, ny - L * 0.008);
+        ctx.lineTo(nx + (len + L * 0.022 * ext) * face, ny - L * 0.024 * ext); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(nx + len * face, ny - L * 0.008);
+        ctx.lineTo(nx + (len + L * 0.022 * ext) * face, ny + L * 0.006 * ext); ctx.stroke();
+      }
     }
     ctx.textAlign = "center";
     if (lz.founder) { // 創始者マーク (V3 §9.4)

@@ -299,6 +299,24 @@ const CFG = {
   rinkaiGlow: 0.07,         // 輪郭の臨界光の滲み(体長比)
   rinkaiRays: 4,            // 臨界点へ収束する光条の本数
   rinkaiPulseOn: true,      // 臨界点の呼吸(false=完全静止でも成立)
+  // V5M モーション語彙 第1バッチ(⑦①②⑧⑫・★全てRic実機判定=[A]②へ登録予定)
+  motDashOn: true,          // ⑦静→動ダッシュ
+  motDashRate: 0.03,        // 徘徊再設定ごとの発生率(10秒バケット決定論・実測7.4/分→2.8/分へ控えめ)
+  motDashDist: 90,          // 走る距離px(±30%は決定論ゆらぎ)
+  motDashSpeedMult: 2.6,    // 疾走の速度倍率(通常45px/s基準)
+  motDashRestSec: 5,        // 走った直後の静止秒(静→動→静)
+  motTailOn: true,          // ①尾のアイドルゆらぎ
+  motTailRate: 0.20,        // 8秒窓ごとの発生率
+  motTailAmp: 2.2,          // ゆらぎ中の尾振幅倍率(既定0.02L基準)
+  motTongueOn: true,        // ②舌出し(ちろちろ)
+  motTongueWin: 45,         // 1回/この秒数(個体idで位相分散)
+  motTongueDur: 0.5,        // 舌が出ている秒
+  motLookOn: true,          // ⑧キョロキョロ(到着時に向きを2回反転)
+  motLookRate: 0.10,        // 到着ごとの発生率(実測21/分→8/分へ控えめ)
+  motMeetOn: true,          // ⑫見合い(すれ違いの一瞥)
+  motMeetRate: 0.07,        // 近接すれ違いごとの発生率(実測3.2/分→2/分強へ控えめ)
+  motMeetSec: 0.8,          // 向き合って止まる秒
+  motMeetCdSec: 60,         // 個体ごとの再発クールダウン秒
   // 群衆対策(表示のみ・収益/戦闘は全個体が対象のまま)
   maxVisibleLizards: 70,    // フィールドに同時表示する上限。超過分は巣穴で休憩
   restSwapPerSec: 3,        // 平常時に毎秒この匹数まで休憩⇔活動を入れ替え(漸進=ちらつき防止)

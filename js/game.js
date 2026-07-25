@@ -232,6 +232,7 @@ const Game = {
       if (this.isHidden(l)) continue; // 鷹に不在の個体は据え置き
       l.returning = false; // 即時確定=歩行途中の状態はクリア(ロード/惑星切替は瞬時に確定=fps安定)
       l.spot = null; l._toSpot = null; // モーション: 居場所滞在も即クリア(ロード後は徘徊から再割当・stale姿勢なし)
+      l._dashT = 0; l._lookT = 0; l._meetCd = 0; // V5M: モーション残状態もクリア(stale姿勢なし・runtime専用=保存されない)
       l.resting = !show.has(l.id);
       if (l.resting) l.restedAt = Date.now();
     }
@@ -2186,9 +2187,22 @@ const Game = {
     v.panicT = CFG.autoPanicSec || 1.4; // 直後は速く逃げて尾から離れる→以後は負傷で鈍足
   },
 
+  // V5M: モーションの決定論ハッシュ(乱数不使用=スクショ/QA再現性・0..1)。
+  //   fmix32(murmur3)=小さなid/バケット値でも一様(旧式は小入力で偏り実効率が名目の2倍超=実測で検出→差し替え)。
+  motHash(a, b) {
+    let h = (Math.imul(a, 0x9E3779B1) ^ Math.imul(b + 1, 0x85EBCA77)) >>> 0;
+    h ^= h >>> 16; h = Math.imul(h, 0x85EBCA6B);
+    h ^= h >>> 13; h = Math.imul(h, 0xC2B2AE35);
+    h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  },
+
   moveLizards(dt) {
     const snake = this.raid && this.raid.snake.arrived && !this.raid.type?.flying ? this.raid.snake : null;
     const webs = this.raid && this.raid.typeId === "spider" ? this.raid.webs.filter((w) => w.hp > 0) : [];
+    // V5M: 表示クロック(モーション発生バケット用・純装飾=保存しない)。reduced-motionでは新モーションを発生させない。
+    this._motClock = (this._motClock || 0) + dt;
+    const motOff = !!(window.Motion && Motion.reduced);
     for (const lz of this.state.lizards) {
       this.ensureRuntime(lz);
       if (!this.isVisible(lz)) continue; // さらわれ中・休憩中
@@ -2211,6 +2225,8 @@ const Game = {
       }
       if (lz.panicT > 0) lz.panicT -= dt; // §9.1 自切直後の逃走ダッシュ
       if (lz.panicT > 0 || lz.injuredT > 0) { lz.spot = null; lz._toSpot = null; } // 逃走/負傷中は居場所に留まらない
+      if (lz._meetCd > 0) lz._meetCd -= dt; // V5M⑫: 見合いのクールダウン
+      if (lz._dashT > 0) lz._dashT -= dt;   // V5M⑦: 疾走窓の残り
       lz.wanderT -= dt;
       const fighting = snake && lz.stage === "adult" && lz.injuredT <= 0;
       if (fighting) {
@@ -2223,6 +2239,20 @@ const Game = {
           lz.ty = snake.y + Math.sin(ang) * d * 0.6;
         }
       } else if (lz.wanderT <= 0) { // 通常の徘徊 or 設備の居場所(スポット)へ
+        // V5M⑦: 静→動ダッシュ(トカゲ特有の静→動)。決定論(idハッシュ+時刻バケット)・純装飾・走った後は長めの静止。
+        const dashBk = Math.floor(this._motClock / 10);
+        if (!motOff && CFG.motDashOn !== false && lz._motBk !== dashBk && this.motHash(lz.id, dashBk) < (CFG.motDashRate || 0.08)) {
+          lz._motBk = dashBk;
+          lz.spot = null; lz._toSpot = null;
+          const da = this.motHash(lz.id * 3 + 1, dashBk) * Math.PI * 2;
+          const dd = (CFG.motDashDist || 90) * (0.7 + this.motHash(lz.id * 5 + 2, dashBk) * 0.6);
+          lz.tx = clamp(lz.x + Math.cos(da) * dd, FIELD.x1, FIELD.x2);
+          lz.ty = clamp(lz.y + Math.sin(da) * dd * 0.6, FIELD.y1, FIELD.y2);
+          lz._dashT = 2.0; // 疾走窓(到達で自然停止・余りは自然減衰)
+          lz.wanderT = CFG.motDashRestSec || 5; // 走った直後はじっとする(静→動→静のリズム)
+          const dx0 = lz.tx - lz.x, dy0 = lz.ty - lz.y;
+          if (Math.hypot(dx0, dy0) > 4) { lz.angle = Math.atan2(dy0, dx0); }
+        } else {
         // モーション(§8.5): 一定確率で居場所へ向かう。純装飾=Math.randomは既存の徘徊と同カテゴリ(生産/戦闘/遺伝の決定論には無影響)
         const goSpot = Math.random() < (CFG.spotVisitChance || 0) ? this.spotFor(lz) : null;
         if (goSpot) {
@@ -2242,6 +2272,7 @@ const Game = {
           lz.tx = clamp(lz.homeX + rnd(-130, 130), FIELD.x1, FIELD.x2);
           lz.ty = clamp(lz.homeY + rnd(-90, 90), FIELD.y1, FIELD.y2);
         }
+        } // V5M⑦: ダッシュ分岐の閉じ
       }
       const dx = lz.tx - lz.x, dy = lz.ty - lz.y;
       const dist = Math.hypot(dx, dy);
@@ -2251,17 +2282,33 @@ const Game = {
         for (const w of webs) {
           if (Math.hypot(lz.x - w.x, lz.y - w.y) < 60) { webMult = CFG.webSlow; break; }
         }
-        const spd = (lz.panicT > 0 ? 105 : lz.injuredT > 0 ? 12 : fighting ? 110 : 45) * webMult * dt;
+        // V5M⑦: 疾走窓中は速度倍率(純装飾・戦闘/逃走/負傷の既存速度は不変)
+        const spd = (lz.panicT > 0 ? 105 : lz.injuredT > 0 ? 12 : fighting ? 110 : 45 * (lz._dashT > 0 ? (CFG.motDashSpeedMult || 2.6) : 1)) * webMult * dt;
         lz.x += (dx / dist) * Math.min(spd, dist);
         lz.y += (dy / dist) * Math.min(spd, dist);
         lz.angle = Math.atan2(dy, dx);
         lz.moving = true;
       } else {
+        // V5M⑧: 到着の瞬間にキョロキョロ(決定論・スポット/戦闘/負傷では出ない)
+        if (lz.moving && !motOff && CFG.motLookOn !== false && !lz._toSpot && !fighting && lz.injuredT <= 0) {
+          const lb = Math.floor(this._motClock / 4);
+          if (this.motHash(lz.id * 11 + 3, lb) < (CFG.motLookRate || 0.25)) { lz._lookT = 1.8; lz._lookN = 0; }
+        }
         lz.moving = false;
         if (lz._toSpot) { // 居場所へ到達=姿勢に入る(C3で描画)。向きはspot.facingへ寄せる
           lz.spot = lz._toSpot;
           if (lz._spotFacing === "left") lz.angle = Math.PI;
           else if (lz._spotFacing === "right") lz.angle = 0;
+        }
+      }
+      // V5M⑧: キョロキョロの実行(静止中に向きを2回反転=周囲を見る。移動/スポット入りで即解除)
+      if (lz._lookT > 0) {
+        if (lz.moving || lz.spot) { lz._lookT = 0; }
+        else {
+          lz._lookT -= dt;
+          const ph = 1.8 - Math.max(0, lz._lookT);
+          const want = ph > 1.2 ? 2 : ph > 0.5 ? 1 : 0;
+          if (want !== (lz._lookN || 0)) { lz._lookN = want; lz.angle = Math.PI - lz.angle; }
         }
       }
       lz.x = clamp(lz.x, 20, W - 20);
@@ -2282,6 +2329,22 @@ const Game = {
           const push = ((minD - d) / d) * 22 * dt;
           a.x -= dx * push * 0.5; a.y -= dy * push * 0.5;
           b.x += dx * push * 0.5; b.y += dy * push * 0.5;
+          // V5M⑫: 見合い(すれ違いの一瞥)。両者が歩行中の近接ペアだけ・決定論・ペア毎クールダウン。
+          //   一瞬止まって向き合い、meetSec後に既存の徘徊が自然再開(wanderT経由=新しい状態機械を作らない)。
+          if (!motOff && CFG.motMeetOn !== false && !snake && a.moving && b.moving
+            && !a.returning && !b.returning && a.injuredT <= 0 && b.injuredT <= 0
+            && (a._meetCd || 0) <= 0 && (b._meetCd || 0) <= 0) {
+            const mb = Math.floor(this._motClock / 5);
+            if (this.motHash(a.id * 131 + b.id * 17, mb) < (CFG.motMeetRate || 0.10)) {
+              for (const [p, q] of [[a, b], [b, a]]) {
+                p.tx = p.x; p.ty = p.y; p.moving = false;
+                p.wanderT = CFG.motMeetSec || 0.8;
+                p.angle = Math.atan2(q.y - p.y, q.x - p.x);
+                p._meetCd = CFG.motMeetCdSec || 60;
+                p._lookT = 0; // 見合い中はキョロキョロと重ねない
+              }
+            }
+          }
         }
       }
     }
