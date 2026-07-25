@@ -271,6 +271,17 @@ const CFG = {
   hyogaLayers: 4,           // 氷の層理の本数
   hyogaFrost: 0.30,         // 氷結面の濃さ
   hyogaSpikes: 6,           // 背縁の霜棘の数
+  // R5-b B2(クロノ/アミダグラ/トライアド/オウゴンヅカ・★全てRic実機判定)
+  chronoDialR: 0.058,       // 文字盤の半径(体長比)
+  chronoGears: 2,           // 噛み合う歯車の数
+  chronoTickOn: true,       // 分針の刻み(false=止まった時刻)
+  amidaRails: 5,            // あみだの縦桟の本数
+  amidaGlow: 3,             // 灯の滲み(shadowBlur px)
+  amidaWalkOn: true,        // 灯が路を下る(false=路の途中で止まった灯)
+  triadSize: 0.036,         // 三連紋の大きさ(体長比)
+  triadSplat: 6,            // 顔料の飛沫の総数
+  ougonLeaf: 7,             // 金箔片の枚数
+  ougonShade: 0.34,         // 玄室の影の濃さ
   // 群衆対策(表示のみ・収益/戦闘は全個体が対象のまま)
   maxVisibleLizards: 70,    // フィールドに同時表示する上限。超過分は巣穴で休憩
   restSwapPerSec: 3,        // 平常時に毎秒この匹数まで休憩⇔活動を入れ替え(漸進=ちらつき防止)

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>R5-b B2カット — クロノ/アミダグラ/トライアド/オウゴンヅカ(開発用・Ric判定前)</title>
+<!-- R5-b B2: 現意匠と刷新の並置比較(4種×両固有種)+遠目実寸。血統列はB3(ハガネ/ムメイ)提出時。
+     旧意匠=git記録(d8870d0時点)の各trait関数を本ページ内に複製し関数スワップで同一フレーム描画。
+     localStorageサンドボックス=本セーブ非接触。.vercelignoreでdev限定。ローカルのみ・デプロイなし。 -->
+<script>
+(function () {
+  const mem = {};
+  const shim = { getItem: (k) => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: (k) => { delete mem[k]; }, clear: () => { for (const k in mem) delete mem[k]; } };
+  Object.defineProperty(window, "localStorage", { value: shim, configurable: false });
+})();
+</script>
+<style>
+  body { background: #221a12; margin: 0; color: #e8dccb; font-family: system-ui, sans-serif; }
+  h1 { font-size: 15px; padding: 10px 16px 0; margin: 0; font-weight: 600; }
+  p.note { font-size: 12px; padding: 2px 16px 8px; margin: 0; color: #c9b8a2; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<h1>B2カット — 各ブロック: 上段=現意匠 / 下段=刷新・左=カナヘビ/右=ニホントカゲ</h1>
+<p class="note">文法=シズミマチ基準(素材の物語的昇華・体クリップ内上乗せ・魂非接触・全CFG化)。動き=クロノ(刻む)とアミダグラ(路を下る)のみ・トライアド/オウゴンヅカは完全静止。</p>
+<canvas id="game" width="10" height="10" style="display:none"></canvas>
+<canvas id="cmp" width="900" height="1120"></canvas>
+<h1>遠目 — 飼育槽実寸(通常個体の群れの中のB2保持4匹・琥珀枠)</h1>
+<canvas id="far" width="900" height="330"></canvas>
+<script src="js/data.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script>
+globalThis.UI = { toast: () => {} };
+Game.newGame(); Game.state.lizards = [];
+Render.init(); Render.time = 1.3;
+
+// ---- 旧意匠(git記録 d8870d0時点・比較用に複製) ----
+function oldChrono(ctx, g, def) {
+  const { S, L } = g; if (!S) return;
+  const c = def.rim || "#B8955A";
+  ctx.save(); ctx.lineCap = "round";
+  ctx.strokeStyle = c; ctx.globalAlpha = 0.9;
+  for (let i = 0; i < 5; i++) {
+    const t = 0.07 + i * 0.065;
+    const s = S(t);
+    const ax = s.p.x + s.n.x * s.w * 1.0 * s.u, ay = s.p.y + s.n.y * s.w * 1.0 * s.u;
+    const bx = s.p.x - s.n.x * s.w * 1.0 * s.u, by = s.p.y - s.n.y * s.w * 1.0 * s.u;
+    ctx.lineWidth = Math.max(0.9, L * (i === 0 ? 0.013 : 0.009));
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+  }
+  const s = S(0.58);
+  const gx = s.p.x, gy = s.p.y + s.w * 0.05, r = Math.max(2, L * 0.026);
+  ctx.lineWidth = Math.max(0.8, L * 0.007);
+  ctx.beginPath(); ctx.arc(gx, gy, r, 0, 7); ctx.stroke();
+  for (let a = 0; a < 6.28; a += Math.PI / 4) {
+    ctx.beginPath(); ctx.moveTo(gx + Math.cos(a) * r, gy + Math.sin(a) * r);
+    ctx.lineTo(gx + Math.cos(a) * r * 1.32, gy + Math.sin(a) * r * 1.32); ctx.stroke();
+  }
+  ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx, gy - r * 0.62); ctx.stroke();
+  ctx.restore();
+}
+function oldAmidagura(ctx, g, def) {
+  const { S, body, L } = g; if (!S || !body) return;
+  const c = def.rim || "#9B6BD6";
+  ctx.save(); ctx.clip(body);
+  ctx.strokeStyle = c; ctx.globalAlpha = 0.8; ctx.lineWidth = Math.max(0.9, L * 0.008); ctx.lineCap = "round";
+  const rails = [];
+  for (let i = 0; i < 4; i++) {
+    const s = S(0.47 + i * 0.09);
+    const ax = s.p.x + s.n.x * s.w * 0.8 * s.u, ay = s.p.y + s.n.y * s.w * 0.8 * s.u;
+    const bx = s.p.x - s.n.x * s.w * 0.55 * s.u, by = s.p.y - s.n.y * s.w * 0.55 * s.u;
+    rails.push([ax, ay, bx, by]);
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+  }
+  for (let i = 0; i < 3; i++) {
+    const [a1x, a1y, b1x, b1y] = rails[i], [a2x, a2y, b2x, b2y] = rails[i + 1];
+    const k = i % 2 === 0 ? 0.3 : 0.62;
+    ctx.beginPath();
+    ctx.moveTo(a1x + (b1x - a1x) * k, a1y + (b1y - a1y) * k);
+    ctx.lineTo(a2x + (b2x - a2x) * k, a2y + (b2y - a2y) * k);
+    ctx.stroke();
+  }
+  ctx.fillStyle = c; ctx.globalAlpha = 0.95;
+  const [ax, ay, bx, by] = rails[1];
+  ctx.beginPath(); ctx.arc(ax + (bx - ax) * 0.3, ay + (by - ay) * 0.3, Math.max(1, L * 0.011), 0, 7); ctx.fill();
+  ctx.restore();
+}
+function oldTriad(ctx, g, def) {
+  const { S, L } = g; if (!S) return;
+  const c = def.rim || "#D9A441";
+  ctx.save();
+  for (const t of [0.52, 0.61, 0.70]) {
+    const s = S(t);
+    const bx = s.p.x + s.n.x * s.w * 0.42 * s.u, by = s.p.y + s.n.y * s.w * 0.42 * s.u;
+    const r = Math.max(2.2, L * 0.032);
+    ctx.fillStyle = c; ctx.strokeStyle = "rgba(18,10,4,.65)"; ctx.lineWidth = Math.max(1, L * 0.009);
+    ctx.beginPath(); ctx.moveTo(bx, by - r); ctx.lineTo(bx + r * 0.72, by); ctx.lineTo(bx, by + r); ctx.lineTo(bx - r * 0.72, by); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "rgba(255,250,235,.55)";
+    ctx.beginPath(); ctx.arc(bx, by - r * 0.25, r * 0.2, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+}
+function oldOugon(ctx, g, def) {
+  const { ex, ey, eyeR, L } = g;
+  const c = def.rim || "#C9A227";
+  ctx.save();
+  ctx.strokeStyle = "rgba(18,10,4,.6)"; ctx.lineWidth = Math.max(1.6, eyeR * 0.62);
+  ctx.beginPath(); ctx.arc(ex, ey, eyeR * 1.75, 0, 7); ctx.stroke();
+  ctx.strokeStyle = c; ctx.lineWidth = Math.max(1.1, eyeR * 0.42);
+  ctx.beginPath(); ctx.arc(ex, ey, eyeR * 1.75, 0, 7); ctx.stroke();
+  ctx.globalAlpha = 0.85; ctx.lineWidth = Math.max(0.8, eyeR * 0.22);
+  ctx.beginPath(); ctx.arc(ex, ey + eyeR * 0.4, eyeR * 2.45, 0.45, 2.0); ctx.stroke();
+  ctx.restore();
+}
+const OLD = { chrono: oldChrono, amidagura: oldAmidagura, triad: oldTriad, ougon: oldOugon };
+const FN = { chrono: "traitChrono", amidagura: "traitAmidagura", triad: "traitTriad", ougon: "traitOugon" };
+const NEW = {}; for (const k in FN) NEW[k] = Render[FN[k]];
+
+const spA = SPECIES.find((s) => s.id === "kanahebi"), spB = SPECIES.find((s) => s.id === "nihontokage");
+function mk(sp, key) {
+  return Game.makeLizard(sp.id, "normal", { hue: sp.hue, sat: sp.sat, light: sp.light, pattern: "stripe", traits: [{ key }] }, "adult");
+}
+function drawAt(ctx, lz, x, y, scale) {
+  lz.x = x / scale; lz.y = y / scale; lz.tx = lz.x; lz.ty = lz.y; lz.angle = 0.12; lz.moving = false;
+  ctx.save(); ctx.scale(scale, scale);
+  Render.drawLizard(ctx, lz, true);
+  ctx.restore();
+}
+function clearCache() { Render._lizCache && Render._lizCache.clear && Render._lizCache.clear(); }
+
+// ---- 近目並置(1.8倍・4種×現/刷新×両種) ----
+const c1 = document.getElementById("cmp").getContext("2d");
+c1.fillStyle = "#2c2118"; c1.fillRect(0, 0, 900, 1120);
+const NAMES = { chrono: "クロノ(皮下の文字盤)", amidagura: "アミダグラ(格子路と灯)", triad: "トライアド(原初の顔料)", ougon: "オウゴンヅカ(玄室の金箔)" };
+["chrono", "amidagura", "triad", "ougon"].forEach((key, bi) => {
+  const y0 = bi * 280;
+  c1.font = "13px system-ui"; c1.fillStyle = "#e4bc3a";
+  c1.fillText(NAMES[key], 20, y0 + 20);
+  c1.fillStyle = "#c9b8a2";
+  c1.fillText("現", 20, y0 + 80); c1.fillText("新", 20, y0 + 210);
+  Render[FN[key]] = OLD[key]; clearCache();
+  drawAt(c1, mk(spA, key), 250, y0 + 90, 1.8); drawAt(c1, mk(spB, key), 670, y0 + 90, 1.8);
+  Render[FN[key]] = NEW[key]; clearCache();
+  drawAt(c1, mk(spA, key), 250, y0 + 220, 1.8); drawAt(c1, mk(spB, key), 670, y0 + 220, 1.8);
+});
+
+// ---- 遠目(実寸1.0×・通常個体の群れ+B2保持4匹) ----
+const c2 = document.getElementById("far").getContext("2d");
+c2.fillStyle = "#b39869"; c2.fillRect(0, 0, 900, 330);
+const spots = [[110, 80], [260, 200], [420, 90], [700, 70], [820, 210], [180, 265], [560, 280], [760, 160]];
+spots.forEach(([x, y], i) => {
+  const sp = i % 2 ? spA : spB;
+  const lz = Game.makeLizard(sp.id, "normal", { hue: sp.hue, sat: sp.sat, light: sp.light, pattern: ["stripe", "spot", "none"][i % 3], traits: [] }, "adult");
+  drawAt(c2, lz, x, y, 1.0);
+});
+[["chrono", 320, 160], ["amidagura", 540, 130], ["triad", 640, 250], ["ougon", 480, 205]].forEach(([key, x, y], i) => {
+  drawAt(c2, mk(i % 2 ? spB : spA, key), x, y, 1.0);
+  c2.strokeStyle = "#e4bc3a"; c2.globalAlpha = .5; c2.strokeRect(x - 52, y - 30, 104, 62); c2.globalAlpha = 1;
+  c2.font = "11px system-ui"; c2.fillStyle = "#e4bc3a"; c2.fillText(NAMES[key].split("(")[0], x - 50, y - 36);
+});
+</script>
+</body>
+</html>

@@ -3771,7 +3771,9 @@ const Render = {
     const anim = (CFG.shizuBlinkOn !== false && keys.includes("shizumimachi"))
       || (CFG.neonBlinkOn !== false && keys.includes("neon"))
       || (CFG.shinkaiPulseOn !== false && keys.includes("shinkai"))
-      || (CFG.youganPulseOn !== false && keys.includes("yougan"));
+      || (CFG.youganPulseOn !== false && keys.includes("yougan"))
+      || (CFG.chronoTickOn !== false && keys.includes("chrono"))
+      || (CFG.amidaWalkOn !== false && keys.includes("amidagura"));
     if (anim) sig += "|b" + Math.floor(this.time * 2);
     return sig;
   },
@@ -3864,27 +3866,102 @@ const Render = {
   },
 
   // トライアド(tier2): 背の縁に沿って三連の菱紋(砂金)。背側=S(t)の+n*u側。暗い縁取りで明色種でも沈まない。
+  // R5-b B2: トライアド=「原初の顔料で描かれた三連紋」。手描きの不揃い・かすれ・飛沫。
+  //   岩肌に最初に描かれた印=完全静止。連結線=三つがひとつの印であること。
   traitTriad(ctx, g, def) {
-    const { S, L } = g; if (!S) return;
+    const { S, body, L } = g; if (!S) return;
     const c = def.rim || "#D9A441";
-    ctx.save();
-    for (const t of [0.52, 0.61, 0.70]) {
+    const size = CFG.triadSize != null ? CFG.triadSize : 0.036;
+    const splat = CFG.triadSplat != null ? CFG.triadSplat : 6;
+    const h2 = (a, b) => { let h = (a * 374761393 + b * 668265263) ^ (a << 7); h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967295; };
+    ctx.save(); if (body) ctx.clip(body);
+    const pts = [0.52, 0.61, 0.70].map((t) => {
       const s = S(t);
-      const bx = s.p.x + s.n.x * s.w * 0.42 * s.u, by = s.p.y + s.n.y * s.w * 0.42 * s.u;
-      const r = Math.max(2.2, L * 0.032);
-      ctx.fillStyle = c; ctx.strokeStyle = "rgba(18,10,4,.65)"; ctx.lineWidth = Math.max(1, L * 0.009);
-      ctx.beginPath(); ctx.moveTo(bx, by - r); ctx.lineTo(bx + r * 0.72, by); ctx.lineTo(bx, by + r); ctx.lineTo(bx - r * 0.72, by); ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = "rgba(255,250,235,.55)"; // 紋の芯(小さな光)
-      ctx.beginPath(); ctx.arc(bx, by - r * 0.25, r * 0.2, 0, 7); ctx.fill();
+      return [s.p.x + s.n.x * s.w * 0.42 * s.u, s.p.y + s.n.y * s.w * 0.42 * s.u];
+    });
+    // 連結線: 三紋を結ぶかすれた顔料線(切れ切れ=指でなぞった跡)
+    ctx.strokeStyle = c; ctx.lineCap = "round"; ctx.lineWidth = Math.max(0.8, L * 0.006);
+    for (let i = 0; i < 2; i++) {
+      const [x0, y0] = pts[i], [x1, y1] = pts[i + 1];
+      for (let d = 0; d < 3; d++) { // 3切片=かすれ
+        const k0 = 0.15 + d * 0.28, k1 = k0 + 0.18;
+        ctx.globalAlpha = 0.35 + h2(i, d) * 0.25;
+        ctx.beginPath();
+        ctx.moveTo(x0 + (x1 - x0) * k0, y0 + (y1 - y0) * k0);
+        ctx.lineTo(x0 + (x1 - x0) * k1, y0 + (y1 - y0) * k1);
+        ctx.stroke();
+      }
     }
+    pts.forEach(([bx, by], idx) => {
+      const r = Math.max(2.6, L * size);
+      // 顔料の菱形: 頂点を決定論ジッタ=手描きの不揃い
+      const j = (v) => (h2(idx, v) - 0.5) * r * 0.22;
+      ctx.fillStyle = c; ctx.strokeStyle = "rgba(18,10,4,.65)"; ctx.lineWidth = Math.max(1, L * 0.009); ctx.globalAlpha = 0.92;
+      ctx.beginPath();
+      ctx.moveTo(bx + j(1), by - r + j(2));
+      ctx.lineTo(bx + r * 0.72 + j(3), by + j(4));
+      ctx.lineTo(bx + j(5), by + r + j(6));
+      ctx.lineTo(bx - r * 0.72 + j(7), by + j(8));
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // 重ね塗りのむら: 内側の明るい層(ずらして重ねる=岩絵具)
+      ctx.fillStyle = "rgba(255,240,210,.30)";
+      ctx.beginPath();
+      ctx.moveTo(bx + j(1) * 0.5 - r * 0.08, by - r * 0.55);
+      ctx.lineTo(bx + r * 0.38, by - r * 0.05);
+      ctx.lineTo(bx - r * 0.02, by + r * 0.5);
+      ctx.lineTo(bx - r * 0.42, by + r * 0.02);
+      ctx.closePath(); ctx.fill();
+      // 紋の芯(継承=小さな光)
+      ctx.fillStyle = "rgba(255,250,235,.6)";
+      ctx.beginPath(); ctx.arc(bx, by - r * 0.25, r * 0.2, 0, 7); ctx.fill();
+      // 顔料の飛沫: 紋のまわりへ小さく散る(描いた者の勢い)
+      ctx.fillStyle = c;
+      for (let k = 0; k < Math.ceil(splat / 3); k++) {
+        const a = h2(idx * 7 + k, 9) * Math.PI * 2, d = r * (1.3 + h2(idx * 7 + k, 10) * 0.9);
+        ctx.globalAlpha = 0.25 + h2(idx * 7 + k, 11) * 0.3;
+        ctx.beginPath(); ctx.arc(bx + Math.cos(a) * d, by + Math.sin(a) * d * 0.7, Math.max(0.5, r * 0.09 * (0.6 + h2(idx * 7 + k, 12))), 0, 7); ctx.fill();
+      }
+    });
     ctx.restore();
   },
 
   // オウゴンヅカ(tier2): 眼のまわりの金の縁取り(二重環+下瞼の小さな金)。顔=頭部ジオメトリのみ使用。
+  // R5-b B2: オウゴンヅカ=「玄室の暗さの中で鈍く光る金箔」。埋葬の影の帯に、貼られた金箔片が散る。
+  //   眼の金環=旧意匠の遺産を「死者の装身具」として継承。金は動かない=完全静止。
   traitOugon(ctx, g, def) {
-    const { ex, ey, eyeR, L } = g;
+    const { S, body, ex, ey, eyeR, L } = g;
     const c = def.rim || "#C9A227";
+    const leaves = CFG.ougonLeaf != null ? CFG.ougonLeaf : 7;
+    const shade = CFG.ougonShade != null ? CFG.ougonShade : 0.30;
+    const h2 = (a, b) => { let h = (a * 374761393 + b * 668265263) ^ (a << 7); h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967295; };
     ctx.save();
+    if (S && body) {
+      ctx.save(); ctx.clip(body);
+      // ①玄室の影: 胴に沈む暗い帯(金は暗さの中でこそ鈍く光る)
+      const s0 = S(0.44), s1 = S(0.80);
+      const grad = ctx.createLinearGradient(0, s0.p.y - s0.w * 0.9, 0, s0.p.y + s0.w * 0.7);
+      grad.addColorStop(0, "rgba(20,14,8,0)");
+      grad.addColorStop(0.5, "rgba(20,14,8," + shade.toFixed(3) + ")");
+      grad.addColorStop(1, "rgba(20,14,8," + (shade * 0.6).toFixed(3) + ")");
+      ctx.fillStyle = grad;
+      ctx.fillRect(Math.min(s0.p.x, s1.p.x) - L, s0.p.y - s0.w * 1.2, Math.abs(s1.p.x - s0.p.x) + L * 2, s0.w * 2.6);
+      // ②金箔片: 不揃いの小片が貼られている(角度・大きさ・明度=決定論・鈍い光)
+      for (let i = 0; i < leaves; i++) {
+        const u = 0.46 + h2(i, 1) * 0.32;
+        const s = S(u);
+        const px = s.p.x + (h2(i, 2) - 0.5) * L * 0.03, py = s.p.y + (h2(i, 3) - 0.45) * s.w * 0.85;
+        const sz = L * (0.019 + h2(i, 4) * 0.020), rot = (h2(i, 5) - 0.5) * 0.9;
+        ctx.save(); ctx.translate(px, py); ctx.rotate(rot);
+        ctx.fillStyle = i % 3 === 0 ? "#F5D77A" : c; // 新しい箔と古びた箔
+        ctx.shadowColor = c; ctx.shadowBlur = 3; ctx.globalAlpha = 0.85 + h2(i, 6) * 0.15;
+        ctx.fillRect(-sz / 2, -sz * 0.35, sz, sz * 0.7);
+        ctx.shadowBlur = 0; ctx.globalAlpha = 0.5; ctx.strokeStyle = "rgba(18,10,4,.7)"; ctx.lineWidth = Math.max(0.5, L * 0.003);
+        ctx.strokeRect(-sz / 2, -sz * 0.35, sz, sz * 0.7);
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+    // ③眼の金環(継承=死者の装身具)
     ctx.strokeStyle = "rgba(18,10,4,.6)"; ctx.lineWidth = Math.max(1.6, eyeR * 0.62);
     ctx.beginPath(); ctx.arc(ex, ey, eyeR * 1.75, 0, 7); ctx.stroke(); // 暗い下地(明色種で沈まない)
     ctx.strokeStyle = c; ctx.lineWidth = Math.max(1.1, eyeR * 0.42);
@@ -4055,56 +4132,137 @@ const Render = {
   },
 
   // アミダグラ(tier3): 胴の体表に幾何学の網目(縦桟+横桟のあみだ紋・輪郭clip)。手法=体表の紋様(面)。
+  // R5-b B2: アミダグラ=「見下ろす者の格子路」。体側全体のあみだ路+運命を下る一つの灯。
+  //   灯は0.5s粒度で路を一歩ずつ進む(CFGでOFF=路の途中で止まった灯)。上端は天へ淡く抜ける。
   traitAmidagura(ctx, g, def) {
     const { S, body, L } = g; if (!S || !body) return;
     const c = def.rim || "#9B6BD6";
+    const railsN = CFG.amidaRails != null ? CFG.amidaRails : 5;
+    const glow = CFG.amidaGlow != null ? CFG.amidaGlow : 3;
+    const walkOn = CFG.amidaWalkOn !== false;
+    const time = (typeof Render !== "undefined" ? Render.time : 0);
     ctx.save(); ctx.clip(body);
-    ctx.strokeStyle = c; ctx.globalAlpha = 0.8; ctx.lineWidth = Math.max(0.9, L * 0.008); ctx.lineCap = "round";
+    ctx.lineCap = "round";
     const rails = [];
-    for (let i = 0; i < 4; i++) { // 縦桟(背→腹へ)
-      const s = S(0.47 + i * 0.09);
-      const ax = s.p.x + s.n.x * s.w * 0.8 * s.u, ay = s.p.y + s.n.y * s.w * 0.8 * s.u;
-      const bx = s.p.x - s.n.x * s.w * 0.55 * s.u, by = s.p.y - s.n.y * s.w * 0.55 * s.u;
+    for (let i = 0; i < railsN; i++) { // 縦桟(背→腹へ・体側全体)
+      const s = S(0.45 + i * (0.34 / Math.max(1, railsN - 1)));
+      const ax = s.p.x + s.n.x * s.w * 0.88 * s.u, ay = s.p.y + s.n.y * s.w * 0.88 * s.u;
+      const bx = s.p.x - s.n.x * s.w * 0.60 * s.u, by = s.p.y - s.n.y * s.w * 0.60 * s.u;
       rails.push([ax, ay, bx, by]);
+      // 天へ抜ける気配: 上端(背側)ほど淡い=グラデ縦桟
+      const rg = ctx.createLinearGradient(ax, ay, bx, by);
+      rg.addColorStop(0, "rgba(155,107,214,.25)"); rg.addColorStop(0.35, "rgba(155,107,214,.8)"); rg.addColorStop(1, "rgba(155,107,214,.65)");
+      ctx.strokeStyle = rg; ctx.globalAlpha = 1; ctx.lineWidth = Math.max(0.9, L * 0.008);
       ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
     }
-    for (let i = 0; i < 3; i++) { // 横桟(あみだの渡し・互い違い)
+    ctx.strokeStyle = c;
+    const crossK = [];
+    for (let i = 0; i < railsN - 1; i++) { // 横桟(あみだの渡し・互い違い)
       const [a1x, a1y, b1x, b1y] = rails[i], [a2x, a2y, b2x, b2y] = rails[i + 1];
-      const k = i % 2 === 0 ? 0.3 : 0.62;
+      const k = i % 2 === 0 ? 0.30 : 0.62;
+      crossK.push(k);
+      ctx.globalAlpha = 0.72; ctx.lineWidth = Math.max(0.9, L * 0.008);
       ctx.beginPath();
       ctx.moveTo(a1x + (b1x - a1x) * k, a1y + (b1y - a1y) * k);
       ctx.lineTo(a2x + (b2x - a2x) * k, a2y + (b2y - a2y) * k);
       ctx.stroke();
+      // 交点の刻印(小さな点=路の結び目)
+      ctx.fillStyle = c; ctx.globalAlpha = 0.5;
+      ctx.beginPath(); ctx.arc(a1x + (b1x - a1x) * k, a1y + (b1y - a1y) * k, Math.max(0.7, L * 0.006), 0, 7); ctx.fill();
     }
-    ctx.fillStyle = c; ctx.globalAlpha = 0.95; // 節点の灯
-    const [ax, ay, bx, by] = rails[1];
-    ctx.beginPath(); ctx.arc(ax + (bx - ax) * 0.3, ay + (by - ay) * 0.3, Math.max(1, L * 0.011), 0, 7); ctx.fill();
+    // 運命を下る灯: あみだの規則(横桟に出会えば渡る)で決まる一本道を一歩ずつ
+    const path = [];
+    { // 経路を決定論で構築(開始=桟0の上端)
+      let ri = 0, k0 = 0;
+      path.push([ri, 0]);
+      const stops = [];
+      for (let i = 0; i < crossK.length; i++) stops.push({ k: crossK[i], from: i, to: i + 1 });
+      stops.sort((a, b) => a.k - b.k);
+      for (const st of stops) {
+        if (st.k <= k0) continue;
+        if (st.from === ri || st.to === ri) { path.push([ri, st.k]); ri = st.from === ri ? st.to : st.from; path.push([ri, st.k]); k0 = st.k; }
+      }
+      path.push([ri, 1]);
+    }
+    const seg = (idx) => { const [ri, k] = path[idx]; const [ax, ay, bx, by] = rails[ri]; return [ax + (bx - ax) * k, ay + (by - ay) * k]; };
+    const stepN = path.length - 1;
+    const step = walkOn ? Math.floor(time * 2) % (stepN + 2) : 2; // +2=終点で一呼吸
+    const si = Math.min(step, stepN - 1);
+    const [lx0, ly0] = seg(si), [lx1, ly1] = seg(si + 1);
+    const lx = (lx0 + lx1) / 2, ly = (ly0 + ly1) / 2;
+    ctx.fillStyle = "#E6D6FF"; ctx.shadowColor = c; ctx.shadowBlur = glow; ctx.globalAlpha = 0.95;
+    ctx.beginPath(); ctx.arc(lx, ly, Math.max(1.1, L * 0.012), 0, 7); ctx.fill();
     ctx.restore();
   },
 
   // クロノ(tier4): 尾が秒針めいて分節(真鍮の節輪)+胴に微細な歯車紋1つ。部位=尾(尾のしなり=S(t)に追従)。
+  // R5-b B2: クロノ=「皮下で時を刻む真鍮の文字盤」。半透明の文字盤+2針+噛み合う歯車。
+  //   尾の節輪=旧意匠の遺産を「秒針の名残」として継承。分針は0.5s粒度で一歩ずつ刻む(CFGでOFF=止まった時刻)。
   traitChrono(ctx, g, def) {
-    const { S, L } = g; if (!S) return;
+    const { S, body, L } = g; if (!S) return;
     const c = def.rim || "#B8955A";
+    const dialR = CFG.chronoDialR != null ? CFG.chronoDialR : 0.058;
+    const gears = CFG.chronoGears != null ? CFG.chronoGears : 2;
+    const tickOn = CFG.chronoTickOn !== false;
+    const time = (typeof Render !== "undefined" ? Render.time : 0);
     ctx.save(); ctx.lineCap = "round";
+    // 尾の節輪(継承=秒針の名残・先端ほど太い)
     ctx.strokeStyle = c; ctx.globalAlpha = 0.9;
-    for (let i = 0; i < 5; i++) { // 尾の節輪(先端ほど密)
+    for (let i = 0; i < 5; i++) {
       const t = 0.07 + i * 0.065;
       const s = S(t);
       const ax = s.p.x + s.n.x * s.w * 1.0 * s.u, ay = s.p.y + s.n.y * s.w * 1.0 * s.u;
       const bx = s.p.x - s.n.x * s.w * 1.0 * s.u, by = s.p.y - s.n.y * s.w * 1.0 * s.u;
-      ctx.lineWidth = Math.max(0.9, L * (i === 0 ? 0.013 : 0.009)); // 先端の輪は太く=秒針の頭
+      ctx.lineWidth = Math.max(0.9, L * (i === 0 ? 0.013 : 0.009));
       ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
     }
-    const s = S(0.58); // 胴の歯車紋(小・1つだけ=気配)
-    const gx = s.p.x, gy = s.p.y + s.w * 0.05, r = Math.max(2, L * 0.026);
-    ctx.lineWidth = Math.max(0.8, L * 0.007);
-    ctx.beginPath(); ctx.arc(gx, gy, r, 0, 7); ctx.stroke();
-    for (let a = 0; a < 6.28; a += Math.PI / 4) {
-      ctx.beginPath(); ctx.moveTo(gx + Math.cos(a) * r, gy + Math.sin(a) * r);
-      ctx.lineTo(gx + Math.cos(a) * r * 1.32, gy + Math.sin(a) * r * 1.32); ctx.stroke();
+    if (body) {
+      ctx.save(); ctx.clip(body);
+      const sd = S(0.60), dx = sd.p.x, dy = sd.p.y + sd.w * 0.05, r = Math.max(3.2, L * dialR);
+      // 皮下の真鍮面(半透明=肌の下に沈んでいる)
+      const bg = ctx.createRadialGradient(dx, dy, 1, dx, dy, r * 1.3);
+      bg.addColorStop(0, "rgba(184,149,90,.22)"); bg.addColorStop(1, "rgba(184,149,90,0)");
+      ctx.fillStyle = bg; ctx.globalAlpha = 1;
+      ctx.fillRect(dx - r * 1.4, dy - r * 1.4, r * 2.8, r * 2.8);
+      // 文字盤の輪+12目盛(3の倍数は太い)
+      ctx.strokeStyle = c; ctx.globalAlpha = 0.85; ctx.lineWidth = Math.max(0.8, L * 0.006);
+      ctx.beginPath(); ctx.arc(dx, dy, r, 0, 7); ctx.stroke();
+      for (let m = 0; m < 12; m++) {
+        const a = (m / 12) * Math.PI * 2;
+        const inner = m % 3 === 0 ? 0.78 : 0.88;
+        ctx.lineWidth = Math.max(0.6, L * (m % 3 === 0 ? 0.006 : 0.004));
+        ctx.beginPath();
+        ctx.moveTo(dx + Math.cos(a) * r * inner, dy + Math.sin(a) * r * inner);
+        ctx.lineTo(dx + Math.cos(a) * r * 0.97, dy + Math.sin(a) * r * 0.97);
+        ctx.stroke();
+      }
+      // 針: 時針=固定(この個体が生まれた時刻)・分針=0.5sで一歩(tickOn=false なら止まった時刻)
+      const hourA = -1.15;
+      const minStep = tickOn ? Math.floor(time * 2) % 12 : 8;
+      const minA = (minStep / 12) * Math.PI * 2 - Math.PI / 2;
+      ctx.globalAlpha = 0.95; ctx.strokeStyle = "#E8D5A8";
+      ctx.lineWidth = Math.max(1, L * 0.008);
+      ctx.beginPath(); ctx.moveTo(dx, dy); ctx.lineTo(dx + Math.cos(hourA) * r * 0.5, dy + Math.sin(hourA) * r * 0.5); ctx.stroke();
+      ctx.lineWidth = Math.max(0.7, L * 0.005);
+      ctx.beginPath(); ctx.moveTo(dx, dy); ctx.lineTo(dx + Math.cos(minA) * r * 0.8, dy + Math.sin(minA) * r * 0.8); ctx.stroke();
+      ctx.fillStyle = "#E8D5A8"; ctx.beginPath(); ctx.arc(dx, dy, Math.max(0.8, L * 0.006), 0, 7); ctx.fill();
+      // 噛み合う歯車(文字盤の縁に接する・淡い=皮下の機構)
+      ctx.strokeStyle = c;
+      for (let k = 0; k < gears; k++) {
+        const ga = 0.6 + k * 2.2, gr = r * (k === 0 ? 0.52 : 0.34);
+        const gx = dx + Math.cos(ga) * (r + gr) * 0.98, gy = dy + Math.sin(ga) * (r + gr) * 0.98;
+        ctx.globalAlpha = 0.55 - k * 0.12; ctx.lineWidth = Math.max(0.6, L * 0.005);
+        ctx.beginPath(); ctx.arc(gx, gy, gr, 0, 7); ctx.stroke();
+        for (let a = 0; a < 6.28; a += Math.PI / 4) {
+          ctx.beginPath();
+          ctx.moveTo(gx + Math.cos(a) * gr, gy + Math.sin(a) * gr);
+          ctx.lineTo(gx + Math.cos(a) * gr * 1.3, gy + Math.sin(a) * gr * 1.3);
+          ctx.stroke();
+        }
+        ctx.beginPath(); ctx.arc(gx, gy, gr * 0.25, 0, 7); ctx.stroke();
+      }
+      ctx.restore();
     }
-    ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx, gy - r * 0.62); ctx.stroke(); // 針
     ctx.restore();
   },
 
