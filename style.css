@@ -2356,21 +2356,23 @@ button.holding::after {
 /* ==== 本部右メニュー(UISkills §14・v5 HUD言語=琥珀/ブラケット/等幅サブ) ==== */
 #hqlab-row { flex: 1; min-height: 0; display: flex; }
 #hqlab-row #hqlab-wrap { flex: 1; min-width: 0; }
-#hqlab-menu { width: var(--hqmenu-w, 168px); display: flex; flex-direction: column; gap: 10px;
-  padding: 18px 14px 18px 4px; justify-content: center; }
-#hqlab-menu button { display: flex; align-items: center; gap: 9px; text-align: left;
+#hqlab-menu { width: var(--hqmenu-w, 200px); display: flex; flex-direction: column; gap: var(--hqmenu-gap, 12px);
+  padding: var(--hqmenu-pady, 96px) 14px var(--hqmenu-pady, 96px) 4px; }
+#hqlab-menu.hm-spread { justify-content: space-between; } /* 裁定①: ヘッダ罫線下〜ティッカー上へ均等分布 */
+#hqlab-menu.hm-stack { justify-content: center; }
+#hqlab-menu button { display: flex; align-items: center; gap: 11px; text-align: left;
   background: rgba(255,181,71,.035); border: 1px solid rgba(255,181,71,.18); border-radius: 3px;
-  color: rgba(255,181,71,.85); padding: 9px 10px; cursor: pointer; position: relative;
-  font-size: calc(13px * var(--fs-scale, 1)); transition: background .12s, border-color .12s, color .12s; }
+  color: rgba(255,181,71,.85); padding: 14px 13px; cursor: pointer; position: relative;
+  font-size: calc(16px * var(--hqmenu-fs, 1) * var(--fs-scale, 1)); transition: background .12s, border-color .12s, color .12s; }
 #hqlab-menu button::before, #hqlab-menu button::after { content: ""; position: absolute; width: 7px; height: 7px; pointer-events: none; }
 #hqlab-menu button::before { left: -3px; top: -3px; border-left: 1.4px solid rgba(255,181,71,.65); border-top: 1.4px solid rgba(255,181,71,.65); }
 #hqlab-menu button::after { right: -3px; bottom: -3px; border-right: 1.4px solid rgba(255,181,71,.65); border-bottom: 1.4px solid rgba(255,181,71,.65); }
 #hqlab-menu button:hover { background: rgba(255,181,71,.10); border-color: rgba(255,181,71,.75); color: rgba(255,181,71,1); }
-#hqlab-menu button svg.icon { width: 18px; height: 18px; flex: none; }
-#hqlab-menu .hm-tx { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
-#hqlab-menu .hm-en { font-family: ui-monospace, "Consolas", monospace; font-size: 9px; color: rgba(255,181,71,.42); letter-spacing: .05em; }
-@media (max-width: 900px) { /* 縮退: アイコンのみ */
-  #hqlab-menu { width: var(--hqmenu-w-narrow, 52px); padding-right: 8px; }
+#hqlab-menu button svg.icon { width: calc(22px * var(--hqmenu-fs, 1)); height: calc(22px * var(--hqmenu-fs, 1)); flex: none; }
+#hqlab-menu .hm-tx { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+#hqlab-menu .hm-en { font-family: ui-monospace, "Consolas", monospace; font-size: calc(10.5px * var(--hqmenu-fs, 1)); color: rgba(255,181,71,.42); letter-spacing: .05em; }
+@media (max-width: 900px) { /* 縮退: アイコンのみ(同比率拡大+均等分布は維持) */
+  #hqlab-menu { width: var(--hqmenu-w-narrow, 52px); padding-left: 0; padding-right: 8px; }
   #hqlab-menu .hm-tx { display: none; }
-  #hqlab-menu button { justify-content: center; padding: 10px 6px; }
+  #hqlab-menu button { justify-content: center; padding: 13px 6px; }
 }

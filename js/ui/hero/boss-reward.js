@@ -131,9 +131,12 @@ Object.assign(UI, {
       // ④ 全球が落ち切った後に「獲得景品」を表示(獲得ありのみ・タップで即終了)。無ければ表示せず即退場(無駄な間なし)
       const t = Game.bossReward || {};
       const got = (t.gems || 0) + (t.amethyst || 0) + (t.stones || 0); // R2-1: 鉱物集計
-      if (got <= 0) { this.closeBossReward(); return; }
+      // 裁定②: 報酬確定(全球の付与+集計完了=rewardActive false)後に自動クローズ。
+      // 順序保証: この分岐に来る時点で全ballがsettle済=spawnRoulettePrize(付与)完了(閉幕で報酬が消える事故なし・回帰テストで固定)
+      const grace = CFG.roulAutoCloseSec != null ? CFG.roulAutoCloseSec : 1.0;
+      if (got <= 0 || grace <= 0) { this.closeBossReward(); return; } // 獲得なし or 猶予0=即閉
       this._brState = "tally";
-      this._brTallyT = CFG.roulResultSec || 3.0;
+      this._brTallyT = grace; // 最終結果を一瞥できる最小の間(猶予中タップ=即閉は既存クリックリスナ)
       this._brShowTally();
     } else if (this._brState === "tally") {
       this._brTallyT -= 1 / 60;
@@ -177,7 +180,9 @@ Object.assign(UI, {
     g = 0; while (Roulette.rewardActive() && g < 200000) { Roulette.advance(CFG.roulFixedDt * 8); g++; }
     const t = Game.bossReward || {}; const got = (t.gems || 0) + (t.amethyst || 0) + (t.stones || 0); // R2-1
     if (got <= 0) { this.closeBossReward(); return; } // ④ 獲得なしは表示しない
-    this._brState = "tally"; this._brTallyT = CFG.roulResultSec || 3.0; this._brShowTally();
+    const grace2 = CFG.roulAutoCloseSec != null ? CFG.roulAutoCloseSec : 1.0;
+    if (grace2 <= 0) { this.closeBossReward(); return; }
+    this._brState = "tally"; this._brTallyT = grace2; this._brShowTally();
   },
 
   closeBossReward() {

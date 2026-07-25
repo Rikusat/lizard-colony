@@ -76,8 +76,12 @@ Object.assign(UI, {
     row.appendChild(wrap);
     const nav = document.createElement("nav");
     nav.id = "hqlab-menu";
-    nav.style.setProperty("--hqmenu-w", (CFG.hqMenuWidth || 168) + "px");
+    nav.style.setProperty("--hqmenu-w", (CFG.hqMenuWidth || 200) + "px");
     nav.style.setProperty("--hqmenu-w-narrow", (CFG.hqMenuWidthNarrow || 52) + "px");
+    nav.style.setProperty("--hqmenu-fs", CFG.hqMenuFontScale != null ? CFG.hqMenuFontScale : 1); // 裁定①: フォント係数
+    nav.style.setProperty("--hqmenu-gap", (CFG.hqMenuGap != null ? CFG.hqMenuGap : 12) + "px");
+    nav.style.setProperty("--hqmenu-pady", (CFG.hqMenuPadY != null ? CFG.hqMenuPadY : 96) + "px");
+    nav.classList.add((CFG.hqMenuLayout || "spread") === "spread" ? "hm-spread" : "hm-stack"); // 裁定①: 縦の使い切り
     for (const it of (CFG.hqMenuItems || [])) {
       const b = document.createElement("button");
       b.type = "button";

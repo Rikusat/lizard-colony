@@ -2181,9 +2181,14 @@ const Game = {
       if (lz.returning) {
         lz.spot = null; // 帰巣中は居場所を離れる(姿勢解除)
         const n = this.nestEntryFor(lz); // §8.16: 割り当て入口へ歩く(動線分散)
-        const dx = (n.x) - lz.x, dy = (n.y + 10) - lz.y, dist = Math.hypot(dx, dy);
-        if (dist < CFG.nestArriveR) { lz.returning = false; lz.resting = true; lz.restedAt = Date.now(); lz.moving = false; this.refreshCrowdScale(); continue; }
-        const spd = CFG.nestWalkSpeed * dt;
+        // 裁定③: ボス戦時の避難=①判定半径拡大(nestEntryRadius) ②避難速度別枠(nestFleeSpeedMult)
+        // ③到達点分散(id決定論の横オフセット=出撃個体とすれ違わない別レーン)。通常時の出入りは従来どおり。
+        const fleeing = !!this.raid;
+        const arriveR = fleeing ? (CFG.nestEntryRadius || CFG.nestArriveR) : CFG.nestArriveR;
+        const lane = fleeing ? (((lz.id * 7919) >>> 0) % (arriveR * 2)) - arriveR : 0;
+        const dx = (n.x + lane) - lz.x, dy = (n.y + 10) - lz.y, dist = Math.hypot(dx, dy);
+        if (dist < arriveR) { lz.returning = false; lz.resting = true; lz.restedAt = Date.now(); lz.moving = false; this.refreshCrowdScale(); continue; }
+        const spd = CFG.nestWalkSpeed * (fleeing ? (CFG.nestFleeSpeedMult || 3.5) : 1) * dt;
         lz.x += (dx / dist) * Math.min(spd, dist); lz.y += (dy / dist) * Math.min(spd, dist);
         lz.angle = Math.atan2(dy, dx); lz.moving = true;
         lz.x = clamp(lz.x, 20, W - 20); lz.y = clamp(lz.y, FIELD.y1 - 30, H - 20);

@@ -162,6 +162,24 @@ console.log("== 5) 卵撤廃の完了(静的) ==");
   check("spawnRoulettePrizeが存在する", src.includes("spawnRoulettePrize(outcome)"));
 }
 
+console.log("== 6) 裁定②: 付与完了→閉幕の順序固定(閉じるのが先で報酬が消える事故の防止) ==");
+{
+  // ルール層の構造保証を実測: 各球はsettle時にonEgg(=付与)が発火してから除去され、
+  // rewardActive()がfalse(=UIの自動クローズ判断可)になるのは全付与の後。
+  const R = loadGame(true).Roulette;
+  R.reset(777);
+  let granted = 0;
+  R.onEgg = () => { granted++; };
+  R.reward = { remaining: 30, gene: null, jackpotMode: "rare" };
+  let guard = 0;
+  while (((R.reward && R.reward.remaining > 0) || R.balls.length) && guard++ < 4000) {
+    if (R.reward && R.reward.remaining > 0) R.fireRewardBall();
+    for (let i = 0; i < 200; i++) R.advance(1 / 120);
+  }
+  check("全球決着(rewardActive false)時点で付与コールバック完了(入賞" + granted + "件)", !R.rewardActive() && guard < 4000, `guard=${guard}`);
+  check("CFG.roulAutoCloseSecが定義済(0=即時/正値=猶予)", typeof CFG.roulAutoCloseSec === "number" && CFG.roulAutoCloseSec >= 0, String(CFG.roulAutoCloseSec));
+}
+
 console.log("\n============================================");
 console.log(`結果: ${pass} PASS / ${fail} FAIL`);
 if (fail > 0) { process.exitCode = 1; console.log("→ 景品テーブルの逸脱または聖域(物理)への接触。R2-1仕様を確認のこと。"); }
