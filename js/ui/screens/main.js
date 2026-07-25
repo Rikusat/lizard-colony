@@ -118,7 +118,7 @@ Object.assign(UI, {
       <div class="stat"><span>攻撃力</span><b>${Game.lizardAtk(lz).toFixed(1)}</b></div>
       <div class="stat"><span>生産/秒</span><b>${Game.lizardIncome(lz).toFixed(2)}G</b></div>
       ${lz.injuredT > 0 ? `<div class="injured">負傷中 (あと${Math.ceil(lz.injuredT)}秒)</div>` : ""}
-      ${lz.breedCd > 0 ? `<div style="color:var(--sub)">${Icon.svg("breed")} 繁殖まで ${Math.ceil(lz.breedCd)}秒</div>` : ""}
+      ${lz.breedCd > 0 ? `<div style="color:var(--sub)">${Icon.svg("breed")} 繁殖まで ${Math.ceil(lz.breedCd)}秒 <button data-act="cd-amethyst" class="mini" style="opacity:.8" title="アメジスト${CFG.amethystCdResetCost || 2}個でクールダウンを解く" ${Game.ore("amethyst") >= (CFG.amethystCdResetCost || 2) ? "" : "disabled"}>${Icon.svg("amethyst")}${CFG.amethystCdResetCost || 2}</button></div>` : ""}
       ${lz.founder ? `<div style="color:var(--gold)">${Icon.svg("crown")} 創始者 — 旧コロニーの血統</div>` : ""}
             <div class="btns">
         <button data-act="feed">${Icon.svg("cricket")} 餌やり</button>
@@ -167,6 +167,7 @@ Object.assign(UI, {
     if (!lz) return;
     switch (btn.dataset.act) {
       case "feed": Game.feed(lz); break;
+      case "cd-amethyst": if (Game.amethystCdReset(lz)) this.renderDetail(); break; // R3: 繁殖CDリセット(⬡消費)
       case "heal": Game.healWithGem(lz); break;
       case "mutate": Game.mutateLizard(lz); break;
       case "breed": this.openBreedPicker(lz); return; // 3.11.4: 相手選択ウィンドウへ

@@ -9,8 +9,8 @@ UI.init();
 
 // 遺伝子ルーレット: 卵生成の注入(ルール層Roulette→Gameの卵システム接続。roulette.md §7)
 if (typeof Roulette !== "undefined") {
-  Roulette.onEgg = (outcome) => Game.spawnRouletteEgg(outcome);
-  // Phase3.13報酬: 景品穴は常に開く(卵はspawnRouletteEggで段階変換=捨てない)。旧②(a)の満杯クローズは撤廃
+  Roulette.onEgg = (outcome) => Game.spawnRoulettePrize(outcome); // R2-1: 卵→鉱物報酬(コールバック名onEggはルール層API=据置)
+  // R2-1: 景品=鉱物(◇/⬡/●)につき満杯概念なし=景品穴は常に開く
   Roulette.canAcceptEgg = null;
 }
 

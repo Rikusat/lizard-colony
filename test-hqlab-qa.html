@@ -14,7 +14,7 @@
 <!-- 本体DOM(index.html準拠・#hqlab含む) -->
 <header id="topbar"><div id="brand"></div>
   <div class="res"><b id="ui-coins">0</b><small id="ui-cps"></small></div>
-  <div class="res"><b id="ui-crickets-top">0</b></div><div class="res"><b id="ui-gems">0</b></div><div class="res"><b id="ui-stones">0</b></div>
+  <div class="res"><b id="ui-crickets-top">0</b></div><div class="res"><b id="ui-gems">0</b></div><div class="res"><b id="ui-amethyst">0</b></div><div class="res"><b id="ui-stones">0</b></div>
   <nav><button id="btn-map"></button><button id="btn-hq"></button><span id="hq-badge"></span><button id="btn-dex"></button><span id="dex-badge"></span>
   <button id="btn-missions"></button><span id="mission-badge"></span><button id="btn-stats"></button><span id="stats-badge"></span><button id="btn-settings"></button></nav>
 </header>
@@ -136,6 +136,16 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       Game._badgeHq = true; UI.openHqLab();
       ok("機能: 新着ドットは本部を開くと消える", Game._badgeHq === false);
 
+      // ===== R3: 繁殖CDリセット(⬡実操作) =====
+      Game.addOre("amethyst", 5);
+      var cdlz = Game.state.lizards[0];
+      cdlz.breedCd = 120; Game.selectedId = cdlz.id; UI.renderDetail();
+      var cdBtn = document.querySelector('#detail [data-act="cd-amethyst"]');
+      var am0 = Game.ore("amethyst");
+      if (cdBtn) cdBtn.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); // 実配線=pointerdown(core.js:121)
+      ok("R3: CDリセット実クリック=breedCd0+⬡消費" + (CFG.amethystCdResetCost || 2), !!cdBtn && cdlz.breedCd === 0 && Game.ore("amethyst") === am0 - (CFG.amethystCdResetCost || 2), "btn=" + !!cdBtn + " cd=" + cdlz.breedCd + " am=" + Game.ore("amethyst"));
+      ok("R3: トップバーにアメジスト残数(#ui-amethyst)", !!document.getElementById("ui-amethyst"));
+
       // ===== 合成UIの実行(実クリック) =====
       var mz = Game.state.lizards[0];
       mz.traits = [{ key: "shinkai" }, { key: "neon" }]; Game.state.stones = 50;
@@ -169,6 +179,12 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       holoClick(800, 418);
       ok("判定: 中央フィードクリックで飼育槽へ戻る", !UI.hqLabOpen());
       UI.openHqLab();
+      holoClick(1382, 660);
+      ok("判定: 観測ログ実クリックで標本棚パネルが開く(裁定①・T3)", !!document.getElementById("modal-body").querySelector("#hq-lore"));
+      UI.closeModal();
+      holoClick(1450, 54);
+      ok("判定: SPACEPORTインジケータ実クリックで宇宙港パネルが開く(裁定①)", /段階|完成/.test(document.getElementById("modal-body").textContent));
+      UI.closeModal();
       UI._labRoomTierOverride = null;
       // ===== fps実測(フル再描画/静的blit方式の確認) =====
       var t0 = performance.now(); for (var fi = 0; fi < 120; fi++) UI.renderHqLab();

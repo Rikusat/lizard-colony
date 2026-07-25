@@ -120,10 +120,10 @@ const CFG = {
   roulRewardEmitInterval: 0.35, // 報酬モードの球射出間隔(秒・長押し/スキップの自動発射ペース)
   roulRewardBalls: { 0: 8, 1: 10, 2: 16, 3: 22, 4: 28, 5: 34, 6: 40 }, // ボスTier別の報酬球数(見届けた強敵ほど厚い)
   roulRewardEliteBonus: 12, // Phase10.3: 大ボス(elite)は出球が増える(報酬が厚い)。★たたき台=Ric調整可
-  roulRewardOverflowGold: 40, // 卵オーバーフロー(スロット満杯+収容枠も満杯)時に1卵→Gold換算する額
+  // R2-1(2026-07-25): 景品=鉱物テーブル(★たたき台=Ric調整)。旧卵系キー(OverflowGold/RareMorphChance/RareEggBonusLv)は退役=git記録
+  roulPrizeNormal: { win: { gems: 1 }, rainbow: { amethyst: 1 } },   // 通常ボス: 景品帯=◇ダイヤ / 虹=⬡アメジスト
+  roulPrizeElite: { win: { amethyst: 1 }, rainbow: { stones: 1 } },  // 大ボス: 景品帯=⬡ / 虹=●賢者の石
   // §1.2.2 中央ポケットの景品(盤geometryは共通・景品のみボス格で差替): 通常ボス=レア卵 / 大ボス(elite)=虹(新種)
-  roulRareMorphChance: 0.5, // レア卵(通常ボスの中央): 非normalモーフ(albino/mela/golden)になる確率
-  roulRareEggBonusLv: 2,    // レア卵はアダルトで初期Lv=1+この値で誕生(高品質個体)
   // C2演出(ヒーローオーバーレイ): 撃破の余韻→間→せり上がり→撃つ→集計→退場
   roulRewardDelaySec: 1.5,  // ボス撃破→報酬盤せり上がりまでの「間」(余韻・実機で1.2〜1.8を詰める)
   roulRewardTallySec: 0.5,  // §9.2: 全球落下後の余韻(内部の状態遷移用・短縮)
@@ -218,6 +218,7 @@ const CFG = {
   holoBootOn: true,           // 起動シーケンス(開くたび再生)。false=スキップ(即・全点灯)
   holoBootSpeed: 1.0,         // 起動シーケンスの速度倍率(2=2倍速で短縮)
   holoTrackSec: 5,            // 個体追跡ロックオンの巡回間隔(秒・決定論=乱数不使用)
+  amethystCdResetCost: 2,     // R3: 繁殖CDリセット1回のアメジスト消費(★[A]調整)
   // 研究デスクパネル(UISkills §13 R4改訂・統一書式の色/文言・★Ric調整)
   planCurColor: "#ecc35a",    // 充足の琥珀
   planLackColor: "#d8404e",   // 不足「あと◯」の深紅

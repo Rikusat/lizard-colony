@@ -87,12 +87,15 @@ Object.assign(UI, {
   // ---------------- 当たり判定(設計座標1600×900・モジュール=PoCレイアウトの矩形) ----------------
   _hqlabZones() {
     const W = HOLO.W, H = HOLO.H;
-    return [
+    const zs = [
       { key: "tank", rects: [{ x0: 64, y0: 118, x1: 64 + 252, y1: 118 + 250 }] },          // 錬成槽モジュール→錬成パネル
       { key: "archive", rects: [{ x0: 64, y0: 404, x1: 64 + 252, y1: 404 + 210 }] },       // 標本アーカイブ→図鑑
       { key: "desks", rects: [{ x0: W - 372, y0: H * 0.30 + 96, x1: W - 372 + 308, y1: H * 0.30 + 96 + 190 }] }, // 投資リング→研究デスク
+      { key: "rocket", rects: [{ x0: W - 260, y0: 30, x1: W - 40, y1: 78 }] },             // 裁定①: SPACEPORTインジケータ(ヘッダ右)→宇宙港パネル
       { key: "feed", rects: [{ x0: W * 0.5 - HOLO.R, y0: H * 0.465 - HOLO.R, x1: W * 0.5 + HOLO.R, y1: H * 0.465 + HOLO.R }] }, // 中央フィード→飼育槽へ戻る
     ];
+    if (this.labRoomTier() >= 3) zs.splice(3, 0, { key: "shelf", rects: [{ x0: W - 372, y0: H * 0.30 + 312, x1: W - 372 + 308, y1: H * 0.30 + 312 + 150 }] }); // 裁定①: 観測ログ(T3点灯時)→標本棚パネル
+    return zs;
   },
   _hqlabZoneAt(x, y) {
     for (const z of this._hqlabZones()) for (const r of z.rects) if (x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1) return z.key;
@@ -386,7 +389,7 @@ Object.assign(UI, {
         const hpP = trk.injuredT > 0 ? Math.max(0, Math.round(100 - trk.injuredT * 10)) : 100;
         const bars = Math.round(hpP / 10);
         ctx.fillStyle = trk.injuredT > 0 ? CRd + "0.9)" : AMd + "0.9)";
-        ctx.fillText(`HP ${"█".repeat(bars)}${"░".repeat(10 - bars)} ${hpP}%`, x + 62, y + 100);
+        ctx.fillText(`${"█".repeat(bars)}${"░".repeat(10 - bars)} ${hpP}%`, x + 62, y + 100); // 裁定③: 「HP」表記撤去=VITALS(負傷残時間近似・負傷中は深紅=自切/尾再生と接続)
       }
       ctx.restore();
     }
@@ -442,6 +445,15 @@ Object.assign(UI, {
       ctx.fillText("LIZARD COLONY · HQ COMMAND", 40, 72);
       ctx.strokeStyle = AMd + "0.35)"; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(40, 84); ctx.lineTo(W - 40, 84); ctx.stroke();
+      // 裁定①: SPACEPORTインジケータ(ヘッダ右・最小表現=小さな機影+微ラベル。クリック→宇宙港パネル)
+      const rk = Game.ensureRocket();
+      const spx = W - 150, spy = 52;
+      ctx.fillStyle = AMd + "0.75)";
+      ctx.beginPath(); ctx.moveTo(spx, spy - 12); ctx.lineTo(spx + 5, spy - 2); ctx.lineTo(spx + 5, spy + 2); ctx.lineTo(spx + 8, spy + 7); ctx.lineTo(spx - 8, spy + 7); ctx.lineTo(spx - 5, spy + 2); ctx.lineTo(spx - 5, spy - 2); ctx.closePath(); ctx.fill();
+      ctx.font = "10" + FONT_T; ctx.fillStyle = AMd + "0.45)"; ctx.textAlign = "left";
+      ctx.fillText("SPACEPORT", spx + 16, spy + 2);
+      ctx.fillStyle = rk.done ? AMd + "0.9)" : AMd + "0.4)";
+      ctx.fillText(rk.done ? "READY" : `STAGE ${rk.stage + 1}/${CFG.rocketStages.length}`, spx + 16, spy + 15);
       ctx.restore();
     }
     const tA = st(t, 2100, 500);

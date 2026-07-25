@@ -92,6 +92,7 @@ main { flex: 1 1 auto; min-height: 0; width: 100%; }
 .ricon.cricket { background: radial-gradient(circle at 35% 30%, #b9d97a, #6f9436 65%, #4a681f); }
 .ricon.gem { background: radial-gradient(circle at 35% 30%, #b7e6ff, #4f9fd9 60%, #2a5f96); }
 /* 賢者の石(3.15): 錬金の"赤い石"=深紅が完成形。沈んだワインレッドで神秘と不吉さを同居(§②)。トークンで調整可 */
+.ricon.amethyst { background: radial-gradient(circle at 35% 30%, #d9c2f2, #8a5fc9 60%, #4f3380); } /* R3: ダイヤ<アメジスト<石の序列(青<紫<深紅) */
 .ricon.stone { background: radial-gradient(circle at 50% 50%, var(--stone-deep) 0%, var(--stone-mid) 52%, var(--stone-hi) 100%); color: var(--stone-icon); box-shadow: 0 0 8px var(--stone-glow); }
 
 #topbar nav { margin-left: auto; display: flex; gap: 10px; }

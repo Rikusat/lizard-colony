@@ -320,11 +320,12 @@ Object.assign(UI, {
 
     // 球(ルール層の実(x,y)を描く・しっかりした球体・#1)
     for (const b of Roulette.balls) {
-      const g = b.gene || {};
+      // R2-1: 球=鉱物(通常ボス=◇ダイヤ球/大ボス=⬡アメジスト球)。色はmode由来(geneは景品に不使用へ)
+      const mineralMode = (Roulette.reward && Roulette.reward.jackpotMode) || "rare";
       const nearC = Math.abs(b.x - cx) < pzOut && b.y > railEndY; // 中央帯に迫る=期待
-      const hue = g.hue != null ? g.hue : 120;
-      const sat = g.sat != null ? g.sat : 70;
-      const li = g.light != null ? g.light : 58;
+      const hue = mineralMode === "rainbow" ? 268 : 205;
+      const sat = mineralMode === "rainbow" ? 52 : 62;
+      const li = mineralMode === "rainbow" ? 62 : 72;
       // 球体(放射グラデで立体感)
       const bg = ctx.createRadialGradient(b.x - b.r * 0.35, b.y - b.r * 0.35, b.r * 0.2, b.x, b.y, b.r);
       bg.addColorStop(0, `hsl(${hue},${sat}%,${Math.min(90, li + 28)}%)`);
@@ -333,6 +334,17 @@ Object.assign(UI, {
       ctx.fillStyle = bg; ctx.fill();
       ctx.strokeStyle = `hsla(${hue},${sat}%,${Math.min(94, li + 30)}%,.85)`;
       ctx.lineWidth = 0.9 / scale; ctx.stroke();
+      // R2-1: 鉱物マーク(◇=ダイヤ/⬟=アメジスト)を球面に小さく
+      const mr = b.r * 0.5;
+      ctx.strokeStyle = `hsla(${hue},${sat}%,22%,.75)`; ctx.lineWidth = 1 / scale;
+      ctx.beginPath();
+      if (mineralMode === "rainbow") { // 五角錐(アメジストの形クラス)
+        ctx.moveTo(b.x, b.y - mr); ctx.lineTo(b.x - mr * 0.9, b.y - mr * 0.1); ctx.lineTo(b.x - mr * 0.6, b.y + mr);
+        ctx.lineTo(b.x + mr * 0.6, b.y + mr); ctx.lineTo(b.x + mr * 0.9, b.y - mr * 0.1);
+      } else { // カット菱形(ダイヤの形クラス)
+        ctx.moveTo(b.x, b.y - mr); ctx.lineTo(b.x + mr, b.y); ctx.lineTo(b.x, b.y + mr); ctx.lineTo(b.x - mr, b.y);
+      }
+      ctx.closePath(); ctx.stroke();
       // ハイライト
       ctx.beginPath(); ctx.arc(b.x - b.r * 0.34, b.y - b.r * 0.34, b.r * 0.3, 0, 7);
       ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.fill();
@@ -376,7 +388,7 @@ Object.assign(UI, {
     }
   },
 
-  // レインボー新種誕生の画面演出フック(game.spawnRouletteEggから呼ばれる)
+  // (R2-1で呼出元消滅=旧レインボー新種演出。資産として残置・git記録)
   rouletteRainbowFx() {
     const wrap = document.getElementById("roulette-wrap");
     if (wrap && !Motion.reduced) Motion.play(wrap, "roul-pop");

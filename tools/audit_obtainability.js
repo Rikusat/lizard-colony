@@ -74,36 +74,30 @@ function freshLizard() {
 }
 
 // ------------------------------------------------------------
-console.log("== A) 種×モーフ(非レジェ): 虹景品の候補が全惑星で8/8を被覆 ==");
+console.log("== A) 種×モーフ(非レジェ): 繁殖経路で全惑星8/8を被覆(R2-1卵撤廃後の正規根拠) ==");
 {
-  const nonLeg = MORPHS.filter((m) => !m.legendary);
+  // R2-1改定: 旧根拠=虹景品(pickUnownedDexEntry被覆)は卵撤廃で消滅→繁殖(inherit)MCが正規根拠(H節と同手法)
+  const nonLeg = MORPHS.filter((m) => !m.legendary).map((m) => m.id);
   const missing = [];
   for (const st of STAGES) {
     setupPlanet(st.id);
+    Game.state.nest = { lv: 8 };
+    const pool = Game.breedablePool();
     const want = new Set();
-    for (const spId of Game.endemicSpecies(st.id)) for (const mo of nonLeg) want.add(spId + ":" + mo.id);
-    // pickUnownedDexEntryの候補全列挙と等価: 未所持を1つずつ潰して全数到達を確認(決定論)
-    for (let guard = 0; guard < 100 && want.size; guard++) {
-      const p = Game.pickUnownedDexEntry(st.id);
-      if (!p) break;
-      const key = p[0].id + ":" + p[1].id;
-      want.delete(key);
-      Game.state.dex[key] = 1; // 所持化→次の未所持へ
+    for (const sp of pool) for (const mo of nonLeg) want.add(sp.id + ":" + mo);
+    for (let i = 0; i < 20000 && want.size; i++) {
+      const a = { speciesId: pool[i % 2].id, morphId: "normal", hue: 100, sat: 50, light: 50, pattern: "none" };
+      const b2 = { speciesId: pool[(i + 1) % 2].id, morphId: i % 3 === 0 ? "albino" : "normal", hue: 100, sat: 50, light: 50, pattern: "none" };
+      const g = Game.inherit(a, b2);
+      if (g.morphId !== "legendary") want.delete(g.speciesId + ":" + g.morphId);
     }
     if (want.size) missing.push(`stage${st.id}: 残 ${[...want].join(",")}`);
   }
-  check(`全${STAGES.length}惑星: 固有2種×非レジェ${MORPHS.filter((m) => !m.legendary).length}モーフを虹景品で全数被覆`, missing.length === 0, missing.join(" / "));
+  check(`全${STAGES.length}惑星: 固有2種×非レジェ4モーフを繁殖で全数被覆`, missing.length === 0, missing.join(" / "));
 }
 
-console.log("== B) レジェンダリーモーフ: 3経路の実測到達 ==");
+console.log("== B) レジェンダリーモーフ: 非ルーレット経路の実測到達(R2-1: 虹コンプ経路は卵撤廃で消滅→繁殖/隕石/アメジストが正規) ==");
 {
-  // B1: 虹コンプ後フォールバック(決定論=100%)
-  setupPlanet(STAGES[0].id);
-  for (const sp of SPECIES) for (const mo of MORPHS) Game.state.dex[sp.id + ":" + mo.id] = 1;
-  Game.spawnRouletteEgg({ rainbow: true, mode: "rainbow" });
-  const egg1 = Game.state.eggs[Game.state.eggs.length - 1];
-  check("虹コンプ後: レジェンダリー卵(決定論)", !!egg1 && egg1.morphId === "legendary", egg1 && egg1.morphId);
-
   // B2: 隕石(meteoriteLegendChance>0 → MC上限内に出現)
   let seen = false;
   const cap = Math.ceil(200 / Math.max(CFG.meteoriteLegendChance, 0.001));

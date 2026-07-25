@@ -130,7 +130,7 @@ Object.assign(UI, {
     if (this._brState === "firing" && !Roulette.rewardActive()) {
       // ④ 全球が落ち切った後に「獲得景品」を表示(獲得ありのみ・タップで即終了)。無ければ表示せず即退場(無駄な間なし)
       const t = Game.bossReward || {};
-      const got = (t.eggs || 0) + (t.rares || 0) + (t.rainbows || 0);
+      const got = (t.gems || 0) + (t.amethyst || 0) + (t.stones || 0); // R2-1: 鉱物集計
       if (got <= 0) { this.closeBossReward(); return; }
       this._brState = "tally";
       this._brTallyT = CFG.roulResultSec || 3.0;
@@ -144,12 +144,13 @@ Object.assign(UI, {
   _brUpdateTray() {
     const el = document.getElementById("boss-reward"); if (!el) return;
     const t = Game.bossReward || {};
-    const special = this._brReward && this._brReward.jackpotMode === "rare"
-      ? '<span class="rare">レア卵 ' + (t.rares || 0) + "</span>"
-      : '<span class="rainbow">新種 ' + (t.rainbows || 0) + "</span>";
-    // ④ 射出中は残数のみ(獲得の内訳は落ち切った後=tallyで見せる=演出と被らない)
+    // R2-1: 卵→鉱物報酬(◇ダイヤ/⬡アメジスト/●石)。射出中は残数のみ(内訳はtallyで)
     if (this._brState === "tally") {
-      el.querySelector(".br-tray").innerHTML = '<span class="got">獲得</span><span>卵 ' + (t.eggs || 0) + "</span>" + special;
+      const parts = [];
+      if (t.gems) parts.push("<span>◇ " + t.gems + "</span>");
+      if (t.amethyst) parts.push('<span class="rare">⬡ ' + t.amethyst + "</span>");
+      if (t.stones) parts.push('<span class="rainbow">● ' + t.stones + "</span>");
+      el.querySelector(".br-tray").innerHTML = '<span class="got">獲得</span>' + parts.join("");
     } else {
       const rem = (typeof Roulette !== "undefined") ? Roulette.rewardRemaining() : 0;
       el.querySelector(".br-tray").innerHTML = '<span class="rem">残 ' + rem + "</span>";
@@ -174,7 +175,7 @@ Object.assign(UI, {
     let g = 0;
     while (Roulette.rewardRemaining() > 0 && g < 5000) { Roulette.fireRewardBall(); g++; }
     g = 0; while (Roulette.rewardActive() && g < 200000) { Roulette.advance(CFG.roulFixedDt * 8); g++; }
-    const t = Game.bossReward || {}; const got = (t.eggs || 0) + (t.rares || 0) + (t.rainbows || 0);
+    const t = Game.bossReward || {}; const got = (t.gems || 0) + (t.amethyst || 0) + (t.stones || 0); // R2-1
     if (got <= 0) { this.closeBossReward(); return; } // ④ 獲得なしは表示しない
     this._brState = "tally"; this._brTallyT = CFG.roulResultSec || 3.0; this._brShowTally();
   },

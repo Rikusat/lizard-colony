@@ -156,17 +156,13 @@ for (let S = 1; S <= 10; S++) {
   check("migrateV9to10: 冪等(2回目は除去0/版数維持)", w3.version === 10 && auditWorld(exp, w3).foreignLiz === 0);
 }
 
-// === 5) 実生成→監査の統合(各惑星でルーレット卵を大量生成しても混入0) ===
+// === 5) 実生成→監査の統合(R2-1改定: ルーレットは鉱物報酬=卵を生成しない。純血非関与を各惑星で確認) ===
 {
   Game.newGame(); Game.state.rank = 106;
   for (let S = 1; S <= 10; S++) {
     Game.state.stageSel = S; Game.state.lizards = []; Game.state.eggs = [];
-    // 現惑星の固有種を種にしてルーレット卵を大量生成
-    const endemic = Game.endemicSpecies(S);
-    const gene = { speciesId: endemic[0], morphId: "normal", hue: 100, sat: 60, light: 55, pattern: "none" };
-    for (let i = 0; i < 200; i++) { Game.state.eggs = []; Game.spawnRouletteEgg({ rainbow: Math.random() < 0.5, gene }); }
-    const foreign = Game.state.eggs.filter((e) => !endemic.includes(e.speciesId));
-    check(`stage${S}: spawnRouletteEgg量産で混入0`, foreign.length === 0, `混入=${foreign.map((e) => e.speciesId)}`);
+    for (let i = 0; i < 50; i++) Game.spawnRoulettePrize({ rainbow: Math.random() < 0.5, mode: Math.random() < 0.5 ? "rare" : "rainbow" });
+    check(`stage${S}: spawnRoulettePrize量産で卵0(鉱物のみ=純血非関与)`, Game.state.eggs.length === 0, `eggs=${Game.state.eggs.length}`);
   }
 }
 
