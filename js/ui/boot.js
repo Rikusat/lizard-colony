@@ -63,7 +63,7 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
 
   // dev支援(Ric指示 2026-07-25): 個体一覧ビューア(?tune=1#roster・読み取り専用=書き込みコードなし・進行非干渉)。
   // 実セーブの全惑星・全個体をテーブル表示(R5-b意匠判定・[A]詰め・デバッグの基礎資料)。dev道具=ハードコード可。
-  if (location.hash === "#roster") {
+  { // #roster: 初回ロード時+hashchange両対応(同一URLのハッシュ変更はリロードされないため=調査で特定した起動漏れの根治)
     const buildRoster = () => {
       let host = document.getElementById("dev-roster");
       if (!host) {
@@ -97,7 +97,19 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
       const moOpts = MORPHS.map((m) => `<option value="${m.id}" ${state.fMo === m.id ? "selected" : ""}>${m.name}</option>`).join("");
       const th = (key, label) => `<th data-sort="${key}" style="cursor:pointer;text-align:left;padding:4px 8px;border-bottom:1px solid #5a4a33;color:#e4bc3a">${label}${state.sort === key ? (state.dir > 0 ? " ▲" : " ▼") : ""}</th>`;
       const thS = (label) => `<th style="text-align:left;padding:4px 8px;border-bottom:1px solid #5a4a33;color:#e4bc3a">${label}</th>`;
-      let html = `<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+      // セーブ同定(環境違い事故の30秒切り分け用): キー/origin/ランク/G/惑星数/最終保存+経路自己診断
+      let ident = "";
+      try {
+        const raw = localStorage.getItem(CFG.saveKey);
+        const parsed = raw ? JSON.parse(raw) : null;
+        const rawRank = parsed && parsed.headquarters ? parsed.headquarters.rank : (parsed ? parsed.rank : null);
+        const pathOk = parsed ? (rawRank === Game.state.rank ? "本体経路と一致 ✓" : `⚠不一致(raw=${rawRank}/state=${Game.state.rank})`) : "セーブなし(新規)";
+        const savedAt = (Game.world && Game.world.savedAt) ? new Date(Game.world.savedAt).toLocaleString("ja-JP") : "—";
+        ident = `<div style="font:11px ui-monospace,monospace;color:#a89a83;margin-bottom:6px">
+          SAVE: key=<b>${CFG.saveKey}</b> @ ${location.origin} / ランク <b style="color:#e4bc3a">${Game.state.rank}</b> / ${Math.floor(Game.state.coins).toLocaleString()}G /
+          惑星 ${((Game.world && Game.world.stages) || []).length} / 最終保存 ${savedAt} / 読取経路: ${pathOk}</div>`;
+      } catch (e) { ident = `<div style="color:#d8404e">SAVE同定失敗: ${e}</div>`; }
+      let html = ident + `<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
         <b style="font-size:15px">個体一覧(dev・読み取り専用)</b>
         <span>総数 ${rows.length} / 特性持ち ${nTr} / 固定印 ${nFx} / レジェンダリー ${nLeg}</span>
         <label>種 <select id="rst-sp"><option value="">すべて</option>${spOpts}</select></label>
@@ -134,6 +146,11 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
         buildRoster();
       });
     };
-    setTimeout(buildRoster, 400); // boot完了後にスナップショット表示(更新ボタンで再読取り・書き込みなし)
+    const rosterGate = () => {
+      if (location.hash === "#roster") buildRoster();
+      else { const h = document.getElementById("dev-roster"); if (h) h.remove(); }
+    };
+    window.addEventListener("hashchange", rosterGate);
+    if (location.hash === "#roster") setTimeout(buildRoster, 400); // boot完了後にスナップショット表示(更新ボタンで再読取り・書き込みなし)
   }
 }
