@@ -434,6 +434,21 @@ const Game = {
     if ((lz.traits || []).length >= CFG.traitMaxPerLizard) return [];
     return Object.keys(TRAITS).filter((k) => !TRAITS[k].synth && !this.hasTrait(lz, k));
   },
+  // R5-a(2026-07-25承認): 創世のランダム化。プール=createableTraits(基本12の未所持・上限3・レジェ除外=血統重複なしの既存仕様継承)。
+  // 一様抽選×正規乱数(遺伝と同じ窓口)。コスト=一律CFG.stoneGenesisRandCost(結果を知らずに払うため定額)。戻り値=宿ったkey(UIがFx完了時に開示)。
+  genesisTraitRand(lz, silent) {
+    const pool = this.createableTraits(lz);
+    if (!pool.length) { if (!silent) UI.toast(lz && lz.morphId === "legendary" ? "レジェンダリーには特性を宿せない" : "これ以上は特性を宿せない(上限)", true); return false; }
+    const cost = CFG.stoneGenesisRandCost || 4;
+    if (this.stones() < cost) { if (!silent) UI.denyFlash("stones"); return false; }
+    this.addStone(-cost);
+    const key = pool[Math.floor(Math.random() * pool.length)]; // 一様抽選(正規乱数)
+    lz.traits = lz.traits || [];
+    lz.traits.push({ key });
+    this.genesisFx(lz.x, lz.y); // 深紅の錬成(開示はUIがFx完了時に)
+    return key;
+  },
+  // 指名創世(R5-aで選択UIは撤去済=プレイヤー導線なし)。テスト/合成検証のフィクスチャ用の内部APIとして残置。
   genesisTrait(lz, key, silent) {
     if (!lz || lz.morphId === "legendary") { if (!silent) UI.toast("レジェンダリーには特性を宿せない", true); return false; }
     if (typeof TRAITS === "undefined" || !TRAITS[key]) return false;

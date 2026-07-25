@@ -118,25 +118,26 @@ console.log("== B) レジェンダリーモーフ: 非ルーレット経路の�
   check("アメジスト(amethystEgg): レジェンダリー卵(確定)", okAm === true && !!eAm && eAm.morphId === "legendary", `ret=${okAm} morph=${eAm && eAm.morphId}`);
 }
 
-console.log("== C) 創世: 12基本=全数可 / 6合成専用=全数不可 ==");
+console.log("== C) 創世(R5-a乱択): 12基本=乱択で全到達 / 6合成専用=プール外(混入0) ==");
 {
+  // R5-a改定: プレイヤー正規手順=genesisTraitRand(一様抽選×正規乱数・一律コスト)。指名APIはテストフィクスチャのみ。
   const basic = Object.keys(TRAITS).filter((k) => !TRAITS[k].synth);
-  const synth = Object.keys(TRAITS).filter((k) => TRAITS[k].synth);
-  const ngB = [], ngS = [];
-  for (const key of basic) {
+  const seen = new Set();
+  let synthLeak = 0, rolls = 0;
+  while (seen.size < basic.length && rolls < 5000) {
     setupPlanet(STAGES[0].id);
     const lz = freshLizard();
     Game.addStone(999);
-    if (!(Game.genesisTrait(lz, key, true) && Game.hasTrait(lz, key))) ngB.push(key);
+    const key = Game.genesisTraitRand(lz, true);
+    rolls++;
+    if (key) { seen.add(key); if (TRAITS[key].synth) synthLeak++; }
   }
-  check(`12基本: 創世で全数獲得可 (実測${basic.length}種)`, basic.length === 12 && ngB.length === 0, `basic=${basic.length} NG=[${ngB}]`);
-  for (const key of synth) {
-    setupPlanet(STAGES[0].id);
-    const lz = freshLizard();
-    Game.addStone(999);
-    if (Game.genesisTrait(lz, key, true)) ngS.push(key);
-  }
-  check(`6合成専用: 創世では全数不可 (実測${synth.length}種)`, synth.length === 6 && ngS.length === 0, `synth=${synth.length} 創世できてしまった=[${ngS}]`);
+  check(`12基本: 乱択MCで全到達(${rolls}ロール)`, seen.size === basic.length && basic.length === 12, `到達${seen.size}/12`);
+  check("6合成専用: 乱択プールに混入ゼロ", synthLeak === 0, "leak=" + synthLeak);
+  // 指名APIの現況: UI導線なし(フィクスチャ専用)・synthガード健在
+  setupPlanet(STAGES[0].id);
+  const lzg = freshLizard(); Game.addStone(999);
+  check("指名API(フィクスチャ): synthガード健在", Game.genesisTrait(lzg, "hagane", true) === false);
 }
 
 console.log("== D) レシピ解読I〜VI: 正規API(buyResearch)で順に解読可能 ==");
@@ -154,24 +155,31 @@ console.log("== D) レシピ解読I〜VI: 正規API(buyResearch)で順に解読�
   check("前提スキップ(いきなりrecipe3)は不可", !Game.buyResearch("recipe3"));
 }
 
-console.log("== E) 6合成: 正規手順(創世A→創世B→解読→synthesize)で全数到達 ==");
+console.log("== E) 6合成: 正規手順(乱択創世で素材2枚→解読→synthesize)で全数到達 ==");
 {
+  // R5-a改定: 素材調達も乱択(プレイヤー正規手順)。フレッシュ個体に最大2ロールで{a,b}成立を試行(不成立=次の個体・売却相当)。
   const ng = [];
   for (const rec of RECIPES) {
     setupPlanet(STAGES[0].id);
     Game.state.coins = 99999999;
     Game.addRes("science", 9999);
-    Game.addStone(999);
+    Game.addStone(999999);
     for (let o = 1; o <= rec.order; o++) Game.buyResearch("recipe" + o);
-    const lz = freshLizard();
-    const g1 = Game.genesisTrait(lz, rec.a, true), g2 = Game.genesisTrait(lz, rec.b, true);
-    const ok = Game.synthesize(lz, rec.result, true);
-    const traits = (lz.traits || []).map((t) => t.key);
-    if (!(g1 && g2 && ok && traits.length === 1 && traits[0] === rec.result)) {
-      ng.push(`${rec.result}(g1=${g1} g2=${g2} ok=${ok} traits=[${traits}])`);
+    let holder = null, tries = 0;
+    while (!holder && tries < 3000) {
+      const lz = freshLizard();
+      tries++;
+      const k1 = Game.genesisTraitRand(lz, true);
+      if (k1 !== rec.a && k1 !== rec.b) { Game.state.lizards.pop(); continue; }
+      const k2 = Game.genesisTraitRand(lz, true);
+      if ((k1 === rec.a && k2 === rec.b) || (k1 === rec.b && k2 === rec.a)) holder = lz;
+      else Game.state.lizards.pop();
     }
+    const okS = holder && Game.synthesize(holder, rec.result, true);
+    const traits = holder ? (holder.traits || []).map((t) => t.key) : [];
+    if (!(okS && traits.length === 1 && traits[0] === rec.result)) ng.push(`${rec.result}(tries=${tries})`);
   }
-  check("6レシピ: 全数到達・昇華後は成果のみ(素材消滅・個体不変)", ng.length === 0, ng.join(" / "));
+  check("6レシピ: 乱択素材→解読→synthesize全数到達・昇華後は成果のみ", ng.length === 0, ng.join(" / "));
 }
 
 console.log("== F) ガード(負系): 設計制約が破れていない ==");

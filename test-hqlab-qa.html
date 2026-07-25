@@ -176,6 +176,21 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       Game.state.research.recipe1 = true; // R1節のnewGameで消えた解読状態を復元(後続の合成テスト前提)
       Game.state.coins = 10000000; Game.addRes("bio", 5000);
 
+      // ===== R5-a: 創世乱択(実操作: 確認モーダル→実行=乱択1・石4消費) =====
+      (function () {
+        var lz5 = Game.state.lizards[0];
+        lz5.traits = []; lz5.fixedTraits = [];
+        Game.state.stones = 10; Game.selectedId = lz5.id; UI.renderDetail();
+        var gbtn = document.querySelector('#detail [data-act="genesis"]');
+        if (gbtn) gbtn.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+        var goEl = document.querySelector("#modal-body #gn-go");
+        ok("R5a: 創世ボタンで確認モーダル(ランダム明示)", !!goEl && /ランダム|選ぶことはできない/.test(document.getElementById("modal-body").textContent));
+        if (goEl) goEl.click();
+        var got = (lz5.traits || []).length === 1 && !TRAITS[(lz5.traits[0] || {}).key].synth;
+        ok("R5a: 実行=基本特性1つが宿る+石" + (CFG.stoneGenesisRandCost || 4) + "消費", got && Game.stones() === 10 - (CFG.stoneGenesisRandCost || 4), "traits=" + JSON.stringify(lz5.traits) + " st=" + Game.stones());
+        UI.closeModal();
+      })();
+
       // ===== R3: 繁殖CDリセット(⬡実操作) =====
       Game.addOre("amethyst", 5);
       var cdlz = Game.state.lizards[0];

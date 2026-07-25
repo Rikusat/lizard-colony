@@ -160,6 +160,45 @@ ok("stoneFixCost = base + tier×perTier", Game.stoneFixCost(3) === CFG.stoneFixB
   ok("固定込みでも決定論(同一seed=同一子)", r1 === r2, r1 + " vs " + r2);
 }
 
+console.log("== R5-a: genesis乱択の統計帯MC(恒久・N=24000・±5σ) ==");
+{
+  // 正規乱数につき黄金値不可→統計帯方式(roulette_rules §4の作法: 標本数と許容帯を明記)。
+  // 一様性: 各期待 N/プール数・帯=±5σ(偽陽性≈6e-7/セル)。プール数はハーネス注入特性込みで動的算出。
+  const N = 24000;
+  const counts = {};
+  let synthLeak = 0, costNg = 0;
+  for (let i = 0; i < N; i++) {
+    Game.newGame();
+    Game.state.lizards = [];
+    const lzR = Game.makeLizard("kanahebi", "normal", { hue: 1, sat: 1, light: 1, pattern: "none", traits: [] }, "adult");
+    Game.state.lizards.push(lzR);
+    Game.state.stones = 10;
+    const key = Game.genesisTraitRand(lzR, true);
+    if (!key) continue;
+    counts[key] = (counts[key] || 0) + 1;
+    if (TRAITS[key].synth) synthLeak++;
+    if (Game.stones() !== 10 - (CFG.stoneGenesisRandCost || 4)) costNg++;
+  }
+  const basicR = Object.keys(TRAITS).filter((k) => !TRAITS[k].synth); // 本番12+ハーネス注入のzt*も含む=プール実数で期待値を出す
+  const pR = 1 / basicR.length;
+  const expR = N * pR, bandR = Math.ceil(5 * Math.sqrt(N * pR * (1 - pR)));
+  const offBand = basicR.filter((k) => Math.abs((counts[k] || 0) - expR) > bandR);
+  ok("乱択: 12種全到達(N=" + N + ")", basicR.every((k) => (counts[k] || 0) > 0), basicR.filter((k) => !counts[k]).join(","));
+  ok("乱択: 合成専用6種の混入ゼロ", synthLeak === 0, "leak=" + synthLeak);
+  ok("乱択: 一様性=各" + expR + "±" + bandR + "(±5σ)", offBand.length === 0, offBand.map((k) => k + "=" + counts[k]).join(","));
+  ok("乱択: 一律コスト" + (CFG.stoneGenesisRandCost || 4) + "石の消費", costNg === 0, "ng=" + costNg);
+  Game.newGame(); Game.state.lizards = [];
+  const lzCap = Game.makeLizard("kanahebi", "normal", { hue: 1, sat: 1, light: 1, pattern: "none", traits: [{ key: "neon" }, { key: "shinkai" }, { key: "hyoga" }] }, "adult");
+  Game.state.lizards.push(lzCap); Game.state.stones = 10;
+  ok("乱択ガード: 上限3で不可", Game.genesisTraitRand(lzCap, true) === false);
+  const lzLeg = Game.makeLizard("kanahebi", "legendary", { hue: 1, sat: 90, light: 60, pattern: "none", traits: [] }, "adult");
+  Game.state.lizards.push(lzLeg);
+  ok("乱択ガード: レジェンダリーに不可", Game.genesisTraitRand(lzLeg, true) === false);
+  const lzPoor = Game.makeLizard("kanahebi", "normal", { hue: 1, sat: 1, light: 1, pattern: "none", traits: [] }, "adult");
+  Game.state.lizards.push(lzPoor); Game.state.stones = 1;
+  ok("乱択ガード: 石不足で不可", Game.genesisTraitRand(lzPoor, true) === false);
+}
+
 console.log(`\n=== 賢者の石(S5) 回帰テスト結果: ${pass} PASS / ${fail} FAIL ===`);
 if (fail) { console.log("FAILED:\n - " + fails.join("\n - ")); process.exit(1); }
 else console.log("すべてPASS(S5-a 創世 / S5-b 固定化=クリア後解禁・持つ特性のみ・100%継承・両親固定で2枚持ち確定・上限3/レジェンダリー除外/決定論と整合)");

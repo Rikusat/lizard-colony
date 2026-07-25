@@ -197,7 +197,8 @@ const CFG = {
   traitInheritFloor: 0.03,  // 下限=3%(最も希少な特性を保証)
   traitMaxPerLizard: 3,     // 1個体が持てる特性数の上限(§16 ③)
   // S5 賢者の石の用途(§16 ④ 案III=創世+固定化)。石は四重スリット成功で+1(1/85=希少)=precious。★全て たたき台=Ric実機で石ペースを見て調整。
-  stoneGenesisBase: 1,      // S5-a 創世コスト = これ + tier(tier1=2…tier5=6個)。レアほど多くの石=射幸心の入口
+  stoneGenesisBase: 1,      // (内部API genesisTrait用に残置=テスト/合成検証フィクスチャ。プレイヤー導線はR5-aでランダム化)
+  stoneGenesisRandCost: 4,  // R5-a: ランダム創世の一律コスト(結果を知らずに払う=定額・現行期待値近似)★[A]調整
   stoneFixBase: 4,          // S5-b 固定化コスト = これ + tier×stoneFixPerTier(tier1=6…tier5=14個)。両親固定で2枚持ち確定=601回の錬金ショートカット
   stoneFixPerTier: 2,
   stoneSynthBase: 6,        // 合成(§8)の石触媒 = これ + order×stoneSynthPerOrder(order1=8…order6=18個)。★石の経済(§8.6)提示後にRic最終調整

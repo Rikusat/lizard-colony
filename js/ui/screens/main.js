@@ -102,7 +102,7 @@ Object.assign(UI, {
     const xpMax = lz.stage === "baby" ? CFG.babyXpToAdult : CFG.adultXpPerLevel;
     // S5-a: この個体に創世できる新特性(未所持・上限3未満・非レジェンダリー)。最安コストで活性判定。
     const createable = Game.createableTraits(lz);
-    const genesisMinCost = createable.length ? Math.min(...createable.map((k) => Game.stoneGenesisCost(TRAITS[k].tier))) : 0;
+    const genesisRandCost = CFG.stoneGenesisRandCost || 4; // R5-a: ランダム創世=一律コスト
     // S5-b: 固定化できる特性(クリア後解禁・この個体が持つ未固定の特性)。
     const fixable = Game.fixUnlocked() ? Game.fixableTraits(lz) : [];
     const fixMinCost = fixable.length ? Math.min(...fixable.map((k) => Game.stoneFixCost(TRAITS[k].tier))) : 0;
@@ -126,7 +126,7 @@ Object.assign(UI, {
         ${lz.injuredT > 0 ? `<button data-act="heal">${Icon.svg("gem")}1 回復</button>` : ""}
         ${Game.stageSpecificSpecies().length && Game.res("bio") >= CFG.mutateBioCost && speciesById(lz.speciesId).stage !== Game.currentStage().id
           ? `<button data-act="mutate">${Icon.svg("bio")} 変異(${CFG.mutateBioCost})</button>` : ""}
-        ${createable.length ? `<button data-act="genesis"${Game.stones() < genesisMinCost ? " disabled" : ""}>${Icon.svg("stone")} 石で創世</button>` : ""}
+        ${createable.length ? `<button data-act="genesis"${Game.stones() < genesisRandCost ? " disabled" : ""}>${Icon.svg("stone")}${genesisRandCost} 石で創世</button>` : ""}
         ${fixable.length ? `<button data-act="fix"${Game.stones() < fixMinCost ? " disabled" : ""}>${Icon.svg("stone")} 石で固定</button>` : ""}
         <button data-act="close">閉じる</button>
       </div>`;
@@ -147,6 +147,11 @@ Object.assign(UI, {
 
   // S3: 個体の特性を「特性カード」で表示(UISkills §12)。各特性=色アクセント＋SVGロゴ＋名＋固定印。無印は控えめに「特性なし」。
   traitCardsHtml(lz) {
+    // R5-a: 創世の開示前(pending中)は宿ったばかりの徴を伏せる(詳細の定期再描画での先バレ防止・表示のみ)
+    if (this._genesisPending && this._genesisPending.id === lz.id && performance.now() < this._genesisPending.until) {
+      const hideKey = this._genesisPending.key;
+      lz = { ...lz, traits: (lz.traits || []).filter((t) => (t && t.key ? t.key : t) !== hideKey) };
+    }
     const ks = (lz.traits || []).map((t) => (t && t.key ? t.key : t)).filter((k) => typeof TRAITS !== "undefined" && TRAITS[k]);
     if (!ks.length) return `<div class="trait-empty">特性なし</div>`;
     const cards = ks.map((k) => {
@@ -179,28 +184,36 @@ Object.assign(UI, {
   },
 
   // S5-a: 賢者の石=特性の創世。この世界になかった個性を石で1つ生む(繁殖では出ない=石だけの入口)。
+  // R5-a(2026-07-25承認): 選択リストは撤去(git記録+撤去前スクショ=§6R.14)→確認モーダル(2タップ維持=誤操作対策)。
+  // 開示=既存の深紅Fx(genesisFxSec)完了時(「徴が浮かぶ間」)。reduced-motionは即時。固定化ピッカーは非接触(選択式のまま)。
   openGenesisPicker(lz) {
-    this.openModal(`${Icon.svg("stone")} 創世 — ${Game.lizardName(lz)} に新たな個性を宿す`, (body) => {
-      const keys = Game.createableTraits(lz);
-      if (!keys.length) {
-        body.innerHTML = `<p style="color:var(--sub)">この個体にはこれ以上 特性を宿せません(上限3・レジェンダリーは対象外)。</p>`;
-        return;
-      }
-      body.innerHTML = `<p style="font-size:calc(12px * var(--fs-scale,1));color:var(--sub);margin-bottom:8px">賢者の石を代償に、血統に無い新特性を1つ創世します(繁殖では生まれない)。所持 ${Icon.svg("stone")}<b>${Game.stones()}</b>。</p>`;
-      for (const k of keys) {
-        const def = TRAITS[k], cost = Game.stoneGenesisCost(def.tier), afford = Game.stones() >= cost;
-        const row = document.createElement("div");
-        row.className = "list-row";
-        row.innerHTML =
-          `<span class="sw" style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${def.color};border:1px solid #0006"></span>` +
-          `<div class="grow"><b>${def.name}</b><div class="desc">${def.desc || ""}</div></div>` +
-          `<button${afford ? "" : " disabled"}>${Icon.svg("stone")}${cost}</button>`;
-        row.querySelector("button").addEventListener("click", () => {
-          if (Game.genesisTrait(lz, k)) { UI.toast(`${def.name} が宿った — この世界に新たな個性が生まれた`); this.closeModal(); this.renderDetail(true); }
-          else this.openGenesisPicker(lz); // 失敗時は再描画(状態更新)
-        });
-        body.appendChild(row);
-      }
+    const cost = CFG.stoneGenesisRandCost || 4;
+    this.openModal(`${Icon.svg("stone")} 創世 — 石に委ねる`, (body) => {
+      body.innerHTML = `
+        <p style="font-size:calc(13px * var(--fs-scale,1));line-height:1.7;margin-bottom:6px">
+          賢者の石 ${Icon.svg("stone")}<b>${cost}</b> を砕き、${Game.lizardName(lz)} に未知の徴をひとつ宿す。</p>
+        <p style="font-size:calc(12px * var(--fs-scale,1));color:var(--sub);margin-bottom:12px">
+          何が宿るかは、石だけが知っている — <b>選ぶことはできない(ランダム)</b>。選んで確実に継がせたいなら、それは固定化の仕事。</p>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button id="gn-cancel">やめる</button>
+          <button id="gn-go" class="cta" ${Game.stones() >= cost ? "" : "disabled"}>${Icon.svg("stone")}${cost} 砕いて創世する</button>
+        </div>`;
+      body.querySelector("#gn-cancel").addEventListener("click", () => this.closeModal());
+      body.querySelector("#gn-go").addEventListener("click", () => {
+        const key = Game.genesisTraitRand(lz);
+        if (!key) { this.closeModal(); return; }
+        this.closeModal();
+        const fxMs = (CFG.genesisFxSec || 1.5) * 1000;
+        this._genesisPending = { id: lz.id, key, until: performance.now() + fxMs }; // Fx完了まで徴を伏せる(先バレ防止)
+        const reveal = () => {
+          this._genesisPending = null;
+          const def = TRAITS[key];
+          this.toast(`${Icon.svg(def.icon)} ${def.name} が宿った — 石はこれを選んだ`);
+          this.renderDetail(true);
+        };
+        if (Motion.reduced) reveal(); // reduced-motion=即時開示
+        else setTimeout(reveal, (CFG.genesisFxSec || 1.5) * 1000); // 深紅の錬成が終わり、徴が浮かぶ
+      });
     });
   },
 
