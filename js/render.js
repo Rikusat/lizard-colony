@@ -291,12 +291,15 @@ const Render = {
       ctx.fillStyle = "rgba(255,255,255,.28)";
       ctx.beginPath(); ctx.ellipse(x - r * 0.4, y - r * 0.35, r * 0.7, r * 0.35, 0, 0, 7); ctx.fill();
     }
-    // 大きな岩(中〜大サイズを全体に散らす)
+    // 大きな岩(中〜大サイズを全体に散らす)。V5M④: 座標をレジストリへ登録(岩上見張りスポットの源・描画とスポットの単一の真実)
+    this._stageBoulders = [];
     for (let i = 0; i < 13; i++) {
       const edge = rand() < 0.45;
       const x = edge ? (rand() < 0.5 ? rand() * 200 : W - rand() * 200) : rand() * W;
       const y = HORIZON + 40 + rand() * (H - HORIZON - 70);
-      this.boulder(ctx, rand, x, y, 12 + rand() * 24, st.rock);
+      const r = 12 + rand() * 24;
+      this.boulder(ctx, rand, x, y, r, st.rock);
+      this._stageBoulders.push({ x, y, r });
     }
     // ステージ固有の装飾
     this.paintDeco(ctx, st, rand);
@@ -1628,6 +1631,15 @@ const Render = {
     // 監視塔: 塔上の見張り台(1匹・高所)
     const wt = watchtowerTierInfo(G.facLv("watchtower"));
     if (wt.tier) push("watch-lookout", "watchtower", "塔上で見張る(ボス側)", "lookout", 1, "right", FAC_POS.watchtower.x, FAC_POS.watchtower.y - wt.h, 14, wt.tier);
+    // V5M④: 岩上の見張り=背景の大岩(描画時レジストリ)の上に1匹用スポット。大きい岩から motPerchMax 個。
+    //   フィールド内の岩のみ(徘徊域の外へ誘導しない)。岩の意匠=惑星別(st.rock)なので惑星差はそのまま乗る。
+    if (CFG.motPerchOn !== false && this._stageBoulders) {
+      const cands = this._stageBoulders
+        .filter((b) => b.r >= 18 && b.x > FIELD.x1 + 30 && b.x < FIELD.x2 - 30 && b.y > FIELD.y1 + 20 && b.y < FIELD.y2 - 10)
+        .sort((a, b) => b.r - a.r)
+        .slice(0, CFG.motPerchMax != null ? CFG.motPerchMax : 3);
+      cands.forEach((b, i) => push("rock-perch-" + i, "rock", "岩上で見張る", "lookout", 1, "both", b.x, b.y - b.r * 0.55, 10, 1));
+    }
     // フェンス/罠は構造物=居場所なし(スポット無し)
     return spots;
   },
@@ -1792,8 +1804,10 @@ const Render = {
   //   posture別に drink=水面へ頭を沈める上下 / bask=ゆっくり呼吸 / wade=尾で水を跳ねる左右 / lookup/lookout=見上げてわずかに浮く / emerge=入口で軽い上下。
   //   reduced-motion/移動中/非スポットでは null(静止)=fable1(reduced-motion停止・静的滞在は残る)。★Ric実機で振幅/速さ(CFG)を調整。
   _poseBob(lz) {
-    if (!lz.spot || lz.moving) return null;
+    if (lz.moving) return null;
     if (window.Motion && Motion.reduced) return null;
+    // V5M⑰: 惑星の環境反応(スポット外の静止個体)。骨格2種=震え(寒)/頭上げ(熱)・惑星割当はCFG配列。
+    if (!lz.spot) return this._motEnv(lz);
     const amp = CFG.poseBobPx || 3, sp = CFG.poseBobSpeed || 1.2;
     const t = this.time * sp + (lz.id % 100) * 0.137; // idで位相をずらす(群れが揃って動かない)
     const p = lz._spotPosture;
@@ -1820,6 +1834,29 @@ const Render = {
     if (local > 3) return 1; // 窓の先頭3秒だけ=波打って、また止まる
     const k = Math.sin((local / 3) * Math.PI); // なめらかに入って抜ける
     return 1 + ((CFG.motTailAmp || 2.2) - 1) * k;
+  },
+
+  // V5M⑰: 惑星の身震い/熱逃し(整数px配置トランスフォームのみ=魂ピクセル不変)。決定論=id+時刻バケット。
+  //   骨格2種: 寒冷=高速小振幅の震え(0.7秒×3往復) / 高熱=ゆっくり頭を上げて逃がす(2.2秒の浮き)。
+  //   惑星割当=CFG.motEnvColdStages/HotStages(★Ric実機)。該当惑星以外・OFFではnull=従来と同一。
+  _motEnv(lz) {
+    if (CFG.motEnvOn === false || lz.injuredT > 0) return null;
+    const stId = Game.state.stageSel;
+    const cold = (CFG.motEnvColdStages || [7, 8]).includes(stId);
+    const hot = (CFG.motEnvHotStages || [5, 9]).includes(stId);
+    if (!cold && !hot) return null;
+    const win = CFG.motEnvWin || 90;
+    const t = this.time + (lz.id % 61) * 2.9;
+    const bk = Math.floor(t / win);
+    if (Game.motHash(lz.id * 13 + 5, bk) >= (CFG.motEnvRate || 0.5)) return null;
+    const local = t - bk * win;
+    if (cold) {
+      if (local > 0.7) return null;
+      return { dx: Math.round(Math.sin(local * 42) * (CFG.motEnvShiverPx || 2)), dy: 0 }; // ぶるっ
+    }
+    if (local > 2.2) return null;
+    const k = Math.sin((local / 2.2) * Math.PI);
+    return { dx: 0, dy: -Math.round(k * (CFG.motEnvLiftPx || 3)) }; // 熱に頭を上げる
   },
 
   // 生き物本体(魂)。呼び出し側で lz.x,lz.y へ translate 済みの前提はなく、ここで translate する。

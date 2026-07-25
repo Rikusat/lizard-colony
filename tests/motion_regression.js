@@ -152,6 +152,63 @@ ok("C3: id位相ずれ(個体で揺れが違う)", s1 !== s2);
   ok("V5M: settleDisplayで残状態クリア", dz._dashT === 0 && dz._lookT === 0 && dz._meetCd === 0);
 }
 
+// ===== V5M 第2バッチ(2026-07-25): ④岩上見張り/⑮レア引力/⑰惑星の環境反応 =====
+{
+  // ④ 岩上見張り: 岩レジストリ→スポット化(1匹用・OFFで消える)
+  Render._stageBoulders = [
+    { x: 400, y: 400, r: 30 }, { x: 700, y: 500, r: 24 }, { x: 900, y: 450, r: 20 }, { x: 500, y: 600, r: 10 },
+  ];
+  CFG.motPerchOn = true;
+  const sp2 = Render.facilitySpots();
+  const perch = sp2.filter((s) => s.id.startsWith("rock-perch-"));
+  ok("V5M④: 大岩がスポット化(r>=18のみ・capacity1)", perch.length === 3 && perch.every((p) => p.capacity === 1), "n=" + perch.length);
+  ok("V5M④: スポット位置=岩の上(y<岩心)", perch.every((p, i) => p.center.y < 600));
+  CFG.motPerchOn = false;
+  ok("V5M④: OFFで岩スポット消滅", Render.facilitySpots().every((s) => !s.id.startsWith("rock-perch-")));
+  CFG.motPerchOn = true;
+  // ⑮ レア引力: 無印がレアの傍へ(決定論・レア側/特性持ち側は寄らない)
+  Game.newGame(); Game.state.rank = 5;
+  const plain = { id: 601, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "adult", xp: 0, level: 5, injuredT: 0, breedCd: 0, traits: [] };
+  const rare = { id: 602, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "adult", xp: 0, level: 5, injuredT: 0, breedCd: 0, traits: [{ key: "shinkai" }] };
+  Game.state.lizards = [plain, rare];
+  Game.ensureRuntime(plain); Game.ensureRuntime(rare);
+  plain.x = 500; plain.y = 400; plain.tx = 500; plain.ty = 400; plain.resting = false;
+  rare.x = 700; rare.y = 430; rare.tx = 700; rare.ty = 430; rare.moving = false; rare.resting = false; rare.wanderT = 999;
+  sb.Math.random = () => 0.99; CFG.spotVisitChance = 0; CFG.motDashOn = false; CFG.motRareRate = 1;
+  Game._motClock = 0; plain._rareBk = undefined; plain.wanderT = 0;
+  Game.moveLizards(0.1);
+  ok("V5M⑮: 無印がレアの傍を目的地に(±58px帯)", Math.abs(plain.tx - rare.x) <= 59 && Math.abs(plain.ty - (rare.y + 14)) < 1, `tx=${plain.tx} ty=${plain.ty}`);
+  rare.wanderT = 999; rare._rareBk = undefined; rare.moving = false; rare.wanderT = 0; rare.tx = rare.x; rare.ty = rare.y;
+  Game.moveLizards(0.1);
+  ok("V5M⑮: 特性持ち自身は寄らない(徘徊のまま)", rare._rareBk === undefined);
+  // ⑰ 環境反応: 惑星ゲート・整数オフセット・決定論・reduced停止
+  CFG.motEnvOn = true;
+  Game.state.stageSel = 8; // 寒冷
+  let sawShiver = false, intOk = true;
+  for (let id = 0; id < 30 && !sawShiver; id++) {
+    for (let tq = 0; tq < 2000 && !sawShiver; tq++) {
+      Render.time = tq * 0.05;
+      const e = Render._motEnv({ id, injuredT: 0 });
+      if (e) { sawShiver = true; if (e.dx !== Math.round(e.dx) || e.dy !== 0) intOk = false; }
+    }
+  }
+  ok("V5M⑰: 寒冷惑星で震え発生(dx整数・dy0)", sawShiver && intOk);
+  Game.state.stageSel = 5; // 高熱
+  let sawLift = false;
+  for (let id = 0; id < 30 && !sawLift; id++) {
+    for (let tq = 0; tq < 2000 && !sawLift; tq++) {
+      Render.time = tq * 0.05;
+      const e = Render._motEnv({ id, injuredT: 0 });
+      if (e) { sawLift = true; if (e.dy > 0 || e.dx !== 0) intOk = false; }
+    }
+  }
+  ok("V5M⑰: 高熱惑星で頭上げ発生(dy<=0・dx0)", sawLift && intOk);
+  Game.state.stageSel = 1;
+  ok("V5M⑰: 対象外惑星ではnull", (() => { for (let tq = 0; tq < 500; tq++) { Render.time = tq * 0.1; if (Render._motEnv({ id: 5, injuredT: 0 })) return false; } return true; })());
+  Render.time = 4.4; Game.state.stageSel = 8;
+  ok("V5M⑰: 決定論(同入力→同出力)", JSON.stringify(Render._motEnv({ id: 5, injuredT: 0 })) === JSON.stringify(Render._motEnv({ id: 5, injuredT: 0 })));
+}
+
 console.log(`\n=== モーション 回帰テスト結果: ${pass} PASS / ${fail} FAIL ===`);
 if (fail) { console.log("FAILED:\n - " + fails.join("\n - ")); process.exit(1); }
 console.log("すべてPASS(C1割当:決定論/capacity比例/状態非干渉/null・C2配線:到達/ワープなし/解除/数値非干渉・C3姿勢:整数bob/null条件/決定論・V5M第1バッチ:⑦連続/⑧2反転/⑫対面/①K範囲/reduced停止/数値非干渉/クリア)");

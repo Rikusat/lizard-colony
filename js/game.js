@@ -2252,6 +2252,26 @@ const Game = {
           lz.wanderT = CFG.motDashRestSec || 5; // 走った直後はじっとする(静→動→静のリズム)
           const dx0 = lz.tx - lz.x, dy0 = lz.ty - lz.y;
           if (Math.hypot(dx0, dy0) > 4) { lz.angle = Math.atan2(dy0, dx0); }
+        } else if ((() => {
+          // V5M⑮: レア個体の引力(決定論)。無印個体が、静止中の特性持ち/レジェンダリーの傍へ寄って数秒眺める。
+          if (motOff || CFG.motRareOn === false) return false;
+          if ((lz.traits && lz.traits.length) || lz.morphId === "legendary") return false; // 寄るのは無印
+          const rb = Math.floor(this._motClock / (CFG.motRareWin || 60));
+          if (lz._rareBk === rb || this.motHash(lz.id * 7 + 4, rb) >= (CFG.motRareRate || 0.08)) return false;
+          const rare = this.state.lizards.find((r) =>
+            r !== lz && !r.moving && !r.returning && r.injuredT <= 0 && this.isVisible(r)
+            && ((r.traits && r.traits.length) || r.morphId === "legendary")
+            && Math.hypot(r.x - lz.x, r.y - lz.y) < 420);
+          if (!rare) return false;
+          lz._rareBk = rb;
+          const side = this.motHash(lz.id * 9 + 6, rb) < 0.5 ? -1 : 1;
+          lz.spot = null; lz._toSpot = null;
+          lz.tx = clamp(rare.x + side * 58, FIELD.x1, FIELD.x2);
+          lz.ty = clamp(rare.y + 14, FIELD.y1, FIELD.y2);
+          lz.wanderT = (CFG.motRareDwell || 5) + 1.5; // 歩き+眺めの滞在
+          return true;
+        })()) {
+          // (⑮の目的地設定はクロージャ内で完了)
         } else {
         // モーション(§8.5): 一定確率で居場所へ向かう。純装飾=Math.randomは既存の徘徊と同カテゴリ(生産/戦闘/遺伝の決定論には無影響)
         const goSpot = Math.random() < (CFG.spotVisitChance || 0) ? this.spotFor(lz) : null;

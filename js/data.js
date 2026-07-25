@@ -317,6 +317,20 @@ const CFG = {
   motMeetRate: 0.07,        // 近接すれ違いごとの発生率(実測3.2/分→2/分強へ控えめ)
   motMeetSec: 0.8,          // 向き合って止まる秒
   motMeetCdSec: 60,         // 個体ごとの再発クールダウン秒
+  // V5M 第2バッチ(④⑮⑰・★全てRic実機判定)
+  motPerchOn: true,         // ④岩上の見張り(背景の大岩スポット)
+  motPerchMax: 3,           // 使う岩の数(大きい順)
+  motRareOn: true,          // ⑮レア個体の引力
+  motRareWin: 60,           // 判定窓(秒)
+  motRareRate: 0.08,        // 窓ごとの発生率(無印個体側)
+  motRareDwell: 5,          // 傍で眺める滞在秒
+  motEnvOn: true,           // ⑰惑星の環境反応
+  motEnvWin: 90,            // 個体ごとの発生窓(秒)
+  motEnvRate: 0.5,          // 窓ごとの発生率
+  motEnvShiverPx: 2,        // 震えの振幅px(寒冷)
+  motEnvLiftPx: 3,          // 頭上げの浮きpx(高熱)
+  motEnvColdStages: [7, 8], // 震える惑星(水中都市/氷の前線)
+  motEnvHotStages: [5, 9],  // 頭を上げる惑星(火山/廃原子炉)
   // 群衆対策(表示のみ・収益/戦闘は全個体が対象のまま)
   maxVisibleLizards: 70,    // フィールドに同時表示する上限。超過分は巣穴で休憩
   restSwapPerSec: 3,        // 平常時に毎秒この匹数まで休憩⇔活動を入れ替え(漸進=ちらつき防止)
