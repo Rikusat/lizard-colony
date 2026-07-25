@@ -222,6 +222,39 @@ console.log("== G) 石の獲得経路: Slit成功→addStone(1) の配線(静的
 }
 
 // ------------------------------------------------------------
+console.log("== H) R2-0事前監査: ルーレット卵撤廃後も全獲得物が塞がらないか(非ルーレット経路のみで全数到達) ==");
+{
+  // 前提: R2はルーレット景品を鉱物(ダイヤ/アメジスト/石)へ差し替え=卵経路4本(虹新種/虹コンプレジェ/レア中央/卵帯)が消える。
+  // ここでは spawnRouletteEgg を一切使わず、繁殖(inherit)/隕石/アメジストのみで図鑑全エントリへ到達できるかをMC実測。
+  const nonLeg = MORPHS.filter((m) => !m.legendary).map((m) => m.id);
+  const missing = [];
+  for (const st of STAGES) {
+    setupPlanet(st.id);
+    Game.state.nest = { lv: 8 };
+    const pool = Game.breedablePool();
+    const want = new Set();
+    for (const sp of pool) for (const mo of nonLeg) want.add(sp.id + ":" + mo);
+    for (let i = 0; i < 20000 && want.size; i++) {
+      const a = { speciesId: pool[i % 2].id, morphId: "normal", hue: 100, sat: 50, light: 50, pattern: "none" };
+      const b2 = { speciesId: pool[(i + 1) % 2].id, morphId: i % 3 === 0 ? "albino" : "normal", hue: 100, sat: 50, light: 50, pattern: "none" };
+      const g = Game.inherit(a, b2);
+      if (g.morphId !== "legendary") want.delete(g.speciesId + ":" + g.morphId);
+    }
+    if (want.size) missing.push(`stage${st.id}: 残 ${[...want].join(",")}`);
+  }
+  check("H1: 繁殖のみで全惑星の固有2種×非レジェ4モーフへ到達(卵撤廃後も塞がらない)", missing.length === 0, missing.join(" / "));
+  setupPlanet(STAGES[0].id);
+  Game.state.nest = { lv: 8 };
+  const pool0 = Game.breedablePool();
+  let legSeen = false;
+  for (let i = 0; i < 200000 && !legSeen; i++) {
+    const g = Game.inherit({ speciesId: pool0[0].id, morphId: "normal", hue: 1, sat: 1, light: 1, pattern: "none" }, { speciesId: pool0[1].id, morphId: "normal", hue: 1, sat: 1, light: 1, pattern: "none" });
+    if (g.morphId === "legendary") legSeen = true;
+  }
+  check("H2: レジェンダリー=繁殖経路(legendChance+巣Lv)でMC到達(+隕石/アメジスト=B節で実証済)", legSeen);
+  console.log("  → 卵撤廃で失われるのは各獲得物の『経路の1本』のみ=固有獲得物の喪失ゼロ。※レア中央卵のbonusLv(高Lv誕生)は獲得物でなく付帯ボーナス=喪失は経済変更の範囲(R2報告事項)");
+}
+
 console.log("\n== 獲得可能性マトリクス ==");
 {
   const rows = [];

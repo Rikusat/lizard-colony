@@ -214,11 +214,10 @@ const CFG = {
       { amethyst: 1, orichalcum: 4 },     // T3→T4
     ],
   },
-  // R4-1(2026-07-25): v3/v4系CFG(dock*/dockStages/planGlyph系)は退役=git記録。生中継はモニタ用に3キーのみ存続。
-  ctrlFps: 12,                // 壁掛けモニタの生中継頻度(方式1・10〜15fps目安)
-  ctrlBlur: 2.5,              // 弱ブラー=監視映像の解像度(個体シルエット可・UI/特性は不可読)
-  ctrlScanAlpha: 0.055,       // 走査線の濃度(0=OFF)。揺らぎはreduced-motionで停止
-  labMonitorOn: true,         // 小型壁掛けモニタ(生中継の縮小残置=「本部はこちらを見ている」の気配)。false=消灯
+  // 本部v5 HOLO COMMAND(2026-07-25採用・意匠原本=docs/design/hq-holo-command-poc.html)。旧v2〜v4系CFGは退役=git記録。
+  holoBootOn: true,           // 起動シーケンス(開くたび再生)。false=スキップ(即・全点灯)
+  holoBootSpeed: 1.0,         // 起動シーケンスの速度倍率(2=2倍速で短縮)
+  holoTrackSec: 5,            // 個体追跡ロックオンの巡回間隔(秒・決定論=乱数不使用)
   // 研究デスクパネル(UISkills §13 R4改訂・統一書式の色/文言・★Ric調整)
   planCurColor: "#ecc35a",    // 充足の琥珀
   planLackColor: "#d8404e",   // 不足「あと◯」の深紅
