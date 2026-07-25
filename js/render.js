@@ -4267,15 +4267,58 @@ const Render = {
   },
 
   // チェレンコ(tier4): 全身の輪郭が淡く青く滲む(体輪郭Pathを微グローで縁取り・弱く=魂の発光種glow:trueとは別系統)。手法=微光。
+  // R5-b B3: チェレンコ=「水中で燃える冷たい青」。輪郭の臨界光(維持=リンカイの縁光の源)+
+  //   水底からの照り返し+揺らぎの光条(コースティクス・座標由来=静止)+臨界の粒。完全静止=連続光。
   traitCherenko(ctx, g, def) {
-    const { body, L } = g; if (!body) return;
+    const { S, body, L } = g; if (!body) return;
     const c = def.rim || "#6FB8A0";
+    const glow = CFG.cherenkoGlow != null ? CFG.cherenkoGlow : 0.05;
+    const caus = CFG.cherenkoCaustics != null ? CFG.cherenkoCaustics : 3;
+    const floor = CFG.cherenkoFloor != null ? CFG.cherenkoFloor : 0.20;
+    const h2 = (a, b) => { let h = (a * 374761393 + b * 668265263) ^ (a << 7); h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967295; };
     ctx.save();
-    ctx.strokeStyle = c; ctx.shadowColor = c; ctx.shadowBlur = Math.max(4, L * 0.05);
-    ctx.globalAlpha = 0.5; ctx.lineWidth = Math.max(1, L * 0.011);
-    ctx.stroke(body); // 輪郭の滲み(2度重ねで淡い暈)
+    // 輪郭の臨界光(2層=旧意匠を維持・強化)
+    ctx.strokeStyle = c; ctx.shadowColor = c; ctx.shadowBlur = Math.max(4, L * glow);
+    ctx.globalAlpha = 0.55; ctx.lineWidth = Math.max(1, L * 0.011);
+    ctx.stroke(body);
     ctx.globalAlpha = 0.25; ctx.lineWidth = Math.max(2, L * 0.024);
     ctx.stroke(body);
+    ctx.shadowBlur = 0;
+    if (S) {
+      ctx.save(); ctx.clip(body);
+      // 水底からの照り返し: 腹側から冷たい青が立ちのぼる
+      const s0 = S(0.44), s1 = S(0.78);
+      const grad = ctx.createLinearGradient(0, s0.p.y + s0.w * 0.9, 0, s0.p.y - s0.w * 0.5);
+      grad.addColorStop(0, "rgba(111,184,160," + floor.toFixed(3) + ")");
+      grad.addColorStop(1, "rgba(111,184,160,0)");
+      ctx.fillStyle = grad; ctx.globalAlpha = 1;
+      ctx.fillRect(Math.min(s0.p.x, s1.p.x) - L, s0.p.y - s0.w * 1.2, Math.abs(s1.p.x - s0.p.x) + L * 2, s0.w * 2.6);
+      // 光条(コースティクス): 背から腹へ落ちる揺らぎの光(座標由来の波=時間不使用)
+      ctx.strokeStyle = "#BFF0E0"; ctx.lineCap = "round";
+      for (let k = 0; k < caus; k++) {
+        const u = 0.48 + k * (0.26 / Math.max(1, caus - 1));
+        const s = S(u);
+        ctx.globalAlpha = 0.26 + h2(k, 1) * 0.10; ctx.lineWidth = Math.max(0.7, L * 0.006);
+        ctx.beginPath();
+        for (let i = 0; i <= 6; i++) {
+          const q = i / 6;
+          const x = s.p.x + Math.sin(q * 5 + k * 2.3) * L * 0.012;
+          const y = s.p.y - s.w * 0.75 + q * s.w * 1.5;
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+      // 臨界の粒: 背の際に小さな泡(決定論)
+      ctx.fillStyle = "#DFFAF0";
+      for (let i = 0; i < 5; i++) {
+        const u = 0.46 + h2(i, 2) * 0.32;
+        const s = S(u);
+        const x = s.p.x + (h2(i, 3) - 0.5) * L * 0.02, y = s.p.y - s.w * (0.55 + h2(i, 4) * 0.3);
+        ctx.globalAlpha = 0.30 + h2(i, 5) * 0.25;
+        ctx.beginPath(); ctx.arc(x, y, Math.max(0.5, L * 0.005), 0, 7); ctx.fill();
+      }
+      ctx.restore();
+    }
     ctx.restore();
   },
 
@@ -4296,22 +4339,47 @@ const Render = {
 
   // ============ 合成専用特性(§8・到達の証)。血統原則§8.4=素材の意匠が結果へ変化して見える。共通の格=深紅の芯線(#8E1826・一筋・抑制) ============
   // ハガネ: 体側の鋼帯。血統=ヨウガンの裂け目→鋼で塞がれた継ぎ跡(帯を横切る接合線) / ヒョウガの霜→刃文の白波(帯の下縁)。
+  // R5-b B3: ハガネ=「焼き入れの刃紋」。血統=ヨウガンの黒殻→帯上縁の焼き殻+焼き残りの熱(橙)/
+  //   ヒョウガの層理の波→大きく波打つ刃文(白青)。深紅の芯線=帯中央を貫く(合成の格・維持)。鋼は動かない=完全静止。
   traitHagane(ctx, g, def) {
     const { S, body, L } = g; if (!S || !body) return;
+    const steel = def.rim || "#9FB2C0";
+    const bandW = CFG.haganeBandW != null ? CFG.haganeBandW : 0.052;
+    const hamon = CFG.haganeHamon != null ? CFG.haganeHamon : 0.012;
+    const heat = CFG.haganeHeat != null ? CFG.haganeHeat : 0.30;
     ctx.save(); ctx.clip(body); ctx.lineCap = "round";
     const at = (t, dy) => { const s = S(t); return { x: s.p.x, y: s.p.y + s.w * 0.05 + (dy || 0) }; };
-    // 鋼帯
-    ctx.strokeStyle = def.rim || "#9FB2C0"; ctx.globalAlpha = 0.88; ctx.lineWidth = Math.max(3, L * 0.048);
-    ctx.beginPath(); for (let i = 0; i <= 8; i++) { const p = at(0.42 + i * 0.05); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); } ctx.stroke();
-    // 刃文の白波(ヒョウガの霜の面影)
-    ctx.strokeStyle = "rgba(240,248,252,.92)"; ctx.lineWidth = Math.max(1, L * 0.011);
-    ctx.beginPath(); for (let i = 0; i <= 16; i++) { const p = at(0.42 + i * 0.025, L * 0.022 + Math.sin(i * 1.55) * L * 0.008); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); } ctx.stroke();
-    // 継ぎ跡(ヨウガンの裂け目が鋼で塞がれた跡=帯を横切る暗い接合線)
+    const line = (dy, fn) => { ctx.beginPath(); for (let i = 0; i <= 16; i++) { const p = at(0.42 + i * 0.025, typeof dy === "function" ? dy(i) : dy); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); } if (fn) fn(); ctx.stroke(); };
+    // ①鋼の面: 広い帯(冷たい金属)
+    ctx.strokeStyle = steel; ctx.globalAlpha = 0.88; ctx.lineWidth = Math.max(3.2, L * bandW);
+    line(0);
+    // ②焼き殻: 帯の上縁の暗い縁(ヨウガンの黒殻の面影)
+    ctx.strokeStyle = "rgba(24,18,16,.8)"; ctx.globalAlpha = 0.9; ctx.lineWidth = Math.max(1, L * 0.010);
+    line(-L * bandW * 0.48);
+    // ③焼き残りの熱: 帯の上半に鈍い橙(ヨウガンの亀裂の熱の面影)
+    ctx.strokeStyle = "rgba(224,131,59," + heat.toFixed(3) + ")"; ctx.globalAlpha = 1; ctx.lineWidth = Math.max(1.6, L * bandW * 0.4);
+    line(-L * bandW * 0.22);
+    // 鍛接の亀裂: 一箇所だけ鋼に残る短い橙(塞ぎきれなかった熱)
+    {
+      const p = at(0.58, -L * bandW * 0.1);
+      ctx.strokeStyle = "#E0833B"; ctx.shadowColor = "#E0833B"; ctx.shadowBlur = 3; ctx.lineWidth = Math.max(0.8, L * 0.006);
+      ctx.beginPath();
+      ctx.moveTo(p.x - L * 0.016, p.y - L * 0.006);
+      ctx.lineTo(p.x - L * 0.004, p.y + L * 0.004);
+      ctx.lineTo(p.x + L * 0.014, p.y - L * 0.002);
+      ctx.stroke(); ctx.shadowBlur = 0;
+    }
+    // ④刃文: 大きく波打つ白青の焼き入れ線(ヒョウガの層理の波の面影・二重=本刃と映り)
+    ctx.strokeStyle = "rgba(235,248,252,.95)"; ctx.lineWidth = Math.max(1, L * 0.011);
+    line((i) => L * bandW * 0.42 + Math.sin(i * 0.9) * L * hamon);
+    ctx.strokeStyle = "rgba(180,214,228,.45)"; ctx.lineWidth = Math.max(0.7, L * 0.007);
+    line((i) => L * bandW * 0.58 + Math.sin(i * 0.9 + 0.7) * L * hamon * 0.7);
+    // ⑤継ぎ跡(維持): 帯を横切る暗い接合線
     ctx.strokeStyle = "rgba(50,60,68,.9)"; ctx.lineWidth = Math.max(1, L * 0.009);
     for (const t of [0.52, 0.66]) { const p = at(t); ctx.beginPath(); ctx.moveTo(p.x - L * 0.012, p.y - L * 0.024); ctx.lineTo(p.x + L * 0.012, p.y + L * 0.024); ctx.stroke(); }
-    // 深紅の芯線(錬成の焼き印)
+    // ⑥深紅の芯線(維持=合成の格): 帯の中央を貫く一筋
     ctx.strokeStyle = "#8E1826"; ctx.globalAlpha = 0.8; ctx.lineWidth = Math.max(0.8, L * 0.006);
-    ctx.beginPath(); for (let i = 0; i <= 8; i++) { const p = at(0.45 + i * 0.036, -L * 0.013); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); } ctx.stroke();
+    line(-L * 0.013);
     ctx.restore();
   },
 
@@ -4338,11 +4406,39 @@ const Render = {
   },
 
   // ムメイ: 白い仮面+輪郭の破線。血統=ミミカクシの藍の仮面→白へ反転 / ハクシの白斑→輪郭の破線(存在の希薄へ)。
+  // R5-b B3: ムメイ=「名を消された白」。親2種は維持のため幾何引用を強化=仮面(ミミカクシと同一楕円)+
+  //   体の白抜け(ハクシと同一の楕円文法を大判で輪郭際へ=紙のように抜ける)。消し痕=体色がうっすら透ける。
+  //   深紅の芯線=仮面下縁の弧(維持)。完全静止。
   traitMumei(ctx, g, def) {
-    const { ex, ey, eyeR, body, L, col } = g;
+    const { S, ex, ey, eyeR, body, L, col } = g;
     const white = def.rim || "#F3EFE6";
+    const patches = CFG.mumeiPatch != null ? CFG.mumeiPatch : 2;
+    const fade = CFG.mumeiFade != null ? CFG.mumeiFade : 0.35;
     ctx.save();
-    // 白い仮面(ミミカクシと同じ幾何=血統が形で読める)
+    // ①体の白抜け: ハクシと同一の楕円文法(位置固定・縁取り)を大判で輪郭際へ=紙のように抜ける
+    if (S && body) {
+      ctx.save(); ctx.clip(body);
+      const defs = [[0.56, -0.62, 0.115, 0.085, 0.25], [0.70, 0.52, 0.09, 0.068, -0.2], [0.44, -0.25, 0.07, 0.05, 0.4]];
+      for (let i = 0; i < Math.min(patches, defs.length); i++) {
+        const [t, dy, rx, ry, rot2] = defs[i];
+        const s = S(t), px = s.p.x, py = s.p.y + dy * s.w;
+        ctx.globalAlpha = 0.92; ctx.fillStyle = white;
+        ctx.beginPath(); ctx.ellipse(px, py, L * rx, L * ry, rot2, 0, 7); ctx.fill();
+        ctx.globalAlpha = 0.5; ctx.strokeStyle = "#b9b4a8"; ctx.lineWidth = Math.max(1, L * 0.008); // ハクシの縁取りの面影
+        ctx.beginPath(); ctx.ellipse(px, py, L * rx, L * ry, rot2, 0, 7); ctx.stroke();
+        // 消し痕: 白の中に体色がうっすら透ける縦のかすれ(消された、が読める)
+        ctx.strokeStyle = `hsl(${col.h}, ${col.s}%, ${col.l}%)`; ctx.globalAlpha = fade * 0.6; ctx.lineWidth = Math.max(0.7, L * 0.005); ctx.lineCap = "round";
+        for (let k = 0; k < 2; k++) {
+          const ox = (k - 0.5) * L * rx * 0.7;
+          ctx.beginPath();
+          ctx.moveTo(px + ox, py - L * ry * 0.5);
+          ctx.lineTo(px + ox + L * 0.006, py + L * ry * 0.5);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+    // ②白い仮面(ミミカクシと同じ幾何=血統が形で読める・維持)
     const hw = eyeR * 3.4, hh = eyeR * 2.0, cx = ex + eyeR * 0.2, cy = ey + eyeR * 0.15, rot = -0.12;
     ctx.fillStyle = white; ctx.globalAlpha = 0.94;
     ctx.beginPath(); ctx.ellipse(cx, cy, hw, hh, rot, 0, 7); ctx.fill();
@@ -4353,14 +4449,14 @@ const Render = {
     ctx.beginPath(); ctx.arc(ex, ey, eyeR * 0.92, 0, 7); ctx.fill();
     ctx.fillStyle = "rgba(255,255,255,.8)";
     ctx.beginPath(); ctx.arc(ex + eyeR * 0.3, ey - eyeR * 0.32, eyeR * 0.28, 0, 7); ctx.fill();
-    // 輪郭の破線(ハクシの"抜け"が際まで広がった=存在の希薄)
+    // ③輪郭の破線(ハクシの"抜け"が際まで広がった=存在の希薄・維持)
     if (body) {
       ctx.setLineDash([Math.max(3, L * 0.035), Math.max(3, L * 0.03)]);
       ctx.strokeStyle = white; ctx.globalAlpha = 0.55; ctx.lineWidth = Math.max(1, L * 0.009);
       ctx.stroke(body);
       ctx.setLineDash([]);
     }
-    // 深紅の芯線(仮面の下縁に一筋)
+    // ④深紅の芯線(維持=合成の格・仮面の下縁に一筋)
     ctx.strokeStyle = "#8E1826"; ctx.globalAlpha = 0.8; ctx.lineWidth = Math.max(0.8, eyeR * 0.2);
     ctx.beginPath(); ctx.ellipse(cx, cy, hw * 0.9, hh * 0.9, rot, Math.PI * 0.25, Math.PI * 0.72); ctx.stroke();
     ctx.restore();

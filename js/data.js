@@ -282,6 +282,15 @@ const CFG = {
   triadSplat: 6,            // 顔料の飛沫の総数
   ougonLeaf: 7,             // 金箔片の枚数
   ougonShade: 0.34,         // 玄室の影の濃さ
+  // R5-b B3(チェレンコ/ハガネ/ムメイ・★全てRic実機判定)
+  cherenkoGlow: 0.05,       // 輪郭の臨界光の滲み(体長比)
+  cherenkoCaustics: 3,      // 光条(コースティクス)の本数
+  cherenkoFloor: 0.20,      // 水底からの照り返しの濃さ
+  haganeBandW: 0.052,       // 鋼帯の幅(体長比)
+  haganeHamon: 0.012,       // 刃文の波の振幅(体長比)
+  haganeHeat: 0.30,         // 焼き残りの熱(橙)の濃さ
+  mumeiPatch: 2,            // 体の白抜けの枚数
+  mumeiFade: 0.35,          // 消し痕(体色の透け)の濃さ
   // 群衆対策(表示のみ・収益/戦闘は全個体が対象のまま)
   maxVisibleLizards: 70,    // フィールドに同時表示する上限。超過分は巣穴で休憩
   restSwapPerSec: 3,        // 平常時に毎秒この匹数まで休憩⇔活動を入れ替え(漸進=ちらつき防止)
