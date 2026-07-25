@@ -2352,3 +2352,25 @@ button.holding::after {
 .plan-research .mat { padding: 1px 6px; font-size: calc(12px * var(--fs-scale,1)); }
 .plan-research .locked { opacity: .45; cursor: help; }
 .plan-pocket { opacity: .55; font-size: calc(11.5px * var(--fs-scale,1)); color: var(--sub); padding: 8px 4px 0; border-top: 1px solid rgba(190,214,235,.06); margin-top: 10px; }
+
+/* ==== 本部右メニュー(UISkills §14・v5 HUD言語=琥珀/ブラケット/等幅サブ) ==== */
+#hqlab-row { flex: 1; min-height: 0; display: flex; }
+#hqlab-row #hqlab-wrap { flex: 1; min-width: 0; }
+#hqlab-menu { width: var(--hqmenu-w, 168px); display: flex; flex-direction: column; gap: 10px;
+  padding: 18px 14px 18px 4px; justify-content: center; }
+#hqlab-menu button { display: flex; align-items: center; gap: 9px; text-align: left;
+  background: rgba(255,181,71,.035); border: 1px solid rgba(255,181,71,.18); border-radius: 3px;
+  color: rgba(255,181,71,.85); padding: 9px 10px; cursor: pointer; position: relative;
+  font-size: calc(13px * var(--fs-scale, 1)); transition: background .12s, border-color .12s, color .12s; }
+#hqlab-menu button::before, #hqlab-menu button::after { content: ""; position: absolute; width: 7px; height: 7px; pointer-events: none; }
+#hqlab-menu button::before { left: -3px; top: -3px; border-left: 1.4px solid rgba(255,181,71,.65); border-top: 1.4px solid rgba(255,181,71,.65); }
+#hqlab-menu button::after { right: -3px; bottom: -3px; border-right: 1.4px solid rgba(255,181,71,.65); border-bottom: 1.4px solid rgba(255,181,71,.65); }
+#hqlab-menu button:hover { background: rgba(255,181,71,.10); border-color: rgba(255,181,71,.75); color: rgba(255,181,71,1); }
+#hqlab-menu button svg.icon { width: 18px; height: 18px; flex: none; }
+#hqlab-menu .hm-tx { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+#hqlab-menu .hm-en { font-family: ui-monospace, "Consolas", monospace; font-size: 9px; color: rgba(255,181,71,.42); letter-spacing: .05em; }
+@media (max-width: 900px) { /* 縮退: アイコンのみ */
+  #hqlab-menu { width: var(--hqmenu-w-narrow, 52px); padding-right: 8px; }
+  #hqlab-menu .hm-tx { display: none; }
+  #hqlab-menu button { justify-content: center; padding: 10px 6px; }
+}

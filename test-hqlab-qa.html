@@ -185,6 +185,22 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       holoClick(1450, 54);
       ok("判定: SPACEPORTインジケータ実クリックで宇宙港パネルが開く(裁定①)", /段階|完成/.test(document.getElementById("modal-body").textContent));
       UI.closeModal();
+      // ===== §14: 右メニュー(常設導線)全項目の実クリック =====
+      var menuChecks = [["desks", function(b){ return !!b.querySelector("#lab-invest"); }],
+                        ["tank", function(b){ return b.querySelectorAll("#synth-list .list-row").length === 6; }],
+                        ["shelf", function(b){ return !!b.querySelector("#hq-lore"); }],
+                        ["rocket", function(b){ return /段階|完成/.test(b.textContent); }]];
+      for (var mi = 0; mi < menuChecks.length; mi++) {
+        var mk = menuChecks[mi][0];
+        var mbtn = document.querySelector('#hqlab-menu [data-panel="' + mk + '"]');
+        if (mbtn) mbtn.click();
+        ok("右メニュー: " + mk + " クリックでパネルが開く", !!mbtn && menuChecks[mi][1](document.getElementById("modal-body")));
+        UI.closeModal();
+      }
+      var dxbtn = document.querySelector('#hqlab-menu [data-panel="dex"]');
+      if (dxbtn) dxbtn.click();
+      ok("右メニュー: 図鑑クリックでモーダルが開く", !!dxbtn && !document.getElementById("modal").classList.contains("hidden"));
+      UI.closeModal();
       UI._labRoomTierOverride = null;
       // ===== fps実測(フル再描画/静的blit方式の確認) =====
       var t0 = performance.now(); for (var fi = 0; fi < 120; fi++) UI.renderHqLab();

@@ -342,3 +342,12 @@
 - **手持ち資源** `.plan-pocket`: 俯瞰用に存続・一段沈める(opacity .55)。
 - **CFG**(`CFG.plan*`): planCurColor/planLackColor/planLackWord/planDimOpacity(色はパネルルートのCSS変数へ)。
 
+
+## §14 本部右メニュー(v5 HOLO COMMAND 操作系・2026-07-25)
+
+- **目的**: パネル入り口を黒空間クリック(未点灯モジュール)に依存させない常設導線。**左メニュー=飼育槽の操作系/右メニュー=本部の操作系**の場所分離。「←飼育槽へ戻る」は左のまま(帰り道=左・本部操作=右)。
+- **設置**: `#hqlab` 内にJSが動注入(`#hqlab-row`で#hqlab-wrapと横並び・飼育槽レイアウトへの影響ゼロ)。本部滞在中のみ表示(セクションのhidden連動)。
+- **項目**(順序・ラベル=`CFG.hqMenuItems`): 研究デスク/錬成/標本棚/宇宙港/図鑑。既存openLabPanel系・openDexを呼ぶだけ=ロジック非接触。ホロモジュールの直接クリックも存続(二重導線)。全tierで全項目表示。
+- **意匠**: v5 HUD言語=琥珀(#ffb547系alpha)・四隅ブラケット(borderの角)・等幅英字サブラベル・ホバーで点灯(bg/border/文字のalpha上げ)。PoCモジュールと喧嘩しない縦置きの控えめなタブ列。アイコン+短い和名+英字サブ。
+- **縮退**: 幅900px未満=アイコンのみ(ラベル非表示・幅=`--hqmenu-w-narrow`)。幅=`CFG.hqMenuWidth`/`hqMenuWidthNarrow`をCSS変数へ。
+- **アクセシビリティ**: button要素・title属性にフル名称。ホバー点灯はopacity/borderのみ(点滅なし=reduced-motion配慮不要の静的変化)。

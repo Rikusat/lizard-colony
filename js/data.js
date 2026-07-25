@@ -219,6 +219,16 @@ const CFG = {
   holoBootSpeed: 1.0,         // 起動シーケンスの速度倍率(2=2倍速で短縮)
   holoTrackSec: 5,            // 個体追跡ロックオンの巡回間隔(秒・決定論=乱数不使用)
   amethystCdResetCost: 2,     // R3: 繁殖CDリセット1回のアメジスト消費(★[A]調整)
+  // 本部右メニュー(UISkills §14・表示のみ・★Ric調整)
+  hqMenuWidth: 168,           // 右メニュー幅(px・広幅時)
+  hqMenuWidthNarrow: 52,      // 縮退時(<900px)=アイコンのみ
+  hqMenuItems: [              // 項目順・ラベル(action: panel=openLabPanel / dex=openDex)
+    { key: "desks", jp: "研究デスク", en: "RESEARCH DESK", icon: "hq" },
+    { key: "tank", jp: "錬成", en: "ALCHEMY", icon: "bio" },
+    { key: "shelf", jp: "標本棚", en: "ARCHIVE ROOM", icon: "scroll" },
+    { key: "rocket", jp: "宇宙港", en: "SPACEPORT", icon: "rocket" },
+    { key: "dex", jp: "図鑑", en: "SPECIMEN DEX", icon: "dex" },
+  ],
   // 研究デスクパネル(UISkills §13 R4改訂・統一書式の色/文言・★Ric調整)
   planCurColor: "#ecc35a",    // 充足の琥珀
   planLackColor: "#d8404e",   // 不足「あと◯」の深紅

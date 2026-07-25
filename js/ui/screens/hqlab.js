@@ -44,6 +44,7 @@ Object.assign(UI, {
     if (this._hqlabBound) return; this._hqlabBound = true;
     const back = document.getElementById("hqlab-back");
     if (back) back.addEventListener("click", () => this.closeHqLab());
+    this._buildHqMenu(); // §14: 本部右メニュー(常設導線・動注入=飼育槽レイアウト非接触)
     const cv = document.getElementById("hqlab-canvas");
     if (cv) {
       const toDesign = (e) => { const r = cv.getBoundingClientRect(), b = this._labBlit || { k: 1, bx: 0, by: 0 }; return { x: ((e.clientX - r.left) * cv.width / r.width - b.bx) / b.k, y: ((e.clientY - r.top) * cv.height / r.height - b.by) / b.k }; };
@@ -61,6 +62,32 @@ Object.assign(UI, {
       });
     }
     window.addEventListener("resize", () => { if (this.hqLabOpen()) this.renderHqLab(); });
+  },
+
+  // §14: 本部右メニュー(黒空間クリック依存の解消)。#hqlab-wrapを#hqlab-rowで包み右列に注入。
+  // 既存openLabPanel/openDexを呼ぶだけ=パネルロジック非接触。二重導線(ホロモジュール直クリックも存続)。
+  _buildHqMenu() {
+    if (document.getElementById("hqlab-menu")) return;
+    const wrap = document.getElementById("hqlab-wrap");
+    if (!wrap || !wrap.parentNode) return;
+    const row = document.createElement("div");
+    row.id = "hqlab-row";
+    wrap.parentNode.insertBefore(row, wrap);
+    row.appendChild(wrap);
+    const nav = document.createElement("nav");
+    nav.id = "hqlab-menu";
+    nav.style.setProperty("--hqmenu-w", (CFG.hqMenuWidth || 168) + "px");
+    nav.style.setProperty("--hqmenu-w-narrow", (CFG.hqMenuWidthNarrow || 52) + "px");
+    for (const it of (CFG.hqMenuItems || [])) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.dataset.panel = it.key;
+      b.title = it.jp;
+      b.innerHTML = `${Icon.svg(it.icon)}<span class="hm-tx"><span class="hm-jp">${it.jp}</span><span class="hm-en">${it.en}</span></span>`;
+      b.addEventListener("click", () => { if (it.key === "dex") this.openDex(); else this.openLabPanel(it.key); });
+      nav.appendChild(b);
+    }
+    row.appendChild(nav);
   },
 
   // ---------------- tier(labRoomTiers=部屋→点灯モジュール数へ) ----------------
