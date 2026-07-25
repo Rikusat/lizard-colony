@@ -209,6 +209,56 @@ ok("C3: id位相ずれ(個体で揺れが違う)", s1 !== s2);
   ok("V5M⑰: 決定論(同入力→同出力)", JSON.stringify(Render._motEnv({ id: 5, injuredT: 0 })) === JSON.stringify(Render._motEnv({ id: 5, injuredT: 0 })));
 }
 
+// ===== V5M 第3バッチ(2026-07-25): ⑬ベビー追従/⑤脱皮の気配/⑩砂掘り(⑱=スキップ) =====
+{
+  Game.newGame(); Game.state.rank = 5; Game.raid = null;
+  const baby = { id: 701, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "baby", xp: 0, level: 1, injuredT: 0, breedCd: 0, traits: [] };
+  const ad = { id: 702, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "adult", xp: 0, level: 5, injuredT: 0, breedCd: 0, traits: [] };
+  Game.state.lizards = [baby, ad];
+  Game.ensureRuntime(baby); Game.ensureRuntime(ad);
+  baby.x = 500; baby.y = 400; baby.tx = 500; baby.ty = 400; baby.resting = false;
+  ad.x = 640; ad.y = 430; ad.tx = 700; ad.ty = 430; ad.angle = 0; ad.wanderT = 999; ad.resting = false; ad.moving = true;
+  sb.Math.random = () => 0.99; CFG.spotVisitChance = 0; CFG.motDashOn = false; CFG.motRareOn = false; CFG.motShedOn = false; CFG.motDigOn = false;
+  CFG.motFollowOn = true; CFG.motFollowRate = 1;
+  Game._motClock = 0; baby._folBk = undefined; baby.wanderT = 0;
+  Game.moveLizards(0.1);
+  ok("V5M⑬: ベビーが追従開始(対象の後方が目的地)", baby._folT > 0 && baby._folId === ad.id && baby.tx < ad.x, `folT=${baby._folT} tx=${baby.tx}`);
+  ad.returning = true; Game.moveLizards(0.1);
+  ok("V5M⑬: 対象が帰巣したら解除", baby._folT === 0);
+  ad.returning = false;
+  // ⑤ 脱皮: 岩へ寄る→到着で擦り開始→_poseBobが整数dxを返す
+  CFG.motShedOn = true; CFG.motShedRate = 1; CFG.motFollowOn = false;
+  Render._stageBoulders = [{ x: 700, y: 420, r: 22 }];
+  const sz = ad;
+  sz.x = 600; sz.y = 420; sz.tx = 600; sz.ty = 420; sz.moving = false; sz._shedBk = undefined; sz.wanderT = 0;
+  Game.moveLizards(0.1);
+  ok("V5M⑤: 岩の際を目的地に(±r+12)", Math.abs(Math.abs(sz.tx - 700) - 34) < 1 && sz._shedGo === true, `tx=${sz.tx}`);
+  let g3 = 0; while (sz.moving !== false || sz._shedGo) { Game.moveLizards(0.1); if (++g3 > 400) break; }
+  ok("V5M⑤: 到着で擦り開始(_shedT>0)", sz._shedT > 0, "shedT=" + sz._shedT);
+  Render.time = 2.2;
+  const rub = Render._poseBob(sz);
+  ok("V5M⑤: 擦り=整数dx・dy0", rub && Number.isInteger(rub.dx) && rub.dy === 0, JSON.stringify(rub));
+  // ⑩ 砂掘り: 乾燥惑星のみ・その場で静止して掻く
+  CFG.motShedOn = false; CFG.motDigOn = true; CFG.motDigRate = 1;
+  Game.state.stageSel = 3; // 非対象惑星
+  sz._digBk = undefined; sz._shedT = 0; sz.wanderT = 0; sz.tx = sz.x; sz.ty = sz.y;
+  Game.moveLizards(0.1);
+  ok("V5M⑩: 非対象惑星では掘らない", (sz._digT || 0) <= 0);
+  Game.state.stageSel = 1;
+  sz._digBk = undefined; sz.wanderT = 0;
+  Game.moveLizards(0.1);
+  ok("V5M⑩: 乾燥惑星で掘り発火(その場静止)", sz._digT > 0 && sz.tx === sz.x && sz.ty === sz.y, "digT=" + sz._digT);
+  // 帰巣で仕草中断
+  sz._shedT = 3; sz._digT = 2; sz._folT = 1; sz.returning = true;
+  Game.moveLizards(0.1);
+  ok("V5M第3: 帰巣で仕草クリア", sz._shedT === 0 && sz._digT === 0 && sz._folT === 0);
+  sz.returning = false;
+  // settleDisplayで残状態クリア
+  sz._shedT = 3; sz._digT = 2; sz._folT = 1; sz._shedGo = true;
+  Game.settleDisplay();
+  ok("V5M第3: settleDisplayでクリア", sz._shedT === 0 && sz._digT === 0 && sz._folT === 0 && sz._shedGo === false);
+}
+
 console.log(`\n=== モーション 回帰テスト結果: ${pass} PASS / ${fail} FAIL ===`);
 if (fail) { console.log("FAILED:\n - " + fails.join("\n - ")); process.exit(1); }
 console.log("すべてPASS(C1割当:決定論/capacity比例/状態非干渉/null・C2配線:到達/ワープなし/解除/数値非干渉・C3姿勢:整数bob/null条件/決定論・V5M第1バッチ:⑦連続/⑧2反転/⑫対面/①K範囲/reduced停止/数値非干渉/クリア)");

@@ -331,6 +331,20 @@ const CFG = {
   motEnvLiftPx: 3,          // 頭上げの浮きpx(高熱)
   motEnvColdStages: [7, 8], // 震える惑星(水中都市/氷の前線)
   motEnvHotStages: [5, 9],  // 頭を上げる惑星(火山/廃原子炉)
+  // V5M 第3バッチ(⑬⑤⑩・⑱はスキップ=前提の動的環境演出が現行に無い・★全てRic実機判定)
+  motFollowOn: true,        // ⑬ベビー追従
+  motFollowWin: 30,         // 判定窓(秒)
+  motFollowRate: 0.12,      // 窓ごとの発生率(ベビー側)
+  motFollowSec: 6,          // 追従する秒
+  motShedOn: true,          // ⑤脱皮の気配
+  motShedWin: 1800,         // 発生窓(秒・約30分に1回の稀さが価値)
+  motShedRate: 0.6,         // 窓ごとの発生率
+  motShedDur: 8,            // 岩に擦る秒
+  motShedRubPx: 2,          // 擦りの振幅px
+  motDigOn: true,           // ⑩砂掘り
+  motDigStages: [1, 10],    // 掘る惑星(乾燥地帯/古代遺跡)
+  motDigRate: 0.05,         // 8秒窓ごとの発生率
+  motDigDur: 3,             // 掻いている秒
   // 群衆対策(表示のみ・収益/戦闘は全個体が対象のまま)
   maxVisibleLizards: 70,    // フィールドに同時表示する上限。超過分は巣穴で休憩
   restSwapPerSec: 3,        // 平常時に毎秒この匹数まで休憩⇔活動を入れ替え(漸進=ちらつき防止)

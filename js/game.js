@@ -233,6 +233,7 @@ const Game = {
       l.returning = false; // 即時確定=歩行途中の状態はクリア(ロード/惑星切替は瞬時に確定=fps安定)
       l.spot = null; l._toSpot = null; // モーション: 居場所滞在も即クリア(ロード後は徘徊から再割当・stale姿勢なし)
       l._dashT = 0; l._lookT = 0; l._meetCd = 0; // V5M: モーション残状態もクリア(stale姿勢なし・runtime専用=保存されない)
+      l._shedT = 0; l._digT = 0; l._folT = 0; l._shedGo = false; // V5M第3バッチ分
       l.resting = !show.has(l.id);
       if (l.resting) l.restedAt = Date.now();
     }
@@ -2209,6 +2210,7 @@ const Game = {
       // §8.14: 巣へ帰還中は徘徊/戦闘を無視して巣口へ歩き、到達したら巣に入る(消える)。ワープ禁止=物理移動で入退場
       if (lz.returning) {
         lz.spot = null; // 帰巣中は居場所を離れる(姿勢解除)
+        lz._shedT = 0; lz._digT = 0; lz._folT = 0; lz._shedGo = false; // V5M: 帰巣は仕草より優先
         const n = this.nestEntryFor(lz); // §8.16: 割り当て入口へ歩く(動線分散)
         // 裁定③: ボス戦時の避難=①判定半径拡大(nestEntryRadius) ②避難速度別枠(nestFleeSpeedMult)
         // ③到達点分散(id決定論の横オフセット=出撃個体とすれ違わない別レーン)。通常時の出入りは従来どおり。
@@ -2227,6 +2229,19 @@ const Game = {
       if (lz.panicT > 0 || lz.injuredT > 0) { lz.spot = null; lz._toSpot = null; } // 逃走/負傷中は居場所に留まらない
       if (lz._meetCd > 0) lz._meetCd -= dt; // V5M⑫: 見合いのクールダウン
       if (lz._dashT > 0) lz._dashT -= dt;   // V5M⑦: 疾走窓の残り
+      if (lz._shedT > 0) lz._shedT -= dt;   // V5M⑤: 脱皮の擦りの残り
+      if (lz._digT > 0) lz._digT -= dt;     // V5M⑩: 砂掘りの残り
+      if (lz._folT > 0) lz._folT -= dt;     // V5M⑬: 追従の残り
+      if (lz.panicT > 0 || lz.injuredT > 0) { lz._shedT = 0; lz._digT = 0; lz._folT = 0; } // 逃走/負傷で仕草は中断
+      // V5M⑬: ベビー追従の実行(対象の後方を歩いて追う・対象が消えたら解除)
+      if (lz._folT > 0) {
+        const tgt = this.state.lizards.find((r) => r.id === lz._folId);
+        if (!tgt || !this.isVisible(tgt) || tgt.returning || this.raid) { lz._folT = 0; }
+        else {
+          lz.tx = clamp(tgt.x - Math.cos(tgt.angle) * 46, FIELD.x1, FIELD.x2);
+          lz.ty = clamp(tgt.y - Math.sin(tgt.angle) * 26 + 12, FIELD.y1, FIELD.y2);
+        }
+      }
       lz.wanderT -= dt;
       const fighting = snake && lz.stage === "adult" && lz.injuredT <= 0;
       if (fighting) {
@@ -2252,6 +2267,56 @@ const Game = {
           lz.wanderT = CFG.motDashRestSec || 5; // 走った直後はじっとする(静→動→静のリズム)
           const dx0 = lz.tx - lz.x, dy0 = lz.ty - lz.y;
           if (Math.hypot(dx0, dy0) > 4) { lz.angle = Math.atan2(dy0, dx0); }
+        } else if ((() => {
+          // V5M⑬: ベビー追従(決定論)。ベビーが近くのアダルトの後を数秒だけついて歩く。
+          if (motOff || CFG.motFollowOn === false || lz.stage !== "baby") return false;
+          const fb = Math.floor(this._motClock / (CFG.motFollowWin || 30));
+          if (lz._folBk === fb || this.motHash(lz.id * 17 + 8, fb) >= (CFG.motFollowRate || 0.12)) return false;
+          const ad = this.state.lizards.find((r) =>
+            r !== lz && r.stage === "adult" && !r.returning && r.injuredT <= 0 && this.isVisible(r)
+            && Math.hypot(r.x - lz.x, r.y - lz.y) < 300);
+          if (!ad) return false;
+          lz._folBk = fb;
+          lz._folId = ad.id; lz._folT = CFG.motFollowSec || 6;
+          lz.spot = null; lz._toSpot = null;
+          lz.wanderT = lz._folT;
+          return true;
+        })()) {
+          // (⑬の追従開始)
+        } else if ((() => {
+          // V5M⑤: 脱皮の気配(決定論・稀)。近くの岩の際へ歩き、到着後は体を擦る(擦り=_poseBob/皮片=状態レイヤ)。
+          if (motOff || CFG.motShedOn === false) return false;
+          const sbk = Math.floor((this._motClock + (lz.id % 173) * 11) / (CFG.motShedWin || 1800));
+          if (lz._shedBk === sbk || this.motHash(lz.id * 23 + 9, sbk) >= (CFG.motShedRate || 0.6)) return false;
+          const bls = ((typeof Render !== "undefined" && Render._stageBoulders) || [])
+            .filter((b) => b.r >= 14 && b.x > FIELD.x1 + 20 && b.x < FIELD.x2 - 20 && b.y > FIELD.y1 + 10 && b.y < FIELD.y2 - 10);
+          let best = null, bd = 320;
+          for (const b of bls) { const d = Math.hypot(b.x - lz.x, b.y - lz.y); if (d < bd) { bd = d; best = b; } }
+          if (!best) return false;
+          lz._shedBk = sbk;
+          const side = this.motHash(lz.id * 31 + 11, sbk) < 0.5 ? -1 : 1;
+          lz.spot = null; lz._toSpot = null;
+          lz.tx = clamp(best.x + side * (best.r + 12), FIELD.x1, FIELD.x2);
+          lz.ty = clamp(best.y + 8, FIELD.y1, FIELD.y2);
+          lz._shedGo = true;
+          lz.wanderT = (CFG.motShedDur || 8) + 8; // 歩き+擦りの滞在
+          return true;
+        })()) {
+          // (⑤の岩寄り開始)
+        } else if ((() => {
+          // V5M⑩: 砂掘り(決定論・乾燥系惑星のみ)。その場で前脚を掻く(脚=既存位相の流用・飛沫=状態レイヤ)。
+          if (motOff || CFG.motDigOn === false) return false;
+          if (!(CFG.motDigStages || [1, 10]).includes(this.state.stageSel)) return false;
+          const db = Math.floor(this._motClock / 8);
+          if (lz._digBk === db || this.motHash(lz.id * 29 + 10, db) >= (CFG.motDigRate || 0.05)) return false;
+          lz._digBk = db;
+          lz.spot = null; lz._toSpot = null;
+          lz.tx = lz.x; lz.ty = lz.y;
+          lz._digT = CFG.motDigDur || 3;
+          lz.wanderT = (CFG.motDigDur || 3) + 1;
+          return true;
+        })()) {
+          // (⑩の掘り開始)
         } else if ((() => {
           // V5M⑮: レア個体の引力(決定論)。無印個体が、静止中の特性持ち/レジェンダリーの傍へ寄って数秒眺める。
           if (motOff || CFG.motRareOn === false) return false;
@@ -2309,8 +2374,11 @@ const Game = {
         lz.angle = Math.atan2(dy, dx);
         lz.moving = true;
       } else {
-        // V5M⑧: 到着の瞬間にキョロキョロ(決定論・スポット/戦闘/負傷では出ない)
-        if (lz.moving && !motOff && CFG.motLookOn !== false && !lz._toSpot && !fighting && lz.injuredT <= 0) {
+        // V5M⑤: 岩の際へ到着=擦りの開始(皮片は状態レイヤ・擦りは_poseBob)
+        if (lz._shedGo && lz.moving) { lz._shedGo = false; lz._shedT = CFG.motShedDur || 8; }
+        // V5M⑧: 到着の瞬間にキョロキョロ(決定論・スポット/戦闘/負傷/擦り・掘り中では出ない)
+        if (lz.moving && !motOff && CFG.motLookOn !== false && !lz._toSpot && !fighting && lz.injuredT <= 0
+          && (lz._shedT || 0) <= 0 && (lz._digT || 0) <= 0) {
           const lb = Math.floor(this._motClock / 4);
           if (this.motHash(lz.id * 11 + 3, lb) < (CFG.motLookRate || 0.25)) { lz._lookT = 1.8; lz._lookN = 0; }
         }

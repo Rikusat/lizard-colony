@@ -1806,6 +1806,11 @@ const Render = {
   _poseBob(lz) {
     if (lz.moving) return null;
     if (window.Motion && Motion.reduced) return null;
+    // V5M⑤: 脱皮の擦り(岩の際で体を前後に擦る=整数px・魂ピクセル不変)
+    if (!lz.spot && lz._shedT > 0) {
+      const t = this.time * 9 + (lz.id % 37);
+      return { dx: Math.round(Math.sin(t) * (CFG.motShedRubPx || 2)), dy: 0 };
+    }
     // V5M⑰: 惑星の環境反応(スポット外の静止個体)。骨格2種=震え(寒)/頭上げ(熱)・惑星割当はCFG配列。
     if (!lz.spot) return this._motEnv(lz);
     const amp = CFG.poseBobPx || 3, sp = CFG.poseBobSpeed || 1.2;
@@ -1992,8 +1997,10 @@ const Render = {
       if (!isFar) claws(toeH, 1);
       // --- 前脚 ---
       const sh = { x: L * 0.2 + shift, y: -L * 0.14 };
-      const swF = moving ? Math.sin(phase + phOff + Math.PI) * L * 0.045 : 0;
-      const liftF = moving ? Math.max(0, Math.sin(phase + phOff + Math.PI + 0.7)) * L * 0.035 : 0;
+      // V5M⑩: 砂掘り=静止中でも前脚だけ既存の歩行位相で掻く(B方式=既存動的パラメータの流用・振幅は小さく速く)
+      const dig = !moving && (lz._digT || 0) > 0;
+      const swF = moving ? Math.sin(phase + phOff + Math.PI) * L * 0.045 : dig ? Math.sin(phase * 2.4 + phOff) * L * 0.028 : 0;
+      const liftF = moving ? Math.max(0, Math.sin(phase + phOff + Math.PI + 0.7)) * L * 0.035 : dig ? Math.max(0, Math.sin(phase * 2.4 + phOff + 0.7)) * L * 0.03 : 0;
       const elb = { x: sh.x - L * 0.025 + swF * 0.5, y: -L * 0.07 };
       const wri = { x: sh.x + L * 0.008 + swF, y: -L * 0.012 - liftF };
       const toeF = { x: wri.x + L * 0.08 + swF * 0.3, y: -L * 0.004 - liftF * 0.6 };
@@ -2254,6 +2261,33 @@ const Render = {
       ctx.setLineDash([6, 5]); ctx.lineDashOffset = -this.time * 24;
       ctx.beginPath(); ctx.ellipse(-L * 0.06, 0, L * 0.55, L * 0.12, 0, 0, 7); ctx.stroke();
       ctx.setLineDash([]);
+    }
+    // V5M⑤: 脱皮の皮片(擦り中・白い小片が体の後方へ落ちる。上乗せ描画=決定論・稀さが価値)
+    if ((lz._shedT || 0) > 0 && !(window.Motion && Motion.reduced)) {
+      const face = Math.cos(lz.angle) >= 0 ? 1 : -1;
+      for (let k = 0; k < 2; k++) {
+        const cyc = (this.time * 0.55 + k * 0.5 + (lz.id % 13) * 0.07) % 1;
+        const fx = (-0.28 - k * 0.16) * L * face, fy = -L * 0.18 + cyc * L * 0.24;
+        ctx.save(); ctx.translate(fx, fy); ctx.rotate(cyc * 5 + k);
+        ctx.globalAlpha = 0.55 * (1 - cyc);
+        ctx.fillStyle = "#EDE6D8";
+        ctx.fillRect(-L * 0.014, -L * 0.007, L * 0.028, L * 0.014);
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+    }
+    // V5M⑩: 砂掘りの飛沫(前脚もとから小さく散る・惑星の地面色=決定論)
+    if ((lz._digT || 0) > 0 && !(window.Motion && Motion.reduced)) {
+      const face = Math.cos(lz.angle) >= 0 ? 1 : -1;
+      const st = STAGES.find((s) => s.id === Game.state.stageSel) || STAGES[0];
+      ctx.fillStyle = st.pebble || "#cbb083";
+      for (let k = 0; k < 3; k++) {
+        const cyc = (this.time * 1.6 + k * 0.33 + (lz.id % 11) * 0.09) % 1;
+        const px = L * 0.26 * face + cyc * L * 0.10 * face, py = -L * 0.02 - Math.sin(cyc * Math.PI) * L * 0.07;
+        ctx.globalAlpha = 0.7 * (1 - cyc);
+        ctx.beginPath(); ctx.arc(px, py, Math.max(0.6, L * 0.008), 0, 7); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
     }
     // V5M②: 舌出し(ちろちろ)。魂の上乗せ描画=スプライトキャッシュ非接触。個体idで位相分散・決定論。
     //   アオジタ(固有の青い舌が既にある)/移動中/負傷/スポット姿勢中/reduced-motionでは出さない。
