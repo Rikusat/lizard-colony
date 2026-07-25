@@ -345,6 +345,13 @@ const CFG = {
   motDigStages: [1, 10],    // 掘る惑星(乾燥地帯/古代遺跡)
   motDigRate: 0.05,         // 8秒窓ごとの発生率
   motDigDur: 3,             // 掻いている秒
+  // V5M 第4バッチ(⑥・C=形状変形の初適用・変形はbask中の背骨w/y変調のみ・★Ric実機判定)
+  motFlatOn: true,          // ⑥日光浴フラット化
+  motFlatWin: 30,           // 発生窓(秒・bask滞在中)
+  motFlatRate: 0.3,         // 窓ごとの発生率
+  motFlatDur: 10,           // 伏せている秒(前後2秒はなだらかに補間)
+  motFlatWiden: 0.10,       // 幅の広がり(+10%)
+  motFlatLower: 0.08,       // 高さの沈み(-8%)
   // 群衆対策(表示のみ・収益/戦闘は全個体が対象のまま)
   maxVisibleLizards: 70,    // フィールドに同時表示する上限。超過分は巣穴で休憩
   restSwapPerSec: 3,        // 平常時に毎秒この匹数まで休憩⇔活動を入れ替え(漸進=ちらつき防止)

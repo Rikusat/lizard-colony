@@ -259,6 +259,33 @@ ok("C3: id位相ずれ(個体で揺れが違う)", s1 !== s2);
   ok("V5M第3: settleDisplayでクリア", sz._shedT === 0 && sz._digT === 0 && sz._folT === 0 && sz._shedGo === false);
 }
 
+// ===== V5M 第4バッチ(2026-07-25): ⑥日光浴フラット化(C=形状変形の初適用・特則=bask中のw/y変調のみ) =====
+{
+  CFG.motFlatOn = true;
+  const baskLz = (extra) => Object.assign({ id: 9, spot: "heat-bask", moving: false, _spotPosture: "bask" }, extra || {});
+  ok("V5M⑥: 移動中はK=0", Render._motFlatK(baskLz({ moving: true })) === 0);
+  ok("V5M⑥: 非baskはK=0(形状変形はbaskに厳しく限定)", Render._motFlatK(baskLz({ _spotPosture: "drink" })) === 0);
+  ok("V5M⑥: 非スポットはK=0", Render._motFlatK({ id: 9, spot: null, moving: false, _spotPosture: "bask" }) === 0);
+  sb.Motion.reduced = true;
+  ok("V5M⑥: reduced-motionはK=0", Render._motFlatK(baskLz()) === 0);
+  sb.Motion.reduced = false;
+  CFG.motFlatOn = false;
+  ok("V5M⑥: OFFはK=0(乗算恒等=ピクセル完全一致)", Render._motFlatK(baskLz()) === 0);
+  CFG.motFlatOn = true;
+  let sawFlat = false, rangeOk = true;
+  for (let id = 0; id < 30 && !sawFlat; id++) {
+    for (let tq = 0; tq < 800; tq++) {
+      Render.time = tq * 0.1;
+      const k = Render._motFlatK(baskLz({ id }));
+      if (k < 0 || k > 1) rangeOk = false;
+      if (k > 0.9) { sawFlat = true; break; }
+    }
+  }
+  ok("V5M⑥: bask中に実際に伏せる(K→1)・範囲[0,1]", sawFlat && rangeOk);
+  Render.time = 7.7;
+  ok("V5M⑥: 決定論(同入力→同出力)", Render._motFlatK(baskLz({ id: 3 })) === Render._motFlatK(baskLz({ id: 3 })));
+}
+
 console.log(`\n=== モーション 回帰テスト結果: ${pass} PASS / ${fail} FAIL ===`);
 if (fail) { console.log("FAILED:\n - " + fails.join("\n - ")); process.exit(1); }
 console.log("すべてPASS(C1割当:決定論/capacity比例/状態非干渉/null・C2配線:到達/ワープなし/解除/数値非干渉・C3姿勢:整数bob/null条件/決定論・V5M第1バッチ:⑦連続/⑧2反転/⑫対面/①K範囲/reduced停止/数値非干渉/クリア)");

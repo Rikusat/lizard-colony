@@ -1864,6 +1864,22 @@ const Render = {
     return { dx: 0, dy: -Math.round(k * (CFG.motEnvLiftPx || 3)) }; // 熱に頭を上げる
   },
 
+  // V5M⑥(C=形状変形の初適用・Ric事前承認済み・特則遵守): 日光浴フラット化の係数0..1。
+  //   厳格な限定: bask姿勢のスポット滞在中のみ・変形は背骨サンプリングの幅w/高さyの変調だけ(下の1箇所)。
+  //   非適用時は厳密に0=乗算恒等(x*1===x)でピクセル完全一致。決定論・reduced/OFF/移動中/非baskは常に0。
+  _motFlatK(lz) {
+    if (CFG.motFlatOn === false || lz.moving || !lz.spot || lz._spotPosture !== "bask") return 0;
+    if (window.Motion && Motion.reduced) return 0;
+    const win = CFG.motFlatWin || 30, dur = CFG.motFlatDur || 10;
+    const t = this.time + (lz.id % 53) * 1.3;
+    const bk = Math.floor(t / win);
+    if (Game.motHash(lz.id * 37 + 12, bk) >= (CFG.motFlatRate || 0.3)) return 0;
+    const local = t - bk * win;
+    if (local > dur) return 0;
+    const ramp = 2; // なだらかに伏せて、なだらかに戻る
+    return Math.max(0, Math.min(1, local / ramp, (dur - local) / ramp));
+  },
+
   // 生き物本体(魂)。呼び出し側で lz.x,lz.y へ translate 済みの前提はなく、ここで translate する。
   // ※ this.time を使う動的アニメ(尾のしなり・歩行・アオジタの舌)を含むが、"呼ばれた瞬間の this.time" で描くため
   //   直接描画でもキャッシュ焼き込みでも、同一時刻なら出力はピクセル一致(キャッシュは焼く/blitの振り分けのみ)。
@@ -1909,13 +1925,16 @@ const Render = {
     const pts = [], nrm = [], wid = [];
     // V5M①: 静止時の尾のアイドルゆらぎ(倍率K=既定1でピクセル完全一致・既存の位相駆動再焼きに自然に乗る)
     const tailAmp = L * (moving ? 0.05 : 0.02 * this._motTailK(lz));
+    // V5M⑥: 日光浴フラット化(C・bask中のみ。flatK=0なら乗算恒等=ピクセル完全一致。変形はこの2式のみ=特則)
+    const flatK = this._motFlatK(lz);
+    const flatW = 1 + (CFG.motFlatWiden || 0.10) * flatK, flatY = 1 - (CFG.motFlatLower || 0.08) * flatK;
     for (let i = 0; i <= N; i++) {
       const t = i / N;
       // §9.1 自切: 再生していない尾先側(t<tailCutStart)は断面(tailCutStart)へ畳む=尾が短い断端に見える
       const te = (tailRegen < 1 && t < AUTO_CUT) ? Math.max(t, tailCutStart) : t;
       const k = lizSideSample(te);
-      let w = k.w * L;
-      let y = k.y * L;
+      let w = k.w * L * flatW;  // V5M⑥: 平たく広がる(flatK=0で恒等)
+      let y = k.y * L * flatY;  // V5M⑥: 地面へ沈む(同上)
       // 尾のしなり(先端ほど大きく)
       if (te < 0.42) y += Math.sin(phase * 0.8 - te * 9) * tailAmp * Math.pow((0.42 - te) / 0.42, 1.6);
       // 種族ごとの体型(尾に掛かるものは te=自切反映後のtで判定=断端でも整合)
