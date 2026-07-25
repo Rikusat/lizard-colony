@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>R1 繁殖UI刷新 静的モック(開発用・Ric承認前)</title>
+<!-- R1フェーズ1(docs/director_requests_v5R.md): 左メニュー繁殖ボタン(設備の直下)+種別タイルピッカー+A/Bスロット+クイック繁殖。
+     ハッシュ状態: (無印)=初期タイル一覧 / #a=A選択済 / #gray=同種1匹グレーアウト / #quick=クイック選出済 / #morph=案B(種×モーフ粒度)
+     表示のみのモック(繁殖実行なし)。localStorageサンドボックス=本セーブ非接触。.vercelignoreでdev限定。
+     粒度2案: 案A=種単位(タイル最少・すっきり最大) / 案B=種×モーフ単位(所持モーフが見える・図鑑軸と一致)。 -->
+<script>
+(function () {
+  const mem = {};
+  const shim = { getItem: (k) => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: (k) => { delete mem[k]; }, clear: () => { for (const k in mem) delete mem[k]; } };
+  Object.defineProperty(window, "localStorage", { value: shim, configurable: false });
+})();
+</script>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="style.css">
+<style>
+#modal-box { animation: none !important; }
+/* ==== R1モック(ページ内スコープ。本実装でUISkills追記→style.cssへ) ==== */
+.sp-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.sp-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 8px 8px;
+  background: var(--ink-700, #241c14); border: 1px solid var(--ink-600, #37301f); border-radius: 10px; cursor: pointer; }
+.sp-tile:hover { border-color: var(--amber-500, #C9A227); }
+.sp-tile canvas { display: block; }
+.sp-tile b { font-size: calc(13px * var(--fs-scale,1)); }
+.sp-tile .cnt { font-size: calc(11px * var(--fs-scale,1)); color: var(--sub); }
+.sp-tile.picked-a::after { content: "A"; position: absolute; top: 6px; left: 8px; color: #0e0c08; background: var(--amber-400, #E4BC3A);
+  font-weight: 800; border-radius: 6px; padding: 1px 7px; }
+.sp-tile.grayed { opacity: .35; pointer-events: none; filter: grayscale(.6); }
+.sp-slots { display: flex; gap: 12px; align-items: stretch; border-top: 1px solid rgba(190,214,235,.08); padding-top: 12px; }
+.sp-slot { flex: 1; display: flex; gap: 10px; align-items: center; background: var(--ink-700, #241c14);
+  border: 1px solid var(--ink-600, #37301f); border-radius: 10px; padding: 8px 10px; min-height: 92px; }
+.sp-slot .tag { font-weight: 800; color: var(--amber-400, #E4BC3A); font-size: calc(15px * var(--fs-scale,1)); }
+.sp-slot .empty { color: var(--sub); font-size: calc(12px * var(--fs-scale,1)); }
+.sp-slot .who { flex: 1; min-width: 0; }
+.sp-slot .who b { font-size: calc(13px * var(--fs-scale,1)); display: block; }
+.sp-slot .who .desc { color: var(--sub); font-size: calc(11px * var(--fs-scale,1)); }
+.sp-nav { display: flex; flex-direction: column; gap: 4px; }
+.sp-nav button { padding: 3px 8px; }
+.sp-actions { display: flex; gap: 10px; margin-top: 12px; justify-content: flex-end; }
+.sp-actions .quick { border-color: var(--amber-500, #C9A227); }
+#note { position: fixed; left: 8px; bottom: 8px; z-index: 99999; background: rgba(13,10,6,.9); color: #c9b8a2; font: 12px system-ui; padding: 8px 12px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div id="note">R1モック — (無印)初期 / #a=A選択 / #gray=同種1匹グレー / #quick=クイック選出 / #morph=案B粒度</div>
+<header id="topbar"><div id="brand"></div>
+  <div class="res"><b id="ui-coins">0</b><small id="ui-cps"></small></div>
+  <div class="res"><b id="ui-crickets-top">0</b></div><div class="res"><b id="ui-gems">0</b></div><div class="res"><b id="ui-amethyst">0</b></div><div class="res"><b id="ui-stones">0</b></div>
+  <nav><button id="btn-map"></button><button id="btn-hq"></button><span id="hq-badge"></span><button id="btn-dex"></button><span id="dex-badge"></span>
+  <button id="btn-missions"></button><span id="mission-badge"></span><button id="btn-stats"></button><span id="stats-badge"></span><button id="btn-settings"></button></nav>
+</header>
+<div id="hq-bar"><div id="rank-bar"></div><span id="hq-bar-label"><b id="ui-rank">1</b></span></div>
+<main>
+  <aside id="left">
+    <div class="card">
+      <h3>操作卓</h3>
+      <button id="btn-cricket" class="ft-card" title="コオロギ購入(まとめ買い / 長押しで連続)">
+        <svg class="icon"><use href="#i-cricket"/></svg>
+        <span class="ft-txt"><b>コオロギ購入</b><small id="cricket-lot-lbl">まとめ買い</small></span>
+      </button>
+      <button id="btn-fac" class="ft-card" title="設備 — コロニーを強化">
+        <svg class="icon"><use href="#i-build"/></svg>
+        <span class="ft-txt"><b>設備</b><small>コロニーを強化</small></span>
+      </button>
+      <!-- R1-1: 繁殖ボタン(設備の直下・既存ft-cardの意匠言語。スリット装置と下部レイアウトは不変) -->
+      <button id="btn-breed-menu" class="ft-card" title="繁殖 — 種を選んで掛け合わせる">
+        <svg class="icon"><use href="#i-breed"/></svg>
+        <span class="ft-txt"><b>繁殖</b><small>種を選んで掛け合わせ</small></span>
+      </button>
+    </div>
+    <div id="slit-device" title="四重スリット実験装置"><canvas id="slit-canvas"></canvas></div>
+  </aside>
+  <section id="center"><div id="frame"><canvas id="game" width="1280" height="720"></canvas>
+    <div id="raid-hud"><div class="rh-line"><span id="raid-timer"></span></div><div id="next-boss" class="hidden"></div><button id="btn-raid-now"></button></div>
+    <div id="toasts"></div></div><div id="raid-banner" class="hidden"></div><div id="detail" class="hidden"></div></section></main>
+<section id="hqlab" class="hidden"><header id="hqlab-head"><button id="hqlab-back">←</button><h2>本部</h2><span id="hqlab-lv"></span></header>
+  <div id="hqlab-wrap"><canvas id="hqlab-canvas" width="1000" height="620"></canvas></div></section>
+<div id="modal" class="hidden"><div id="modal-box"><header><h2 id="modal-title"></h2><button id="modal-close">×</button></header><div id="modal-body"></div></div></div>
+
+<script src="js/data.js"></script><script src="js/game.js"></script><script src="js/render.js"></script>
+<script src="js/roulette.js"></script><script src="js/slit.js"></script>
+<script src="js/ui/core.js"></script><script src="js/ui/icons.js"></script><script src="js/ui/components.js"></script><script src="js/ui/motion.js"></script>
+<script src="js/ui/hero/hero.js"></script><script src="js/ui/hero/nest-reveal.js"></script><script src="js/ui/hero/boss.js"></script>
+<script src="js/ui/hero/meteorite.js"></script><script src="js/ui/hero/rocket.js"></script><script src="js/ui/hero/species-reveal.js"></script><script src="js/ui/hero/boss-reward.js"></script>
+<script src="js/ui/screens/main.js"></script><script src="js/ui/screens/feeder-skins.js"></script><script src="js/ui/screens/feeder.js"></script>
+<script src="js/ui/screens/roulette.js"></script><script src="js/ui/screens/slit.js"></script><script src="js/ui/screens/breeding.js"></script>
+<script src="js/ui/screens/equipment.js"></script><script src="js/ui/screens/planet-map.js"></script><script src="js/ui/screens/nest.js"></script>
+<script src="js/ui/screens/hq.js"></script><script src="js/ui/screens/hqlab.js"></script><script src="js/ui/screens/dex.js"></script><script src="js/ui/screens/meta.js"></script><script src="js/ui/boot.js"></script>
+<script>
+// ============================================================
+// R1モック: 表示のみ(繁殖実行なし)。希少スコアのデモ選出=決定論(提案式の縮約実装)。
+// ============================================================
+window.addEventListener("load", () => setTimeout(() => {
+  Game.newGame();
+  Game.state.lizards = [];
+  const sp = SPECIES.find((s) => s.id === "kanahebi"), sp2 = SPECIES.find((s) => s.id === "nihontokage");
+  const mk = (spec, morph, traits, fixed, name) => {
+    const lz = Game.makeLizard(spec.id, morph, { hue: spec.hue, sat: spec.sat, light: spec.light, pattern: "stripe", traits: (traits || []).map((k) => ({ key: k })) }, "adult");
+    lz.injuredT = 0; lz.breedCd = 0; if (fixed) lz.fixedTraits = fixed;
+    lz._mock = name;
+    Game.addLizard(lz, true);
+    return lz;
+  };
+  // モックコロニー: カナヘビ3匹(2匹以上=タイル選択可のまま) / ニホントカゲ1匹(A選択後グレーアウトの実演)
+  const L1 = mk(sp, "normal", ["mimikakushi", "hagane"], ["mimikakushi"], "カナヘビ①");
+  const L2 = mk(sp, "albino", ["shinkai"], null, "カナヘビ②(アルビノ)");
+  const L3 = mk(sp, "normal", [], null, "カナヘビ③");
+  const L4 = mk(sp2, "normal", ["neon"], null, "ニホントカゲ①");
+  const colony = [L1, L2, L3, L4];
+
+  // ---- 希少スコア(提案式の縮約デモ・決定論) ----
+  // score = 1000*dex到達 + 100*レシピ寄与 + 10*希少特性 + 1*固定印(桁分離=辞書式優先・同点=idの昇順)
+  function pairScore(a, b) {
+    let dex = 0;
+    for (const spid of new Set([a.speciesId, b.speciesId])) for (const mo of MORPHS) {
+      if (!mo.legendary && !Game.state.dex[spid + ":" + mo.id]) dex++;
+    }
+    const un = new Set([...(a.traits || []), ...(b.traits || [])].map((t) => t.key || t));
+    let rec = 0;
+    for (const r of RECIPES) if (un.has(r.a) && un.has(r.b)) rec++;
+    let rare = 0;
+    for (const k of un) {
+      const cnt = colony.filter((lz) => (lz.traits || []).some((t) => (t.key || t) === k)).length;
+      rare += 1 / Math.max(1, cnt);
+    }
+    const fx = ((a.fixedTraits || []).length + (b.fixedTraits || []).length);
+    return 1000 * dex + 100 * rec + 10 * rare + fx;
+  }
+  function quickPick() {
+    let best = null;
+    for (let i = 0; i < colony.length; i++) for (let j = i + 1; j < colony.length; j++) {
+      const s2 = pairScore(colony[i], colony[j]);
+      if (!best || s2 > best.s || (s2 === best.s && colony[i].id < best.a.id)) best = { a: colony[i], b: colony[j], s: s2 };
+    }
+    return best;
+  }
+
+  // ---- モーダル ----
+  const state = { a: null, b: null, granularity: location.hash === "#morph" ? "morph" : "species" };
+  if (location.hash === "#a") state.a = L1;
+  if (location.hash === "#gray") state.a = L4; // ニホントカゲ(1匹のみ)をA=同種タイルはグレーアウト
+  if (location.hash === "#quick") { const q = quickPick(); state.a = q.a; state.b = q.b; state.quick = q; }
+
+  function drawLz(cv, lz, scale) {
+    const c = cv.getContext("2d");
+    c.clearRect(0, 0, cv.width, cv.height);
+    const tmp = { ...lz, x: cv.width / 2 / (scale || 1), y: cv.height / 2 / (scale || 1) + 8, tx: 0, ty: 0, angle: 0.12, moving: false };
+    c.save(); c.scale(scale || 1, scale || 1);
+    Render.drawLizard(c, tmp, true);
+    c.restore();
+  }
+  function chipHtml(lz) {
+    const trs = (lz.traits || []).map((t) => t.key || t);
+    if (!trs.length) return '<span class="desc" style="color:var(--sub)">特性なし</span>';
+    return `<span class="tchips">${trs.map((k) => {
+      const d = TRAITS[k]; if (!d) return "";
+      const fixed = (lz.fixedTraits || []).includes(k);
+      return `<span class="tchip" style="--tc:${d.rim}">${Icon.svg(d.icon)}${d.name}${fixed ? `<span class="tc-seal">${Icon.svg("fix-seal")}</span>` : ""}</span>`;
+    }).join("")}</span>`;
+  }
+  function tileDefs() {
+    if (state.granularity === "morph") { // 案B: 種×モーフ
+      const map = new Map();
+      for (const lz of colony) {
+        const key = lz.speciesId + ":" + lz.morphId;
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(lz);
+      }
+      return [...map.entries()].map(([k, ls]) => ({ key: k, rep: ls[0], list: ls, label: `${speciesById(ls[0].speciesId).name}`, sub: `${(MORPHS.find((m) => m.id === ls[0].morphId) || {}).name} × ${ls.length}` }));
+    }
+    const map = new Map(); // 案A: 種単位
+    for (const lz of colony) {
+      if (!map.has(lz.speciesId)) map.set(lz.speciesId, []);
+      map.get(lz.speciesId).push(lz);
+    }
+    return [...map.entries()].map(([k, ls]) => ({ key: k, rep: ls[0], list: ls, label: speciesById(k).name, sub: `所持 ${ls.length}匹` }));
+  }
+  function slotHtml(tag, lz) {
+    if (!lz) return `<div class="sp-slot"><span class="tag">${tag}</span><span class="empty">${tag === "A" ? "種タイルを選ぶ" : "A選択後にBを選ぶ"}</span></div>`;
+    return `<div class="sp-slot"><span class="tag">${tag}</span>
+      <canvas width="120" height="84" data-slotlz="${lz.id}"></canvas>
+      <div class="who"><b>${Game.lizardName(lz)}</b><span class="desc">${(MORPHS.find((m) => m.id === lz.morphId) || {}).name} / Lv${lz.level || 1}</span>${chipHtml(lz)}</div>
+      <div class="sp-nav"><button title="同種内で前へ">◀</button><button title="同種内で次へ">▶</button></div>
+    </div>`;
+  }
+  if (location.hash === "#menu") return; // 左メニュー差分スクショ用(モーダルを開かない)
+  UI.openModal(`${Icon.svg("breed")} 繁殖 — 種を選ぶ`, (body) => {
+    const tiles = tileDefs();
+    let th = `<div class="sp-tiles">`;
+    for (const t of tiles) {
+      const isA = state.a && t.list.includes(state.a);
+      // 同種2匹以上=A選択後も選択可 / 1匹のみ=グレーアウト
+      const gray = state.a && t.list.includes(state.a) && t.list.length < 2;
+      th += `<div class="sp-tile ${isA ? "picked-a" : ""} ${gray ? "grayed" : ""}" data-tile="${t.key}">
+        <canvas width="120" height="72" data-tilelz="${t.rep.id}"></canvas>
+        <b>${t.label}</b><span class="cnt">${t.sub}</span></div>`;
+    }
+    th += `</div>`;
+    const sl = `<div class="sp-slots">${slotHtml("A", state.a)}${slotHtml("B", state.b)}</div>`;
+    const act = `<div class="sp-actions">
+      <button class="quick">${Icon.svg("spark")} クイック繁殖(最も希少な組を選出)</button>
+      <button class="cta" ${state.a && state.b ? "" : "disabled"}>${Icon.svg("breed")} この組で繁殖(確定)</button>
+    </div>`;
+    const note = state.quick ? `<div style="color:var(--sub);font-size:12px;margin-top:8px">クイック選出: ${Game.lizardName(state.quick.a)} × ${Game.lizardName(state.quick.b)}(スコア=${state.quick.s.toFixed(1)}・選出のみ=実行は確定ボタン)</div>` : "";
+    body.innerHTML = th + sl + act + note;
+    for (const cv of body.querySelectorAll("[data-tilelz]")) drawLz(cv, colony.find((l) => l.id === +cv.dataset.tilelz), 0.55);
+    for (const cv of body.querySelectorAll("[data-slotlz]")) drawLz(cv, colony.find((l) => l.id === +cv.dataset.slotlz), 0.62);
+  });
+}, 400));
+</script>
+</body>
+</html>
