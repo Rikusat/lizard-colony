@@ -2672,7 +2672,24 @@ const Game = {
     return w;
   },
 
+  // セーブ・サニタイズ(Ric承認 2026-07-25): 通貨系数値の負値/非有限を0へクランプ(非破壊・冪等)。
+  // 対象=財布のみ(coins/gems/stones/crickets/res4種/rare6種)。個体・卵・確率・構造には一切触れない。
+  // 由来: headless蓄積プロファイルで負コインを観測(§6R.7)。実プレイでも過去ビルド由来の破損値を読込時に自癒する安全弁。
+  sanitizeWallet(w) {
+    const fix = (obj, key) => {
+      const v = obj[key];
+      if (typeof v !== "number" || !isFinite(v) || v < 0) { if (v !== undefined) this._sanitized++; obj[key] = Math.max(0, (typeof v === "number" && isFinite(v)) ? v : 0); }
+    };
+    this._sanitized = 0;
+    if (w.wallet) for (const k of ["coins", "gems", "crickets", "stones"]) fix(w.wallet, k);
+    for (const k of ["coins", "gems", "crickets", "stones"]) if (k in w) fix(w, k);
+    if (w.res) for (const k of Object.keys(w.res)) fix(w.res, k);
+    if (w.rareWallet) for (const k of Object.keys(w.rareWallet)) fix(w.rareWallet, k);
+    if (this._sanitized > 0) console.warn(`[sanitize] 通貨系の破損値 ${this._sanitized} 件を0へ修復(非破壊)`);
+    return w;
+  },
   applyWorld(w) {
+    this.sanitizeWallet(w); // セーブ・サニタイズ(読込境界で一度・冪等)
     if (w.planets && !w.stages) w.stages = w.planets; // V4改名の互換
     if (w.stages && !w.planets) w.planets = w.stages;
     for (const st of (w.stages || [])) { if (st.nest) delete st.nest.pins; } // ①ピン機能撤廃: 旧セーブの残骸を掃除(非破壊・inert field削除)

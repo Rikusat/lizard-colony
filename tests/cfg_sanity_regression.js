@@ -88,6 +88,20 @@ console.log("== 2) dockStages写像+3) 宇宙港rocketStages無傷(実コード)
   })());
   check("宇宙港の建造ロジック(rocketStageNeed)が従来値", Game.rocketStageNeed() === 20, String(Game.rocketStageNeed()));
 
+  // 5) セーブ・サニタイズ(Ric承認 2026-07-25): 財布の負値/非有限を読込境界で0へクランプ(非破壊・冪等)
+  {
+    const w = Game.toWorld();
+    w.wallet.coins = -12708; w.wallet.gems = NaN; w.wallet.stones = -3;
+    if (!w.rareWallet) w.rareWallet = {};
+    w.rareWallet.amethyst = -5;
+    Game.applyWorld(w);
+    const okv = Game.state.coins === 0 && Game.state.gems === 0 && Game.stones() === 0 && Game.ore("amethyst") === 0;
+    check("sanitize: 負値/NaNの財布が読込時に0へ(個体・構造は非接触)", okv, `coins=${Game.state.coins} gems=${Game.state.gems} st=${Game.stones()} am=${Game.ore("amethyst")}`);
+    const w2 = Game.toWorld();
+    Game.applyWorld(w2);
+    check("sanitize: 冪等(正常値は変えない)", Game.state.coins === 0 && Game.state.gems === 0);
+  }
+
   // 4) researchBonus: effを持たない研究(レシピ解読)を購入済みでも落ちない(建造計画モックで露出したクラッシュの再発防止)
   Game.state.research.recipe1 = true;
   let bonusOk = true, bonusV = null;
