@@ -3773,7 +3773,9 @@ const Render = {
       || (CFG.shinkaiPulseOn !== false && keys.includes("shinkai"))
       || (CFG.youganPulseOn !== false && keys.includes("yougan"))
       || (CFG.chronoTickOn !== false && keys.includes("chrono"))
-      || (CFG.amidaWalkOn !== false && keys.includes("amidagura"));
+      || (CFG.amidaWalkOn !== false && keys.includes("amidagura"))
+      || (CFG.kontengiOrbitOn !== false && keys.includes("kontengi"))
+      || (CFG.rinkaiPulseOn !== false && keys.includes("rinkai"));
     if (anim) sig += "|b" + Math.floor(this.time * 2);
     return sig;
   },
@@ -4384,19 +4386,61 @@ const Render = {
   },
 
   // コンテンギ: 胴を斜めに巡る二重の軌道環。血統=クロノの尾の節輪→軌道環(輪が環へ) / アミダグラの節点の灯→環上の星点。
+  // R5-b B4: コンテンギ=「歯車の輪があみだの路に重なる天球」。血統=クロノの歯車→環に刻まれた歯 /
+  //   アミダグラの路と灯→環間の渡し+天球を巡る星。星は0.5s粒度で一歩ずつ巡る(CFGでOFF=止まった天球)。
   traitKontengi(ctx, g, def) {
     const { S, L } = g; if (!S) return;
     const c = def.rim || "#D4AF5E";
+    const teeth = CFG.kontengiTeeth != null ? CFG.kontengiTeeth : 9;
+    const orbitOn = CFG.kontengiOrbitOn !== false;
+    const time = (typeof Render !== "undefined" ? Render.time : 0);
     ctx.save(); ctx.lineCap = "round";
     const rings = [[0.56, -0.5], [0.66, -0.35]]; // [胴のt, 環の傾き]
-    for (const [t, rot] of rings) {
-      const s = S(t);
-      const cx = s.p.x, cy = s.p.y + s.w * 0.02;
+    const geo = rings.map(([t, rot]) => { const s = S(t); return { cx: s.p.x, cy: s.p.y + s.w * 0.02, rx: L * 0.055, ry: s.w * 1.32, rot, w: s.w }; });
+    geo.forEach((r2, ri) => {
       ctx.strokeStyle = c; ctx.globalAlpha = 0.9; ctx.lineWidth = Math.max(1, L * 0.010);
-      ctx.beginPath(); ctx.ellipse(cx, cy, L * 0.055, s.w * 1.32, rot, 0, 7); ctx.stroke(); // 体を巡る環
-      ctx.fillStyle = "#fdf6e3"; // 環上の星点(アミダグラの灯の面影)
-      const sx = cx + Math.cos(rot + 1.1) * L * 0.05, sy = cy - s.w * 1.22;
-      ctx.beginPath(); ctx.arc(sx, sy, Math.max(1, L * 0.011), 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(r2.cx, r2.cy, r2.rx, r2.ry, r2.rot, 0, 7); ctx.stroke(); // 体を巡る環
+      // 歯車の歯(クロノの血統): 環の外周に短い歯を刻む
+      ctx.lineWidth = Math.max(0.7, L * 0.006); ctx.globalAlpha = 0.75;
+      for (let k = 0; k < teeth; k++) {
+        const a = (k / teeth) * Math.PI * 2;
+        const ex0 = Math.cos(a) * r2.rx, ey0 = Math.sin(a) * r2.ry;
+        const co = Math.cos(r2.rot), si = Math.sin(r2.rot);
+        const px = r2.cx + ex0 * co - ey0 * si, py = r2.cy + ex0 * si + ey0 * co;
+        const nx = (ex0 * co - ey0 * si) / Math.max(1, r2.rx), ny = (ex0 * si + ey0 * co) / Math.max(1, r2.ry);
+        const nl = Math.hypot(nx, ny) || 1;
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(px + (nx / nl) * L * 0.009, py + (ny / nl) * L * 0.009);
+        ctx.stroke();
+      }
+    });
+    // あみだの渡し(アミダグラの血統): 二つの環を結ぶ短い桟+節点
+    {
+      const [g1, g2] = geo;
+      ctx.strokeStyle = c; ctx.globalAlpha = 0.6; ctx.lineWidth = Math.max(0.8, L * 0.007);
+      for (const q of [-0.55, 0.35]) {
+        const x1 = g1.cx + Math.cos(g1.rot) * g1.rx * 0.4, y1 = g1.cy + q * g1.ry * 0.8;
+        const x2 = g2.cx + Math.cos(g2.rot) * g2.rx * 0.4, y2 = g2.cy + q * g2.ry * 0.8;
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        ctx.fillStyle = c; ctx.globalAlpha = 0.5;
+        ctx.beginPath(); ctx.arc(x1, y1, Math.max(0.6, L * 0.005), 0, 7); ctx.fill();
+        ctx.globalAlpha = 0.6;
+      }
+    }
+    // 天球を巡る星(アミダグラの灯の昇華): 0.5s粒度で環上を一歩ずつ(OFF=定位置)
+    {
+      const stepN = 12;
+      const st = orbitOn ? Math.floor(time * 2) % stepN : 3;
+      geo.forEach((r2, ri) => {
+        const a = ((st + ri * 5) / stepN) * Math.PI * 2 - Math.PI / 2;
+        const ex0 = Math.cos(a) * r2.rx, ey0 = Math.sin(a) * r2.ry;
+        const co = Math.cos(r2.rot), si = Math.sin(r2.rot);
+        const sx = r2.cx + ex0 * co - ey0 * si, sy = r2.cy + ex0 * si + ey0 * co;
+        ctx.fillStyle = "#FDF6E3"; ctx.shadowColor = c; ctx.shadowBlur = 3; ctx.globalAlpha = 0.95;
+        ctx.beginPath(); ctx.arc(sx, sy, Math.max(1, L * 0.011), 0, 7); ctx.fill();
+        ctx.shadowBlur = 0;
+      });
     }
     // 深紅の芯線: 第一環の下弧の一区間だけ深紅
     const s0 = S(rings[0][0]);
@@ -4463,17 +4507,26 @@ const Render = {
   },
 
   // ホウカン: 頭頂の三尖の金冠。血統=オウゴンヅカの金環→維持(眼の金) / トライアドの三点紋→三尖冠の宝石(三が頂へ昇華)。
+  // R5-b B4: ホウカン=「玄室の金が原初紋を縁取る宝冠」。血統=オウゴンヅカの金箔→冠面の箔の継ぎ目と新旧の明度 /
+  //   トライアドの三連紋→宝石が原初の菱形紋へ。眼の金環=共通の先祖(維持)。金は動かない=完全静止。
   traitHoukan(ctx, g, def) {
     const { ex, ey, eyeR } = g;
     const gold = def.rim || "#E4BC3A";
+    const size = CFG.houkanSize != null ? CFG.houkanSize : 1.0;
+    const glow = CFG.houkanGlow != null ? CFG.houkanGlow : 0.22;
     ctx.save();
     // 眼の金環(オウゴンヅカの面影=維持・細め)
     ctx.strokeStyle = "rgba(18,10,4,.55)"; ctx.lineWidth = Math.max(1.2, eyeR * 0.5);
     ctx.beginPath(); ctx.arc(ex, ey, eyeR * 1.6, 0, 7); ctx.stroke();
     ctx.strokeStyle = gold; ctx.lineWidth = Math.max(0.9, eyeR * 0.32);
     ctx.beginPath(); ctx.arc(ex, ey, eyeR * 1.6, 0, 7); ctx.stroke();
-    // 三尖の冠(頭頂・中央が高い)。宝石=トライアドの三点の面影
-    const bx = ex - eyeR * 0.4, by = ey - eyeR * 2.7, w = eyeR * 3.0, hMid = eyeR * 2.1, hSide = eyeR * 1.3;
+    // 玄室の光暈: 冠の背後に鈍い金(暗がりの中で光る=オウゴンヅカの血統)
+    const bx = ex - eyeR * 0.4, by = ey - eyeR * 2.7, w = eyeR * 3.0 * size, hMid = eyeR * 2.1 * size, hSide = eyeR * 1.3 * size;
+    const hg = ctx.createRadialGradient(bx, by - hSide * 0.6, 1, bx, by - hSide * 0.6, w * 0.9);
+    hg.addColorStop(0, "rgba(228,188,58," + glow.toFixed(3) + ")"); hg.addColorStop(1, "rgba(228,188,58,0)");
+    ctx.fillStyle = hg;
+    ctx.fillRect(bx - w, by - hMid - w * 0.4, w * 2, hMid + w);
+    // 三尖の冠(頭頂・中央が高い)
     ctx.fillStyle = gold; ctx.strokeStyle = "rgba(18,10,4,.6)"; ctx.lineWidth = Math.max(0.8, eyeR * 0.16);
     ctx.beginPath();
     ctx.moveTo(bx - w / 2, by);
@@ -4481,10 +4534,24 @@ const Render = {
     ctx.lineTo(bx, by - hMid); ctx.lineTo(bx + w / 6, by - hSide * 0.55);
     ctx.lineTo(bx + w / 2, by - hSide); ctx.lineTo(bx + w / 2, by);
     ctx.closePath(); ctx.fill(); ctx.stroke();
-    // 三点の宝石(各尖の根本)
-    ctx.fillStyle = "#fdf3d0";
-    for (const dx of [-w / 3, 0, w / 3]) { ctx.beginPath(); ctx.arc(bx + dx, by - eyeR * 0.42, eyeR * 0.22, 0, 7); ctx.fill(); }
-    // 深紅の芯線(冠の台座の帯に一筋)
+    // 箔の継ぎ目(オウゴンヅカの金箔の血統): 冠面を走る細い継ぎ線+一枚だけ明るい箔
+    ctx.strokeStyle = "rgba(120,86,20,.55)"; ctx.lineWidth = Math.max(0.5, eyeR * 0.10);
+    for (const dx of [-w * 0.26, w * 0.1]) {
+      ctx.beginPath(); ctx.moveTo(bx + dx, by); ctx.lineTo(bx + dx + eyeR * 0.15, by - hSide * 0.8); ctx.stroke();
+    }
+    ctx.fillStyle = "#F5D77A"; ctx.globalAlpha = 0.75; // 貼り直された新しい箔(明度差)
+    ctx.beginPath();
+    ctx.moveTo(bx + w * 0.1, by); ctx.lineTo(bx + w / 2, by); ctx.lineTo(bx + w / 2, by - hSide); ctx.lineTo(bx + w * 0.18, by - hSide * 0.7);
+    ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+    // 原初紋の宝石(トライアドの血統): 三点が菱形の顔料紋として尖に宿る(白芯=トライアドと同じ)
+    for (const dx of [-w / 3, 0, w / 3]) {
+      const gx = bx + dx, gy = by - eyeR * 0.5 * size, r = eyeR * 0.30 * size;
+      ctx.fillStyle = "#B8532E"; ctx.strokeStyle = "rgba(18,10,4,.6)"; ctx.lineWidth = Math.max(0.5, eyeR * 0.10); // 原初の顔料(赤土)
+      ctx.beginPath(); ctx.moveTo(gx, gy - r); ctx.lineTo(gx + r * 0.72, gy); ctx.lineTo(gx, gy + r); ctx.lineTo(gx - r * 0.72, gy); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "rgba(255,250,235,.7)"; // 紋の芯(トライアドの白点)
+      ctx.beginPath(); ctx.arc(gx, gy - r * 0.25, r * 0.25, 0, 7); ctx.fill();
+    }
+    // 深紅の芯線(維持=冠の台座の帯に一筋)
     ctx.strokeStyle = "#8E1826"; ctx.globalAlpha = 0.85; ctx.lineWidth = Math.max(0.7, eyeR * 0.16);
     ctx.beginPath(); ctx.moveTo(bx - w / 2 + eyeR * 0.2, by - eyeR * 0.12); ctx.lineTo(bx + w / 2 - eyeR * 0.2, by - eyeR * 0.12); ctx.stroke();
     ctx.restore();
@@ -4572,28 +4639,58 @@ const Render = {
   },
 
   // リンカイ(最上位): 黒+臨界の青。血統=ヴォイドの黒ヴェール→維持 / チェレンコの輪郭の滲み→強い輪郭発光+体内の臨界点。
+  // R5-b B4: リンカイ=最上位「黒ヴェールの奥の臨界点」。血統=ヴォイドの黒(維持)/チェレンコの縁光2層文法の極点(B3の伏線回収)。
+  //   光条は臨界点へ収束(チェレンコのコースティクスが吸い込まれる)・輪郭から泡が立つ・臨界点は静かに呼吸(0.5s粒度・CFGでOFF可)。
+  //   最上位の格=静かで重い文法の極点。うるさくしない。
   traitRinkai(ctx, g, def) {
     const { S, body, L } = g; if (!body) return;
     const c = def.rim || "#8FE8CC";
+    const glow = CFG.rinkaiGlow != null ? CFG.rinkaiGlow : 0.07;
+    const rays = CFG.rinkaiRays != null ? CFG.rinkaiRays : 4;
+    const pulseOn = CFG.rinkaiPulseOn !== false;
+    const h2 = (a, b) => { let h = (a * 374761393 + b * 668265263) ^ (a << 7); h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967295; };
+    const time = (typeof Render !== "undefined" ? Render.time : 0);
+    const pu = pulseOn ? 0.86 + 0.14 * Math.sin(Math.floor(time * 2) * 0.5 * 1.3) : 1;
     // 黒ヴェール(ヴォイドの面影=そのまま)
     ctx.save(); ctx.clip(body);
     ctx.globalAlpha = 0.58; ctx.fillStyle = "#070103"; ctx.fill(body);
-    // 体内の臨界点(静かな芯・胴の奥に一点)
     if (S) {
       const s = S(0.6), px = s.p.x, py = s.p.y + s.w * 0.05;
-      const gl = ctx.createRadialGradient(px, py, 1, px, py, L * 0.06);
+      // 収束する光条(チェレンコの光条の血統): 黒の中を臨界点へ吸い込まれる細い光
+      ctx.lineCap = "round"; ctx.strokeStyle = "#BFF0E0";
+      for (let k = 0; k < rays; k++) {
+        const a = h2(k, 1) * Math.PI * 2;
+        const d0 = L * (0.10 + h2(k, 2) * 0.08), d1 = L * 0.035;
+        ctx.globalAlpha = 0.20 + h2(k, 3) * 0.15; ctx.lineWidth = Math.max(0.6, L * 0.005);
+        ctx.beginPath();
+        ctx.moveTo(px + Math.cos(a) * d0, py + Math.sin(a) * d0 * 0.6);
+        ctx.lineTo(px + Math.cos(a) * d1, py + Math.sin(a) * d1 * 0.6);
+        ctx.stroke();
+      }
+      // 体内の臨界点(静かな芯=呼吸する)
+      const gr = L * 0.06 * pu;
+      const gl = ctx.createRadialGradient(px, py, 1, px, py, gr);
       gl.addColorStop(0, "rgba(143,232,204,.85)"); gl.addColorStop(1, "rgba(143,232,204,0)");
       ctx.globalAlpha = 1; ctx.fillStyle = gl;
-      ctx.beginPath(); ctx.arc(px, py, L * 0.06, 0, 7); ctx.fill();
-      ctx.fillStyle = "#eafff6"; ctx.beginPath(); ctx.arc(px, py, Math.max(1, L * 0.012), 0, 7); ctx.fill();
-      // 深紅の芯線(臨界点を囲む小さな環の一区間)
+      ctx.beginPath(); ctx.arc(px, py, gr, 0, 7); ctx.fill();
+      ctx.fillStyle = "#EAFFF6"; ctx.beginPath(); ctx.arc(px, py, Math.max(1, L * 0.012) * pu, 0, 7); ctx.fill();
+      // 深紅の芯線(維持=臨界点を囲む環の一区間)
       ctx.strokeStyle = "#8E1826"; ctx.globalAlpha = 0.9; ctx.lineWidth = Math.max(0.8, L * 0.007);
       ctx.beginPath(); ctx.arc(px, py, L * 0.028, Math.PI * 0.2, Math.PI * 1.1); ctx.stroke();
+      // 輪郭から立つ泡(チェレンコの臨界の粒の血統): 背の際に青白い小粒
+      ctx.fillStyle = "#DFFAF0";
+      for (let i = 0; i < 4; i++) {
+        const u = 0.48 + h2(i, 4) * 0.28;
+        const s2 = S(u);
+        const x = s2.p.x + (h2(i, 5) - 0.5) * L * 0.02, y = s2.p.y - s2.w * (0.5 + h2(i, 6) * 0.35);
+        ctx.globalAlpha = 0.35 + h2(i, 7) * 0.25;
+        ctx.beginPath(); ctx.arc(x, y, Math.max(0.5, L * 0.005), 0, 7); ctx.fill();
+      }
     }
     ctx.restore();
-    // 輪郭が臨界の青で燃える(チェレンコの滲み→強い発光へ)
+    // 輪郭が臨界の青で燃える(チェレンコの2層文法の極点=B3の伏線回収・最上位の格)
     ctx.save();
-    ctx.strokeStyle = c; ctx.shadowColor = c; ctx.shadowBlur = Math.max(6, L * 0.07);
+    ctx.strokeStyle = c; ctx.shadowColor = c; ctx.shadowBlur = Math.max(6, L * glow);
     ctx.globalAlpha = 0.85; ctx.lineWidth = Math.max(1.2, L * 0.013);
     ctx.stroke(body);
     ctx.globalAlpha = 0.35; ctx.lineWidth = Math.max(2.4, L * 0.028);

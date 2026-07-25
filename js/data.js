@@ -291,6 +291,14 @@ const CFG = {
   haganeHeat: 0.30,         // 焼き残りの熱(橙)の濃さ
   mumeiPatch: 2,            // 体の白抜けの枚数
   mumeiFade: 0.35,          // 消し痕(体色の透け)の濃さ
+  // R5-b B4(コンテンギ/ホウカン/リンカイ・★全てRic実機判定)
+  kontengiTeeth: 9,         // 軌道環に刻む歯車の歯数
+  kontengiOrbitOn: true,    // 星が天球を巡る(false=止まった天球)
+  houkanSize: 1.0,          // 冠の大きさ倍率
+  houkanGlow: 0.22,         // 玄室の光暈の濃さ
+  rinkaiGlow: 0.07,         // 輪郭の臨界光の滲み(体長比)
+  rinkaiRays: 4,            // 臨界点へ収束する光条の本数
+  rinkaiPulseOn: true,      // 臨界点の呼吸(false=完全静止でも成立)
   // 群衆対策(表示のみ・収益/戦闘は全個体が対象のまま)
   maxVisibleLizards: 70,    // フィールドに同時表示する上限。超過分は巣穴で休憩
   restSwapPerSec: 3,        // 平常時に毎秒この匹数まで休憩⇔活動を入れ替え(漸進=ちらつき防止)
