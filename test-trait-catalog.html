@@ -6,7 +6,10 @@
 <!-- 再監査アーク③(2026-07-24): ロスター(見た目確認)と別軸の「獲得情報カタログ」。
      1行=1特性: 両固有種(惑星1 カナヘビ/ニホントカゲ)で実レンダ+創世可否+レシピ位置。
      下段=血統6レシピ: 素材A+素材B→成果C を実レンダで並べ、血統原則(素材モチーフの残存)を目視確認。
-     localStorageは下でサンドボックス化=本セーブに一切触れない。.vercelignoreでdev限定。 -->
+     localStorageは下でサンドボックス化=本セーブに一切触れない。.vercelignoreでdev限定。
+     R5-b全面刷新(2026-07-25・基準=シズミマチ+B1〜B4): 維持3種(ミミカクシ/ヴォイド/ハクシ)以外の15種を
+     「素材の物語的昇華」文法で刷新。本カタログはTRAITS/RECIPESデータ駆動=刷新後の実レンダを常に反映。
+     明滅・脈動する特性(shizu/neon/shinkai/yougan/chrono/amida/kontengi/rinkai)は本ページでは固定フレーム(time=1.3)。 -->
 <script>
 // 本セーブ非接触の保証: 実localStorageを遮断しメモリ実装に差し替え(スクリプト読込より先に実行)
 (function () {
@@ -25,7 +28,7 @@
 </head>
 <body>
 <h1>特性カタログ — 全18特性の獲得情報(創世可否・レシピ位置)+両固有種の実レンダ</h1>
-<p class="note">左=惑星1の両固有種(ニホンカナヘビ/ニホントカゲ)。バッジ: 創世可=賢者の石で創世できる12基本 / 合成専用=レシピでのみ生まれる6特性(tier6)。</p>
+<p class="note">左=惑星1の両固有種(ニホンカナヘビ/ニホントカゲ)。バッジ: 創世可=賢者の石で創世できる12基本 / 合成専用=レシピでのみ生まれる6特性(tier6) / R5-b刷新 or 維持(2026-07-25全面刷新の別)。</p>
 <canvas id="game" width="860" height="2180"></canvas>
 <h2>血統6レシピ — 素材A + 素材B → 成果C(すべて実レンダ)</h2>
 <p class="note">血統原則(§8): 素材のモチーフが成果の意匠に視認できること。共通の徴=深紅の芯線。</p>
@@ -70,6 +73,9 @@ Object.keys(TRAITS).forEach((key, r) => {
   if (d.synth) bx = badge(ctx, bx, y + 6, "合成専用", "#3d2431", "#e8a0c8");
   else bx = badge(ctx, bx, y + 6, "創世可", "#24381f", "#a8e08a");
   if (rolePos[key]) bx = badge(ctx, bx, y + 6, rolePos[key], "#38301f", "#e0cf8a");
+  // R5-b(2026-07-25): 維持3種以外は全面刷新済みの別を恒久表示
+  if (["mimikakushi", "hakushi", "void"].includes(key)) bx = badge(ctx, bx, y + 6, "維持", "#2e2c26", "#b9b4a8");
+  else bx = badge(ctx, bx, y + 6, "R5-b刷新", "#3a1c20", "#e08a8a");
   ctx.fillStyle = "#c9b8a2"; ctx.font = "11px system-ui"; ctx.fillText(d.desc || "", 16, y + 26);
 });
 // ---- 血統6レシピ(素材A+素材B→成果C) ----
