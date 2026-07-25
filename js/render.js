@@ -3767,8 +3767,12 @@ const Render = {
     if (lz.morphId === "legendary" || !lz.traits || !lz.traits.length) return "";
     const keys = lz.traits.map((t) => (t && t.key ? t.key : t));
     let sig = keys.join(",");
-    // R5-b: シズミマチの窓明滅はスプライトキャッシュを0.5s粒度で更新(保持個体のみ=負荷最小・CFGでOFF可)
-    if (CFG.shizuBlinkOn !== false && keys.includes("shizumimachi")) sig += "|b" + Math.floor(this.time * 2);
+    // R5-b: 明滅・脈動する特性はスプライトキャッシュを0.5s粒度で更新(保持個体のみ=負荷最小・各CFGでOFF可)
+    const anim = (CFG.shizuBlinkOn !== false && keys.includes("shizumimachi"))
+      || (CFG.neonBlinkOn !== false && keys.includes("neon"))
+      || (CFG.shinkaiPulseOn !== false && keys.includes("shinkai"))
+      || (CFG.youganPulseOn !== false && keys.includes("yougan"));
+    if (anim) sig += "|b" + Math.floor(this.time * 2);
     return sig;
   },
   // ミミカクシ: 眼〜頬を仮面状の帯で覆う。地=体色を大きく暗く落とし、上縁に特性色(藍/鈍色)の徴。眼は仮面の穴から覗く。
@@ -3794,13 +3798,53 @@ const Render = {
 
   // ネオン(tier1): 手前側の四肢に沿って細い蛍光の線(既存の脚ストロークの上に細い明線=配管ライト)。
   //   legSegs は歩行スイングに追従した実座標=線が脚から剥がれない。暗色種でも蛍光ピンクが浮く。
+  // R5-b B1: ネオン=「眠らないスラムの看板」。体側に縦看板(電飾ドット列)+配線+雨に滲む反射。
+  //   1枚だけ壊れかけで瞬く(CFGでOFF可)。シズミマチの看板残光はここから(血統原則)。
   traitNeon(ctx, g, def) {
-    const { legs, L } = g; if (!legs || !legs.length) return;
-    const c = def.rim || "#D957B0";
-    ctx.save();
-    ctx.strokeStyle = c; ctx.lineWidth = Math.max(1, L * 0.014); ctx.lineCap = "round";
-    ctx.shadowColor = c; ctx.shadowBlur = 4; ctx.globalAlpha = 0.92;
-    for (const s of legs) { ctx.beginPath(); ctx.moveTo(s.a.x, s.a.y); ctx.lineTo(s.b.x, s.b.y); ctx.stroke(); }
+    const { S, body, L } = g; if (!S || !body) return;
+    const pink = def.rim || "#D957B0", cyan = "#5FD3E0", yellow = "#F2C94C";
+    const signs = CFG.neonSigns != null ? CFG.neonSigns : 3;
+    const rain = CFG.neonRain != null ? CFG.neonRain : 0.30;
+    const blinkOn = CFG.neonBlinkOn !== false;
+    const blinkSp = CFG.neonBlinkSpeed != null ? CFG.neonBlinkSpeed : 0.7;
+    const cols = [pink, cyan, yellow];
+    const t = (typeof Render !== "undefined" ? Render.time : 0) * blinkSp;
+    ctx.save(); ctx.clip(body);
+    // 配線: 看板を結ぶ暗い電線(スラムの生活感・1本だけ静かに)
+    ctx.strokeStyle = "#1A1216"; ctx.globalAlpha = 0.55; ctx.lineWidth = Math.max(0.7, L * 0.005); ctx.lineCap = "round";
+    ctx.beginPath();
+    for (let i = 0; i <= 6; i++) { const s = S(0.46 + i * 0.055); const y = s.p.y - s.w * (0.30 - (i % 2) * 0.08); i ? ctx.lineTo(s.p.x, y) : ctx.moveTo(s.p.x, y); }
+    ctx.stroke();
+    for (let k = 0; k < signs; k++) {
+      const u = 0.48 + k * (0.28 / Math.max(1, signs - 1));
+      const s = S(u);
+      const col = cols[k % cols.length];
+      // スラムの雑多: 高さも位置も揃わない(k毎に決定論でずらす)
+      const py = s.p.y + s.w * (0.05 + (k % 2 ? 0.12 : -0.10)), hh = s.w * (k % 2 ? 0.62 : 0.88);
+      const px = s.p.x, ww = L * 0.058;
+      // 看板の枠(暗い板・縁に鈍い金属光)
+      ctx.shadowBlur = 0; ctx.globalAlpha = 0.85; ctx.fillStyle = "#140A10";
+      ctx.fillRect(px - ww / 2, py - hh / 2, ww, hh);
+      ctx.globalAlpha = 0.35; ctx.strokeStyle = "#5a4a52"; ctx.lineWidth = Math.max(0.6, L * 0.004);
+      ctx.strokeRect(px - ww / 2, py - hh / 2, ww, hh);
+      // 電飾管: 縦のドット列(文字を思わせるが文字は描かない)
+      let a = 0.95;
+      if (blinkOn && k === signs - 1) a *= (Math.floor(t * 2) % 3 === 0) ? 0.22 : 1; // 末尾の1枚=壊れかけ
+      ctx.fillStyle = col; ctx.shadowColor = col; ctx.shadowBlur = 6;
+      const wsz = Math.max(1.6, L * 0.016);
+      for (let j = 0; j < 4; j++) {
+        ctx.globalAlpha = a * (j === 1 ? 0.55 : 1); // 1灯だけ弱い=使い込まれた管
+        ctx.fillRect(px - wsz / 2, py - hh / 2 + (j + 0.5) * (hh / 4) - wsz * 0.7, wsz, wsz * 1.4);
+      }
+      // 縁の細管: 看板の左縁を同色の細いネオン管が縦に走る(看板らしさ)
+      ctx.globalAlpha = a * 0.8; ctx.fillRect(px - ww / 2 + wsz * 0.2, py - hh / 2, Math.max(0.8, wsz * 0.35), hh);
+      // 雨に滲む反射: 看板の真下へ縦のにじみ(シズミマチの看板残光の原型)
+      ctx.shadowBlur = 0;
+      const rg = ctx.createLinearGradient(0, py + hh / 2, 0, py + hh / 2 + s.w * 0.75);
+      rg.addColorStop(0, col); rg.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.globalAlpha = rain; ctx.fillStyle = rg;
+      ctx.fillRect(px - L * 0.016, py + hh / 2, L * 0.032, s.w * 0.75);
+    }
     ctx.restore();
   },
 
@@ -3851,60 +3895,161 @@ const Render = {
   },
 
   // シンカイ(tier2): 体側(尾の付け根〜肩)に生体発光の点列(微グロー)。腹側寄り=クレスト/トライアド(背)と部位が被らない。
+  // R5-b B1: シンカイ=「光の届かない水圧に、一つだけ灯る提灯」。全身が深青に沈み、胸元の一灯だけが誘う。
+  //   シズミマチの水没面はここから(血統原則)。マリンスノー=決定論の淡い粒。
   traitShinkai(ctx, g, def) {
-    const { S, L } = g; if (!S) return;
+    const { S, body, L } = g; if (!S || !body) return;
     const c = def.rim || "#5FA8C9";
-    ctx.save();
-    ctx.fillStyle = c; ctx.shadowColor = c; ctx.shadowBlur = 3;
-    for (let i = 0; i < 6; i++) {
-      const t = 0.40 + i * 0.072; // 尾の付け根→肩
-      const s = S(t);
-      const bx = s.p.x - s.n.x * s.w * 0.5 * s.u, by = s.p.y - s.n.y * s.w * 0.5 * s.u; // 腹側の縁近く
-      ctx.globalAlpha = 0.9 - (i % 2) * 0.25; // 点の明滅感(静的・交互に淡く)
-      ctx.beginPath(); ctx.arc(bx, by - s.w * 0.28, Math.max(1.1, L * 0.013), 0, 7); ctx.fill();
+    const depth = CFG.shinkaiDepth != null ? CFG.shinkaiDepth : 0.55;
+    const lampR = CFG.shinkaiLampR != null ? CFG.shinkaiLampR : 0.05;
+    const snow = CFG.shinkaiSnow != null ? CFG.shinkaiSnow : 7;
+    const pulseOn = CFG.shinkaiPulseOn !== false;
+    const h2 = (a, b) => { let h = (a * 374761393 + b * 668265263) ^ (a << 7); h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967295; };
+    ctx.save(); ctx.clip(body);
+    // ①水圧面: 上から下へ全身が深青に沈む(シズミマチより深く・光が届かない)
+    const s0 = S(0.42), s1 = S(0.80);
+    const grad = ctx.createLinearGradient(0, s0.p.y - s0.w, 0, s0.p.y + s0.w);
+    grad.addColorStop(0, "rgba(10,24,44," + (depth * 0.35).toFixed(3) + ")");
+    grad.addColorStop(1, "rgba(10,24,44," + depth.toFixed(3) + ")");
+    ctx.fillStyle = grad;
+    ctx.fillRect(Math.min(s0.p.x, s1.p.x) - L, s0.p.y - s0.w * 1.4, Math.abs(s1.p.x - s0.p.x) + L * 2, s0.w * 3);
+    // ②マリンスノー: 沈んでいく微粒(決定論・静的)
+    ctx.fillStyle = "#CFE8F2";
+    for (let i = 0; i < snow; i++) {
+      const u = 0.44 + h2(i, 1) * 0.36;
+      const s = S(u);
+      const x = s.p.x + (h2(i, 2) - 0.5) * L * 0.05, y = s.p.y + (h2(i, 3) - 0.65) * s.w * 0.9;
+      ctx.globalAlpha = 0.10 + h2(i, 4) * 0.14;
+      ctx.beginPath(); ctx.arc(x, y, Math.max(0.5, L * 0.004), 0, 7); ctx.fill();
     }
+    // ③提灯: 胸元の一灯(誘う暖白・ゆっくり脈動=0.5s粒度・CFGでOFF可)
+    const sl = S(0.76), lx = sl.p.x, ly = sl.p.y + sl.w * 0.12;
+    const time = (typeof Render !== "undefined" ? Render.time : 0);
+    const pu = pulseOn ? 0.82 + 0.18 * Math.sin(Math.floor(time * 2) * 0.5 * 1.7) : 1;
+    const gr = L * lampR * 3 * pu;
+    const gl = ctx.createRadialGradient(lx, ly, 1, lx, ly, gr);
+    gl.addColorStop(0, "rgba(255,233,176,.60)"); gl.addColorStop(0.5, "rgba(95,168,201,.25)"); gl.addColorStop(1, "rgba(95,168,201,0)");
+    ctx.globalAlpha = 1; ctx.fillStyle = gl;
+    ctx.fillRect(lx - gr, ly - gr, gr * 2, gr * 2);
+    // 誘いの光条: 提灯から腹へ淡く落ちる帯
+    const cg = ctx.createLinearGradient(0, ly, 0, ly + sl.w * 0.7);
+    cg.addColorStop(0, "rgba(255,233,176,.16)"); cg.addColorStop(1, "rgba(255,233,176,0)");
+    ctx.fillStyle = cg; ctx.fillRect(lx - L * 0.02, ly, L * 0.04, sl.w * 0.7);
+    // 提灯の芯
+    ctx.fillStyle = "#FFF4D0"; ctx.shadowColor = c; ctx.shadowBlur = 6; ctx.globalAlpha = 0.95 * pu;
+    ctx.beginPath(); ctx.arc(lx, ly, Math.max(1.3, L * 0.014), 0, 7); ctx.fill();
     ctx.restore();
   },
 
   // ヒョウガ(tier2): 鱗の縁=背の輪郭に沿って霜のように白む(氷水色の縁線+小さな霜の棘)。質感=縁。
+  // R5-b B1: ヒョウガ=「千年押し寄せる氷の層理」。体側に平行な層紋+背から沈む氷結面+背縁の霜棘。静=氷は動かない。
   traitHyoga(ctx, g, def) {
-    const { S, L } = g; if (!S) return;
+    const { S, body, L } = g; if (!S) return;
     const c = def.rim || "#7FC7DE";
+    const layers = CFG.hyogaLayers != null ? CFG.hyogaLayers : 4;
+    const frost = CFG.hyogaFrost != null ? CFG.hyogaFrost : 0.30;
+    const spikes = CFG.hyogaSpikes != null ? CFG.hyogaSpikes : 6;
     ctx.save();
+    if (body) {
+      ctx.save(); ctx.clip(body);
+      // ①氷結面: 背から腹へ青白が沈む(氷に呑まれつつある半身)
+      const s0 = S(0.42), s1 = S(0.80);
+      const bTop = s0.p.y - s0.w, bBot = s0.p.y + s0.w * 0.6;
+      const grad = ctx.createLinearGradient(0, bTop, 0, bBot);
+      grad.addColorStop(0, "rgba(200,232,244," + frost.toFixed(3) + ")"); grad.addColorStop(1, "rgba(200,232,244,0)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(Math.min(s0.p.x, s1.p.x) - L, bTop, Math.abs(s1.p.x - s0.p.x) + L * 2, s0.w * 2.4);
+      // ②層理: 氷河の層紋=わずかに波打つ平行線(決定論・静的)
+      ctx.lineCap = "round";
+      for (let k = 0; k < layers; k++) {
+        const d = 0.72 - k * (1.15 / layers); // 背側→腹側へ層を重ねる
+        ctx.strokeStyle = k % 2 ? "#DCF0F8" : c;
+        ctx.globalAlpha = 0.38 - k * 0.05;
+        ctx.lineWidth = Math.max(0.7, L * (0.006 - k * 0.0008));
+        ctx.beginPath();
+        for (let i = 0; i <= 10; i++) {
+          const u = 0.44 + i * 0.038;
+          const s = S(u);
+          const wave = Math.sin(u * 40 + k * 1.7) * s.w * 0.04; // 座標由来=決定論(時間不使用)
+          const x = s.p.x + s.n.x * s.w * d * s.u, y = s.p.y + s.n.y * s.w * d * s.u + wave;
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    // ③背縁の霜: ライン+棘(縁の質感=旧意匠の遺産を強化して継承)
     ctx.strokeStyle = c; ctx.globalAlpha = 0.85; ctx.lineCap = "round";
     ctx.lineWidth = Math.max(1, L * 0.012);
-    ctx.beginPath(); // 背の縁をなぞる霜のライン
+    ctx.beginPath();
     for (let i = 0; i <= 12; i++) {
       const s = S(0.44 + i * 0.035);
       const bx = s.p.x + s.n.x * s.w * 0.99 * s.u, by = s.p.y + s.n.y * s.w * 0.99 * s.u;
       i === 0 ? ctx.moveTo(bx, by) : ctx.lineTo(bx, by);
     }
     ctx.stroke();
-    ctx.fillStyle = "#eaf6fb"; // 霜の粒(白)
-    for (let i = 0; i < 5; i++) {
-      const s = S(0.47 + i * 0.085);
-      const bx = s.p.x + s.n.x * s.w * 0.92 * s.u, by = s.p.y + s.n.y * s.w * 0.92 * s.u;
-      ctx.beginPath(); ctx.arc(bx, by, Math.max(0.9, L * 0.009), 0, 7); ctx.fill();
+    ctx.fillStyle = "#EAF6FB";
+    for (let i = 0; i < spikes; i++) {
+      const s = S(0.46 + i * (0.36 / Math.max(1, spikes - 1)));
+      const bx = s.p.x + s.n.x * s.w * 0.96 * s.u, by = s.p.y + s.n.y * s.w * 0.96 * s.u;
+      const sp = Math.max(1.4, L * (i % 2 ? 0.014 : 0.020)); // 大小交互の霜棘
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      ctx.moveTo(bx - sp * 0.6, by); ctx.lineTo(bx, by - sp); ctx.lineTo(bx + sp * 0.6, by);
+      ctx.closePath(); ctx.fill();
     }
     ctx.restore();
   },
 
   // ヨウガン(tier3): 背に走る亀裂から熱色が覗く(暗い裂け目+中に熔岩色+微グロー)。手法=裂け目の質感。
+  // R5-b B1: ヨウガン=「冷え固まった黒殻の下で脈打つ橙の亀裂」。殻の暗さがあるから熱が読める。
+  //   亀裂網=決定論の分岐・胸元に熱だまり・熱はゆっくり脈動(0.5s粒度・CFGでOFF可)。
   traitYougan(ctx, g, def) {
-    const { S, L } = g; if (!S) return;
+    const { S, body, L } = g; if (!S || !body) return;
     const c = def.rim || "#E0533B";
-    ctx.save(); ctx.lineCap = "round";
-    for (const [t0, len, ang] of [[0.50, 0.11, -0.5], [0.60, 0.14, 0.35], [0.72, 0.09, -0.25]]) {
+    const cracks = CFG.youganCracks != null ? CFG.youganCracks : 5;
+    const glow = CFG.youganGlow != null ? CFG.youganGlow : 4;
+    const pulseOn = CFG.youganPulseOn !== false;
+    const h2 = (a, b) => { let h = (a * 374761393 + b * 668265263) ^ (a << 7); h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967295; };
+    const time = (typeof Render !== "undefined" ? Render.time : 0);
+    const pu = pulseOn ? 0.78 + 0.22 * Math.sin(Math.floor(time * 2) * 0.5 * 2.1) : 1;
+    ctx.save(); ctx.clip(body); ctx.lineCap = "round";
+    // ①冷え殻: 背側の暗い殻面(不定形パッチ・熱の下地=暗さが先)
+    ctx.fillStyle = "rgba(16,8,6,.38)";
+    for (const [tp, rx] of [[0.52, 0.11], [0.68, 0.13]]) {
+      const s = S(tp);
+      const bx = s.p.x + s.n.x * s.w * 0.45 * s.u, by = s.p.y + s.n.y * s.w * 0.45 * s.u;
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath(); ctx.ellipse(bx, by, L * rx, s.w * 0.55, 0.15, 0, 7); ctx.fill();
+    }
+    // ②熱だまり: 胸の奥の鈍い橙(脈打つ面光)
+    const sh = S(0.74), hx = sh.p.x, hy = sh.p.y + sh.w * 0.2;
+    const hg = ctx.createRadialGradient(hx, hy, 1, hx, hy, L * 0.11);
+    hg.addColorStop(0, "rgba(224,83,59," + (0.20 * pu).toFixed(3) + ")"); hg.addColorStop(1, "rgba(224,83,59,0)");
+    ctx.globalAlpha = 1; ctx.fillStyle = hg;
+    ctx.fillRect(hx - L * 0.12, hy - L * 0.12, L * 0.24, L * 0.24);
+    // ③亀裂網: 分岐する裂け目(決定論)。暗い割れ目→熱色→芯の明色の3層
+    for (let i = 0; i < cracks; i++) {
+      const t0 = 0.48 + i * (0.30 / Math.max(1, cracks - 1));
       const s = S(t0);
-      const bx = s.p.x + s.n.x * s.w * 0.5 * s.u, by = s.p.y + s.n.y * s.w * 0.5 * s.u;
-      const dx = Math.cos(ang) * L * len, dy = Math.sin(ang) * L * len * 0.4;
-      // 暗い裂け目(下地)→中の熱色(細)→芯の明色
-      ctx.globalAlpha = 1; ctx.strokeStyle = "rgba(18,8,4,.8)"; ctx.lineWidth = Math.max(1.8, L * 0.02);
-      ctx.beginPath(); ctx.moveTo(bx - dx / 2, by - dy / 2); ctx.lineTo(bx - dx * 0.1, by + dy * 0.2); ctx.lineTo(bx + dx / 2, by + dy / 2); ctx.stroke();
-      ctx.shadowColor = c; ctx.shadowBlur = 3; ctx.strokeStyle = c; ctx.lineWidth = Math.max(1, L * 0.010);
-      ctx.beginPath(); ctx.moveTo(bx - dx / 2, by - dy / 2); ctx.lineTo(bx - dx * 0.1, by + dy * 0.2); ctx.lineTo(bx + dx / 2, by + dy / 2); ctx.stroke();
-      ctx.shadowBlur = 0; ctx.globalAlpha = 0.8; ctx.strokeStyle = "#ffb37a"; ctx.lineWidth = Math.max(0.6, L * 0.004);
-      ctx.beginPath(); ctx.moveTo(bx - dx * 0.32, by - dy * 0.3); ctx.lineTo(bx - dx * 0.1, by + dy * 0.2); ctx.stroke();
+      const bx = s.p.x + s.n.x * s.w * (0.30 + h2(i, 1) * 0.35) * s.u, by = s.p.y + s.n.y * s.w * (0.30 + h2(i, 1) * 0.35) * s.u;
+      const ang = -0.6 + h2(i, 2) * 1.2, len = L * (0.07 + h2(i, 3) * 0.07);
+      const dx = Math.cos(ang) * len, dy = Math.sin(ang) * len * 0.5;
+      const mx = bx - dx * 0.1 + (h2(i, 4) - 0.5) * len * 0.3, my = by + dy * 0.2;
+      const path = () => { ctx.beginPath(); ctx.moveTo(bx - dx / 2, by - dy / 2); ctx.lineTo(mx, my); ctx.lineTo(bx + dx / 2, by + dy / 2); };
+      ctx.globalAlpha = 1; ctx.shadowBlur = 0; ctx.strokeStyle = "rgba(18,8,4,.8)"; ctx.lineWidth = Math.max(1.8, L * 0.018);
+      path(); ctx.stroke();
+      ctx.shadowColor = c; ctx.shadowBlur = glow * pu; ctx.strokeStyle = c; ctx.lineWidth = Math.max(1, L * 0.009);
+      ctx.globalAlpha = 0.75 + 0.25 * pu;
+      path(); ctx.stroke();
+      // 枝(1本おき): 中点から短い分岐=網になる
+      if (i % 2 === 0) {
+        const bang = ang + (h2(i, 5) > 0.5 ? 1.1 : -1.1), blen = len * 0.45;
+        ctx.lineWidth = Math.max(0.7, L * 0.006);
+        ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + Math.cos(bang) * blen, my + Math.sin(bang) * blen * 0.6); ctx.stroke();
+      }
+      ctx.shadowBlur = 0; ctx.globalAlpha = 0.8 * pu; ctx.strokeStyle = "#FFC97A"; ctx.lineWidth = Math.max(0.6, L * 0.004);
+      ctx.beginPath(); ctx.moveTo(bx - dx * 0.32, by - dy * 0.3); ctx.lineTo(mx, my); ctx.stroke();
     }
     ctx.restore();
   },

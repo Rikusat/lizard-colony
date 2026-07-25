@@ -256,6 +256,21 @@ const CFG = {
   shizuHalo: 0.16,          // 街明かりの滲み(胴中央の面光・遠景で格を出す。0=無効)
   shizuBlinkOn: true,       // ごく一部の窓の明滅(false=完全静止でも成立)
   shizuBlinkSpeed: 0.5,     // 明滅速度倍率
+  // R5-b B1(シンカイ/ネオン/ヨウガン/ヒョウガ・★全てRic実機判定)
+  shinkaiDepth: 0.55,       // 水圧面の沈み(深青の濃さ)
+  shinkaiLampR: 0.05,       // 提灯の光半径(体長比)
+  shinkaiSnow: 7,           // マリンスノーの粒数
+  shinkaiPulseOn: true,     // 提灯の脈動(false=静止でも成立)
+  neonSigns: 3,             // 縦看板の枚数
+  neonRain: 0.30,           // 雨に滲む反射の濃さ
+  neonBlinkOn: true,        // 末尾看板の明滅(壊れかけ・false=常灯)
+  neonBlinkSpeed: 0.7,      // 明滅速度倍率
+  youganCracks: 5,          // 亀裂の本数
+  youganGlow: 4,            // 亀裂の熱グロー(shadowBlur px)
+  youganPulseOn: true,      // 熱の脈動(false=静止でも成立)
+  hyogaLayers: 4,           // 氷の層理の本数
+  hyogaFrost: 0.30,         // 氷結面の濃さ
+  hyogaSpikes: 6,           // 背縁の霜棘の数
   // 群衆対策(表示のみ・収益/戦闘は全個体が対象のまま)
   maxVisibleLizards: 70,    // フィールドに同時表示する上限。超過分は巣穴で休憩
   restSwapPerSec: 3,        // 平常時に毎秒この匹数まで休憩⇔活動を入れ替え(漸進=ちらつき防止)

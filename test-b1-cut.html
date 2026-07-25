@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>R5-b B1カット — シンカイ/ネオン/ヨウガン/ヒョウガ(開発用・Ric判定前)</title>
+<!-- R5-b B1: 現意匠と刷新の並置比較(4種×両固有種)+血統列(シンカイ+ネオン→シズミマチ)+遠目実寸。
+     旧意匠=git記録(26bb9b8時点)の各trait関数を本ページ内に複製し関数スワップで同一フレーム描画。
+     localStorageサンドボックス=本セーブ非接触。.vercelignoreでdev限定。ローカルのみ・デプロイなし。 -->
+<script>
+(function () {
+  const mem = {};
+  const shim = { getItem: (k) => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: (k) => { delete mem[k]; }, clear: () => { for (const k in mem) delete mem[k]; } };
+  Object.defineProperty(window, "localStorage", { value: shim, configurable: false });
+})();
+</script>
+<style>
+  body { background: #221a12; margin: 0; color: #e8dccb; font-family: system-ui, sans-serif; }
+  h1 { font-size: 15px; padding: 10px 16px 0; margin: 0; font-weight: 600; }
+  p.note { font-size: 12px; padding: 2px 16px 8px; margin: 0; color: #c9b8a2; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<h1>B1カット — 各ブロック: 上段=現意匠 / 下段=刷新・左=カナヘビ/右=ニホントカゲ</h1>
+<p class="note">文法=シズミマチ基準(素材の物語的昇華・体クリップ内上乗せ・魂非接触・全CFG化)。</p>
+<canvas id="game" width="10" height="10" style="display:none"></canvas>
+<canvas id="cmp" width="900" height="1120"></canvas>
+<h1>血統列 — 素材2つ→成果(シンカイ+ネオン→シズミマチ・意匠の血統原則の実証)</h1>
+<canvas id="blood" width="900" height="260"></canvas>
+<h1>遠目 — 飼育槽実寸(通常個体の群れの中のB1保持4匹・琥珀枠)</h1>
+<canvas id="far" width="900" height="330"></canvas>
+<script src="js/data.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script>
+globalThis.UI = { toast: () => {} };
+Game.newGame(); Game.state.lizards = [];
+Render.init(); Render.time = 1.3;
+
+// ---- 旧意匠(git記録 26bb9b8時点・比較用に複製) ----
+function oldShinkai(ctx, g, def) {
+  const { S, L } = g; if (!S) return;
+  const c = def.rim || "#5FA8C9";
+  ctx.save();
+  ctx.fillStyle = c; ctx.shadowColor = c; ctx.shadowBlur = 3;
+  for (let i = 0; i < 6; i++) {
+    const t = 0.40 + i * 0.072;
+    const s = S(t);
+    const bx = s.p.x - s.n.x * s.w * 0.5 * s.u, by = s.p.y - s.n.y * s.w * 0.5 * s.u;
+    ctx.globalAlpha = 0.9 - (i % 2) * 0.25;
+    ctx.beginPath(); ctx.arc(bx, by - s.w * 0.28, Math.max(1.1, L * 0.013), 0, 7); ctx.fill();
+  }
+  ctx.restore();
+}
+function oldNeon(ctx, g, def) {
+  const { legs, L } = g; if (!legs || !legs.length) return;
+  const c = def.rim || "#D957B0";
+  ctx.save();
+  ctx.strokeStyle = c; ctx.lineWidth = Math.max(1, L * 0.014); ctx.lineCap = "round";
+  ctx.shadowColor = c; ctx.shadowBlur = 4; ctx.globalAlpha = 0.92;
+  for (const s of legs) { ctx.beginPath(); ctx.moveTo(s.a.x, s.a.y); ctx.lineTo(s.b.x, s.b.y); ctx.stroke(); }
+  ctx.restore();
+}
+function oldYougan(ctx, g, def) {
+  const { S, L } = g; if (!S) return;
+  const c = def.rim || "#E0533B";
+  ctx.save(); ctx.lineCap = "round";
+  for (const [t0, len, ang] of [[0.50, 0.11, -0.5], [0.60, 0.14, 0.35], [0.72, 0.09, -0.25]]) {
+    const s = S(t0);
+    const bx = s.p.x + s.n.x * s.w * 0.5 * s.u, by = s.p.y + s.n.y * s.w * 0.5 * s.u;
+    const dx = Math.cos(ang) * L * len, dy = Math.sin(ang) * L * len * 0.4;
+    ctx.globalAlpha = 1; ctx.strokeStyle = "rgba(18,8,4,.8)"; ctx.lineWidth = Math.max(1.8, L * 0.02);
+    ctx.beginPath(); ctx.moveTo(bx - dx / 2, by - dy / 2); ctx.lineTo(bx - dx * 0.1, by + dy * 0.2); ctx.lineTo(bx + dx / 2, by + dy / 2); ctx.stroke();
+    ctx.shadowColor = c; ctx.shadowBlur = 3; ctx.strokeStyle = c; ctx.lineWidth = Math.max(1, L * 0.010);
+    ctx.beginPath(); ctx.moveTo(bx - dx / 2, by - dy / 2); ctx.lineTo(bx - dx * 0.1, by + dy * 0.2); ctx.lineTo(bx + dx / 2, by + dy / 2); ctx.stroke();
+    ctx.shadowBlur = 0; ctx.globalAlpha = 0.8; ctx.strokeStyle = "#ffb37a"; ctx.lineWidth = Math.max(0.6, L * 0.004);
+    ctx.beginPath(); ctx.moveTo(bx - dx * 0.32, by - dy * 0.3); ctx.lineTo(bx - dx * 0.1, by + dy * 0.2); ctx.stroke();
+  }
+  ctx.restore();
+}
+function oldHyoga(ctx, g, def) {
+  const { S, L } = g; if (!S) return;
+  const c = def.rim || "#7FC7DE";
+  ctx.save();
+  ctx.strokeStyle = c; ctx.globalAlpha = 0.85; ctx.lineCap = "round";
+  ctx.lineWidth = Math.max(1, L * 0.012);
+  ctx.beginPath();
+  for (let i = 0; i <= 12; i++) {
+    const s = S(0.44 + i * 0.035);
+    const bx = s.p.x + s.n.x * s.w * 0.99 * s.u, by = s.p.y + s.n.y * s.w * 0.99 * s.u;
+    i === 0 ? ctx.moveTo(bx, by) : ctx.lineTo(bx, by);
+  }
+  ctx.stroke();
+  ctx.fillStyle = "#eaf6fb";
+  for (let i = 0; i < 5; i++) {
+    const s = S(0.47 + i * 0.085);
+    const bx = s.p.x + s.n.x * s.w * 0.92 * s.u, by = s.p.y + s.n.y * s.w * 0.92 * s.u;
+    ctx.beginPath(); ctx.arc(bx, by, Math.max(0.9, L * 0.009), 0, 7); ctx.fill();
+  }
+  ctx.restore();
+}
+const OLD = { shinkai: oldShinkai, neon: oldNeon, yougan: oldYougan, hyoga: oldHyoga };
+const FN = { shinkai: "traitShinkai", neon: "traitNeon", yougan: "traitYougan", hyoga: "traitHyoga" };
+const NEW = {}; for (const k in FN) NEW[k] = Render[FN[k]];
+
+const spA = SPECIES.find((s) => s.id === "kanahebi"), spB = SPECIES.find((s) => s.id === "nihontokage");
+function mk(sp, key) {
+  return Game.makeLizard(sp.id, "normal", { hue: sp.hue, sat: sp.sat, light: sp.light, pattern: "stripe", traits: [{ key }] }, "adult");
+}
+function drawAt(ctx, lz, x, y, scale) {
+  lz.x = x / scale; lz.y = y / scale; lz.tx = lz.x; lz.ty = lz.y; lz.angle = 0.12; lz.moving = false;
+  ctx.save(); ctx.scale(scale, scale);
+  Render.drawLizard(ctx, lz, true);
+  ctx.restore();
+}
+function clearCache() { Render._lizCache && Render._lizCache.clear && Render._lizCache.clear(); }
+
+// ---- 近目並置(1.8倍・4種×現/刷新×両種) ----
+const c1 = document.getElementById("cmp").getContext("2d");
+c1.fillStyle = "#2c2118"; c1.fillRect(0, 0, 900, 1120);
+const NAMES = { shinkai: "シンカイ(深海の提灯)", neon: "ネオン(スラムの看板)", yougan: "ヨウガン(黒殻の亀裂)", hyoga: "ヒョウガ(氷の層理)" };
+["shinkai", "neon", "yougan", "hyoga"].forEach((key, bi) => {
+  const y0 = bi * 280;
+  c1.font = "13px system-ui"; c1.fillStyle = "#e4bc3a";
+  c1.fillText(NAMES[key], 20, y0 + 20);
+  c1.fillStyle = "#c9b8a2";
+  c1.fillText("現", 20, y0 + 80); c1.fillText("新", 20, y0 + 210);
+  Render[FN[key]] = OLD[key]; clearCache();
+  drawAt(c1, mk(spA, key), 250, y0 + 90, 1.8); drawAt(c1, mk(spB, key), 670, y0 + 90, 1.8);
+  Render[FN[key]] = NEW[key]; clearCache();
+  drawAt(c1, mk(spA, key), 250, y0 + 220, 1.8); drawAt(c1, mk(spB, key), 670, y0 + 220, 1.8);
+});
+
+// ---- 血統列(1.8倍・シンカイ+ネオン→シズミマチ) ----
+const c3 = document.getElementById("blood").getContext("2d");
+c3.fillStyle = "#241c26"; c3.fillRect(0, 0, 900, 260);
+c3.font = "13px system-ui"; c3.fillStyle = "#c9b8a2";
+c3.fillText("シンカイ(素材=水没面の源)", 60, 30); c3.fillText("ネオン(素材=灯・看板の源)", 350, 30); c3.fillText("シズミマチ(成果=沈んだ都市)", 640, 30);
+c3.fillText("+", 320, 150); c3.fillText("→", 610, 150);
+drawAt(c3, mk(spA, "shinkai"), 170, 150, 1.8);
+drawAt(c3, mk(spA, "neon"), 460, 150, 1.8);
+drawAt(c3, mk(spA, "shizumimachi"), 760, 150, 1.8);
+
+// ---- 遠目(実寸1.0×・通常個体の群れ+B1保持4匹) ----
+const c2 = document.getElementById("far").getContext("2d");
+c2.fillStyle = "#b39869"; c2.fillRect(0, 0, 900, 330);
+const spots = [[110, 80], [260, 200], [420, 90], [700, 70], [820, 210], [180, 265], [560, 280], [760, 160]];
+spots.forEach(([x, y], i) => {
+  const sp = i % 2 ? spA : spB;
+  const lz = Game.makeLizard(sp.id, "normal", { hue: sp.hue, sat: sp.sat, light: sp.light, pattern: ["stripe", "spot", "none"][i % 3], traits: [] }, "adult");
+  drawAt(c2, lz, x, y, 1.0);
+});
+[["shinkai", 320, 160], ["neon", 540, 130], ["yougan", 640, 250], ["hyoga", 480, 205]].forEach(([key, x, y], i) => {
+  drawAt(c2, mk(i % 2 ? spB : spA, key), x, y, 1.0);
+  c2.strokeStyle = "#e4bc3a"; c2.globalAlpha = .5; c2.strokeRect(x - 52, y - 30, 104, 62); c2.globalAlpha = 1;
+  c2.font = "11px system-ui"; c2.fillStyle = "#e4bc3a"; c2.fillText(NAMES[key].split("(")[0], x - 50, y - 36);
+});
+</script>
+</body>
+</html>
