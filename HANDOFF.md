@@ -1664,6 +1664,27 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
   - ID1〜ID9 [済] / **ID10 記録係アノール[本]**: 石板を抱えた学者肌の小トカゲ+金の刻印の脈動(1-2体)。※新arch=戦闘効果は今後。
   - **★全10惑星の味方描画 完成**（ID1〜ID10）。移送先id味方(ID2/6/7/8/9)=既存効果型を再有効化／新arch味方(ID3/4/5/10)=可視・育成のみ(効果は今後)。後修正候補: ID2-5・ID10がやや小型・背景と同化気味(存在感up余地)／ID9はラクーンか廃炉山椒魚か(Ric選択)。
 
+### 7M.7 ★モーション語彙拡張アーク クローズ — 全波一括デプロイ+本番実証+潜在バグ修正(2026-07-26・本番反映済)
+Ric承認「全波クローズ」を受けM2〜M2-EX3を一括デプロイしアークをクローズ。**READY / lizardcolony-o1waexff5 / production**。
+- **同乗ゼロの証明**: デプロイ前の本番=最終デプロイ9b84973と3JS(game/render/data)md5完全一致=**本番ドリフトゼロ**を実測。差分9b84973..HEADの本番反映対象はjs/data.js+js/game.js+js/render.jsの3ファイル(=モーション全波)のみ、他はdocs/tests(.vercelignore)→承認条件成立。
+- **潜在バグの発見と修正(本番実証で発覚)**: reduced-motionガードが `window.Motion && Motion.reduced` だが `Motion` は `const`宣言でclassic scriptの `window` に載らない→ブラウザで常時false=**reduced-motionが全モーションを止めていなかった(pose-bob含む§5gg以来の潜在バグ)**。全34箇所を `typeof Motion !== "undefined" && Motion.reduced` へ修正+静的検査を恒久追加(node sandboxはwindow===globalで盲点だった)。修正込みで再デプロイ。
+- **QA**: node13本+audit16+**motion_regression 122 PASS**+hqlab-qa48/統合11/boot console0。bump-cache32→vercel --prod→**3JS本番=ローカルmd5一致**・cache-buster(?v=)照合・index200・dev308(非公開)。
+- **本番実証5点(清潔プロファイル・本セーブ非接触)**: ①育成前の惑星で内発モーション(ダッシュ発火・全モーション実装コードが本番に存在) ②設備育成(大湖tier4/ビームtier4)で水遊び(深く沈む)+浮遊+足跡波紋が解禁 ③reduced-motionで全代表モーション停止(anyMotionUnderReduce=false・対照でOFF時は発火) ④無印個体_traitSig=""(ピクセル不変) ⑤console errors 0。実機スクショ取得。**URL: https://lizardcolony.vercel.app/**
+- **モーションアーク総括(M2〜M2-EX3)**: 従来7+M2 11+M2-EX第2波14+M2-EX2(C3種+巣口すり抜け)+M2-EX3(設備連動3+水波紋)=**約41語彙・139CFGキー**。全て決定論(fmix32)/reduced停止(修正済)/魂の聖域(A/B=ピクセル不変・C=波及ゼロ証明P1-P4)/戦闘/経済/確率/純血/セーブ非接触。修正履歴=motHash小入力偏り→fmix32・reduced-motionガード。スキップ=⑱空への反応(動的環境演出の新設が前提=保留群送り)。
+- **保留群 最新化(→§7M.7-P)**。
+- **次: 指示待ち。S6着手禁止を維持。**
+
+#### 7M.7-P 保留群(モーションアーク・クローズ時点の整理・2026-07-26)
+| 項目 | 状態 | 判断待ち/理由 |
+|---|---|---|
+| ⑱空への反応 | 保留 | 動的環境演出(降灰・胞子の"降る"系)の新設が前提=M1候補承認の範囲外。演出システム設計から要Ric判断 |
+| F 巣口レーン分散(nestEntryRadius) | **併存確定(退役しない)** | 実測=すり抜けが根治(デッドロック解消)・レーンは視覚的重なり抑制の補完。両者相補=残置が最適 |
+| ID8バガー侵食率(erosion)連動 | 未着手 | 別スプリント切出済・小。純演出は実装/侵食率連動は未 |
+| 四重スリット装置の惑星別意匠 | アート判断保留 | 統一された冷たい美を損なう恐れ・安全側で未着手(Ricアート判断) |
+| test-v3.html/legend.js死コード整理 | 軽微・保留 | test-v3依存でRic判断(Fable3リファクタ規律=機能と混ぜない) |
+| CFG整合検査 | 恒久稼働中 | cfg_sanity(重複キー静的検出)継続。モーション139キーも直下キーとして監視下 |
+| 魂geometry変化の許可可否 | **解除済み** | C方式(⑥⑨E1E2E3)を波及ゼロ証明(P1-P4)付きで採用=形状変形は「証明を通せば可」が確立 |
+
 ### 7M.6 ★M2-EX3自律実行 完了サマリ(2026-07-26・H/I完遂・デプロイなし=Ric判定待ち)
 新テーゼ「設備がトカゲの遊びを生む」=設備tierが眺えの豊かさに直結。自律完遂。**デプロイ禁止(モーション全波M2〜M2-EX3一括でRic実機判定後)**。コミット: 04c4153・三者同期clean。
 - **パートH 設備tier連動の遊び(発生tier閾値もCFG=Ricが解禁段階を[A]調整)**:
@@ -1739,7 +1760,8 @@ B4承認=15種完成。準備計画1〜4を実施しR5-bをクローズ。**READ
 
 #### 6R.23-A [A]詰めリスト(2026-07-25版・実装済CFGをRicが実機で詰める。CCは推測で動かさない)
 - **①戦闘セッション**: bossHpMultByStage(惑星別)/新arch味方効果(dormouseDps/moleAtkBuff/anoleDps/fireflyGrace)/署名頻度(sigBossChance・stage.bosses構成)/eliteScale・eliteAuraR/A/Phase7味方スケール(allyScaleByTier・allyScaleElite・allyVisSizePerTier・allyVisHeadsPerTier・allyVisHeadMax)/巣口避難(nestFleeSpeedMult 3.5・nestEntryRadius 44)/特性遺伝の緩さ(traitInheritBase 0.8・traitTierPenalty 0.12・traitInheritFloor 0.15)。
-- **②眺めセッション(ビジュアル)**: **R5-b 46キー**=shizu7(WinRows/WinCols/Glow/Dim/Halo/BlinkOn/BlinkSpeed)・shinkai4(Depth/LampR/Snow/PulseOn)・neon4(Signs/Rain/BlinkOn/BlinkSpeed)・yougan3(Cracks/Glow/PulseOn)・hyoga3(Layers/Frost/Spikes)・chrono3(DialR/Gears/TickOn)・amida3(Rails/Glow/WalkOn)・triad2(Size/Splat)・ougon2(Leaf/Shade)・cherenko3(Glow/Caustics/Floor)・hagane3(BandW/Hamon/Heat)・mumei2(Patch/Fade)・kontengi2(Teeth/OrbitOn)・houkan2(Size/Glow)・rinkai3(Glow/Rays/PulseOn)/SIG_PAL各値・allyBoost倍率(署名ボス・味方の濃さ)/モーション⑥(poseBobPx/Speed・spotVisitChance・spotDwellMin/Max・capacity)+**魂geometry変化(頭下げ・伏せ)の許可可否=保留判断**/planetTravelSec 3.0体感。
+- **②眺めセッション(ビジュアル)**: **R5-b 46キー**=shizu7(WinRows/WinCols/Glow/Dim/Halo/BlinkOn/BlinkSpeed)・shinkai4(Depth/LampR/Snow/PulseOn)・neon4(Signs/Rain/BlinkOn/BlinkSpeed)・yougan3(Cracks/Glow/PulseOn)・hyoga3(Layers/Frost/Spikes)・chrono3(DialR/Gears/TickOn)・amida3(Rails/Glow/WalkOn)・triad2(Size/Splat)・ougon2(Leaf/Shade)・cherenko3(Glow/Caustics/Floor)・hagane3(BandW/Hamon/Heat)・mumei2(Patch/Fade)・kontengi2(Teeth/OrbitOn)・houkan2(Size/Glow)・rinkai3(Glow/Rays/PulseOn)/SIG_PAL各値・allyBoost倍率(署名ボス・味方の濃さ)/planetTravelSec 3.0体感。
+  - **★モーション語彙 139キー(2026-07-26デプロイ済・§7M.7でアーククローズ)を②へ統合登録**: 既存モーション(poseBobPx/Speed・spotVisitChance・spotDwellMin/Max)+M2〜M2-EX3の全mot*/drink*/nestすり抜け。分類=内発(dash/tail/tongue/look/meet/blink/tilt/stretch/yawn/headbob/tailFlick/turn/drowsy/taste)/関係(rare/follow/herd/gather)/環境(env身震い/motes漂う粒子)/設備連動(waterPlay大湖/beamFloat/obsScan・**発生tier閾値=motWaterPlayTier4/motBeamFloatTier3/motObsScanTier3**)/水演出(drinkRipple/footRipple)/巣(passthrough/thruSec)。各on/off+頻度+振幅。既定はnotable約20/分・空間分散で騒がしくない。**魂geometry変化=C方式(⑥⑨E1E2E3)は波及ゼロ証明済みで採用済み(保留解除)**。
 - **③経済セッション**: stoneGenesisRandCost 4(創世)/amethystCdResetCost 2(CDリセット)/roulPrizeNormal/Elite(鉱物量)・roulRewardBalls+EliteBonus(球数)/**卵の供給源の再バランス**(R2卵撤廃の付記=繁殖/隕石/アメジスト/里帰りのみへ)/breedScoreW(クイック繁殖の重み=辞書式の逆転調整可)/labInvest 3段のコスト調整(旧6段化案の引き継ぎ)。
 - **④本部手触りセッション**: labTileScale 2.0(部屋の大きさ)/hqMenu系(右メニューのフォント/spread)/holoBootOn/Speed/TrackSec(起動演出)/ctrlFps/Blur/ScanAlpha(生中継の質感)/roulAutoCloseSec 1.0(閉幕の間)。
 - **⑤命名セッション**: **特性15種の名称再点検**(意匠刷新で名と絵の距離が変わった=全て仮称のまま。改名提案可の裁定済み・命名はRic)/敵味方の名称(廃炉山椒魚ほか全て仮)/Phase9残(里帰り祝福トースト・新着ドット微調整=軽微)。
