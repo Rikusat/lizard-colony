@@ -354,6 +354,28 @@ const CFG = {
   motFlatDur: 10,           // 伏せている秒(前後2秒はなだらかに補間)
   motFlatWiden: 0.10,       // 幅の広がり(+10%)
   motFlatLower: 0.08,       // 高さの沈み(-8%)
+  // ★M2-EX パートB: 見送り6種の解禁(③⑨⑪⑭⑯⑲・★全てRic実機判定)
+  motBlinkOn: true,         // ③まばたき(閉眼の気配)
+  motBlinkWin: 9,           // 1回/この秒数(個体位相分散)
+  motBlinkDur: 0.12,        // 閉じている秒(1〜2フレームの気配)
+  motStretchOn: true,       // ⑨伸び(C=形状変形・非スポット静止中の背アーチ)
+  motStretchWin: 55,        // 発生窓(秒)
+  motStretchRate: 0.3,      // 窓ごとの発生率
+  motStretchDur: 1.6,       // 伸びている秒
+  motStretchArch: 0.10,     // 中背の持ち上げ量(体長比)
+  motTiltOn: true,          // ⑪首かしげ(全身の小さな傾き=配置回転)
+  motTiltWin: 40,           // 発生窓(秒)
+  motTiltRate: 0.35,        // 窓ごとの発生率
+  motTiltDur: 1.4,          // 傾けている秒
+  motTiltDeg: 4,            // 傾き角(度)
+  motGatherOn: true,        // ⑭勝利の集い(撃破地点へ寄る)
+  motGatherMax: 4,          // 集まる最大匹数
+  motGatherRadius: 360,     // この距離内から集める
+  motGatherSec: 4,          // 集まって留まる秒
+  motGazeOn: true,          // ⑯ルーレット球の目線(報酬盤へ向く)
+  motRippleOn: true,        // ⑲波紋への注目(飲む個体を一瞥)
+  motRippleRate: 0.3,       // 6秒窓ごとの発生率
+  motRippleRadius: 110,     // この距離内の飲む個体に反応
   // 群衆対策(表示のみ・収益/戦闘は全個体が対象のまま)
   maxVisibleLizards: 70,    // フィールドに同時表示する上限。超過分は巣穴で休憩
   restSwapPerSec: 3,        // 平常時に毎秒この匹数まで休憩⇔活動を入れ替え(漸進=ちらつき防止)

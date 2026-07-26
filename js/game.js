@@ -2004,6 +2004,7 @@ const Game = {
       }
       this.notice(`${r.type.name} 撃破`, msg, "boss"); // §9: 全画面撃破演出→中央の軽い通知(戦利品は報酬盤が見せる)
       this.popupBurst(r.snake.x, r.snake.y);
+      this.motVictoryGather(r.snake.x, r.snake.y); // V5M-EX⑭: 撃破地点へ近くの数匹が寄る(数秒で散る)
       this.slowmo = 0.6; // 撃破スローモーション
       r.dyingT = 1.15; r.hitT = 0;
       this.corpse = r; // 死に様の描画専用スナップショット(§3.3。ロジックはraid=nullで即終了)
@@ -2021,6 +2022,24 @@ const Game = {
     for (let i = 0; i < 12; i++) {
       this.popup(x + rnd(-70, 70), y + rnd(-40, 30), ["+G", "", "+G"][i % 3], "#ffd24c");
     }
+  },
+
+  // V5M-EX⑭: 勝利の集い。撃破地点(x,y)へ近くの数匹が寄って数秒で散る(イベント購読=fable1・表示のみ)。
+  //   純装飾: tx/ty/wanderTの上書きのみ=既存の徘徊移動で歩いて集まり、gatherT経過で自然に散る。戦闘/経済非接触。
+  motVictoryGather(x, y) {
+    if (CFG.motGatherOn === false) return;
+    const cands = this.state.lizards
+      .filter((l) => this.isVisible(l) && !l.returning && l.injuredT <= 0 && l.stage === "adult"
+        && Math.hypot(l.x - x, l.y - y) < (CFG.motGatherRadius || 360))
+      .sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))
+      .slice(0, CFG.motGatherMax != null ? CFG.motGatherMax : 4);
+    cands.forEach((l, i) => {
+      const ang = (i / Math.max(1, cands.length)) * Math.PI * 2;
+      l.spot = null; l._toSpot = null;
+      l.tx = clamp(x + Math.cos(ang) * 52, FIELD.x1, FIELD.x2);
+      l.ty = clamp(y + Math.sin(ang) * 30 + 12, FIELD.y1, FIELD.y2);
+      l.wanderT = CFG.motGatherSec || 4;
+    });
   },
 
   // 3.11.3: 端末ローカル日付文字列(1日3回の日付境界)
@@ -2399,6 +2418,22 @@ const Game = {
           // 到着後しばらく静止(freeze)→ゆっくり2回だけ向きを変える=爬虫類の「じっと見る間」。各向きを長く保持。
           const want = ph > D * 0.60 ? 2 : ph > D * 0.28 ? 1 : 0;
           if (want !== (lz._lookN || 0)) { lz._lookN = want; lz.angle = Math.PI - lz.angle; }
+        }
+      }
+      // V5M-EX⑯/⑲: 環境への視線(向きだけ・読み取り専用・盤や隣の状態には一切書き込まない)。静止中のみ。
+      if (!motOff && !lz.moving && !lz.spot && (lz._lookT || 0) <= 0 && lz.injuredT <= 0) {
+        // ⑯ ルーレット球の目線: 報酬盤が出ている間、下中央(盤のせり上がる位置)へ向く
+        if (CFG.motGazeOn !== false && typeof UI !== "undefined" && UI._bossRewardOpen) {
+          const bx = (FIELD.x1 + FIELD.x2) / 2, by = FIELD.y2 + 40;
+          lz.angle = Math.atan2(by - lz.y, bx - lz.x);
+        } else if (CFG.motRippleOn !== false) {
+          // ⑲ 波紋への注目: 近くで水を飲む個体を、ふと一瞥する(決定論の短い窓・一度きり)
+          const rb = Math.floor(this._motClock / 6);
+          if (lz._rippleBk !== rb && this.motHash(lz.id * 53 + 16, rb) < (CFG.motRippleRate || 0.3)) {
+            const drinker = this.state.lizards.find((d) => d !== lz && d.spot && d._spotPosture === "drink"
+              && Math.hypot(d.x - lz.x, d.y - lz.y) < (CFG.motRippleRadius || 110));
+            if (drinker) { lz._rippleBk = rb; lz.angle = Math.atan2(drinker.y - lz.y, drinker.x - lz.x); }
+          }
         }
       }
       lz.x = clamp(lz.x, 20, W - 20);

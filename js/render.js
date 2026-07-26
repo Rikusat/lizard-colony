@@ -1789,7 +1789,14 @@ const Render = {
     const glowy = sp.glow || lz.morphId === "legendary";
     // モーション(§8.5): 居場所で留まる個体に姿勢の"揺れ"を付ける。魂ピクセルは不変=配置トランスフォーム(整数bob)のみ。
     const pb = this._poseBob(lz);
-    if (pb) { ctx.save(); ctx.translate(pb.dx, pb.dy); }
+    // V5M-EX⑪: 首かしげ=全身をわずかに傾ける配置回転(魂ピクセル不変=スプライトを回して置くだけ)。lz中心で回す。
+    const tilt = this._motTilt(lz);
+    const wrap = pb || tilt;
+    if (wrap) {
+      ctx.save();
+      if (tilt) { ctx.translate(lz.x, lz.y); ctx.rotate(tilt); ctx.translate(-lz.x, -lz.y); }
+      if (pb) ctx.translate(pb.dx, pb.dy);
+    }
     // 発光/伝説=ぼかしのため常に手続き。noCache=拡大描画(ヌシ等・変形ctx内)はキャッシュを迂回。
     if (glowy || noCache || Render._lizCacheOn === false) {
       this._paintLizardBody(ctx, lz); // _paintLizardBody が内部で lz.x,lz.y へ translate する
@@ -1797,7 +1804,24 @@ const Render = {
       this._blitLizardCached(ctx, lz);
     }
     this._paintLizardState(ctx, lz);
-    if (pb) ctx.restore();
+    if (wrap) ctx.restore();
+  },
+
+  // V5M-EX⑪: 首かしげの傾き角(rad)。何かに気づいて一瞬だけ体を傾けて静止=決定論・稀・小角度。
+  //   静止中のみ・OFF/移動/reduced-motionで0(=回転なし=従来と同一配置)。★CFG。
+  _motTilt(lz) {
+    if (CFG.motTiltOn === false || lz.moving || lz.injuredT > 0) return 0;
+    if (window.Motion && Motion.reduced) return 0;
+    const win = CFG.motTiltWin || 40, dur = CFG.motTiltDur || 1.4;
+    const t = this.time + (lz.id % 71) * 2.3;
+    const bk = Math.floor(t / win);
+    if (Game.motHash(lz.id * 41 + 13, bk) >= (CFG.motTiltRate || 0.35)) return 0;
+    const local = t - bk * win;
+    if (local > dur) return 0;
+    const k = Math.sin((local / dur) * Math.PI); // 傾いて、戻る
+    const face = Math.cos(lz.angle) >= 0 ? 1 : -1;
+    const dir = Game.motHash(lz.id * 43 + 14, bk) < 0.5 ? -1 : 1;
+    return k * (CFG.motTiltDeg || 4) * (Math.PI / 180) * dir * face;
   },
 
   // モーション(§8.5): 居場所(lz.spot)で静止中の姿勢の揺れを整数px平行移動で表現(魂ピクセル不変・crisp維持・キャッシュ無効化なし)。
@@ -1880,6 +1904,32 @@ const Render = {
     return Math.max(0, Math.min(1, local / ramp, (dur - local) / ramp));
   },
 
+  // V5M-EX③: まばたき(閉眼中=true)。決定論・個体位相分散・ごく短時間(気配程度)。
+  //   OFF/移動中/reduced-motionではfalse=描かない=従来ピクセル一致。sigにも同値が入る=焼き残りなし。
+  _motBlinkClosed(lz) {
+    if (CFG.motBlinkOn === false || lz.moving) return false;
+    if (window.Motion && Motion.reduced) return false;
+    const win = CFG.motBlinkWin || 9, dur = CFG.motBlinkDur || 0.12;
+    const t = this.time + (lz.id % 83) * 1.11;
+    const local = t - Math.floor(t / win) * win;
+    return local < dur;
+  },
+
+  // V5M-EX⑨(C=形状変形・特則遵守): 伸び(ストレッチ)の係数0..1。非スポットの静止個体が時々ぐっと伸びをする。
+  //   変形は背骨サンプリングの局所的なy持ち上げ(中背のアーチ)のみ=下の1式。0で乗算/加算恒等=ピクセル完全一致。
+  //   決定論・reduced/OFF/移動/スポット中は0。⑥フラット化とは排他(スポット有無で分かれる)。
+  _motStretchK(lz) {
+    if (CFG.motStretchOn === false || lz.moving || lz.spot || lz.injuredT > 0) return 0;
+    if (window.Motion && Motion.reduced) return 0;
+    const win = CFG.motStretchWin || 55, dur = CFG.motStretchDur || 1.6;
+    const t = this.time + (lz.id % 67) * 1.9;
+    const bk = Math.floor(t / win);
+    if (Game.motHash(lz.id * 47 + 15, bk) >= (CFG.motStretchRate || 0.3)) return 0;
+    const local = t - bk * win;
+    if (local > dur) return 0;
+    return Math.sin((local / dur) * Math.PI); // なだらかに伸びて、戻る
+  },
+
   // 生き物本体(魂)。呼び出し側で lz.x,lz.y へ translate 済みの前提はなく、ここで translate する。
   // ※ this.time を使う動的アニメ(尾のしなり・歩行・アオジタの舌)を含むが、"呼ばれた瞬間の this.time" で描くため
   //   直接描画でもキャッシュ焼き込みでも、同一時刻なら出力はピクセル一致(キャッシュは焼く/blitの振り分けのみ)。
@@ -1928,6 +1978,8 @@ const Render = {
     // V5M⑥: 日光浴フラット化(C・bask中のみ。flatK=0なら乗算恒等=ピクセル完全一致。変形はこの2式のみ=特則)
     const flatK = this._motFlatK(lz);
     const flatW = 1 + (CFG.motFlatWiden || 0.10) * flatK, flatY = 1 - (CFG.motFlatLower || 0.08) * flatK;
+    // V5M-EX⑨: 伸び(C・非スポット静止中のみ。stretchK=0なら加算恒等=ピクセル完全一致。変形はこの局所y持ち上げのみ=特則)
+    const stretchK = this._motStretchK(lz);
     for (let i = 0; i <= N; i++) {
       const t = i / N;
       // §9.1 自切: 再生していない尾先側(t<tailCutStart)は断面(tailCutStart)へ畳む=尾が短い断端に見える
@@ -1935,6 +1987,8 @@ const Render = {
       const k = lizSideSample(te);
       let w = k.w * L * flatW;  // V5M⑥: 平たく広がる(flatK=0で恒等)
       let y = k.y * L * flatY;  // V5M⑥: 地面へ沈む(同上)
+      // V5M-EX⑨: 中背(t~0.60)を中心にアーチを持ち上げる伸び(stretchK=0で加算ゼロ=恒等)。ダウンドッグの気配。
+      if (stretchK > 0) y -= Math.exp(-((te - 0.60) * (te - 0.60)) / 0.02) * L * (CFG.motStretchArch || 0.10) * stretchK;
       // 尾のしなり(先端ほど大きく)
       if (te < 0.42) y += Math.sin(phase * 0.8 - te * 9) * tailAmp * Math.pow((0.42 - te) / 0.42, 1.6);
       // 種族ごとの体型(尾に掛かるものは te=自切反映後のtで判定=断端でも整合)
@@ -2235,6 +2289,14 @@ const Render = {
     ctx.beginPath(); ctx.arc(ex, ey, eyeR, 0, 7); ctx.fill();
     ctx.fillStyle = "rgba(255,255,255,.85)";
     ctx.beginPath(); ctx.arc(ex + eyeR * 0.3, ey - eyeR * 0.35, eyeR * 0.3, 0, 7); ctx.fill();
+    // V5M-EX③: まばたき=閉眼の気配(体色の瞼を眼に被せる・ごく短時間)。_motBlinkClosedはキャッシュsigにも反映=焼き残りなし。
+    //   OFF時は常にfalse=描かない=従来とピクセル完全一致。眼への繊細さ=1〜2フレームの短い閉じ。
+    if (this._motBlinkClosed(lz)) {
+      ctx.fillStyle = darker;
+      ctx.beginPath(); ctx.ellipse(ex, ey, eyeR * 1.25, eyeR * 1.25, 0, 0, 7); ctx.fill();
+      ctx.strokeStyle = darkest; ctx.lineWidth = Math.max(1, L * 0.008);
+      ctx.beginPath(); ctx.moveTo(ex - eyeR * 1.1, ey); ctx.lineTo(ex + eyeR * 1.1, ey); ctx.stroke(); // 閉じた瞼の線
+    }
     // 特性(trait)の見た目=体/顔に上乗せ(魂の骨格は不変)。通常個体は lz.traits 未定義でスキップ。
     //   レジェンダリーは特性の対象外(虹発光そのものが最上の個性=徴を描かない・§16/①)。既存の morphId フラグで判定(新ロジックなし)。
     //   g=頭部(ex/ey/eyeR)+体ジオメトリ(S=背骨サンプラ/body=輪郭Path/legs=手前脚セグメント)。ロスター拡張(§3)は全てこの窓口経由で描く。
@@ -2365,7 +2427,11 @@ const Render = {
     // §9.1 尾の再生率を sig に含める(負傷個体は再生段階ごとに焼き直し=性能維持しつつ尾が伸びる)
     const trB = injured ? Math.round(clamp(1 - lz.injuredT / (CFG.injuryTime || 10), 0, 1) * 6) : 6;
     // 特性(S4): 見た目が特性で変わる個体はキャッシュを分ける(古い姿の焼き残り防止)。無印/レジェンダリーは "" =従来と同一描画。
-    const sig = phaseStep + "|" + face + "|" + crowdB + "|" + (moving ? 1 : 0) + "|" + (injured ? 1 : 0) + "|" + trB + "|" + this._traitSig(lz);
+    // V5M-EX: 焼き込みに影響する新モーション(③まばたき=閉眼描画/⑨伸び=背骨変形)をsigへ。非発生時は "" =従来と同一sig。
+    const blinkS = this._motBlinkClosed(lz) ? "k" : "";
+    const strK = this._motStretchK(lz);
+    const stretchS = strK > 0 ? "s" + Math.round(strK * 4) : ""; // 0.25粒度で焼き直し(伸びは短時間=軽微)
+    const sig = phaseStep + "|" + face + "|" + crowdB + "|" + (moving ? 1 : 0) + "|" + (injured ? 1 : 0) + "|" + trB + "|" + this._traitSig(lz) + blinkS + stretchS;
     // スプライト外接box: 魂の最大範囲(尾先x=-0.80L・鼻先+0.485L、幅/クレスト/脚/デューラップ/尾のしなり)を余裕を持って包む。
     // 左右反転(face)で尾は±0.80Lに振れるため x は対称に確保。原点(lz基準)=(ox,oyTop)
     const ox = Math.ceil(L * 0.98) + 3, oyTop = Math.ceil(L * 0.7) + 3, oyBot = Math.ceil(L * 0.3) + 3;

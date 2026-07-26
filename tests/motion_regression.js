@@ -286,6 +286,93 @@ ok("C3: id位相ずれ(個体で揺れが違う)", s1 !== s2);
   ok("V5M⑥: 決定論(同入力→同出力)", Render._motFlatK(baskLz({ id: 3 })) === Render._motFlatK(baskLz({ id: 3 })));
 }
 
+// ===== V5M-EX パートB(2026-07-26): ③まばたき/⑨伸び(C)/⑪首かしげ/⑭勝利の集い/⑯目線/⑲波紋 =====
+{
+  // ③ まばたき: OFF/移動/reduced→false・時々true・決定論
+  CFG.motBlinkOn = true; CFG.motBlinkWin = 9; CFG.motBlinkDur = 0.12;
+  let blinked = false;
+  for (let tq = 0; tq < 2000 && !blinked; tq++) { Render.time = tq * 0.02; if (Render._motBlinkClosed({ id: 3, moving: false })) blinked = true; }
+  ok("V5M-EX③: まばたきが発生する", blinked);
+  ok("V5M-EX③: 移動中は閉じない", Render._motBlinkClosed({ id: 3, moving: true }) === false);
+  CFG.motBlinkOn = false;
+  ok("V5M-EX③: OFFで常にfalse(従来ピクセル一致)", Render._motBlinkClosed({ id: 3, moving: false }) === false);
+  CFG.motBlinkOn = true;
+  sb.Motion.reduced = true;
+  ok("V5M-EX③: reduced-motionで閉じない", Render._motBlinkClosed({ id: 3, moving: false }) === false);
+  sb.Motion.reduced = false;
+  // ⑪ 首かしげ: OFF/移動/reduced→0・|角|<=deg・時々非0・決定論
+  CFG.motTiltOn = true;
+  let tilted = false, tiltRangeOk = true;
+  const maxRad = (CFG.motTiltDeg || 4) * Math.PI / 180 + 1e-9;
+  for (let id = 0; id < 20 && !tilted; id++) {
+    for (let tq = 0; tq < 1000; tq++) {
+      Render.time = tq * 0.05;
+      const a = Render._motTilt({ id, moving: false, injuredT: 0, angle: 0 });
+      if (Math.abs(a) > maxRad) tiltRangeOk = false;
+      if (Math.abs(a) > 0.01) tilted = true;
+    }
+  }
+  ok("V5M-EX⑪: 傾きが発生・範囲|deg|以内", tilted && tiltRangeOk);
+  ok("V5M-EX⑪: 移動中は0", Render._motTilt({ id: 3, moving: true, injuredT: 0, angle: 0 }) === 0);
+  CFG.motTiltOn = false;
+  ok("V5M-EX⑪: OFFで0(回転なし=従来配置)", Render._motTilt({ id: 3, moving: false, injuredT: 0, angle: 0 }) === 0);
+  CFG.motTiltOn = true;
+  Render.time = 5.1;
+  ok("V5M-EX⑪: 決定論", Render._motTilt({ id: 5, moving: false, injuredT: 0, angle: 0 }) === Render._motTilt({ id: 5, moving: false, injuredT: 0, angle: 0 }));
+  // ⑨ 伸び(C): OFF/移動/スポット→0・時々>0.9・範囲[0,1]・決定論
+  CFG.motStretchOn = true;
+  let stretched = false, sRange = true;
+  for (let id = 0; id < 30 && !stretched; id++) {
+    for (let tq = 0; tq < 1200; tq++) {
+      Render.time = tq * 0.05;
+      const k = Render._motStretchK({ id, moving: false, spot: null, injuredT: 0 });
+      if (k < 0 || k > 1) sRange = false;
+      if (k > 0.9) stretched = true;
+    }
+  }
+  ok("V5M-EX⑨: 伸びが発生・範囲[0,1]", stretched && sRange);
+  ok("V5M-EX⑨: スポット中は0(⑥と排他)", Render._motStretchK({ id: 3, moving: false, spot: "heat-bask", injuredT: 0 }) === 0);
+  CFG.motStretchOn = false;
+  ok("V5M-EX⑨: OFFで0(加算恒等=ピクセル一致)", Render._motStretchK({ id: 3, moving: false, spot: null, injuredT: 0 }) === 0);
+  CFG.motStretchOn = true;
+  // ⑭ 勝利の集い: 近くのアダルトがtx/ty/wanderTを得る・上限・遠方は不変
+  Game.newGame(); Game.state.rank = 5; Game.raid = null;
+  const gx = 700, gy = 450;
+  const near = [], far = [];
+  for (let i = 0; i < 6; i++) {
+    const l = { id: 800 + i, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "adult", xp: 0, level: 5, injuredT: 0, breedCd: 0, traits: [] };
+    Game.ensureRuntime(l); l.x = gx + (i - 2) * 30; l.y = gy + 10; l.resting = false; l.tx = l.x; l.ty = l.y; near.push(l);
+  }
+  const farL = { id: 900, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "adult", xp: 0, level: 5, injuredT: 0, breedCd: 0, traits: [] };
+  Game.ensureRuntime(farL); farL.x = 100; farL.y = 100; farL.tx = 100; farL.ty = 100; farL.resting = false; far.push(farL);
+  Game.state.lizards = [...near, farL];
+  CFG.motGatherMax = 4;
+  Game.motVictoryGather(gx, gy);
+  const gathered = near.filter((l) => l.wanderT === (CFG.motGatherSec || 4)).length;
+  ok("V5M-EX⑭: 近傍アダルトが集う(上限motGatherMax)", gathered === 4, "gathered=" + gathered);
+  ok("V5M-EX⑭: 遠方個体は不変", farL.wanderT === undefined || farL.tx === 100);
+  // ⑯ 目線: UI._bossRewardOpen中は下中央へ向く
+  sb.UI = { _bossRewardOpen: true };
+  const gz = { id: 950, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "adult", xp: 0, level: 5, injuredT: 0, breedCd: 0, traits: [] };
+  Game.ensureRuntime(gz); gz.x = 700; gz.y = 300; gz.tx = 700; gz.ty = 300; gz.moving = false; gz.spot = null; gz.angle = Math.PI; gz.wanderT = 999; gz.resting = false;
+  Game.state.lizards = [gz];
+  Game.moveLizards(0.05);
+  ok("V5M-EX⑯: 報酬盤中は下向き(sin(angle)>0=下)", Math.sin(gz.angle) > 0, "ang=" + gz.angle.toFixed(2));
+  sb.UI = np();
+  // ⑲ 波紋: 飲む隣人を一瞥
+  CFG.motRippleRate = 1; CFG.motGazeOn = false;
+  const watcher = { id: 960, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "adult", xp: 0, level: 5, injuredT: 0, breedCd: 0, traits: [] };
+  const drinker = { id: 961, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "adult", xp: 0, level: 5, injuredT: 0, breedCd: 0, traits: [] };
+  Game.ensureRuntime(watcher); Game.ensureRuntime(drinker);
+  watcher.x = 600; watcher.y = 400; watcher.tx = 600; watcher.ty = 400; watcher.moving = false; watcher.spot = null; watcher.angle = Math.PI; watcher.wanderT = 999; watcher.resting = false; watcher._rippleBk = undefined;
+  drinker.x = 660; drinker.y = 410; drinker.spot = "water-drink"; drinker._spotPosture = "drink"; drinker.moving = false; drinker.wanderT = 999; drinker.resting = false;
+  Game.state.lizards = [watcher, drinker];
+  Game._motClock = 30;
+  Game.moveLizards(0.05);
+  ok("V5M-EX⑲: 飲む隣人の方を向く(cos(angle)>0=右の隣人)", Math.cos(watcher.angle) > 0, "ang=" + watcher.angle.toFixed(2));
+  CFG.motGazeOn = true;
+}
+
 console.log(`\n=== モーション 回帰テスト結果: ${pass} PASS / ${fail} FAIL ===`);
 if (fail) { console.log("FAILED:\n - " + fails.join("\n - ")); process.exit(1); }
 console.log("すべてPASS(C1割当:決定論/capacity比例/状態非干渉/null・C2配線:到達/ワープなし/解除/数値非干渉・C3姿勢:整数bob/null条件/決定論・V5M第1バッチ:⑦連続/⑧2反転/⑫対面/①K範囲/reduced停止/数値非干渉/クリア)");
