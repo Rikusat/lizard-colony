@@ -471,6 +471,11 @@ const CFG = {
   motFootRippleOn: true,    // 水場を歩く個体の足跡波紋
   motFootRippleAlpha: 0.4,  // 波紋の濃さ
   motFootRippleTierGain: 0.35, // 水tier1段ごとの波紋規模増(大湖ほど大きい)
+  // ★パートK: くつろぎ語彙(眺めの安らぎは"留まり"から・約半分が休息・★全てRic実機判定)
+  motRelaxOn: true,         // くつろぎ状態(半数が休息)
+  motRelaxRatio: 0.5,       // くつろぎ中の個体比率(0.5=約半分)
+  motRelaxCycle: 44,        // くつろぎ↔活動の1周期秒(id位相分散で全員同時にならない)
+  motRelaxSpotBonus: 0.2,   // 快適な場所(暖spot/観測デッキ)でのくつろぎ率上乗せ
   // モーション(§8.5): 可視個体の一部が設備の居場所(スポット)へ歩き、留まって姿勢をとる純装飾。数値には無影響。★Ric実機で手触り調整
   spotVisitChance: 0.35,    // 徘徊の再設定時に居場所へ向かう確率(残りは従来の縄張り徘徊)
   spotDwellMin: 3,          // 居場所に留まる最短秒

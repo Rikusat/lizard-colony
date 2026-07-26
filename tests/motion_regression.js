@@ -15,6 +15,7 @@ let code = ""; for (const f of ["js/data.js", "js/render.js", "js/game.js"]) cod
 code += "globalThis.__t = { Game, Render, CFG };\n";
 vm.runInContext(code, sb, { filename: "combined.js" });
 const { Game, Render, CFG } = sb.__t;
+CFG.motRelaxOn = false; // K くつろぎは活動的な仕草(dash/dig/headbob等)を抑制するため既定OFFで既存テストを走らせ、K節でのみON
 let pass = 0, fail = 0; const fails = [];
 const ok = (n, c, e) => { if (c) pass++; else { fail++; fails.push(n + (e ? " :: " + e : "")); } };
 
@@ -576,6 +577,44 @@ ok("C3: id位相ずれ(個体で揺れが違う)", s1 !== s2);
   Game.state.facilities = { water: 20 };
   ok("V5M-EX3 I: 水場中心は_nearWater=true", Render._nearWater({ x: 230, y: 610 }) === true);
   ok("V5M-EX3 I: 遠方は_nearWater=false", Render._nearWater({ x: 1000, y: 200 }) === false);
+}
+
+// ===== パートK(2026-07-26): くつろぎ状態(約半分が休息・緊急で解除) =====
+{
+  CFG.motRelaxOn = true; CFG.motRelaxRatio = 0.5;
+  Game.newGame(); Game.raid = null; Game._motClock = 0;
+  // 比率: 多数の個体で relaxActive がおよそ半分true(位相分散)
+  let relaxing = 0, N = 200;
+  for (let id = 0; id < N; id++) relaxing += Game.relaxActive({ id, injuredT: 0, panicT: 0 }) ? 1 : 0;
+  ok("K: くつろぎ比率が約半分(0.35〜0.65)", relaxing / N >= 0.35 && relaxing / N <= 0.65, (relaxing / N).toFixed(2));
+  // 緊急(ボス)で全員休息解除
+  Game.raid = { snake: { x: 0, y: 0, arrived: true }, type: {}, typeId: "snake", webs: [] };
+  let anyRelaxUnderBoss = false;
+  for (let id = 0; id < N; id++) if (Game.relaxActive({ id, injuredT: 0, panicT: 0 })) anyRelaxUnderBoss = true;
+  ok("K: ボス襲来中は誰も休息しない(起き上がる)", !anyRelaxUnderBoss);
+  Game.raid = null;
+  // 群れ警戒(_alertT>0)/負傷/逃走で休息しない
+  ok("K: 群れ警戒中は休息しない", Game.relaxActive({ id: 3, injuredT: 0, panicT: 0, _alertT: 1 }) === false);
+  ok("K: 負傷中は休息しない", Game.relaxActive({ id: 3, injuredT: 5, panicT: 0 }) === false);
+  // OFFで常にfalse
+  CFG.motRelaxOn = false;
+  ok("K: OFFで休息なし(可逆)", (() => { for (let id = 0; id < 50; id++) if (Game.relaxActive({ id, injuredT: 0, panicT: 0 })) return false; return true; })());
+  CFG.motRelaxOn = true;
+  // 休息ポーズ: 非スポットで_relaxing時に整数bobを返す(魂ピクセル不変)
+  Render.time = 2.0;
+  let poseInt = true, posed3 = new Set();
+  for (const pose of ["lounge", "curl", "groom"]) { const b = Render._poseBob({ id: 5, spot: null, moving: false, _relaxing: true, _relaxPose: pose }); if (!b || !Number.isInteger(b.dx) || !Number.isInteger(b.dy)) poseInt = false; posed3.add(JSON.stringify(b)); }
+  ok("K: 休息ポーズ3種が整数bob・互いに異なる", poseInt && posed3.size === 3);
+  // 実挙動: くつろぎ中の個体は移動を止める(その場に留まる)
+  Game.newGame(); Game.raid = null; Game._motClock = 0; CFG.motDashOn = false; CFG.spotVisitChance = 0;
+  const rl = { id: 2, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "adult", xp: 0, level: 5, injuredT: 0, breedCd: 0, traits: [] };
+  Game.ensureRuntime(rl); rl.x = 600; rl.y = 400; rl.tx = 600; rl.ty = 400; rl.resting = false; rl.wanderT = 0;
+  Game.state.lizards = [rl];
+  // relaxActiveがtrueになるidを選んで検証(id2で_motClock調整)
+  let sawRelax = false;
+  for (let t = 0; t < 500; t++) { Game.moveLizards(0.1); if (rl._relaxing) { sawRelax = true; break; } }
+  ok("K: 実挙動でくつろぎ状態に入る(_relaxing)", sawRelax);
+  CFG.motDashOn = true;
 }
 
 // ===== 調査J根治: spotFor分配の一様性(小さい連続idで水場spotが0割当にならない) =====

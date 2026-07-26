@@ -1859,6 +1859,17 @@ const Render = {
       const t = this.time * 9 + (lz.id % 37);
       return { dx: Math.round(Math.sin(t) * (CFG.motShedRubPx || 2)), dy: 0 };
     }
+    // K くつろぎ姿勢(非スポットで休息中): lounge=横になって低く / curl=丸まる / groom=毛づくろい(体を側へ曲げる)。
+    //   配置トランスフォーム(整数dy/dx)=魂ピクセル不変。頭bob/環境反応より優先(休息中は活動的な仕草を出さない)。
+    if (!lz.spot && lz._relaxing && CFG.motRelaxOn !== false) {
+      const amp = CFG.poseBobPx || 3;
+      const t = this.time + (lz.id % 100) * 0.13;
+      const pose = lz._relaxPose || "lounge";
+      if (pose === "lounge") return { dx: 0, dy: Math.round(amp * 1.4 + Math.sin(t * 0.5) * amp * 0.3) };          // 横になって低く・ゆっくり呼吸
+      if (pose === "curl") return { dx: Math.round(-amp * 0.4), dy: Math.round(amp * 1.1 + Math.sin(t * 0.4) * amp * 0.2) }; // 丸まって顎を地面へ
+      // groom: 体を側へ小さく曲げる周期(毛づくろいの気配・舌overlayと同期)
+      return { dx: Math.round(Math.sin(t * 1.8) * amp * 0.6), dy: Math.round(amp * 0.6) };
+    }
     // D2 頭のプッシュアップ表示(第2波・非スポット静止のみ・環境反応より優先)
     if (!lz.spot) { const hb = this._motHeadbob(lz); if (hb) return hb; }
     // V5M⑰: 惑星の環境反応(スポット外の静止個体)。骨格2種=震え(寒)/頭上げ(熱)・惑星割当はCFG配列。
@@ -2597,10 +2608,21 @@ const Render = {
       }
       ctx.globalAlpha = 1;
     }
+    // K 毛づくろい(くつろぎのgroomポーズ・B近似): 舌を体側/肩へ伸ばして舐める気配(前脚C変形なしで成立)。周期的。
+    if (lz._relaxing && lz._relaxPose === "groom" && CFG.motRelaxOn !== false && !lz.moving && !(typeof Motion !== "undefined" && Motion.reduced)) {
+      const face = Math.cos(lz.angle) >= 0 ? 1 : -1;
+      const g = (this.time * 1.6 + (lz.id % 11) * 0.2) % 1;
+      if (g < 0.6) {
+        const ext = Math.sin((g / 0.6) * Math.PI);
+        ctx.strokeStyle = "#C25B6A"; ctx.lineCap = "round"; ctx.lineWidth = Math.max(0.8, L * 0.010);
+        const sx = L * 0.10 * face, sy = -L * 0.10; // 肩口
+        ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx - L * 0.06 * ext * face, sy + L * 0.05 * ext); ctx.stroke(); // 体側へ舐める
+      }
+    }
     // V5M②: 舌出し(ちろちろ)。魂の上乗せ描画=スプライトキャッシュ非接触。個体idで位相分散・決定論。
-    //   アオジタ(固有の青い舌が既にある)/移動中/負傷/スポット姿勢中/reduced-motionでは出さない。
+    //   アオジタ(固有の青い舌が既にある)/移動中/負傷/スポット姿勢中/reduced-motionでは出さない。くつろぎ中も出さない(休息)。
     if (CFG.motTongueOn !== false && !(typeof Motion !== "undefined" && Motion.reduced)
-      && !lz.moving && lz.injuredT <= 0 && !lz.spot && sp.id !== "aojita") {
+      && !lz.moving && lz.injuredT <= 0 && !lz.spot && !lz._relaxing && sp.id !== "aojita") {
       const win = CFG.motTongueWin || 45, dur = CFG.motTongueDur || 0.5;
       const tt = this.time + (lz.id % 89) * 3.37;
       const local = tt % win;

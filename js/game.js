@@ -235,7 +235,7 @@ const Game = {
       l._dashT = 0; l._lookT = 0; l._meetCd = 0; // V5M: モーション残状態もクリア(stale姿勢なし・runtime専用=保存されない)
       l._shedT = 0; l._digT = 0; l._folT = 0; l._shedGo = false; // V5M第3バッチ分
       l._peekT = 0; l._peekedTrip = false; l._spotT = null; // V5M-EX パートC分
-      l._shakeT = 0; l._spotTier = 0; l._emergeThruT = 0; l._spotTravelT = 0; // V5M-EX2/3分(片足上げ・水遊び=render時間/tier駆動でstate最小)
+      l._shakeT = 0; l._spotTier = 0; l._emergeThruT = 0; l._spotTravelT = 0; l._relaxing = false; // V5M-EX2/3/K分
       l.resting = !show.has(l.id);
       if (l.resting) l.restedAt = Date.now();
     }
@@ -2230,6 +2230,19 @@ const Game = {
     return (h >>> 0) / 4294967296;
   },
 
+  // K くつろぎ状態(2026-07-26): 約半分の個体が移動を止めて休息。id+時刻で位相分散(全員が同時に動く/止まるを避ける)。
+  //   快適な場所(暖spot/観測デッキ)で率up。緊急(戦闘/群れ警戒/帰巣/負傷/逃走)では休息しない=起き上がる。決定論・純装飾。
+  relaxActive(lz) {
+    if (CFG.motRelaxOn === false) return false;
+    if (this.raid || lz.returning || lz.injuredT > 0 || lz.panicT > 0 || (lz._alertT || 0) > 0) return false;
+    const cyc = CFG.motRelaxCycle || 44;
+    const t = (this._motClock || 0) + (lz.id % 100) * (cyc * 0.61); // idで大きく位相をずらす(揃わない)
+    const ph = (t % cyc) / cyc; // 0..1
+    let ratio = CFG.motRelaxRatio != null ? CFG.motRelaxRatio : 0.5;
+    if (lz.spot && (lz._spotPosture === "bask" || lz._spotPosture === "lookout")) ratio = Math.min(0.9, ratio + (CFG.motRelaxSpotBonus || 0.2)); // 快適な場所
+    return ph < ratio;
+  },
+
   moveLizards(dt) {
     const snake = this.raid && this.raid.snake.arrived && !this.raid.type?.flying ? this.raid.snake : null;
     const webs = this.raid && this.raid.typeId === "spider" ? this.raid.webs.filter((w) => w.hp > 0) : [];
@@ -2241,7 +2254,7 @@ const Game = {
       if (!this.isVisible(lz)) continue; // さらわれ中・休憩中
       // §8.14: 巣へ帰還中は徘徊/戦闘を無視して巣口へ歩き、到達したら巣に入る(消える)。ワープ禁止=物理移動で入退場
       if (lz.returning) {
-        lz.spot = null; // 帰巣中は居場所を離れる(姿勢解除)
+        lz.spot = null; lz._relaxing = false; // 帰巣中は居場所を離れる(姿勢解除・休息解除)
         lz._shedT = 0; lz._digT = 0; lz._folT = 0; lz._shedGo = false; // V5M: 帰巣は仕草より優先
         const n = this.nestEntryFor(lz); // §8.16: 割り当て入口へ歩く(動線分散)
         // 裁定③: ボス戦時の避難=①判定半径拡大(nestEntryRadius) ②避難速度別枠(nestFleeSpeedMult)
@@ -2272,6 +2285,7 @@ const Game = {
       }
       if (lz.panicT > 0) lz.panicT -= dt; // §9.1 自切直後の逃走ダッシュ
       if (lz.panicT > 0 || lz.injuredT > 0) { lz.spot = null; lz._toSpot = null; } // 逃走/負傷中は居場所に留まらない
+      if (lz._relaxing && !this.relaxActive(lz)) { lz._relaxing = false; lz.wanderT = Math.min(lz.wanderT, 0); } // K: 緊急(ボス/群れ警戒等)で休息を即解除→起き上がる
       if (lz._meetCd > 0) lz._meetCd -= dt; // V5M⑫: 見合いのクールダウン
       if (lz._dashT > 0) lz._dashT -= dt;   // V5M⑦: 疾走窓の残り
       if (lz._shedT > 0) { const was = lz._shedT; lz._shedT -= dt; if (lz._shedT <= 0 && was > 0 && CFG.motShakeOn !== false && !this.raid && !(typeof Motion !== "undefined" && Motion.reduced)) lz._shakeT = CFG.motShakeDur || 0.6; } // V5M⑤脱皮→E3ぶるっと(脱皮終了の瞬間に発火)
@@ -2293,7 +2307,7 @@ const Game = {
       if (lz._spotTravelT > 0) lz._spotTravelT -= dt;
       const fighting = snake && lz.stage === "adult" && lz.injuredT <= 0;
       if (fighting) {
-        lz.spot = null; lz._toSpot = null; // 戦闘中は居場所より蛇へ群がる(姿勢解除)
+        lz.spot = null; lz._toSpot = null; lz._relaxing = false; // 戦闘中は居場所より蛇へ群がる(姿勢/休息解除)
         if (lz.wanderT <= 0) { // 蛇の周囲に群がる
           lz.wanderT = rnd(0.4, 1.0);
           const ang = rnd(0, Math.PI * 2);
@@ -2305,7 +2319,13 @@ const Game = {
         // 調査J根治: スポットへ道中の個体は目的地を保持して到達させる(dwell切れの再抽選で遠い水場等へ辿り着けない問題)。
         //   到達(spot確定)まで再抽選しない。travelタイムアウトで諦め=無限追尾を防ぐ。純装飾=生産/戦闘の決定論に無影響。
         lz.wanderT = 0.5; // 次tickも道中判定へ(下の移動処理で歩き続ける)
+      } else if (lz.wanderT <= 0 && this.relaxActive(lz)) {
+        // K くつろぎ: その場に留まって休息(新しい徘徊先を選ばない)。スポット滞在中はその姿勢のまま休む。
+        lz._relaxing = true;
+        if (!lz.spot) { lz.tx = lz.x; lz.ty = lz.y; lz._relaxPose = ["lounge", "curl", "groom"][(lz.id + Math.floor((this._motClock || 0) / (CFG.motRelaxCycle || 44))) % 3]; }
+        lz.wanderT = rnd(2, 4); // 次の見直しまで休む
       } else if (lz.wanderT <= 0) { // 通常の徘徊 or 設備の居場所(スポット)へ
+        lz._relaxing = false;
         // V5M⑦: 静→動ダッシュ(トカゲ特有の静→動)。決定論(idハッシュ+時刻バケット)・純装飾・走った後は長めの静止。
         const dashBk = Math.floor(this._motClock / 10);
         if (!motOff && CFG.motDashOn !== false && lz._motBk !== dashBk && this.motHash(lz.id, dashBk) < (CFG.motDashRate || 0.08)) {
