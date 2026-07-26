@@ -300,41 +300,43 @@ const CFG = {
   rinkaiRays: 4,            // 臨界点へ収束する光条の本数
   rinkaiPulseOn: true,      // 臨界点の呼吸(false=完全静止でも成立)
   // V5M モーション語彙 第1バッチ(⑦①②⑧⑫・★全てRic実機判定=[A]②へ登録予定)
+  // ★M2-EX再調律(2026-07-26): 目標を「5分で6〜10回の『お、』」へ引き上げ。尾・身震いは振幅up/キョロは間を長く頻度↓。
   motDashOn: true,          // ⑦静→動ダッシュ
-  motDashRate: 0.03,        // 徘徊再設定ごとの発生率(10秒バケット決定論・実測7.4/分→2.8/分へ控えめ)
-  motDashDist: 90,          // 走る距離px(±30%は決定論ゆらぎ)
-  motDashSpeedMult: 2.6,    // 疾走の速度倍率(通常45px/s基準)
+  motDashRate: 0.055,       // 徘徊再設定ごとの発生率(再調律 0.03→0.055・約3.6/分)
+  motDashDist: 96,          // 走る距離px(±30%は決定論ゆらぎ・やや伸ばす)
+  motDashSpeedMult: 2.8,    // 疾走の速度倍率(通常45px/s基準・静→動をより鋭く)
   motDashRestSec: 5,        // 走った直後の静止秒(静→動→静)
   motTailOn: true,          // ①尾のアイドルゆらぎ
-  motTailRate: 0.20,        // 8秒窓ごとの発生率
-  motTailAmp: 2.2,          // ゆらぎ中の尾振幅倍率(既定0.02L基準)
+  motTailRate: 0.30,        // 8秒窓ごとの発生率(再調律 0.20→0.30)
+  motTailAmp: 3.4,          // ゆらぎ中の尾振幅倍率(再調律 2.2→3.4=気づける水準へ)
   motTongueOn: true,        // ②舌出し(ちろちろ)
-  motTongueWin: 45,         // 1回/この秒数(個体idで位相分散)
+  motTongueWin: 32,         // 1回/この秒数(再調律 45→32・生の気配を増やす)
   motTongueDur: 0.5,        // 舌が出ている秒
-  motLookOn: true,          // ⑧キョロキョロ(到着時に向きを2回反転)
-  motLookRate: 0.10,        // 到着ごとの発生率(実測21/分→8/分へ控えめ)
+  motLookOn: true,          // ⑧キョロキョロ(到着時=じっと見る間→2回だけ向きを変える)
+  motLookRate: 0.07,        // 到着ごとの発生率(再調律 0.10→0.07=数を減らし1回を印象的に)
+  motLookDwell: 3.2,        // 見る間の長さ秒(再調律で新設・freeze→ゆっくり2反転)
   motMeetOn: true,          // ⑫見合い(すれ違いの一瞥)
-  motMeetRate: 0.07,        // 近接すれ違いごとの発生率(実測3.2/分→2/分強へ控えめ)
-  motMeetSec: 0.8,          // 向き合って止まる秒
-  motMeetCdSec: 60,         // 個体ごとの再発クールダウン秒
+  motMeetRate: 0.11,        // 近接すれ違いごとの発生率(再調律 0.07→0.11)
+  motMeetSec: 1.0,          // 向き合って止まる秒(0.8→1.0=間を持たせる)
+  motMeetCdSec: 45,         // 個体ごとの再発クールダウン秒(60→45)
   // V5M 第2バッチ(④⑮⑰・★全てRic実機判定)
   motPerchOn: true,         // ④岩上の見張り(背景の大岩スポット)
   motPerchMax: 3,           // 使う岩の数(大きい順)
   motRareOn: true,          // ⑮レア個体の引力
-  motRareWin: 60,           // 判定窓(秒)
-  motRareRate: 0.08,        // 窓ごとの発生率(無印個体側)
+  motRareWin: 50,           // 判定窓(秒・60→50)
+  motRareRate: 0.12,        // 窓ごとの発生率(再調律 0.08→0.12)
   motRareDwell: 5,          // 傍で眺める滞在秒
   motEnvOn: true,           // ⑰惑星の環境反応
-  motEnvWin: 90,            // 個体ごとの発生窓(秒)
-  motEnvRate: 0.5,          // 窓ごとの発生率
-  motEnvShiverPx: 2,        // 震えの振幅px(寒冷)
-  motEnvLiftPx: 3,          // 頭上げの浮きpx(高熱)
+  motEnvWin: 70,            // 個体ごとの発生窓(秒・90→70)
+  motEnvRate: 0.6,          // 窓ごとの発生率(0.5→0.6)
+  motEnvShiverPx: 3,        // 震えの振幅px(再調律 2→3=気づける)
+  motEnvLiftPx: 5,          // 頭上げの浮きpx(再調律 3→5=気づける)
   motEnvColdStages: [7, 8], // 震える惑星(水中都市/氷の前線)
   motEnvHotStages: [5, 9],  // 頭を上げる惑星(火山/廃原子炉)
   // V5M 第3バッチ(⑬⑤⑩・⑱はスキップ=前提の動的環境演出が現行に無い・★全てRic実機判定)
   motFollowOn: true,        // ⑬ベビー追従
-  motFollowWin: 30,         // 判定窓(秒)
-  motFollowRate: 0.12,      // 窓ごとの発生率(ベビー側)
+  motFollowWin: 24,         // 判定窓(秒・30→24)
+  motFollowRate: 0.18,      // 窓ごとの発生率(再調律 0.12→0.18)
   motFollowSec: 6,          // 追従する秒
   motShedOn: true,          // ⑤脱皮の気配
   motShedWin: 1800,         // 発生窓(秒・約30分に1回の稀さが価値)
@@ -343,12 +345,12 @@ const CFG = {
   motShedRubPx: 2,          // 擦りの振幅px
   motDigOn: true,           // ⑩砂掘り
   motDigStages: [1, 10],    // 掘る惑星(乾燥地帯/古代遺跡)
-  motDigRate: 0.05,         // 8秒窓ごとの発生率
+  motDigRate: 0.055,        // 8秒窓ごとの発生率(再調律 0.05→0.055・乾燥惑星で突出しないよう抑制)
   motDigDur: 3,             // 掻いている秒
   // V5M 第4バッチ(⑥・C=形状変形の初適用・変形はbask中の背骨w/y変調のみ・★Ric実機判定)
   motFlatOn: true,          // ⑥日光浴フラット化
-  motFlatWin: 30,           // 発生窓(秒・bask滞在中)
-  motFlatRate: 0.3,         // 窓ごとの発生率
+  motFlatWin: 26,           // 発生窓(秒・bask滞在中・30→26)
+  motFlatRate: 0.42,        // 窓ごとの発生率(再調律 0.3→0.42)
   motFlatDur: 10,           // 伏せている秒(前後2秒はなだらかに補間)
   motFlatWiden: 0.10,       // 幅の広がり(+10%)
   motFlatLower: 0.08,       // 高さの沈み(-8%)

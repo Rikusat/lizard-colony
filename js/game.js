@@ -2380,7 +2380,7 @@ const Game = {
         if (lz.moving && !motOff && CFG.motLookOn !== false && !lz._toSpot && !fighting && lz.injuredT <= 0
           && (lz._shedT || 0) <= 0 && (lz._digT || 0) <= 0) {
           const lb = Math.floor(this._motClock / 4);
-          if (this.motHash(lz.id * 11 + 3, lb) < (CFG.motLookRate || 0.25)) { lz._lookT = 1.8; lz._lookN = 0; }
+          if (this.motHash(lz.id * 11 + 3, lb) < (CFG.motLookRate || 0.25)) { lz._lookT = CFG.motLookDwell || 3.0; lz._lookN = 0; }
         }
         lz.moving = false;
         if (lz._toSpot) { // 居場所へ到達=姿勢に入る(C3で描画)。向きはspot.facingへ寄せる
@@ -2393,9 +2393,11 @@ const Game = {
       if (lz._lookT > 0) {
         if (lz.moving || lz.spot) { lz._lookT = 0; }
         else {
+          const D = CFG.motLookDwell || 3.0;
           lz._lookT -= dt;
-          const ph = 1.8 - Math.max(0, lz._lookT);
-          const want = ph > 1.2 ? 2 : ph > 0.5 ? 1 : 0;
+          const ph = D - Math.max(0, lz._lookT);
+          // 到着後しばらく静止(freeze)→ゆっくり2回だけ向きを変える=爬虫類の「じっと見る間」。各向きを長く保持。
+          const want = ph > D * 0.60 ? 2 : ph > D * 0.28 ? 1 : 0;
           if (want !== (lz._lookN || 0)) { lz._lookN = want; lz.angle = Math.PI - lz.angle; }
         }
       }
