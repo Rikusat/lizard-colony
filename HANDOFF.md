@@ -1664,6 +1664,17 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
   - ID1〜ID9 [済] / **ID10 記録係アノール[本]**: 石板を抱えた学者肌の小トカゲ+金の刻印の脈動(1-2体)。※新arch=戦闘効果は今後。
   - **★全10惑星の味方描画 完成**（ID1〜ID10）。移送先id味方(ID2/6/7/8/9)=既存効果型を再有効化／新arch味方(ID3/4/5/10)=可視・育成のみ(効果は今後)。後修正候補: ID2-5・ID10がやや小型・背景と同化気味(存在感up余地)／ID9はラクーンか廃炉山椒魚か(Ric選択)。
 
+### 7M.10 ★緊急調査(水飲み実セーブ不出)根治+診断ツールL 一括デプロイ(2026-07-26・本番反映済)
+本番実証(使い捨てprofile)は緑だがRic実セーブで水飲み・波紋が不出。**実証環境と実セーブのギャップの真因2件を特定・根治**。**READY / lizardcolony-62rainwk4 / production**。
+- **真因(パートM再現調査)**: J実証時は`motRelaxOn=false`で計測(水飲み8-20回)だが、デプロイ既定は`motRelaxOn=true`(K)。gap=:
+  ①**K relax凍結**: くつろぎ個体(約半分)が「その場凍結」=水場へ行かない→水飲み激減(relax ON少施設で2回/OFF 8回)。→**くつろぎを"快適スポットへ誘導して そこで休む"へ改修**(spotVisitChanceRelax0.75)。凍結は近場スポット不達時のフォールバックに。「設備が景色になる」思想と整合。
+  ②**高tier水場のY越境**: 水場tier4のdrink spotが y=666 > FIELD.y2=660=クランプで到達不能(dist6>4で永久未到達)。→**facilitySpot中心をFIELD内(y2-6)へクランプ**。tier4 drink y=666→654で到達可能に。
+  ※tier閾値・fmix32(J)は正常。gapは上記2件の複合(+シム側の表示種数が少ないと可視個体4=別の測定要因も判明→実測は多様種で20可視)。
+- **実測(実セーブ相当=relax ON・多施設・多様種24匹)**: 水飲み到達 **0→13〜19回/5分**(本番コード実測=**24回/5分**)・波紋frames 3174。
+- **パートL 診断ツール(?tune=1#spotdebug・本番デプロイ済・無害)**: #game上にオーバーレイ=水場判定楕円(_nearWater)/各個体の目的地spot線(水場へ向かう=青線)/水飲み中(青丸)/波紋発生点(白点)/集計HUD(水場spot数・向かう数・飲む数・くつろぎ数・波紋数)。読み取り専用・セーブ非接触・hashchange対応・tune無しでは不存在(本番実証: 無害/有効/no errors)。**Ric確認URL: https://lizardcolony.vercel.app/?tune=1#spotdebug**
+- **本番実証**: 3JS+boot.js md5一致・実セーブ相当で水飲み24回/5分・高tier水場Y=654(FIELD内)・spotdebug本番稼働・console0。同乗ゼロ(差分=data/game/render/boot=M修正+Lのみ・他はdocs/tests)。
+- **次: 指示待ち。Kの手触りはCFG(motRelaxRatio/spotVisitChanceRelax等)で実機調整。S6着手禁止を維持。**
+
 ### 7M.9 ★J+K 一括デプロイ+本番実証(2026-07-26・本番反映済)
 Ric承認「J実害につき束ねて一括デプロイ」。**READY / lizardcolony-3bx5onxo8 / production**。
 - **同乗ゼロ**: 本番=前回デプロイ(2370d2a)と3JS md5一致=ドリフトなし。差分の本番反映対象はjs/data.js+js/game.js+js/render.jsのみ(=J+Kモーション層)、他はdocs/tests(.vercelignore)。
