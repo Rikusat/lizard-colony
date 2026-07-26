@@ -1876,12 +1876,34 @@ const Render = {
       if (cyc < drinkPhase) { const s = Math.max(0, Math.sin(t * 1.6)); dy = s * s * amp * 1.3; }        // 頭を水面へ(下・深め)
       else dy = -1 - Math.abs(Math.sin(t * 0.6)) * amp * 0.5;                                             // 顔を上げて見回す(上)
     }
-    else if (p === "bask") { dy = 1 + Math.sin(t * 0.8) * amp * 0.5; dx = Math.round(Math.sin(age * 0.5) > 0.985 ? amp * 0.5 : 0); } // 伏せて呼吸+たまに満足の身じろぎ
-    else if (p === "wade") { dx = Math.sin(t * 1.4) * amp; dy = Math.abs(Math.sin(t)) * amp * 0.4; }      // 尾で水を跳ねる左右+軽い上下
+    else if (p === "bask") {
+      dy = 1 + Math.sin(t * 0.8) * amp * 0.5; dx = Math.round(Math.sin(age * 0.5) > 0.985 ? amp * 0.5 : 0); // 伏せて呼吸+たまに満足の身じろぎ
+      // H UFO光: ビームtier(_spotTier>=閾)で「光の柱の中の浮遊」=ゆっくり大きく上下(A=translate・魂形状不変)
+      if (CFG.motBeamFloatOn !== false && (lz._spotTier || 0) >= (CFG.motBeamFloatTier != null ? CFG.motBeamFloatTier : 3)) {
+        const fb = Math.floor(age / (CFG.motBeamFloatWin || 12));
+        if (Game.motHash(lz.id * 101 + 26, fb) < (CFG.motBeamFloatRate || 0.5)) {
+          dy = -(CFG.motBeamFloatPx || 5) * (1 + Math.sin(t * (CFG.motBeamFloatSpeed || 0.6))) * 0.5; // 浮上してゆっくり上下
+        }
+      }
+    }
+    else if (p === "wade") {
+      dx = Math.sin(t * 1.4) * amp; dy = Math.abs(Math.sin(t)) * amp * 0.4;                              // 尾で水を跳ねる左右+軽い上下
+      // H 水遊び: 大湖tier(_spotTier>=閾)で3種の遊びを順に=①身を沈める ②水を跳ねさせる ③浅瀬で伏せて涼む
+      if (CFG.motWaterPlayOn !== false && (lz._spotTier || 0) >= (CFG.motWaterPlayTier != null ? CFG.motWaterPlayTier : 4)) {
+        const variant = Math.floor(age / (CFG.motWaterPlaySec || 5)) % 3;
+        if (variant === 0) dy = amp * 1.6 + Math.sin(t * 0.7) * amp * 0.3;                                // 身を沈める(深く)
+        else if (variant === 1) { dx = Math.sin(t * 2.6) * amp * 1.5; dy = Math.abs(Math.sin(t * 2.6)) * amp * 0.8; } // 水を跳ねさせる(激しい左右)
+        else { dy = amp * 1.1 + Math.sin(t * 0.5) * amp * 0.3; }                                          // 浅瀬で伏せて涼む(低く落ち着く)
+      }
+    }
     else if (p === "lookup" || p === "lookout") {
       // C4 見上げの揺らぎ: 個体ごとに浮きの量と周期を変える(揃わない・単調にしない)
       const va = 0.7 + (lz.id % 5) * 0.14, vp = 0.6 + (lz.id % 7) * 0.09;
       dy = -1 - Math.abs(Math.sin(t * vp)) * amp * va;
+      // H 観測施設群: 観測デッキtier(_spotTier>=閾)で「空をゆっくり見渡す」=左右に緩く首振り(A・dx小)
+      if (CFG.motObsScanOn !== false && (lz._spotTier || 0) >= (CFG.motObsScanTier != null ? CFG.motObsScanTier : 3)) {
+        dx = Math.sin(t * (CFG.motObsScanSpeed || 0.35)) * (CFG.motObsScanPx || 2);
+      }
     }
     else if (p === "emerge") dy = Math.sin(t * 0.9) * amp * 0.5;                              // 入口で軽い日向ぼっこの上下
     else dy = Math.sin(t * 0.8) * amp * 0.4;                                                  // 既定=穏やかな呼吸
@@ -2000,6 +2022,18 @@ const Render = {
     const t = this.time + (lz.id % 83) * 1.11;
     const local = t - Math.floor(t / win) * win;
     return local < dur;
+  },
+
+  // Part I: 個体が水場(水たまり/大湖)の上または縁にいるか。水場の楕円フットプリント(FAC_POS.water + waterTierInfo)で判定。
+  //   読み取り専用(施設ロジック非接触)。tier0(未建設)は常にfalse=水演出なし。
+  _nearWater(lz) {
+    if (typeof waterTierInfo !== "function" || typeof Game === "undefined") return false;
+    const info = waterTierInfo(Game.facLv("water"));
+    if (!info.tier) return false;
+    const cx = FAC_POS.water.x, cy = FAC_POS.water.y;
+    const rx = info.rx * 1.05, ry = Math.max(24, info.ry) * 1.6; // 縁まで含める余裕
+    const nx = (lz.x - cx) / rx, ny = (lz.y - cy) / ry;
+    return nx * nx + ny * ny <= 1;
   },
 
   // V5M-EX⑨(C=形状変形・特則遵守): 伸び(ストレッチ)の係数0..1。非スポットの静止個体が時々ぐっと伸びをする。
@@ -2496,6 +2530,38 @@ const Render = {
           const rr2 = L * 0.04 + r * L * 0.13;
           ctx.beginPath(); ctx.ellipse(L * 0.42 * face, L * 0.12, rr2, rr2 * 0.4, 0, 0, 7); ctx.stroke();
         }
+      }
+    }
+    // H 水遊びの飛沫(wade+大湖tier・激しい水跳ね変種のとき水しぶきが上がる)。上乗せ=装飾。
+    if (lz._spotPosture === "wade" && CFG.motWaterPlayOn !== false && (lz._spotTier || 0) >= (CFG.motWaterPlayTier != null ? CFG.motWaterPlayTier : 4)
+      && !lz.moving && !(window.Motion && Motion.reduced)) {
+      const age = (lz._spotT != null) ? (Game._motClock || 0) - lz._spotT : this.time;
+      if (Math.floor(age / (CFG.motWaterPlaySec || 5)) % 3 === 1) { // 水跳ね変種
+        ctx.fillStyle = "rgba(200,224,236,0.75)";
+        for (let k = 0; k < 4; k++) {
+          const cyc = (this.time * 2.2 + k * 0.25 + (lz.id % 7) * 0.13) % 1;
+          const sx = (k % 2 ? 1 : -1) * L * (0.16 + cyc * 0.20), sy = L * 0.12 - Math.sin(cyc * Math.PI) * L * 0.16;
+          ctx.globalAlpha = 0.8 * (1 - cyc);
+          ctx.beginPath(); ctx.arc(sx, sy, Math.max(0.7, L * 0.010), 0, 7); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+    }
+    // Part I: 水場の足跡波紋。水場spot(またはwade中)を歩く/出入りする個体の接地点に波紋。歩行位相に同期。
+    //   決定論(接地座標+時刻バケット)・水の演出限定(地面には出さない)・reduced-motionで停止。水tierで規模拡大。
+    if (CFG.motFootRippleOn !== false && lz.moving && !(window.Motion && Motion.reduced) && Render._nearWater && Render._nearWater(lz)) {
+      const wt = (typeof waterTierInfo === "function") ? waterTierInfo(Game.facLv("water")).tier : 1;
+      const scaleR = 1 + Math.max(0, wt - 1) * (CFG.motFootRippleTierGain || 0.35); // 大湖ほど大きな波紋
+      const face = Math.cos(lz.angle) >= 0 ? 1 : -1;
+      const step = this.time * 8 + lz.id * 1.31; // 歩行位相(_paintLizardBodyのphaseと同系)
+      const contact = Math.max(0, Math.sin(step)); // 接地の瞬間に強い
+      if (contact > 0.35) {
+        const fx = L * (0.10 + 0.06 * face) * face, fy = L * 0.14;
+        const r = (this.time * 1.4 % 1);
+        ctx.strokeStyle = `rgba(188,214,228,${(CFG.motFootRippleAlpha || 0.4) * (1 - r) * contact})`;
+        ctx.lineWidth = Math.max(0.7, L * 0.007);
+        const rr3 = (L * 0.03 + r * L * 0.10) * scaleR;
+        ctx.beginPath(); ctx.ellipse(fx, fy, rr3, rr3 * 0.4, 0, 0, 7); ctx.stroke();
       }
     }
     if (Game.selectedId === lz.id) {

@@ -235,7 +235,7 @@ const Game = {
       l._dashT = 0; l._lookT = 0; l._meetCd = 0; // V5M: モーション残状態もクリア(stale姿勢なし・runtime専用=保存されない)
       l._shedT = 0; l._digT = 0; l._folT = 0; l._shedGo = false; // V5M第3バッチ分
       l._peekT = 0; l._peekedTrip = false; l._spotT = null; // V5M-EX パートC分
-      l._shakeT = 0; // V5M-EX2 E3分(片足上げ=render時間駆動でstate不要)
+      l._shakeT = 0; l._spotTier = 0; l._emergeThruT = 0; // V5M-EX2/3分(片足上げ・水遊び=render時間/tier駆動でstate最小)
       l.resting = !show.has(l.id);
       if (l.resting) l.restedAt = Date.now();
     }
@@ -2391,6 +2391,7 @@ const Game = {
           lz.tx = clamp(goSpot.center.x + Math.cos(ang) * rad, FIELD.x1, FIELD.x2);
           lz.ty = clamp(goSpot.center.y + Math.sin(ang) * rad, FIELD.y1 - 10, FIELD.y2);
           lz._toSpot = goSpot.id; lz._spotFacing = goSpot.facing; lz._spotPosture = goSpot.posture;
+          lz._spotTier = goSpot.tier || 0; // H: 設備の成長段階(遊びモーションの解禁判定・読み取り専用)
           lz.wanderT = rnd(CFG.spotDwellMin || 3, CFG.spotDwellMax || 8); // 到着後この間は留まる
         } else { // 通常の徘徊: 自分の縄張り周辺をうろつく
           lz.spot = null; lz._toSpot = null;

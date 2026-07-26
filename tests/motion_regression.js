@@ -538,6 +538,46 @@ ok("C3: id位相ずれ(個体で揺れが違う)", s1 !== s2);
   ok("V5M-EX2 F: 出巣直後はすり抜け窓が立つ(_emergeThruT>0)", em._emergeThruT > 0);
 }
 
+// ===== V5M-EX3 パートH/I(2026-07-26): 設備tier連動の遊び + 水場の足跡波紋 =====
+{
+  Render.time = 2.0;
+  const spotLz = (posture, tier, extra) => Object.assign({ id: 9, spot: "x", moving: false, _spotPosture: posture, _spotTier: tier, _spotT: 0 }, extra || {});
+  // H 水遊び: wade+tier<閾では基本挙動・tier>=閾で遊び(振幅が拡大=沈む変種でdy深い)
+  CFG.motWaterPlayOn = true; CFG.motWaterPlayTier = 4;
+  Game._motClock = 0;
+  let deepSeen = false;
+  for (let tq = 0; tq < 400; tq++) { Render.time = tq * 0.05; Game._motClock = tq * 0.05; const b = Render._poseBob(spotLz("wade", 4)); if (b && b.dy > (CFG.poseBobPx || 3) * 1.3) { deepSeen = true; break; } }
+  ok("V5M-EX3 H: 大湖tierで水遊び(深く沈む変種=基本waveより大きいdy)", deepSeen);
+  const lowTier = Render._poseBob(spotLz("wade", 1));
+  ok("V5M-EX3 H: 低tierでは水遊び非解禁(基本wadeのまま=浅い)", lowTier && Math.abs(lowTier.dy) <= (CFG.poseBobPx || 3) + 1);
+  CFG.motWaterPlayOn = false;
+  ok("V5M-EX3 H: OFFで水遊びなし", (() => { for (let tq = 0; tq < 200; tq++) { Render.time = tq * 0.05; Game._motClock = tq * 0.05; const b = Render._poseBob(spotLz("wade", 4)); if (b && Math.abs(b.dy) > (CFG.poseBobPx || 3) + 1) return false; } return true; })());
+  CFG.motWaterPlayOn = true;
+  // H UFO浮遊: bask+ビームtierで上へ浮く(dy負が深い)
+  CFG.motBeamFloatOn = true; CFG.motBeamFloatTier = 3;
+  let floatSeen = false;
+  for (let id = 0; id < 20 && !floatSeen; id++) for (let tq = 0; tq < 400; tq++) { Render.time = tq * 0.05; Game._motClock = tq * 0.05; const b = Render._poseBob(spotLz("bask", 4, { id })); if (b && b.dy < -(CFG.poseBobPx || 3) * 0.9) { floatSeen = true; break; } }
+  ok("V5M-EX3 H: ビームtierで浮遊(上へ・A方式translate)", floatSeen);
+  ok("V5M-EX3 H: 低tier保温では浮遊なし(基本bask)", (() => { for (let tq = 0; tq < 200; tq++) { Render.time = tq * 0.05; Game._motClock = tq * 0.05; const b = Render._poseBob(spotLz("bask", 1)); if (b && b.dy < -(CFG.poseBobPx || 3) * 0.9) return false; } return true; })());
+  // H 観測スキャン: lookout+tier>=閾で横首振り(dx出る)
+  CFG.motObsScanOn = true; CFG.motObsScanTier = 3;
+  let scanDx = false;
+  for (let tq = 0; tq < 200; tq++) { Render.time = tq * 0.05; const b = Render._poseBob(spotLz("lookout", 3)); if (b && Math.abs(b.dx) > 0) { scanDx = true; break; } }
+  ok("V5M-EX3 H: 観測施設群tierで空見渡し(横dx)", scanDx);
+  ok("V5M-EX3 H: 低tier展望台では首振りなし(dx=0)", (() => { for (let tq = 0; tq < 100; tq++) { Render.time = tq * 0.05; const b = Render._poseBob(spotLz("lookout", 1)); if (b && Math.abs(b.dx) > 0) return false; } return true; })());
+  // H 全posture整数bob維持(tier遊び込み)
+  let intOk2 = true;
+  for (const [pp, tt] of [["wade", 4], ["bask", 4], ["lookout", 3]]) for (let tq = 0; tq < 100; tq++) { Render.time = tq * 0.05; Game._motClock = tq * 0.05; const b = Render._poseBob(spotLz(pp, tt)); if (b && (!Number.isInteger(b.dx) || !Number.isInteger(b.dy))) intOk2 = false; }
+  ok("V5M-EX3 H: 遊びモーションも整数bob(魂ピクセル不変)", intOk2);
+  // I 水場判定: 水場tier0では常にfalse・建設後は楕円内でtrue
+  Game.newGame();
+  Game.state.facilities = { water: 0 };
+  ok("V5M-EX3 I: 水場未建設は_nearWater=false", Render._nearWater({ x: 230, y: 610 }) === false);
+  Game.state.facilities = { water: 20 };
+  ok("V5M-EX3 I: 水場中心は_nearWater=true", Render._nearWater({ x: 230, y: 610 }) === true);
+  ok("V5M-EX3 I: 遠方は_nearWater=false", Render._nearWater({ x: 1000, y: 200 }) === false);
+}
+
 console.log(`\n=== モーション 回帰テスト結果: ${pass} PASS / ${fail} FAIL ===`);
 if (fail) { console.log("FAILED:\n - " + fails.join("\n - ")); process.exit(1); }
 console.log("すべてPASS(C1割当:決定論/capacity比例/状態非干渉/null・C2配線:到達/ワープなし/解除/数値非干渉・C3姿勢:整数bob/null条件/決定論・V5M第1バッチ:⑦連続/⑧2反転/⑫対面/①K範囲/reduced停止/数値非干渉/クリア)");

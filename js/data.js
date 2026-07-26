@@ -453,6 +453,24 @@ const CFG = {
   // 裁定F(2026-07-26): 巣口すり抜けの根治=出入り中の個体は相互回避を無効化(互いをすり抜ける)
   nestPassthroughOn: true,  // 巣へ向かう/出る個体の押し合いを無効化(団子の根治)
   nestThruSec: 1.5,         // 出巣直後にすり抜け続ける秒(入口を離れるまで)
+  // ★M2-EX3 パートH: 設備tier連動の遊びモーション(投資が景色になる・発生tier閾値もCFG=Ricが解禁段階を[A]調整)
+  motWaterPlayOn: true,     // 水遊び(水場が大湖tierで解禁)
+  motWaterPlayTier: 4,      // 解禁tier(水場4=大湖)
+  motWaterPlaySec: 5,       // 遊びの1変種の秒(沈む/跳ねる/涼むを順に)
+  motBeamFloatOn: true,     // UFO光ビーム下の浮遊(保温がビームtierで解禁)
+  motBeamFloatTier: 3,      // 解禁tier(保温3=空中ライト)
+  motBeamFloatWin: 12,      // 浮遊の発生窓(秒)
+  motBeamFloatRate: 0.5,    // 窓ごとの発生率
+  motBeamFloatPx: 5,        // 浮上の高さpx
+  motBeamFloatSpeed: 0.6,   // 浮遊の上下速さ
+  motObsScanOn: true,       // 観測デッキの空見渡し(展望台が観測施設群tierで解禁)
+  motObsScanTier: 3,        // 解禁tier(展望台3=観測施設群)
+  motObsScanPx: 2,          // 首振りの横振幅px
+  motObsScanSpeed: 0.35,    // 首振りの速さ
+  // ★M2-EX3 パートI: 水場の足跡波紋(水の演出限定・水tierで規模拡大)
+  motFootRippleOn: true,    // 水場を歩く個体の足跡波紋
+  motFootRippleAlpha: 0.4,  // 波紋の濃さ
+  motFootRippleTierGain: 0.35, // 水tier1段ごとの波紋規模増(大湖ほど大きい)
   // モーション(§8.5): 可視個体の一部が設備の居場所(スポット)へ歩き、留まって姿勢をとる純装飾。数値には無影響。★Ric実機で手触り調整
   spotVisitChance: 0.35,    // 徘徊の再設定時に居場所へ向かう確率(残りは従来の縄張り徘徊)
   spotDwellMin: 3,          // 居場所に留まる最短秒
