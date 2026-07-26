@@ -12,9 +12,9 @@ const sb = { console, localStorage: { getItem: (k) => (k in store ? store[k] : n
 sb.Motion = { reduced: false };
 sb.window = sb; sb.globalThis = sb; vm.createContext(sb);
 let code = ""; for (const f of ["js/data.js", "js/render.js", "js/game.js"]) code += fs.readFileSync(path.join(ROOT, f), "utf8") + "\n;\n";
-code += "globalThis.__t = { Game, Render, CFG };\n";
+code += "globalThis.__t = { Game, Render, CFG, FIELD };\n";
 vm.runInContext(code, sb, { filename: "combined.js" });
-const { Game, Render, CFG } = sb.__t;
+const { Game, Render, CFG, FIELD } = sb.__t;
 CFG.motRelaxOn = false; // K くつろぎは活動的な仕草(dash/dig/headbob等)を抑制するため既定OFFで既存テストを走らせ、K節でのみON
 let pass = 0, fail = 0; const fails = [];
 const ok = (n, c, e) => { if (c) pass++; else { fail++; fails.push(n + (e ? " :: " + e : "")); } };
@@ -640,6 +640,20 @@ ok("C3: id位相ずれ(個体で揺れが違う)", s1 !== s2);
   for (let t = 0; t < 600 && !reached; t++) { Game.moveLizards(0.1); if (far.spot && Render.facilitySpots().find((s) => s.id === far.spot)) reached = true; }
   ok("J: スポットへ道中を保持して到達(dwell切れで逸れない=spotTravelSec)", reached, "spot=" + far.spot);
   CFG.motDashOn = midOn;
+  // M根治: 全facilitySpotがFIELD内(高tier水場のdrink spotがy>FIELD.y2で到達不能だった件)
+  Game.newGame(); Game.state.facilities = { water: 20, heat: 20, observatory: 10, watchtower: 10 }; Game.state.nest = { lv: 8 };
+  const allIn = Render.facilitySpots().every((s) => s.center.y <= FIELD.y2 - 5 && s.center.y >= FIELD.y1 && s.center.x >= FIELD.x1 && s.center.x <= FIELD.x2);
+  ok("M: 全spotがFIELD内(高tier水場のY越境=到達不能の根治)", allIn);
+  // M根治: くつろぎ個体はスポットへ誘導される(凍結でなく水/暖で休む=水飲みが見える)
+  CFG.motRelaxOn = true; CFG.spotVisitChanceRelax = 1; CFG.motDashOn = false;
+  Game.state.lizards = [];
+  const rc = { id: 5, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "adult", xp: 0, level: 5, injuredT: 0, breedCd: 0, traits: [] };
+  Game.ensureRuntime(rc); rc.x = 500; rc.y = 460; rc.resting = false; rc.wanderT = 0;
+  Game.state.lizards = [rc];
+  let toSpotWhileRelaxCapable = false;
+  for (let t = 0; t < 200 && !toSpotWhileRelaxCapable; t++) { Game.moveLizards(0.1); if (rc._toSpot) toSpotWhileRelaxCapable = true; }
+  ok("M: くつろぎ個体もスポットへ向かう(凍結しない=水飲み可視化)", toSpotWhileRelaxCapable, "toSpot=" + rc._toSpot);
+  CFG.motDashOn = midOn; CFG.motRelaxOn = false;
 }
 
 // ===== reduced-motionガードの静的検査(2026-07-26・本番実証で発覚した潜在バグの再発防止) =====

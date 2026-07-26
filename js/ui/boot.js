@@ -152,5 +152,84 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
     };
     window.addEventListener("hashchange", rosterGate);
     if (location.hash === "#roster") setTimeout(buildRoster, 400); // boot完了後にスナップショット表示(更新ボタンで再読取り・書き込みなし)
+
+    // dev支援(調査L 2026-07-26): spot挙動デバッグオーバーレイ(?tune=1#spotdebug・読み取り専用・進行非干渉)。
+    //   Ricが自分の実セーブで「誰が水場へ向かっているか/水場判定範囲/波紋発生点/集計」を可視化して不出の原因を切り分ける。
+    { // #spotdebug: #game上にオーバーレイcanvasを重ね rAF で診断描画(セーブ・確率・戦闘に一切触れない)
+      let sdOn = false, sdCanvas = null, sdHud = null, sdRAF = 0;
+      const sdLog = { drink: [], ripple: [] }; // 直近1分の到達/波紋のタイムスタンプ(表示専用)
+      const gameCv = () => document.getElementById("game");
+      const stopSD = () => { sdOn = false; if (sdRAF) cancelAnimationFrame(sdRAF); if (sdCanvas) sdCanvas.remove(); if (sdHud) sdHud.remove(); sdCanvas = sdHud = null; };
+      const drawSD = () => {
+        if (!sdOn) return;
+        const gc = gameCv(); if (!gc || typeof Game === "undefined") { sdRAF = requestAnimationFrame(drawSD); return; }
+        const r = gc.getBoundingClientRect();
+        if (!sdCanvas) {
+          sdCanvas = document.createElement("canvas"); sdCanvas.id = "spotdebug-cv";
+          sdCanvas.style.cssText = "position:fixed;pointer-events:none;z-index:9998;";
+          document.body.appendChild(sdCanvas);
+          sdHud = document.createElement("div"); sdHud.id = "spotdebug-hud";
+          sdHud.style.cssText = "position:fixed;right:10px;bottom:10px;z-index:9999;background:rgba(10,8,6,.86);color:#e8dccb;font:12px/1.5 system-ui;padding:8px 12px;border-radius:8px;border:1px solid #7a5;max-width:320px;";
+          document.body.appendChild(sdHud);
+        }
+        sdCanvas.style.left = r.left + "px"; sdCanvas.style.top = r.top + "px";
+        sdCanvas.style.width = r.width + "px"; sdCanvas.style.height = r.height + "px";
+        if (sdCanvas.width !== gc.width) { sdCanvas.width = gc.width; sdCanvas.height = gc.height; }
+        const c = sdCanvas.getContext("2d");
+        c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, sdCanvas.width, sdCanvas.height);
+        const spots = (typeof Render !== "undefined" && Render.facilitySpots) ? Render.facilitySpots() : [];
+        const waterSpots = spots.filter((s) => s.facility === "water");
+        // 水場の判定範囲(_nearWater楕円)を描く
+        if (typeof waterTierInfo === "function" && typeof FAC_POS !== "undefined") {
+          const wi = waterTierInfo(Game.facLv("water"));
+          if (wi.tier) {
+            const rx = wi.rx * 1.05, ry = Math.max(24, wi.ry) * 1.6;
+            c.strokeStyle = "rgba(90,180,230,.9)"; c.lineWidth = 2; c.setLineDash([6, 4]);
+            c.beginPath(); c.ellipse(FAC_POS.water.x, FAC_POS.water.y, rx, ry, 0, 0, 7); c.stroke(); c.setLineDash([]);
+            c.fillStyle = "rgba(90,180,230,.9)"; c.font = "11px system-ui";
+            c.fillText("_nearWater (水場判定・tier" + wi.tier + ")", FAC_POS.water.x - rx, FAC_POS.water.y - ry - 4);
+          } else { c.fillStyle = "#e88"; c.font = "13px system-ui"; c.fillText("★水場が未建設(tier0)=水飲み/波紋は出ません", 40, 40); }
+        }
+        // 各spotの中心
+        for (const s of spots) {
+          const water = s.facility === "water";
+          c.fillStyle = water ? "#5ac8f2" : "rgba(220,200,120,.7)";
+          c.beginPath(); c.arc(s.center.x, s.center.y, water ? 6 : 4, 0, 7); c.fill();
+          c.fillStyle = "rgba(255,255,255,.7)"; c.font = "10px system-ui"; c.fillText(s.id, s.center.x + 6, s.center.y);
+        }
+        // 各個体の目的地への線
+        let heading = 0, drinking = 0, relaxing = 0, ripplePts = 0;
+        for (const lz of Game.state.lizards) {
+          if (!Game.isVisible(lz)) continue;
+          const to = lz._toSpot && spots.find((s) => s.id === lz._toSpot);
+          if (to) {
+            const water = to.facility === "water"; if (water) heading++;
+            c.strokeStyle = water ? "rgba(90,200,240,.8)" : "rgba(180,170,120,.4)"; c.lineWidth = water ? 2 : 1;
+            c.beginPath(); c.moveTo(lz.x, lz.y); c.lineTo(to.center.x, to.center.y); c.stroke();
+          }
+          if (lz.spot && lz._spotPosture === "drink") { drinking++; c.strokeStyle = "#3ef"; c.lineWidth = 2; c.beginPath(); c.arc(lz.x, lz.y, 12, 0, 7); c.stroke(); }
+          if (lz._relaxing) relaxing++;
+          // 波紋発生点(足跡波紋の条件を満たす個体)
+          if (lz.moving && Render._nearWater && Render._nearWater(lz)) { ripplePts++; c.fillStyle = "rgba(188,214,228,.9)"; c.beginPath(); c.arc(lz.x, lz.y + 8, 5, 0, 7); c.fill(); }
+        }
+        const now = (Game._motClock || 0);
+        if (drinking) sdLog.drink.push(now); if (ripplePts) sdLog.ripple.push(now);
+        sdLog.drink = sdLog.drink.filter((t) => now - t < 60); sdLog.ripple = sdLog.ripple.filter((t) => now - t < 60);
+        sdHud.innerHTML = "<b>spot診断</b> (?tune=1#spotdebug)<br>"
+          + "水場spot数: " + waterSpots.length + " (" + waterSpots.map((s) => s.id).join(",") + ")<br>"
+          + "水場へ向かう個体: <b>" + heading + "</b><br>"
+          + "水飲み中(青丸): <b>" + drinking + "</b><br>"
+          + "くつろぎ中: " + relaxing + " / 表示個体 " + Game.state.lizards.filter((l) => Game.isVisible(l)).length + "<br>"
+          + "波紋発生中(白点): <b>" + ripplePts + "</b><br>"
+          + "<span style='color:#9c9'>水色破線=水場判定 / 青線=水場へ向かう / 青丸=水飲み / 白点=波紋</span>";
+        sdRAF = requestAnimationFrame(drawSD);
+      };
+      const sdGate = () => {
+        if (location.hash === "#spotdebug") { if (!sdOn) { sdOn = true; drawSD(); console.log("[spotdebug] 有効: 水場判定/目的地/波紋を可視化"); } }
+        else stopSD();
+      };
+      window.addEventListener("hashchange", sdGate);
+      if (location.hash === "#spotdebug") setTimeout(sdGate, 400);
+    }
   }
 }

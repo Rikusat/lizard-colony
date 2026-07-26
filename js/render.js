@@ -1604,8 +1604,9 @@ const Render = {
     const G = (typeof Game !== "undefined") ? Game : null;
     if (!G) return [];
     const spots = [];
+    // 調査M根治: スポット中心をFIELD内へクランプ(高tier水場のdrink spotがy>FIELD.y2で到達不能=水飲み不出の一因)。
     const push = (id, facility, action, posture, capacity, facing, cx, cy, radius, tier) =>
-      spots.push({ id, facility, action, posture, capacity, facing, center: { x: Math.round(cx), y: Math.round(cy) }, radius: Math.round(radius), tier });
+      spots.push({ id, facility, action, posture, capacity, facing, center: { x: Math.round(clamp(cx, FIELD.x1 + 8, FIELD.x2 - 8)), y: Math.round(clamp(cy, FIELD.y1, FIELD.y2 - 6)) }, radius: Math.round(radius), tier });
 
     // 水場: tier1-3=手前の縁で水を飲む / tier4=浅瀬で水浴び
     const w = waterTierInfo(G.facLv("water"));

@@ -2319,16 +2319,14 @@ const Game = {
         // 調査J根治: スポットへ道中の個体は目的地を保持して到達させる(dwell切れの再抽選で遠い水場等へ辿り着けない問題)。
         //   到達(spot確定)まで再抽選しない。travelタイムアウトで諦め=無限追尾を防ぐ。純装飾=生産/戦闘の決定論に無影響。
         lz.wanderT = 0.5; // 次tickも道中判定へ(下の移動処理で歩き続ける)
-      } else if (lz.wanderT <= 0 && this.relaxActive(lz)) {
-        // K くつろぎ: その場に留まって休息(新しい徘徊先を選ばない)。スポット滞在中はその姿勢のまま休む。
-        lz._relaxing = true;
-        if (!lz.spot) { lz.tx = lz.x; lz.ty = lz.y; lz._relaxPose = ["lounge", "curl", "groom"][(lz.id + Math.floor((this._motClock || 0) / (CFG.motRelaxCycle || 44))) % 3]; }
-        lz.wanderT = rnd(2, 4); // 次の見直しまで休む
       } else if (lz.wanderT <= 0) { // 通常の徘徊 or 設備の居場所(スポット)へ
-        lz._relaxing = false;
+        // K くつろぎ(調査M改修): 休息個体は「その場凍結」でなく、まず快適なスポット(水/暖/岩)へ向かって"そこで"休む。
+        //   凍結だと水飲み・設備利用が激減する(実測)→スポット誘導を優先し、届かなければ近場で留まる。設備が景色になる思想と整合。
+        const relaxing = this.relaxActive(lz);
         // V5M⑦: 静→動ダッシュ(トカゲ特有の静→動)。決定論(idハッシュ+時刻バケット)・純装飾・走った後は長めの静止。
         const dashBk = Math.floor(this._motClock / 10);
-        if (!motOff && CFG.motDashOn !== false && lz._motBk !== dashBk && this.motHash(lz.id, dashBk) < (CFG.motDashRate || 0.08)) {
+        if (!relaxing && !motOff && CFG.motDashOn !== false && lz._motBk !== dashBk && this.motHash(lz.id, dashBk) < (CFG.motDashRate || 0.08)) {
+          lz._relaxing = false;
           lz._motBk = dashBk;
           lz.spot = null; lz._toSpot = null;
           const da = this.motHash(lz.id * 3 + 1, dashBk) * Math.PI * 2;
@@ -2410,8 +2408,9 @@ const Game = {
         })()) {
           // (⑮の目的地設定はクロージャ内で完了)
         } else {
-        // モーション(§8.5): 一定確率で居場所へ向かう。純装飾=Math.randomは既存の徘徊と同カテゴリ(生産/戦闘/遺伝の決定論には無影響)
-        const goSpot = Math.random() < (CFG.spotVisitChance || 0) ? this.spotFor(lz) : null;
+        // モーション(§8.5): 一定確率で居場所へ向かう。くつろぎ個体はスポット誘導率を上げる(快適な場所で休む)。
+        const chance = relaxing ? (CFG.spotVisitChanceRelax != null ? CFG.spotVisitChanceRelax : 0.75) : (CFG.spotVisitChance || 0);
+        const goSpot = Math.random() < chance ? this.spotFor(lz) : null;
         if (goSpot) {
           const off = (lz.id * 2654435761) >>> 0; // 面の中の決定論オフセット(idで分散=固まらない)
           const ang = (off % 628) / 100, rad = (goSpot.radius || 12) * (0.15 + (off % 70) / 100);
@@ -2420,9 +2419,15 @@ const Game = {
           lz._toSpot = goSpot.id; lz._spotFacing = goSpot.facing; lz._spotPosture = goSpot.posture;
           lz._spotTier = goSpot.tier || 0; // H: 設備の成長段階(遊びモーションの解禁判定・読み取り専用)
           lz._spotTravelT = CFG.spotTravelSec || 14; // 調査J: この時間内はスポットへ道中を保持して到達させる
+          lz._relaxing = false; // スポットへ向かう(到達後は姿勢=drink/baskで"そこで"休む)
           lz.wanderT = rnd(CFG.spotDwellMin || 3, CFG.spotDwellMax || 8); // 到着後この間は留まる
+        } else if (relaxing) { // K: スポットへ行かない休息個体は近場で留まって休む(遠くへ徘徊しない)
+          lz.spot = null; lz._toSpot = null; lz._relaxing = true;
+          lz.tx = lz.x; lz.ty = lz.y;
+          lz._relaxPose = ["lounge", "curl", "groom"][(lz.id + Math.floor((this._motClock || 0) / (CFG.motRelaxCycle || 44))) % 3];
+          lz.wanderT = rnd(2, 4);
         } else { // 通常の徘徊: 自分の縄張り周辺をうろつく
-          lz.spot = null; lz._toSpot = null;
+          lz.spot = null; lz._toSpot = null; lz._relaxing = false;
           lz.wanderT = rnd(2.5, 7);
           if (Math.random() < 0.05) { // たまに縄張りを引っ越す
             lz.homeX = rnd(FIELD.x1 + 40, FIELD.x2 - 40);
