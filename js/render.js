@@ -1337,7 +1337,7 @@ const Render = {
   //   物語の含み(説明しない・気配だけ): 皿と鏡筒はみな空へ向く=観測している者を観測し返そうとしている。
   _drawObservatory(ctx, spot, lv) {
     const info = observatoryTierInfo(lv), tier = info.tier, w = info.w, h = info.h, cx = spot[0], gy = spot[1], hw = w / 2;
-    const calm = window.Motion && Motion.reduced, T = calm ? 0 : this.time;
+    const calm = typeof Motion !== "undefined" && Motion.reduced, T = calm ? 0 : this.time;
     ctx.fillStyle = "rgba(0,0,0,.24)"; ctx.beginPath(); ctx.ellipse(cx, gy + 9, hw * 0.99, 11, 0, 0, 7); ctx.fill();
 
     // ---- 観測デッキ(§8.5 群れが集まって見上げる面・全tier共通、tierで拡張) ----
@@ -1648,7 +1648,7 @@ const Render = {
   // D7(第2波) 漂う環境粒子: 惑星別に数個だけ・ゆっくり横へ流れる背景装飾(嘘のない環境要素=綿毛/胞子/灰/雪片)。
   //   決定論(id相当=粒index+時刻)・reduced-motion/OFFで非表示。飼育槽を眺め続ける飽きを薄く埋める。数値・当たり判定に無影響。
   drawDriftMotes(ctx) {
-    if (CFG.motMotesOn === false || (window.Motion && Motion.reduced)) return;
+    if (CFG.motMotesOn === false || (typeof Motion !== "undefined" && Motion.reduced)) return;
     const st = Game.currentStage && Game.currentStage();
     if (!st) return;
     const conf = (CFG.motMotesByStage && CFG.motMotesByStage[st.id]);
@@ -1835,7 +1835,7 @@ const Render = {
   //   静止中のみ・OFF/移動/reduced-motionで0(=回転なし=従来と同一配置)。★CFG。
   _motTilt(lz) {
     if (CFG.motTiltOn === false || lz.moving || lz.injuredT > 0) return 0;
-    if (window.Motion && Motion.reduced) return 0;
+    if (typeof Motion !== "undefined" && Motion.reduced) return 0;
     const win = CFG.motTiltWin || 40, dur = CFG.motTiltDur || 1.4;
     const t = this.time + (lz.id % 71) * 2.3;
     const bk = Math.floor(t / win);
@@ -1853,7 +1853,7 @@ const Render = {
   //   reduced-motion/移動中/非スポットでは null(静止)=fable1(reduced-motion停止・静的滞在は残る)。★Ric実機で振幅/速さ(CFG)を調整。
   _poseBob(lz) {
     if (lz.moving) return null;
-    if (window.Motion && Motion.reduced) return null;
+    if (typeof Motion !== "undefined" && Motion.reduced) return null;
     // V5M⑤: 脱皮の擦り(岩の際で体を前後に擦る=整数px・魂ピクセル不変)
     if (!lz.spot && lz._shedT > 0) {
       const t = this.time * 9 + (lz.id % 37);
@@ -1914,7 +1914,7 @@ const Render = {
   //   OFF/移動中/負傷/reduced-motionでは常に1=既定の0.02L(従来とピクセル一致)。★頻度/振幅はCFG(Ric実機)。
   _motTailK(lz) {
     if (CFG.motTailOn === false || lz.moving || lz.injuredT > 0) return 1;
-    if (window.Motion && Motion.reduced) return 1;
+    if (typeof Motion !== "undefined" && Motion.reduced) return 1;
     // D3 尾フリック(第2波): ごく稀に鋭い一振り(高振幅・短時間)。ゆらぎより優先。startle/苛立ちの気配。
     if (CFG.motTailFlickOn !== false) {
       const fwin = CFG.motTailFlickWin || 26, ft = this.time + (lz.id % 89) * 2.1;
@@ -1938,7 +1938,7 @@ const Render = {
   //   配置トランスフォーム(整数dy)のみ=魂ピクセル不変。OFF/移動/reduced/スポット中はnull。
   _motHeadbob(lz) {
     if (CFG.motHeadbobOn === false || lz.moving || lz.spot || lz.injuredT > 0) return null;
-    if (window.Motion && Motion.reduced) return null;
+    if (typeof Motion !== "undefined" && Motion.reduced) return null;
     const win = CFG.motHeadbobWin || 34, t = this.time + (lz.id % 59) * 1.6;
     const bk = Math.floor(t / win);
     if (Game.motHash(lz.id * 73 + 20, bk) >= (CFG.motHeadbobRate || 0.3)) return null;
@@ -1953,7 +1953,7 @@ const Render = {
   // D6 まどろみ(第2波): 長く静止する個体が眼を半分閉じる(まばたきより長く・浅く)。閉眼中=trueで瞼を薄く被せる。
   _motDrowsy(lz) {
     if (CFG.motDrowsyOn === false || lz.moving) return false;
-    if (window.Motion && Motion.reduced) return false;
+    if (typeof Motion !== "undefined" && Motion.reduced) return false;
     const win = CFG.motDrowsyWin || 40, dur = CFG.motDrowsyDur || 2.5;
     const t = this.time + (lz.id % 101) * 1.9;
     const bk = Math.floor(t / win);
@@ -1964,7 +1964,7 @@ const Render = {
   // D1 あくび/口開け(第2波): ごく稀に口を大きく開ける(gape)。開き量0..1(_paintLizardBodyの口へ上乗せ・sig反映)。
   _motYawn(lz) {
     if (CFG.motYawnOn === false || lz.moving) return 0;
-    if (window.Motion && Motion.reduced) return 0;
+    if (typeof Motion !== "undefined" && Motion.reduced) return 0;
     const win = CFG.motYawnWin || 55, dur = CFG.motYawnDur || 1.0;
     const t = this.time + (lz.id % 103) * 2.7;
     const bk = Math.floor(t / win);
@@ -2002,7 +2002,7 @@ const Render = {
   //   非適用時は厳密に0=乗算恒等(x*1===x)でピクセル完全一致。決定論・reduced/OFF/移動中/非baskは常に0。
   _motFlatK(lz) {
     if (CFG.motFlatOn === false || lz.moving || !lz.spot || lz._spotPosture !== "bask") return 0;
-    if (window.Motion && Motion.reduced) return 0;
+    if (typeof Motion !== "undefined" && Motion.reduced) return 0;
     const win = CFG.motFlatWin || 30, dur = CFG.motFlatDur || 10;
     const t = this.time + (lz.id % 53) * 1.3;
     const bk = Math.floor(t / win);
@@ -2017,7 +2017,7 @@ const Render = {
   //   OFF/移動中/reduced-motionではfalse=描かない=従来ピクセル一致。sigにも同値が入る=焼き残りなし。
   _motBlinkClosed(lz) {
     if (CFG.motBlinkOn === false || lz.moving) return false;
-    if (window.Motion && Motion.reduced) return false;
+    if (typeof Motion !== "undefined" && Motion.reduced) return false;
     const win = CFG.motBlinkWin || 9, dur = CFG.motBlinkDur || 0.12;
     const t = this.time + (lz.id % 83) * 1.11;
     const local = t - Math.floor(t / win) * win;
@@ -2041,7 +2041,7 @@ const Render = {
   //   決定論・reduced/OFF/移動/スポット中は0。⑥フラット化とは排他(スポット有無で分かれる)。
   _motStretchK(lz) {
     if (CFG.motStretchOn === false || lz.moving || lz.spot || lz.injuredT > 0) return 0;
-    if (window.Motion && Motion.reduced) return 0;
+    if (typeof Motion !== "undefined" && Motion.reduced) return 0;
     const win = CFG.motStretchWin || 55, dur = CFG.motStretchDur || 1.6;
     const t = this.time + (lz.id % 67) * 1.9;
     const bk = Math.floor(t / win);
@@ -2056,7 +2056,7 @@ const Render = {
   //   熱い惑星/暖取りspotで発生しやすい(熱い地面から脚を上げる)。決定論・reduced/OFF/移動/掘り中は0。
   _motFootLift(lz) {
     if (CFG.motFootLiftOn === false || lz.moving || (lz._digT || 0) > 0 || lz.injuredT > 0) return 0;
-    if (window.Motion && Motion.reduced) return 0;
+    if (typeof Motion !== "undefined" && Motion.reduced) return 0;
     // 熱い惑星 or 暖取りspotで発生率を上げる(熱源からの回避=文脈自然)
     const hot = (CFG.motEnvHotStages || [5, 9]).includes(Game.state.stageSel) || lz._spotPosture === "bask";
     const rate = (CFG.motFootLiftRate || 0.2) * (hot ? (CFG.motFootLiftHotMult || 2.2) : 1);
@@ -2073,7 +2073,7 @@ const Render = {
   //   状態駆動(lz._shakeT>0=脱皮終了直後にゲームが立てる)。0(=非発生)で加算恒等=ピクセル完全一致。稀(⑤継承)。
   _motShakeK(lz) {
     if (CFG.motShakeOn === false || lz.moving || (lz._shakeT || 0) <= 0) return 0;
-    if (window.Motion && Motion.reduced) return 0;
+    if (typeof Motion !== "undefined" && Motion.reduced) return 0;
     const dur = CFG.motShakeDur || 0.6;
     return Math.max(0, Math.min(1, lz._shakeT / dur)); // 立ち上がりは game 側で dur にセット→減衰
   },
@@ -2518,7 +2518,7 @@ const Render = {
     ctx.save();
     ctx.translate(lz.x, lz.y);
     // V5M-EX C1: 水飲みの波紋(頭を下げている間だけ・水面に広がる淡い輪)。上乗せ=キャッシュ非接触。
-    if (lz._spotPosture === "drink" && CFG.drinkRippleOn !== false && !lz.moving && !(window.Motion && Motion.reduced)) {
+    if (lz._spotPosture === "drink" && CFG.drinkRippleOn !== false && !lz.moving && !(typeof Motion !== "undefined" && Motion.reduced)) {
       const face = Math.cos(lz.angle) >= 0 ? 1 : -1;
       const age = (lz._spotT != null) ? (Game._motClock || 0) - lz._spotT : this.time;
       const cyc = age % (CFG.drinkCycleSec || 4.5);
@@ -2534,7 +2534,7 @@ const Render = {
     }
     // H 水遊びの飛沫(wade+大湖tier・激しい水跳ね変種のとき水しぶきが上がる)。上乗せ=装飾。
     if (lz._spotPosture === "wade" && CFG.motWaterPlayOn !== false && (lz._spotTier || 0) >= (CFG.motWaterPlayTier != null ? CFG.motWaterPlayTier : 4)
-      && !lz.moving && !(window.Motion && Motion.reduced)) {
+      && !lz.moving && !(typeof Motion !== "undefined" && Motion.reduced)) {
       const age = (lz._spotT != null) ? (Game._motClock || 0) - lz._spotT : this.time;
       if (Math.floor(age / (CFG.motWaterPlaySec || 5)) % 3 === 1) { // 水跳ね変種
         ctx.fillStyle = "rgba(200,224,236,0.75)";
@@ -2549,7 +2549,7 @@ const Render = {
     }
     // Part I: 水場の足跡波紋。水場spot(またはwade中)を歩く/出入りする個体の接地点に波紋。歩行位相に同期。
     //   決定論(接地座標+時刻バケット)・水の演出限定(地面には出さない)・reduced-motionで停止。水tierで規模拡大。
-    if (CFG.motFootRippleOn !== false && lz.moving && !(window.Motion && Motion.reduced) && Render._nearWater && Render._nearWater(lz)) {
+    if (CFG.motFootRippleOn !== false && lz.moving && !(typeof Motion !== "undefined" && Motion.reduced) && Render._nearWater && Render._nearWater(lz)) {
       const wt = (typeof waterTierInfo === "function") ? waterTierInfo(Game.facLv("water")).tier : 1;
       const scaleR = 1 + Math.max(0, wt - 1) * (CFG.motFootRippleTierGain || 0.35); // 大湖ほど大きな波紋
       const face = Math.cos(lz.angle) >= 0 ? 1 : -1;
@@ -2571,7 +2571,7 @@ const Render = {
       ctx.setLineDash([]);
     }
     // V5M⑤: 脱皮の皮片(擦り中・白い小片が体の後方へ落ちる。上乗せ描画=決定論・稀さが価値)
-    if ((lz._shedT || 0) > 0 && !(window.Motion && Motion.reduced)) {
+    if ((lz._shedT || 0) > 0 && !(typeof Motion !== "undefined" && Motion.reduced)) {
       const face = Math.cos(lz.angle) >= 0 ? 1 : -1;
       for (let k = 0; k < 2; k++) {
         const cyc = (this.time * 0.55 + k * 0.5 + (lz.id % 13) * 0.07) % 1;
@@ -2585,7 +2585,7 @@ const Render = {
       ctx.globalAlpha = 1;
     }
     // V5M⑩: 砂掘りの飛沫(前脚もとから小さく散る・惑星の地面色=決定論)
-    if ((lz._digT || 0) > 0 && !(window.Motion && Motion.reduced)) {
+    if ((lz._digT || 0) > 0 && !(typeof Motion !== "undefined" && Motion.reduced)) {
       const face = Math.cos(lz.angle) >= 0 ? 1 : -1;
       const st = STAGES.find((s) => s.id === Game.state.stageSel) || STAGES[0];
       ctx.fillStyle = st.pebble || "#cbb083";
@@ -2599,7 +2599,7 @@ const Render = {
     }
     // V5M②: 舌出し(ちろちろ)。魂の上乗せ描画=スプライトキャッシュ非接触。個体idで位相分散・決定論。
     //   アオジタ(固有の青い舌が既にある)/移動中/負傷/スポット姿勢中/reduced-motionでは出さない。
-    if (CFG.motTongueOn !== false && !(window.Motion && Motion.reduced)
+    if (CFG.motTongueOn !== false && !(typeof Motion !== "undefined" && Motion.reduced)
       && !lz.moving && lz.injuredT <= 0 && !lz.spot && sp.id !== "aojita") {
       const win = CFG.motTongueWin || 45, dur = CFG.motTongueDur || 0.5;
       const tt = this.time + (lz.id % 89) * 3.37;
@@ -3116,7 +3116,7 @@ const Render = {
   // 静的造形はpaintBackground(キャッシュ)に焼く。ここは動く冷光だけを毎フレーム重ねる。
   // 平常は静か(UISkills)を守り、reduced-motionで停止(静的ベースラインが残るので暗転しない)。
   drawMonolith8(ctx) {
-    if (window.Motion && Motion.reduced) return;
+    if (typeof Motion !== "undefined" && Motion.reduced) return;
     const M = MONO8, mx = M.mx, base = M.base;
     const splitY = base - M.h * M.splitF;
 
@@ -3155,7 +3155,7 @@ const Render = {
   // ---- ID2摩天楼スラム: ネオンの明滅・サーチライト・ネオン雨・見下ろす企業ホログラム。格差の夜 ----
   // 静的なスカイライン(高層/スラム)はpaintBackground(キャッシュ)。ここは生きた都市の光だけを毎フレーム重ねる。
   drawSlum2(ctx) {
-    const calm = window.Motion && Motion.reduced;
+    const calm = typeof Motion !== "undefined" && Motion.reduced;
     // 高層側の空に浮かぶ巨大企業ホログラム(格差を生む"上"の力=見下ろす眼。グリッチする)=気配・説明しない
     {
       const hx = 340, hy = 56, base = 0.10 + (calm ? 0 : Math.abs(Math.sin(this.time * 0.5)) * 0.05);
@@ -3194,7 +3194,7 @@ const Render = {
 
   // ---- ID1始まりの地: 朝の光にただよう花粉/塵(素朴で温かい・希望の粒)。教科書ゆえ最小限 ----
   drawDawn1(ctx) {
-    if (window.Motion && Motion.reduced) return;
+    if (typeof Motion !== "undefined" && Motion.reduced) return;
     for (let k = 0; k < 7; k++) {
       const x = ((k * 197 + this.time * 5) % (W + 40)) - 20;
       const y = HORIZON - 6 + Math.sin(this.time * 0.5 + k * 1.3) * 26;
@@ -3207,7 +3207,7 @@ const Render = {
   // ---- ID3森林: からくり時計の振り子(木製時計文明)・緑の木漏れ日・蛍。時計職人の森 ----
   // 静的な大樹/文字盤/歯車はpaintBackground(キャッシュ)。ここは時を刻む振り子と森の灯だけを毎フレーム重ねる。
   drawForest3(ctx) {
-    const calm = window.Motion && Motion.reduced;
+    const calm = typeof Motion !== "undefined" && Motion.reduced;
     const cx2 = 636, fy = HORIZON - 88, piv = fy + 24;
     // 振り子(からくり時計の錘がゆっくり時を刻む=等時性の拍)
     const ang = calm ? 0.22 : Math.sin(this.time * 1.4) * 0.32;
@@ -3232,7 +3232,7 @@ const Render = {
   // ---- ID5火山: 溶鉱炉の赤熱の脈動(ふいごの吹き上がり)・火の粉・溶岩流の明滅。金属を鍛える文明の熱 ----
   // 静的な高炉/鋳型/火山はpaintBackground(キャッシュ)。ここは炉の赤熱と火の粉だけを毎フレーム重ねる。
   drawFurnace5(ctx) {
-    const calm = window.Motion && Motion.reduced;
+    const calm = typeof Motion !== "undefined" && Motion.reduced;
     const breath = calm ? 0.6 : 0.55 + Math.sin(this.time * 1.3) * 0.35; // ふいごの吹き上がり
     const glow = (gx, gy, r, c, a) => { const g = ctx.createRadialGradient(gx, gy, 1, gx, gy, r); g.addColorStop(0, `rgba(${c},${a})`); g.addColorStop(1, `rgba(${c},0)`); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(gx, gy, r, 0, 7); ctx.fill(); };
     glow(372, HORIZON - 12, 22, "255,140,50", breath * 0.7); // 高炉の出湯口
@@ -3253,7 +3253,7 @@ const Render = {
   // ---- ID4古代古墳: 玄室の金の脈動・燐火(緑の鬼火=クランクの緑の先触れ)・水鏡のゆらぎ。悼みの静けさ ----
   // 静的な墳丘/玄室/埴輪/金鈴はpaintBackground(キャッシュ)。ここは金の輝きと漂う魂だけを毎フレーム重ねる。
   drawTomb4(ctx) {
-    const calm = window.Motion && Motion.reduced;
+    const calm = typeof Motion !== "undefined" && Motion.reduced;
     const kx = 640, base = HORIZON;
     // 玄室の奥に眠る副葬の金(暗がりでゆっくり明滅=「これは何だ」)
     const gl = calm ? 0.4 : 0.35 + Math.sin(this.time * 0.9) * 0.16;
@@ -3279,7 +3279,7 @@ const Render = {
   // ---- ID6密林: 祭祀の躍動(篝火の炎/火の粉・御神体の翡翠の脈動・緑の木漏れ日)。神聖な祝祭の気配 ----
   // 静的な社/御神体/供物/篝火台はpaintBackground(キャッシュ)。ここは"生きた祭祀"だけを毎フレーム重ねる。
   drawJungle6(ctx) {
-    const calm = window.Motion && Motion.reduced;
+    const calm = typeof Motion !== "undefined" && Motion.reduced;
     // 御神体の翡翠が静かに脈打つ(神の宿り・翡翠#2FA98A=オート/アクセント/固有種の三重の緑)
     const ax = 640, jy = HORIZON - 13;
     const jd = calm ? 0.6 : 0.55 + Math.sin(this.time * 1.2) * 0.28;
@@ -3313,7 +3313,7 @@ const Render = {
   // ---- ID7水中都市: 静寂の水(気泡/海藻/コースティクス)+深海を横切る巨大な影(引き算の気配) ----
   // 静的な都(耐圧ドーム/通路/貝)はpaintBackground(キャッシュ)。ここは"生きた静けさ"だけを毎フレーム重ねる。
   drawAbyss7(ctx) {
-    const calm = window.Motion && Motion.reduced;
+    const calm = typeof Motion !== "undefined" && Motion.reduced;
     // 深海の水柱をゆっくり横切る巨大な影(何かがいる=説明しない・引き算で極薄)。都の背後(HORIZONより上の水)
     {
       const t = calm ? 0.34 : ((this.time * 0.007) % 1); // 極めて遅い(1周≒140s)
@@ -3353,7 +3353,7 @@ const Render = {
   // ---- ID9廃原子炉: チェレンコフ冷光のゆっくりした呼吸+死にかけの炉の不規則明滅(待機微動) ----
   // 静的な炉体・扉・排気窓はpaintBackground(キャッシュ)。ここは冷光の脈動だけを毎フレーム重ねる。
   drawReactor9(ctx) {
-    if (window.Motion && Motion.reduced) return;
+    if (typeof Motion !== "undefined" && Motion.reduced) return;
     const pr = 0.6 + Math.sin(this.time * 1.1) * 0.3; // 冷却光のゆっくりした呼吸
     for (const v of REACTOR9.vents) {
       const flick = v.a < 0.2 ? (0.35 + 0.65 * Math.abs(Math.sin(this.time * 5.3 + v.x))) : 1; // 死にかけは不規則明滅
@@ -3389,7 +3389,7 @@ const Render = {
     return 0;
   },
   drawBugSweep(ctx) {
-    if ((window.Motion && Motion.reduced) || CFG.crankFxLevel === 0) { this._sw = null; return; } // 演出全停止
+    if ((typeof Motion !== "undefined" && Motion.reduced) || CFG.crankFxLevel === 0) { this._sw = null; return; } // 演出全停止
     const sw = this._sw || (this._sw = { bugs: [], spawnT: 3, purgeT: CFG.bugSweepEverySec, purging: false, target: null, lockT: 0, beamT: 0, ashes: [], t: this.time });
     const dt = Math.min(0.1, Math.max(0, this.time - sw.t));
     sw.t = this.time;
@@ -5423,7 +5423,7 @@ const Render = {
   //   reduced-motion=描かない=即時定着(徴は genesisTrait で既に付与済=結果保証)。色は賢者の石トークン(tokens.css)と一致。
   drawGenesisFx(ctx) {
     const fx = Game._genesisFx; if (!fx || !fx.length) return;
-    if (typeof window !== "undefined" && window.Motion && Motion.reduced) return; // 即時定着
+    if (typeof window !== "undefined" && typeof Motion !== "undefined" && Motion.reduced) return; // 即時定着
     const HI = "#8E1826", MID = "#380A12", DEEP = "#070103"; // 深紅 / 暗紅 / ほぼ黒(光を吸う)
     for (const F of fx) {
       const k = 1 - F.t / F.max; // 0→1

@@ -303,7 +303,7 @@ const Game = {
     lz.restedAt = Date.now();
     lz._emergeThruT = CFG.nestThruSec || 1.5; // 裁定F: 出巣直後はしばらく他個体をすり抜けて入口を離れる(団子防止)
     // V5M-EX パートC(巣の出入り): 出た直後に入口で一瞬周囲をうかがう(⑧キョロ)→その後ねぐらへ。ボス湧出時は省略(急ぐ)。
-    if (!this.raid && CFG.motEmergeLookOn !== false && !(window.Motion && Motion.reduced)
+    if (!this.raid && CFG.motEmergeLookOn !== false && !(typeof Motion !== "undefined" && Motion.reduced)
       && this.motHash(lz.id * 61 + 18, Math.floor((this._motClock || 0))) < (CFG.motEmergeLookRate || 0.6)) {
       lz.tx = lz.x; lz.ty = lz.y;                 // まず入口で立ち止まる
       lz._lookT = CFG.motLookDwell || 3.0; lz._lookN = 0;
@@ -2233,7 +2233,7 @@ const Game = {
     const webs = this.raid && this.raid.typeId === "spider" ? this.raid.webs.filter((w) => w.hp > 0) : [];
     // V5M: 表示クロック(モーション発生バケット用・純装飾=保存しない)。reduced-motionでは新モーションを発生させない。
     this._motClock = (this._motClock || 0) + dt;
-    const motOff = !!(window.Motion && Motion.reduced);
+    const motOff = !!(typeof Motion !== "undefined" && Motion.reduced);
     for (const lz of this.state.lizards) {
       this.ensureRuntime(lz);
       if (!this.isVisible(lz)) continue; // さらわれ中・休憩中
@@ -2249,7 +2249,7 @@ const Game = {
         const lane = fleeing ? (((lz.id * 7919) >>> 0) % (arriveR * 2)) - arriveR : 0;
         const dx = (n.x + lane) - lz.x, dy = (n.y + 10) - lz.y, dist = Math.hypot(dx, dy);
         // V5M-EX パートC(巣の出入り): 通常帰巣で入口の手前に来たら一瞬だけ振り返る(名残)。ボス避難時は省略(急ぐ)。
-        if (!fleeing && CFG.motPeekOn !== false && !(window.Motion && Motion.reduced)) {
+        if (!fleeing && CFG.motPeekOn !== false && !(typeof Motion !== "undefined" && Motion.reduced)) {
           if (lz._peekT > 0) {
             lz._peekT -= dt; lz.moving = false;
             lz.angle = Math.atan2(-dy, -dx); // 巣に背を向けて外を見る
@@ -2272,7 +2272,7 @@ const Game = {
       if (lz.panicT > 0 || lz.injuredT > 0) { lz.spot = null; lz._toSpot = null; } // 逃走/負傷中は居場所に留まらない
       if (lz._meetCd > 0) lz._meetCd -= dt; // V5M⑫: 見合いのクールダウン
       if (lz._dashT > 0) lz._dashT -= dt;   // V5M⑦: 疾走窓の残り
-      if (lz._shedT > 0) { const was = lz._shedT; lz._shedT -= dt; if (lz._shedT <= 0 && was > 0 && CFG.motShakeOn !== false && !this.raid && !(window.Motion && Motion.reduced)) lz._shakeT = CFG.motShakeDur || 0.6; } // V5M⑤脱皮→E3ぶるっと(脱皮終了の瞬間に発火)
+      if (lz._shedT > 0) { const was = lz._shedT; lz._shedT -= dt; if (lz._shedT <= 0 && was > 0 && CFG.motShakeOn !== false && !this.raid && !(typeof Motion !== "undefined" && Motion.reduced)) lz._shakeT = CFG.motShakeDur || 0.6; } // V5M⑤脱皮→E3ぶるっと(脱皮終了の瞬間に発火)
       if (lz._shakeT > 0) lz._shakeT -= dt;  // E3: 全身ぶるっとの残り
       if (lz._emergeThruT > 0) lz._emergeThruT -= dt; // 裁定F: 出巣直後のすり抜け窓
       if (lz._digT > 0) lz._digT -= dt;     // V5M⑩: 砂掘りの残り

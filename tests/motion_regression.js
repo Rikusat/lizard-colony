@@ -578,6 +578,18 @@ ok("C3: id位相ずれ(個体で揺れが違う)", s1 !== s2);
   ok("V5M-EX3 I: 遠方は_nearWater=false", Render._nearWater({ x: 1000, y: 200 }) === false);
 }
 
+// ===== reduced-motionガードの静的検査(2026-07-26・本番実証で発覚した潜在バグの再発防止) =====
+//   `const Motion` はclassic scriptで window に載らない→ `window.Motion && Motion.reduced` はブラウザで常にfalse
+//   =reduced-motionが効かない。正しい形は `typeof Motion !== "undefined" && Motion.reduced`。
+{
+  const rsrc = fs.readFileSync(path.join(ROOT, "js/render.js"), "utf8");
+  const gsrc = fs.readFileSync(path.join(ROOT, "js/game.js"), "utf8");
+  const bad = (rsrc.match(/window\.Motion\s*&&\s*Motion\.reduced/g) || []).length + (gsrc.match(/window\.Motion\s*&&\s*Motion\.reduced/g) || []).length;
+  ok("reduced-motionガードに壊れた形(window.Motion)が無い", bad === 0, bad + "箇所");
+  const good = (rsrc.match(/typeof Motion !== "undefined" && Motion\.reduced/g) || []).length;
+  ok("reduced-motionガードが正しい形(typeof Motion)で存在", good >= 20, good + "箇所");
+}
+
 console.log(`\n=== モーション 回帰テスト結果: ${pass} PASS / ${fail} FAIL ===`);
 if (fail) { console.log("FAILED:\n - " + fails.join("\n - ")); process.exit(1); }
 console.log("すべてPASS(C1割当:決定論/capacity比例/状態非干渉/null・C2配線:到達/ワープなし/解除/数値非干渉・C3姿勢:整数bob/null条件/決定論・V5M第1バッチ:⑦連続/⑧2反転/⑫対面/①K範囲/reduced停止/数値非干渉/クリア)");
