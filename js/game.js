@@ -2443,22 +2443,42 @@ const Game = {
           if (want !== (lz._lookN || 0)) { lz._lookN = want; lz.angle = Math.PI - lz.angle; }
         }
       }
-      // V5M-EX⑯/⑲: 環境への視線(向きだけ・読み取り専用・盤や隣の状態には一切書き込まない)。静止中のみ。
+      // V5M-EX⑯/⑲ + 第2波D4/D5: 環境への視線(向きだけ・読み取り専用)。静止中のみ。優先=盤>群れ警戒>波紋>向き替え。
       if (!motOff && !lz.moving && !lz.spot && (lz._lookT || 0) <= 0 && lz.injuredT <= 0) {
         // ⑯ ルーレット球の目線: 報酬盤が出ている間、下中央(盤のせり上がる位置)へ向く
         if (CFG.motGazeOn !== false && typeof UI !== "undefined" && UI._bossRewardOpen) {
           const bx = (FIELD.x1 + FIELD.x2) / 2, by = FIELD.y2 + 40;
           lz.angle = Math.atan2(by - lz.y, bx - lz.x);
-        } else if (CFG.motRippleOn !== false) {
+        } else if (CFG.motHerdOn !== false && (() => {
+          // D4 群れの同期・警戒: 近くで誰かがダッシュすると、こちらも顔を上げてそちらを向く(1匹の動きが伝播)
+          const dasher = this.state.lizards.find((d) => d !== lz && (d._dashT || 0) > 0
+            && Math.hypot(d.x - lz.x, d.y - lz.y) < (CFG.motHerdRadius || 200));
+          if (!dasher) return false;
+          lz.angle = Math.atan2(dasher.y - lz.y, dasher.x - lz.x);
+          if (!(lz._alertT > 0)) lz._alertT = CFG.motHerdAlertSec || 1.2; // 短く警戒静止(徘徊を少し遅らせる)
+          return true;
+        })()) {
+          // (D4 群れ警戒=向き+警戒タイマー)
+        } else if (CFG.motRippleOn !== false && (() => {
           // ⑲ 波紋への注目: 近くで水を飲む個体を、ふと一瞥する(決定論の短い窓・一度きり)
           const rb = Math.floor(this._motClock / 6);
-          if (lz._rippleBk !== rb && this.motHash(lz.id * 53 + 16, rb) < (CFG.motRippleRate || 0.3)) {
-            const drinker = this.state.lizards.find((d) => d !== lz && d.spot && d._spotPosture === "drink"
-              && Math.hypot(d.x - lz.x, d.y - lz.y) < (CFG.motRippleRadius || 110));
-            if (drinker) { lz._rippleBk = rb; lz.angle = Math.atan2(drinker.y - lz.y, drinker.x - lz.x); }
+          if (lz._rippleBk === rb || this.motHash(lz.id * 53 + 16, rb) >= (CFG.motRippleRate || 0.3)) return false;
+          const drinker = this.state.lizards.find((d) => d !== lz && d.spot && d._spotPosture === "drink"
+            && Math.hypot(d.x - lz.x, d.y - lz.y) < (CFG.motRippleRadius || 110));
+          if (!drinker) return false;
+          lz._rippleBk = rb; lz.angle = Math.atan2(drinker.y - lz.y, drinker.x - lz.x);
+          return true;
+        })()) {
+          // (⑲ 波紋=一瞥)
+        } else if (CFG.motTurnOn !== false) {
+          // D5 向き替えの多様化: 長く静止する個体が、ふと向きだけ変える(単発の反転=⑧の二連とは別の"気分")
+          const tb = Math.floor(this._motClock / (CFG.motTurnWin || 14));
+          if (lz._turnBk !== tb && this.motHash(lz.id * 89 + 23, tb) < (CFG.motTurnRate || 0.18)) {
+            lz._turnBk = tb; lz.angle = Math.PI - lz.angle;
           }
         }
       }
+      if (lz._alertT > 0) lz._alertT -= dt;
       lz.x = clamp(lz.x, 20, W - 20);
       lz.y = clamp(lz.y, FIELD.y1 - 30, H - 20);
     }

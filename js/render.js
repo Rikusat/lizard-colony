@@ -182,6 +182,7 @@ const Render = {
     const sorted = Game.state.lizards.filter((lz) => Game.isVisible(lz)).sort((a, b) => a.y - b.y);
     for (const lz of sorted) this.drawLizard(ctx, lz);
     this._pruneLizCache();
+    this.drawDriftMotes(ctx); // D7(第2波) 漂う環境粒子(惑星別・控えめな背景装飾)
     this.drawSpawnFx(ctx); // §9-C2 誕生の登場エフェクト(生き物の上に重ねる祝祭)
     this.drawGenesisFx(ctx); // S5 創世エフェクト(賢者の石の錬成=深紅の静かな重み)
     if (Game.raid) this.drawBoss(ctx, Game.raid);
@@ -1644,6 +1645,29 @@ const Render = {
     return spots;
   },
 
+  // D7(第2波) 漂う環境粒子: 惑星別に数個だけ・ゆっくり横へ流れる背景装飾(嘘のない環境要素=綿毛/胞子/灰/雪片)。
+  //   決定論(id相当=粒index+時刻)・reduced-motion/OFFで非表示。飼育槽を眺め続ける飽きを薄く埋める。数値・当たり判定に無影響。
+  drawDriftMotes(ctx) {
+    if (CFG.motMotesOn === false || (window.Motion && Motion.reduced)) return;
+    const st = Game.currentStage && Game.currentStage();
+    if (!st) return;
+    const conf = (CFG.motMotesByStage && CFG.motMotesByStage[st.id]);
+    if (!conf) return; // 該当惑星のみ(綿毛/胞子等が成立する惑星だけ・★CFG割当)
+    const n = CFG.motMotesCount || 6, col = conf.color || "rgba(240,240,230,0.5)", drift = conf.drift || 14;
+    ctx.save();
+    for (let i = 0; i < n; i++) {
+      const seedX = ((i * 2654435761) >>> 0) % 1000 / 1000, seedY = ((i * 40503 + 17) >>> 0) % 1000 / 1000;
+      const yb = FIELD.y1 + 20 + seedY * (FIELD.y2 - FIELD.y1 - 40);
+      const bobY = yb + Math.sin(this.time * 0.4 + i) * 8; // ゆらゆら上下
+      const x = ((seedX * W + this.time * drift * (i % 2 ? 1 : -1)) % (W + 60) + (W + 60)) % (W + 60) - 30;
+      ctx.globalAlpha = (conf.alpha || 0.5) * (0.6 + 0.4 * Math.sin(this.time * 0.7 + i * 1.3));
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(x, bobY, conf.r || 2, 0, 7); ctx.fill();
+      if (conf.halo) { ctx.globalAlpha *= 0.4; ctx.beginPath(); ctx.arc(x, bobY, (conf.r || 2) * 2.2, 0, 7); ctx.fill(); }
+    }
+    ctx.restore();
+  },
+
   // すみか(§8.16): 多数が暮らす集合住居/ワレン。大きな盛り土に複数の入口=群れの避難・籠りの動線が詰まらない。
   drawBurrow(ctx) {
     const resting = Game.state.lizards.filter((l) => l.resting).length;
@@ -1835,6 +1859,8 @@ const Render = {
       const t = this.time * 9 + (lz.id % 37);
       return { dx: Math.round(Math.sin(t) * (CFG.motShedRubPx || 2)), dy: 0 };
     }
+    // D2 頭のプッシュアップ表示(第2波・非スポット静止のみ・環境反応より優先)
+    if (!lz.spot) { const hb = this._motHeadbob(lz); if (hb) return hb; }
     // V5M⑰: 惑星の環境反応(スポット外の静止個体)。骨格2種=震え(寒)/頭上げ(熱)・惑星割当はCFG配列。
     if (!lz.spot) return this._motEnv(lz);
     const amp = CFG.poseBobPx || 3, sp = CFG.poseBobSpeed || 1.2;
@@ -1867,6 +1893,15 @@ const Render = {
   _motTailK(lz) {
     if (CFG.motTailOn === false || lz.moving || lz.injuredT > 0) return 1;
     if (window.Motion && Motion.reduced) return 1;
+    // D3 尾フリック(第2波): ごく稀に鋭い一振り(高振幅・短時間)。ゆらぎより優先。startle/苛立ちの気配。
+    if (CFG.motTailFlickOn !== false) {
+      const fwin = CFG.motTailFlickWin || 26, ft = this.time + (lz.id % 89) * 2.1;
+      const fbk = Math.floor(ft / fwin);
+      if (Game.motHash(lz.id * 71 + 19, fbk) < (CFG.motTailFlickRate || 0.25)) {
+        const fl = ft - fbk * fwin, fdur = CFG.motTailFlickDur || 0.45;
+        if (fl < fdur) return 1 + ((CFG.motTailFlickAmp || 6) - 1) * Math.sin((fl / fdur) * Math.PI);
+      }
+    }
     const win = 8, t = this.time + (lz.id % 97) * 1.7;
     const bk = Math.floor(t / win);
     const h = Game.motHash(lz.id, bk); // fmix32=小入力でも一様(ゲーム側と同一実装を参照)
@@ -1875,6 +1910,46 @@ const Render = {
     if (local > 3) return 1; // 窓の先頭3秒だけ=波打って、また止まる
     const k = Math.sin((local / 3) * Math.PI); // なめらかに入って抜ける
     return 1 + ((CFG.motTailAmp || 2.2) - 1) * k;
+  },
+
+  // D2 頭のプッシュアップ表示(第2波・A): トカゲに固有の"腕立て"ディスプレイ=素早い上下を数回。非スポットの静止個体。
+  //   配置トランスフォーム(整数dy)のみ=魂ピクセル不変。OFF/移動/reduced/スポット中はnull。
+  _motHeadbob(lz) {
+    if (CFG.motHeadbobOn === false || lz.moving || lz.spot || lz.injuredT > 0) return null;
+    if (window.Motion && Motion.reduced) return null;
+    const win = CFG.motHeadbobWin || 34, t = this.time + (lz.id % 59) * 1.6;
+    const bk = Math.floor(t / win);
+    if (Game.motHash(lz.id * 73 + 20, bk) >= (CFG.motHeadbobRate || 0.3)) return null;
+    const local = t - bk * win, dur = CFG.motHeadbobDur || 1.4;
+    if (local > dur) return null;
+    const bobs = CFG.motHeadbobCount || 3;
+    const env = Math.sin((local / dur) * Math.PI); // 立ち上がって収まる包絡
+    const dy = -Math.abs(Math.sin(local / dur * Math.PI * bobs)) * (CFG.motHeadbobPx || 4) * env; // 上へ跳ねる×回数
+    return { dx: 0, dy: Math.round(dy) };
+  },
+
+  // D6 まどろみ(第2波): 長く静止する個体が眼を半分閉じる(まばたきより長く・浅く)。閉眼中=trueで瞼を薄く被せる。
+  _motDrowsy(lz) {
+    if (CFG.motDrowsyOn === false || lz.moving) return false;
+    if (window.Motion && Motion.reduced) return false;
+    const win = CFG.motDrowsyWin || 40, dur = CFG.motDrowsyDur || 2.5;
+    const t = this.time + (lz.id % 101) * 1.9;
+    const bk = Math.floor(t / win);
+    if (Game.motHash(lz.id * 79 + 21, bk) >= (CFG.motDrowsyRate || 0.3)) return false;
+    return (t - bk * win) < dur;
+  },
+
+  // D1 あくび/口開け(第2波): ごく稀に口を大きく開ける(gape)。開き量0..1(_paintLizardBodyの口へ上乗せ・sig反映)。
+  _motYawn(lz) {
+    if (CFG.motYawnOn === false || lz.moving) return 0;
+    if (window.Motion && Motion.reduced) return 0;
+    const win = CFG.motYawnWin || 55, dur = CFG.motYawnDur || 1.0;
+    const t = this.time + (lz.id % 103) * 2.7;
+    const bk = Math.floor(t / win);
+    if (Game.motHash(lz.id * 83 + 22, bk) >= (CFG.motYawnRate || 0.3)) return 0;
+    const local = t - bk * win;
+    if (local > dur) return 0;
+    return Math.sin((local / dur) * Math.PI); // 開いて閉じる
   },
 
   // V5M⑰: 惑星の身震い/熱逃し(整数px配置トランスフォームのみ=魂ピクセル不変)。決定論=id+時刻バケット。
@@ -2308,6 +2383,9 @@ const Render = {
       ctx.beginPath(); ctx.ellipse(ex, ey, eyeR * 1.25, eyeR * 1.25, 0, 0, 7); ctx.fill();
       ctx.strokeStyle = darkest; ctx.lineWidth = Math.max(1, L * 0.008);
       ctx.beginPath(); ctx.moveTo(ex - eyeR * 1.1, ey); ctx.lineTo(ex + eyeR * 1.1, ey); ctx.stroke(); // 閉じた瞼の線
+    } else if (this._motDrowsy(lz)) { // D6 まどろみ=下側から瞼を半分被せる(眠そう・浅い)
+      ctx.fillStyle = darker;
+      ctx.beginPath(); ctx.ellipse(ex, ey + eyeR * 0.5, eyeR * 1.2, eyeR * 0.75, 0, 0, 7); ctx.fill();
     }
     // 特性(trait)の見た目=体/顔に上乗せ(魂の骨格は不変)。通常個体は lz.traits 未定義でスキップ。
     //   レジェンダリーは特性の対象外(虹発光そのものが最上の個性=徴を描かない・§16/①)。既存の morphId フラグで判定(新ロジックなし)。
@@ -2326,6 +2404,19 @@ const Render = {
     ctx.moveTo(mv1.x, mv1.y);
     ctx.quadraticCurveTo((mv1.x + mv2.x) / 2, Math.max(mv1.y, mv2.y) + L * 0.012, mv2.x, mv2.y);
     ctx.stroke();
+    // D1 あくび/口開け(第2波): gape量>0のとき口を大きく開ける(下顎を下げた三角の口内)。sig反映=焼き残りなし。OFF=描かない=従来一致。
+    const yawn = this._motYawn(lz);
+    if (yawn > 0.05) {
+      const open = L * 0.06 * yawn;
+      ctx.fillStyle = "#4a1f1a"; // 口内(暗い赤褐)
+      ctx.beginPath();
+      ctx.moveTo(mv1.x, mv1.y);
+      ctx.lineTo(mv2.x, mv2.y);
+      ctx.lineTo((mv1.x + mv2.x) / 2, (mv1.y + mv2.y) / 2 + open);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "rgba(18,10,4,.6)"; ctx.lineWidth = Math.max(1, L * 0.009);
+      ctx.stroke();
+    }
     // 鼻孔
     const no = S(0.985);
     ctx.fillStyle = "rgba(18,10,4,.6)";
@@ -2404,19 +2495,25 @@ const Render = {
       const win = CFG.motTongueWin || 45, dur = CFG.motTongueDur || 0.5;
       const tt = this.time + (lz.id % 89) * 3.37;
       const local = tt % win;
-      if (local < dur) {
+      // D8(第2波) 地面の味見: ごく稀に、舌を前方でなく下(地面)へ伸ばす=匂いを嗅ぐ変種。決定論の別窓。
+      const groundWin = CFG.motTasteWin || 70, gtt = this.time + (lz.id % 71) * 2.2;
+      const groundLocal = gtt % groundWin;
+      const tasting = CFG.motTasteOn !== false && groundLocal < (CFG.motTasteDur || 0.7)
+        && Game.motHash(lz.id * 97 + 24, Math.floor(gtt / groundWin)) < (CFG.motTasteRate || 0.4);
+      if (local < dur || tasting) {
         const face = Math.cos(lz.angle) >= 0 ? 1 : -1;
         const nx = 0.485 * L * face, ny = -0.368 * L; // 鼻先(LIZ_SIDE_KEYS末端)
-        const ext = Math.sin((local / dur) * Math.PI); // 出て、引っ込む
-        const len = L * 0.09 * ext;
+        const ext = tasting ? Math.sin((groundLocal / (CFG.motTasteDur || 0.7)) * Math.PI) : Math.sin((local / dur) * Math.PI);
+        const len = L * (tasting ? 0.11 : 0.09) * ext;
+        const droop = tasting ? L * 0.10 * ext : -L * 0.008; // 地面味見は下へ垂れる
         ctx.strokeStyle = "#C25B6A"; ctx.lineCap = "round";
         ctx.lineWidth = Math.max(0.8, L * 0.010);
-        ctx.beginPath(); ctx.moveTo(nx, ny); ctx.lineTo(nx + len * face, ny - L * 0.008); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(nx, ny); ctx.lineTo(nx + len * face, ny + droop); ctx.stroke();
         ctx.lineWidth = Math.max(0.6, L * 0.007); // 先割れ
-        ctx.beginPath(); ctx.moveTo(nx + len * face, ny - L * 0.008);
-        ctx.lineTo(nx + (len + L * 0.022 * ext) * face, ny - L * 0.024 * ext); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(nx + len * face, ny - L * 0.008);
-        ctx.lineTo(nx + (len + L * 0.022 * ext) * face, ny + L * 0.006 * ext); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(nx + len * face, ny + droop);
+        ctx.lineTo(nx + (len + L * 0.022 * ext) * face, ny + droop - L * 0.016 * ext); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(nx + len * face, ny + droop);
+        ctx.lineTo(nx + (len + L * 0.022 * ext) * face, ny + droop + L * 0.014 * ext); ctx.stroke();
       }
     }
     ctx.textAlign = "center";
@@ -2454,11 +2551,13 @@ const Render = {
     // §9.1 尾の再生率を sig に含める(負傷個体は再生段階ごとに焼き直し=性能維持しつつ尾が伸びる)
     const trB = injured ? Math.round(clamp(1 - lz.injuredT / (CFG.injuryTime || 10), 0, 1) * 6) : 6;
     // 特性(S4): 見た目が特性で変わる個体はキャッシュを分ける(古い姿の焼き残り防止)。無印/レジェンダリーは "" =従来と同一描画。
-    // V5M-EX: 焼き込みに影響する新モーション(③まばたき=閉眼描画/⑨伸び=背骨変形)をsigへ。非発生時は "" =従来と同一sig。
-    const blinkS = this._motBlinkClosed(lz) ? "k" : "";
+    // V5M-EX: 焼き込みに影響する新モーション(③まばたき/⑨伸び/D1あくび/D6まどろみ=眼・口・背骨)をsigへ。非発生時は "" =従来と同一sig。
+    const blinkS = this._motBlinkClosed(lz) ? "k" : (this._motDrowsy(lz) ? "z" : "");
     const strK = this._motStretchK(lz);
     const stretchS = strK > 0 ? "s" + Math.round(strK * 4) : ""; // 0.25粒度で焼き直し(伸びは短時間=軽微)
-    const sig = phaseStep + "|" + face + "|" + crowdB + "|" + (moving ? 1 : 0) + "|" + (injured ? 1 : 0) + "|" + trB + "|" + this._traitSig(lz) + blinkS + stretchS;
+    const yK = this._motYawn(lz);
+    const yawnS = yK > 0.05 ? "y" + Math.round(yK * 3) : ""; // あくびは0.33粒度(短時間・稀)
+    const sig = phaseStep + "|" + face + "|" + crowdB + "|" + (moving ? 1 : 0) + "|" + (injured ? 1 : 0) + "|" + trB + "|" + this._traitSig(lz) + blinkS + stretchS + yawnS;
     // スプライト外接box: 魂の最大範囲(尾先x=-0.80L・鼻先+0.485L、幅/クレスト/脚/デューラップ/尾のしなり)を余裕を持って包む。
     // 左右反転(face)で尾は±0.80Lに振れるため x は対称に確保。原点(lz基準)=(ox,oyTop)
     const ox = Math.ceil(L * 0.98) + 3, oyTop = Math.ceil(L * 0.7) + 3, oyBot = Math.ceil(L * 0.3) + 3;

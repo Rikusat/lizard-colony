@@ -420,6 +420,53 @@ ok("C3: id位相ずれ(個体で揺れが違う)", s1 !== s2);
   ok("V5M-EX C3: settleDisplayでpeek/spotTクリア", pk._peekT === 0 && pk._spotT === null);
 }
 
+// ===== V5M-EX パートD 第2波(2026-07-26): D1あくび/D2頭bob/D3尾フリック/D4群れ警戒/D5向き替え/D6まどろみ/D8味見 =====
+{
+  const idle = (id) => ({ id, moving: false, spot: null, injuredT: 0, angle: 0 });
+  // D1 あくび: 0..1・OFF/移動→0・時々>0.5・決定論
+  CFG.motYawnOn = true; let yawned = false, yr = true;
+  for (let id = 0; id < 30 && !yawned; id++) for (let tq = 0; tq < 1300; tq++) { Render.time = tq * 0.05; const y = Render._motYawn({ id, moving: false }); if (y < 0 || y > 1) yr = false; if (y > 0.5) { yawned = true; break; } }
+  ok("V5M-EX D1: あくびが発生・範囲[0,1]", yawned && yr);
+  ok("V5M-EX D1: 移動中は0", Render._motYawn({ id: 3, moving: true }) === 0);
+  CFG.motYawnOn = false; ok("V5M-EX D1: OFFで0(口閉じ=従来一致)", Render._motYawn({ id: 3, moving: false }) === 0); CFG.motYawnOn = true;
+  // D2 頭bob: 整数dy・非スポット静止のみ・時々非null
+  CFG.motHeadbobOn = true; let bobbed = false, bInt = true;
+  for (let id = 0; id < 30 && !bobbed; id++) for (let tq = 0; tq < 1000; tq++) { Render.time = tq * 0.05; const b = Render._motHeadbob(idle(id)); if (b) { bobbed = true; if (!Number.isInteger(b.dy)) bInt = false; break; } }
+  ok("V5M-EX D2: 頭プッシュアップ発生・整数dy", bobbed && bInt);
+  ok("V5M-EX D2: スポット中はnull", Render._motHeadbob({ id: 3, moving: false, spot: "heat-bask", injuredT: 0 }) === null);
+  CFG.motHeadbobOn = false; ok("V5M-EX D2: OFFでnull", Render._motHeadbob(idle(3)) === null); CFG.motHeadbobOn = true;
+  // D3 尾フリック: _motTailKが時々 motTailFlickAmp 近くまで跳ねる
+  CFG.motTailFlickOn = true; let flicked = false;
+  for (let id = 0; id < 30 && !flicked; id++) for (let tq = 0; tq < 800; tq++) { Render.time = tq * 0.05; if (Render._motTailK({ id, moving: false, injuredT: 0 }) > (CFG.motTailAmp || 2.2) + 1) { flicked = true; break; } }
+  ok("V5M-EX D3: 尾フリック(ゆらぎ振幅を超える鋭い一振り)", flicked);
+  CFG.motTailFlickOn = false; ok("V5M-EX D3: OFFでフリックなし(ゆらぎ上限内)", (() => { for (let tq = 0; tq < 400; tq++) { Render.time = tq * 0.05; if (Render._motTailK({ id: 7, moving: false, injuredT: 0 }) > (CFG.motTailAmp || 2.2) + 0.01) return false; } return true; })()); CFG.motTailFlickOn = true;
+  // D6 まどろみ: bool・OFF→false・時々true
+  CFG.motDrowsyOn = true; let drowsy = false;
+  for (let id = 0; id < 30 && !drowsy; id++) for (let tq = 0; tq < 1000; tq++) { Render.time = tq * 0.05; if (Render._motDrowsy({ id, moving: false })) { drowsy = true; break; } }
+  ok("V5M-EX D6: まどろみ(半閉じ)発生", drowsy);
+  CFG.motDrowsyOn = false; ok("V5M-EX D6: OFFでfalse", Render._motDrowsy({ id: 3, moving: false }) === false); CFG.motDrowsyOn = true;
+  // D4 群れ警戒: 近くのダッシュ個体に反応して向く+警戒タイマー
+  sb.UI = { _bossRewardOpen: false }; // 目線分岐(⑯)を無効化して群れ/向き替えを単離
+  Game.newGame(); Game.raid = null; Game._motClock = 0;
+  CFG.motDashOn = false; CFG.motRippleOn = false; CFG.motTurnOn = false; CFG.motHerdOn = true; CFG.spotVisitChance = 0;
+  const watcher2 = { id: 980, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "adult", xp: 0, level: 5, injuredT: 0, breedCd: 0, traits: [] };
+  const dasher = { id: 981, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "adult", xp: 0, level: 5, injuredT: 0, breedCd: 0, traits: [] };
+  Game.ensureRuntime(watcher2); Game.ensureRuntime(dasher);
+  watcher2.x = 600; watcher2.y = 400; watcher2.tx = 600; watcher2.ty = 400; watcher2.moving = false; watcher2.spot = null; watcher2.angle = Math.PI; watcher2.wanderT = 999; watcher2.resting = false;
+  dasher.x = 680; dasher.y = 420; dasher._dashT = 1.5; dasher.moving = true; dasher.wanderT = 999; dasher.resting = false;
+  Game.state.lizards = [watcher2, dasher];
+  Game.moveLizards(0.05);
+  ok("V5M-EX D4: 近くのダッシュに向く+警戒(cos>0=右のdasher, alertT>0)", Math.cos(watcher2.angle) > 0 && watcher2._alertT > 0);
+  // D5 向き替え: 単発反転(決定論)
+  Game.newGame(); CFG.motHerdOn = false; CFG.motTurnOn = true; CFG.motTurnRate = 1; Game._motClock = 0;
+  const tn = { id: 990, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "adult", xp: 0, level: 5, injuredT: 0, breedCd: 0, traits: [] };
+  Game.ensureRuntime(tn); tn.x = 500; tn.y = 400; tn.tx = 500; tn.ty = 400; tn.moving = false; tn.spot = null; tn.angle = 0; tn.wanderT = 999; tn.resting = false; tn._turnBk = undefined;
+  Game.state.lizards = [tn];
+  Game.moveLizards(0.05);
+  ok("V5M-EX D5: 向き替え=単発反転(angle→π)", Math.abs(Math.cos(tn.angle) - (-1)) < 1e-9);
+  CFG.motDashOn = true; CFG.motRippleOn = true; sb.UI = np();
+}
+
 console.log(`\n=== モーション 回帰テスト結果: ${pass} PASS / ${fail} FAIL ===`);
 if (fail) { console.log("FAILED:\n - " + fails.join("\n - ")); process.exit(1); }
 console.log("すべてPASS(C1割当:決定論/capacity比例/状態非干渉/null・C2配線:到達/ワープなし/解除/数値非干渉・C3姿勢:整数bob/null条件/決定論・V5M第1バッチ:⑦連続/⑧2反転/⑫対面/①K範囲/reduced停止/数値非干渉/クリア)");

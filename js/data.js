@@ -385,6 +385,46 @@ const CFG = {
   motPeekRate: 0.4,         // 入口手前での振り返り発生率
   motPeekBand: 34,          // 入口手前この距離帯で判定
   motPeekSec: 0.6,          // 振り返って外を見る秒
+  // ★M2-EX パートD: 新語彙 第2波(D1あくび/D2頭プッシュアップ/D3尾フリック/D4群れ警戒/D5向き替え/D6まどろみ/D7漂う粒子/D8地面味見・★全てRic実機判定)
+  motYawnOn: true,          // D1あくび(gape=口を大きく開ける)
+  motYawnWin: 55,           // 発生窓(秒)
+  motYawnRate: 0.3,         // 窓ごとの発生率
+  motYawnDur: 1.0,          // 開いている秒
+  motHeadbobOn: true,       // D2頭のプッシュアップ表示(トカゲ固有の腕立て)
+  motHeadbobWin: 34,        // 発生窓(秒)
+  motHeadbobRate: 0.3,      // 窓ごとの発生率
+  motHeadbobDur: 1.4,       // 表示の秒
+  motHeadbobCount: 3,       // 上下の回数
+  motHeadbobPx: 4,          // 跳ねる高さpx
+  motTailFlickOn: true,     // D3尾フリック(鋭い一振り)
+  motTailFlickWin: 26,      // 発生窓(秒)
+  motTailFlickRate: 0.25,   // 窓ごとの発生率
+  motTailFlickDur: 0.45,    // 一振りの秒
+  motTailFlickAmp: 6,       // 振りの尾振幅倍率(①ゆらぎより鋭く大きい)
+  motHerdOn: true,          // D4群れの同期・警戒(近くのダッシュに反応)
+  motHerdRadius: 200,       // この距離内のダッシュに反応
+  motHerdAlertSec: 1.2,     // 警戒静止の秒
+  motTurnOn: true,          // D5向き替えの多様化(単発の反転)
+  motTurnWin: 14,           // 発生窓(秒)
+  motTurnRate: 0.18,        // 窓ごとの発生率
+  motDrowsyOn: true,        // D6まどろみ(眼の半閉じ)
+  motDrowsyWin: 40,         // 発生窓(秒)
+  motDrowsyRate: 0.3,       // 窓ごとの発生率
+  motDrowsyDur: 2.5,        // 半閉じの秒
+  motTasteOn: true,         // D8地面の味見(舌を下へ)
+  motTasteWin: 70,          // 発生窓(秒)
+  motTasteRate: 0.4,        // 窓ごとの発生率
+  motTasteDur: 0.7,         // 味見の秒
+  motMotesOn: true,         // D7漂う環境粒子(背景装飾)
+  motMotesCount: 6,         // 同時に漂う粒の数
+  // 惑星別の粒子(嘘のない環境要素のみ・該当惑星だけ設定):森林/密林=胞子, 氷=雪片, 火山/廃炉=灰
+  motMotesByStage: {
+    3: { color: "rgba(220,240,180,0.5)", r: 2, drift: 10, alpha: 0.5, halo: true },   // 森林=光る胞子
+    5: { color: "rgba(90,80,78,0.55)", r: 2, drift: 16, alpha: 0.5 },                   // 火山=舞う灰
+    6: { color: "rgba(210,235,170,0.5)", r: 2, drift: 9, alpha: 0.5, halo: true },     // 密林=胞子
+    8: { color: "rgba(240,248,255,0.7)", r: 2, drift: 12, alpha: 0.6 },                 // 氷の前線=雪片
+    9: { color: "rgba(120,110,90,0.5)", r: 2, drift: 18, alpha: 0.45 },                 // 廃原子炉=塵灰
+  },
   // 群衆対策(表示のみ・収益/戦闘は全個体が対象のまま)
   maxVisibleLizards: 70,    // フィールドに同時表示する上限。超過分は巣穴で休憩
   restSwapPerSec: 3,        // 平常時に毎秒この匹数まで休憩⇔活動を入れ替え(漸進=ちらつき防止)
