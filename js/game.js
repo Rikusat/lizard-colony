@@ -235,6 +235,7 @@ const Game = {
       l._dashT = 0; l._lookT = 0; l._meetCd = 0; // V5M: モーション残状態もクリア(stale姿勢なし・runtime専用=保存されない)
       l._shedT = 0; l._digT = 0; l._folT = 0; l._shedGo = false; // V5M第3バッチ分
       l._peekT = 0; l._peekedTrip = false; l._spotT = null; // V5M-EX パートC分
+      l._shakeT = 0; // V5M-EX2 E3分(片足上げ=render時間駆動でstate不要)
       l.resting = !show.has(l.id);
       if (l.resting) l.restedAt = Date.now();
     }
@@ -2270,10 +2271,11 @@ const Game = {
       if (lz.panicT > 0 || lz.injuredT > 0) { lz.spot = null; lz._toSpot = null; } // 逃走/負傷中は居場所に留まらない
       if (lz._meetCd > 0) lz._meetCd -= dt; // V5M⑫: 見合いのクールダウン
       if (lz._dashT > 0) lz._dashT -= dt;   // V5M⑦: 疾走窓の残り
-      if (lz._shedT > 0) lz._shedT -= dt;   // V5M⑤: 脱皮の擦りの残り
+      if (lz._shedT > 0) { const was = lz._shedT; lz._shedT -= dt; if (lz._shedT <= 0 && was > 0 && CFG.motShakeOn !== false && !this.raid && !(window.Motion && Motion.reduced)) lz._shakeT = CFG.motShakeDur || 0.6; } // V5M⑤脱皮→E3ぶるっと(脱皮終了の瞬間に発火)
+      if (lz._shakeT > 0) lz._shakeT -= dt;  // E3: 全身ぶるっとの残り
       if (lz._digT > 0) lz._digT -= dt;     // V5M⑩: 砂掘りの残り
       if (lz._folT > 0) lz._folT -= dt;     // V5M⑬: 追従の残り
-      if (lz.panicT > 0 || lz.injuredT > 0) { lz._shedT = 0; lz._digT = 0; lz._folT = 0; } // 逃走/負傷で仕草は中断
+      if (lz.panicT > 0 || lz.injuredT > 0) { lz._shedT = 0; lz._digT = 0; lz._folT = 0; lz._shakeT = 0; } // 逃走/負傷で仕草は中断
       // V5M⑬: ベビー追従の実行(対象の後方を歩いて追う・対象が消えたら解除)
       if (lz._folT > 0) {
         const tgt = this.state.lizards.find((r) => r.id === lz._folId);

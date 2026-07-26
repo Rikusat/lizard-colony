@@ -2017,6 +2017,33 @@ const Render = {
     return Math.sin((local / dur) * Math.PI); // なだらかに伸びて、戻る
   },
 
+  // E1(第3波・C=形状変形・特則遵守): 片足上げ体温調整の係数0..1。静止個体が手前側の前脚を1本持ち上げる。
+  //   変形は手前前脚の手首/足先のy持ち上げ(下の適用点1箇所)のみ=脚ジオメトリ限定。0で減算恒等=ピクセル完全一致。
+  //   熱い惑星/暖取りspotで発生しやすい(熱い地面から脚を上げる)。決定論・reduced/OFF/移動/掘り中は0。
+  _motFootLift(lz) {
+    if (CFG.motFootLiftOn === false || lz.moving || (lz._digT || 0) > 0 || lz.injuredT > 0) return 0;
+    if (window.Motion && Motion.reduced) return 0;
+    // 熱い惑星 or 暖取りspotで発生率を上げる(熱源からの回避=文脈自然)
+    const hot = (CFG.motEnvHotStages || [5, 9]).includes(Game.state.stageSel) || lz._spotPosture === "bask";
+    const rate = (CFG.motFootLiftRate || 0.2) * (hot ? (CFG.motFootLiftHotMult || 2.2) : 1);
+    const win = CFG.motFootLiftWin || 40, dur = CFG.motFootLiftDur || 2.0;
+    const t = this.time + (lz.id % 47) * 1.7;
+    const bk = Math.floor(t / win);
+    if (Game.motHash(lz.id * 53 + 25, bk) >= rate) return 0;
+    const local = t - bk * win;
+    if (local > dur) return 0;
+    return Math.sin((local / dur) * Math.PI); // なだらかに上げて、下ろす
+  },
+
+  // E3(第3波・C=多パーツ形状変形・特則を最も厳密に): 脱皮直後の全身ぶるっと。背骨全点に短い横揺れ。
+  //   状態駆動(lz._shakeT>0=脱皮終了直後にゲームが立てる)。0(=非発生)で加算恒等=ピクセル完全一致。稀(⑤継承)。
+  _motShakeK(lz) {
+    if (CFG.motShakeOn === false || lz.moving || (lz._shakeT || 0) <= 0) return 0;
+    if (window.Motion && Motion.reduced) return 0;
+    const dur = CFG.motShakeDur || 0.6;
+    return Math.max(0, Math.min(1, lz._shakeT / dur)); // 立ち上がりは game 側で dur にセット→減衰
+  },
+
   // 生き物本体(魂)。呼び出し側で lz.x,lz.y へ translate 済みの前提はなく、ここで translate する。
   // ※ this.time を使う動的アニメ(尾のしなり・歩行・アオジタの舌)を含むが、"呼ばれた瞬間の this.time" で描くため
   //   直接描画でもキャッシュ焼き込みでも、同一時刻なら出力はピクセル一致(キャッシュは焼く/blitの振り分けのみ)。
@@ -2067,6 +2094,9 @@ const Render = {
     const flatW = 1 + (CFG.motFlatWiden || 0.10) * flatK, flatY = 1 - (CFG.motFlatLower || 0.08) * flatK;
     // V5M-EX⑨: 伸び(C・非スポット静止中のみ。stretchK=0なら加算恒等=ピクセル完全一致。変形はこの局所y持ち上げのみ=特則)
     const stretchK = this._motStretchK(lz);
+    // E3(第3波): 脱皮直後の全身ぶるっと(C・多パーツ横揺れ)。shakeK=0なら加算ゼロ=恒等。背骨全点へ進行波状のx揺れのみ=特則。
+    const shakeK = this._motShakeK(lz);
+    const shakePhase = this.time * (CFG.motShakeSpeed || 34);
     for (let i = 0; i <= N; i++) {
       const t = i / N;
       // §9.1 自切: 再生していない尾先側(t<tailCutStart)は断面(tailCutStart)へ畳む=尾が短い断端に見える
@@ -2074,8 +2104,11 @@ const Render = {
       const k = lizSideSample(te);
       let w = k.w * L * flatW;  // V5M⑥: 平たく広がる(flatK=0で恒等)
       let y = k.y * L * flatY;  // V5M⑥: 地面へ沈む(同上)
+      let xoff = 0;
       // V5M-EX⑨: 中背(t~0.60)を中心にアーチを持ち上げる伸び(stretchK=0で加算ゼロ=恒等)。ダウンドッグの気配。
       if (stretchK > 0) y -= Math.exp(-((te - 0.60) * (te - 0.60)) / 0.02) * L * (CFG.motStretchArch || 0.10) * stretchK;
+      // E3: 全身ぶるっと(shakeK=0で加算ゼロ=恒等)。胴〜頭ほど大きく揺れる進行波の横ずれ。
+      if (shakeK > 0) xoff += Math.sin(shakePhase + te * 7) * L * (CFG.motShakeAmp || 0.02) * shakeK * (0.4 + te * 0.6);
       // 尾のしなり(先端ほど大きく)
       if (te < 0.42) y += Math.sin(phase * 0.8 - te * 9) * tailAmp * Math.pow((0.42 - te) / 0.42, 1.6);
       // 種族ごとの体型(尾に掛かるものは te=自切反映後のtで判定=断端でも整合)
@@ -2083,7 +2116,7 @@ const Render = {
       if (sp.id === "futoago" && t > 0.5 && t < 0.8) w *= 1.18;  // 幅広の胴
       if (sp.id === "komodo") w *= 1.15;                          // 重量級
       if (sp.id === "kanahebi" && te < 0.48) w *= 0.7;             // 細い尾
-      pts.push({ x: k.x * L, y }); wid.push(w);
+      pts.push({ x: k.x * L + xoff, y }); wid.push(w);
     }
     // 平滑化(キーポイント折れ線の角を落とす)
     for (let pass = 0; pass < 2; pass++) {
@@ -2121,6 +2154,7 @@ const Render = {
     body.closePath();
 
     // --- 脚(爪のある四肢): 奥側 → 体 → 手前側の順で奥行きを出す ---
+    const footLiftK = this._motFootLift(lz); // E1: 手前前脚の持ち上げ量(0=恒等・legPairで手前脚のみに適用)
     const legSegs = []; // 特性描画用: 手前側の脚セグメント(歩行スイングに追従・trait roster §3)
     const claws = (toe, dir) => {
       ctx.strokeStyle = "#1a120a";
@@ -2161,9 +2195,11 @@ const Render = {
       const dig = !moving && (lz._digT || 0) > 0;
       const swF = moving ? Math.sin(phase + phOff + Math.PI) * L * 0.045 : dig ? Math.sin(phase * 2.4 + phOff) * L * 0.028 : 0;
       const liftF = moving ? Math.max(0, Math.sin(phase + phOff + Math.PI + 0.7)) * L * 0.035 : dig ? Math.max(0, Math.sin(phase * 2.4 + phOff + 0.7)) * L * 0.03 : 0;
+      // E1(第3波・C): 片足上げ体温調整=手前前脚の手首/足先を持ち上げる(footLift=0で減算ゼロ=恒等)。手前脚のみ。
+      const footLift = isFar ? 0 : footLiftK;
       const elb = { x: sh.x - L * 0.025 + swF * 0.5, y: -L * 0.07 };
-      const wri = { x: sh.x + L * 0.008 + swF, y: -L * 0.012 - liftF };
-      const toeF = { x: wri.x + L * 0.08 + swF * 0.3, y: -L * 0.004 - liftF * 0.6 };
+      const wri = { x: sh.x + L * 0.008 + swF, y: -L * 0.012 - liftF - footLift * L * 0.05 };
+      const toeF = { x: wri.x + L * 0.08 + swF * 0.3 - footLift * L * 0.03, y: -L * 0.004 - liftF * 0.6 - footLift * L * 0.10 };
       ctx.fillStyle = c;
       ctx.beginPath(); ctx.ellipse((sh.x + elb.x) / 2, (sh.y + elb.y) / 2, L * 0.055, L * 0.042, 1.25, 0, 7); ctx.fill();
       ctx.strokeStyle = c;
@@ -2404,18 +2440,25 @@ const Render = {
     ctx.moveTo(mv1.x, mv1.y);
     ctx.quadraticCurveTo((mv1.x + mv2.x) / 2, Math.max(mv1.y, mv2.y) + L * 0.012, mv2.x, mv2.y);
     ctx.stroke();
-    // D1 あくび/口開け(第2波): gape量>0のとき口を大きく開ける(下顎を下げた三角の口内)。sig反映=焼き残りなし。OFF=描かない=従来一致。
+    // E2(第3波・C=頭パーツの形状変形): 真のあくび=下顎を実際に開く。mv2(口の後端=顎の蝶番)を軸に、
+    //   鼻先側の下顎(mv1)を角度 open まで回転して下げる→上顎(口ライン)との間に口内が現れる。yawn=0で下顎は口ラインと一致=従来一致。
+    //   D1近似(口内の三角上乗せ)は本E2へ置換(二重発火防止)。sig反映=焼き残りなし。
     const yawn = this._motYawn(lz);
-    if (yawn > 0.05) {
-      const open = L * 0.06 * yawn;
-      ctx.fillStyle = "#4a1f1a"; // 口内(暗い赤褐)
+    if (yawn > 0.03) {
+      const open = (CFG.motYawnAngle != null ? CFG.motYawnAngle : 0.5) * yawn; // 開口角(rad)
+      const hx = mv2.x, hy = mv2.y;                    // 蝶番(口の後端)
+      const ux = mv1.x - hx, uy = mv1.y - hy;          // 蝶番→鼻先(上顎ライン)
+      const cs = Math.cos(open), sn = Math.sin(open);  // 下顎を下へ(＝+y方向へ回す・face反転は外側scaleが担う)
+      const lx = hx + ux * cs - uy * sn, ly = hy + ux * sn + uy * cs; // 回転後の下顎先端
+      // 口内(暗い赤褐)= 上顎ライン mv1→蝶番 と 下顎 蝶番→lx の間
+      ctx.fillStyle = "#4a1f1a";
+      ctx.beginPath(); ctx.moveTo(mv1.x, mv1.y); ctx.lineTo(hx, hy); ctx.lineTo(lx, ly); ctx.closePath(); ctx.fill();
+      // 下顎(体色・輪郭)= 頭パーツが実際に開いて見える
+      ctx.fillStyle = col.css; ctx.strokeStyle = outline; ctx.lineWidth = Math.max(1, L * 0.010);
       ctx.beginPath();
-      ctx.moveTo(mv1.x, mv1.y);
-      ctx.lineTo(mv2.x, mv2.y);
-      ctx.lineTo((mv1.x + mv2.x) / 2, (mv1.y + mv2.y) / 2 + open);
-      ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = "rgba(18,10,4,.6)"; ctx.lineWidth = Math.max(1, L * 0.009);
-      ctx.stroke();
+      ctx.moveTo(hx, hy); ctx.lineTo(lx, ly);
+      ctx.lineTo(lx - ux * 0.12, ly + L * 0.03); ctx.lineTo(hx - ux * 0.06, hy + L * 0.035);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
     }
     // 鼻孔
     const no = S(0.985);
@@ -2551,13 +2594,17 @@ const Render = {
     // §9.1 尾の再生率を sig に含める(負傷個体は再生段階ごとに焼き直し=性能維持しつつ尾が伸びる)
     const trB = injured ? Math.round(clamp(1 - lz.injuredT / (CFG.injuryTime || 10), 0, 1) * 6) : 6;
     // 特性(S4): 見た目が特性で変わる個体はキャッシュを分ける(古い姿の焼き残り防止)。無印/レジェンダリーは "" =従来と同一描画。
-    // V5M-EX: 焼き込みに影響する新モーション(③まばたき/⑨伸び/D1あくび/D6まどろみ=眼・口・背骨)をsigへ。非発生時は "" =従来と同一sig。
+    // V5M-EX: 焼き込みに影響する新モーション(③まばたき/⑨伸び/D1あくび/D6まどろみ + E1片足/E3ぶるっと=眼・口・背骨・脚)をsigへ。非発生時は "" =従来と同一sig。
     const blinkS = this._motBlinkClosed(lz) ? "k" : (this._motDrowsy(lz) ? "z" : "");
     const strK = this._motStretchK(lz);
     const stretchS = strK > 0 ? "s" + Math.round(strK * 4) : ""; // 0.25粒度で焼き直し(伸びは短時間=軽微)
     const yK = this._motYawn(lz);
-    const yawnS = yK > 0.05 ? "y" + Math.round(yK * 3) : ""; // あくびは0.33粒度(短時間・稀)
-    const sig = phaseStep + "|" + face + "|" + crowdB + "|" + (moving ? 1 : 0) + "|" + (injured ? 1 : 0) + "|" + trB + "|" + this._traitSig(lz) + blinkS + stretchS + yawnS;
+    const yawnS = yK > 0.03 ? "y" + Math.round(yK * 3) : ""; // あくびは0.33粒度(短時間・稀)
+    const flK = this._motFootLift(lz);
+    const footS = flK > 0 ? "f" + Math.round(flK * 3) : ""; // E1 片足上げ 0.33粒度
+    const shK = this._motShakeK(lz);
+    const shakeS = shK > 0 ? "h" + Math.round(this.time * 20) : ""; // E3 ぶるっとは高速=細かく焼く(稀・短時間=総再焼き少)
+    const sig = phaseStep + "|" + face + "|" + crowdB + "|" + (moving ? 1 : 0) + "|" + (injured ? 1 : 0) + "|" + trB + "|" + this._traitSig(lz) + blinkS + stretchS + yawnS + footS + shakeS;
     // スプライト外接box: 魂の最大範囲(尾先x=-0.80L・鼻先+0.485L、幅/クレスト/脚/デューラップ/尾のしなり)を余裕を持って包む。
     // 左右反転(face)で尾は±0.80Lに振れるため x は対称に確保。原点(lz基準)=(ox,oyTop)
     const ox = Math.ceil(L * 0.98) + 3, oyTop = Math.ceil(L * 0.7) + 3, oyBot = Math.ceil(L * 0.3) + 3;

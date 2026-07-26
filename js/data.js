@@ -386,10 +386,11 @@ const CFG = {
   motPeekBand: 34,          // 入口手前この距離帯で判定
   motPeekSec: 0.6,          // 振り返って外を見る秒
   // ★M2-EX パートD: 新語彙 第2波(D1あくび/D2頭プッシュアップ/D3尾フリック/D4群れ警戒/D5向き替え/D6まどろみ/D7漂う粒子/D8地面味見・★全てRic実機判定)
-  motYawnOn: true,          // D1あくび(gape=口を大きく開ける)
+  motYawnOn: true,          // D1あくび→E2で真の顎開口へ格上げ(gape)
   motYawnWin: 55,           // 発生窓(秒)
   motYawnRate: 0.3,         // 窓ごとの発生率
   motYawnDur: 1.0,          // 開いている秒
+  motYawnAngle: 0.5,        // E2 下顎の開口角(rad・0.5≒29度)
   motHeadbobOn: true,       // D2頭のプッシュアップ表示(トカゲ固有の腕立て)
   motHeadbobWin: 34,        // 発生窓(秒)
   motHeadbobRate: 0.3,      // 窓ごとの発生率
@@ -425,6 +426,16 @@ const CFG = {
     8: { color: "rgba(240,248,255,0.7)", r: 2, drift: 12, alpha: 0.6 },                 // 氷の前線=雪片
     9: { color: "rgba(120,110,90,0.5)", r: 2, drift: 18, alpha: 0.45 },                 // 廃原子炉=塵灰
   },
+  // ★M2-EX2 パートE: C方式追加3種(E1片足上げ/E2真のあくび顎開口/E3脱皮後ぶるっと・★全てRic実機判定)
+  motFootLiftOn: true,      // E1片足上げ体温調整(手前前脚を持ち上げる・C=脚ジオメトリ変形)
+  motFootLiftWin: 40,       // 発生窓(秒)
+  motFootLiftRate: 0.2,     // 窓ごとの発生率(基準)
+  motFootLiftHotMult: 2.2,  // 熱い惑星/暖取りspotでの発生率倍率(熱源回避=文脈自然)
+  motFootLiftDur: 2.0,      // 上げている秒
+  motShakeOn: true,         // E3脱皮後の全身ぶるっと(C=多パーツ横揺れ・⑤直後のみ)
+  motShakeDur: 0.6,         // ぶるっとの秒
+  motShakeSpeed: 34,        // 揺れの速さ
+  motShakeAmp: 0.02,        // 横揺れ振幅(体長比)
   // 群衆対策(表示のみ・収益/戦闘は全個体が対象のまま)
   maxVisibleLizards: 70,    // フィールドに同時表示する上限。超過分は巣穴で休憩
   restSwapPerSec: 3,        // 平常時に毎秒この匹数まで休憩⇔活動を入れ替え(漸進=ちらつき防止)

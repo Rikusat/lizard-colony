@@ -467,6 +467,40 @@ ok("C3: id位相ずれ(個体で揺れが違う)", s1 !== s2);
   CFG.motDashOn = true; CFG.motRippleOn = true; sb.UI = np();
 }
 
+// ===== V5M-EX2 パートE(2026-07-26): E1片足上げ(C)/E2真のあくび顎開口/E3脱皮後ぶるっと(C) =====
+{
+  // E1 片足上げ: 0..1・OFF/移動/掘り中→0・時々>0.9・熱い惑星で発生率up・決定論
+  CFG.motFootLiftOn = true; Game.state.stageSel = 5; // 火山=熱い
+  let lifted = false, flRange = true;
+  for (let id = 0; id < 30 && !lifted; id++) for (let tq = 0; tq < 1200; tq++) { Render.time = tq * 0.05; const k = Render._motFootLift({ id, moving: false, _digT: 0, injuredT: 0, _spotPosture: null }); if (k < 0 || k > 1) flRange = false; if (k > 0.9) { lifted = true; break; } }
+  ok("V5M-EX2 E1: 片足上げ発生・範囲[0,1]", lifted && flRange);
+  ok("V5M-EX2 E1: 移動中は0", Render._motFootLift({ id: 3, moving: true, _digT: 0, injuredT: 0 }) === 0);
+  ok("V5M-EX2 E1: 掘り中は0", Render._motFootLift({ id: 3, moving: false, _digT: 2, injuredT: 0 }) === 0);
+  CFG.motFootLiftOn = false; ok("V5M-EX2 E1: OFFで0(減算恒等=ピクセル一致)", Render._motFootLift({ id: 3, moving: false, _digT: 0, injuredT: 0 }) === 0); CFG.motFootLiftOn = true;
+  Game.state.stageSel = 1;
+  // E3 ぶるっと: _shakeTが立っている間だけ>0・OFF/移動→0・decayで0.. 1
+  CFG.motShakeOn = true;
+  ok("V5M-EX2 E3: shakeT無しは0(恒等)", Render._motShakeK({ id: 3, moving: false, _shakeT: 0 }) === 0);
+  const shk = Render._motShakeK({ id: 3, moving: false, _shakeT: (CFG.motShakeDur || 0.6) });
+  ok("V5M-EX2 E3: shakeT有りで>0・範囲[0,1]", shk > 0 && shk <= 1);
+  ok("V5M-EX2 E3: 移動中は0", Render._motShakeK({ id: 3, moving: true, _shakeT: 0.5 }) === 0);
+  CFG.motShakeOn = false; ok("V5M-EX2 E3: OFFで0", Render._motShakeK({ id: 3, moving: false, _shakeT: 0.5 }) === 0); CFG.motShakeOn = true;
+  // E3 発火配線: 脱皮終了の瞬間に_shakeTが立つ(ゲーム層)
+  Game.newGame(); Game.raid = null;
+  const sh = { id: 995, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "adult", xp: 0, level: 5, injuredT: 0, breedCd: 0, traits: [], resting: false };
+  Game.ensureRuntime(sh); Game.state.lizards = [sh];
+  sh.x = 600; sh.y = 400; sh.tx = 600; sh.ty = 400; sh._shedT = 0.05; sh.wanderT = 999;
+  Game.moveLizards(0.1); // shedT 0.05→<=0 で shakeT が立つ
+  ok("V5M-EX2 E3: 脱皮終了の瞬間にぶるっと発火(_shakeT>0)", sh._shakeT > 0, "shakeT=" + sh._shakeT);
+  // E2 あくび: 既存_motYawnが駆動(角度はrender)。0..1・決定論(D1と同一タイミング=二重発火なし)
+  let yy = false;
+  for (let id = 0; id < 30 && !yy; id++) for (let tq = 0; tq < 1300; tq++) { Render.time = tq * 0.05; if (Render._motYawn({ id, moving: false }) > 0.5) { yy = true; break; } }
+  ok("V5M-EX2 E2: あくび(顎開口)タイミング発生", yy);
+  // settleDisplayで_shakeTクリア
+  sh._shakeT = 1; Game.settleDisplay();
+  ok("V5M-EX2 E3: settleDisplayで_shakeTクリア", sh._shakeT === 0);
+}
+
 console.log(`\n=== モーション 回帰テスト結果: ${pass} PASS / ${fail} FAIL ===`);
 if (fail) { console.log("FAILED:\n - " + fails.join("\n - ")); process.exit(1); }
 console.log("すべてPASS(C1割当:決定論/capacity比例/状態非干渉/null・C2配線:到達/ワープなし/解除/数値非干渉・C3姿勢:整数bob/null条件/決定論・V5M第1バッチ:⑦連続/⑧2反転/⑫対面/①K範囲/reduced停止/数値非干渉/クリア)");
