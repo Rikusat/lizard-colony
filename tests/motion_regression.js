@@ -501,6 +501,43 @@ ok("C3: id位相ずれ(個体で揺れが違う)", s1 !== s2);
   ok("V5M-EX2 E3: settleDisplayで_shakeTクリア", sh._shakeT === 0);
 }
 
+// ===== V5M-EX2 パートF(2026-07-26): 巣口すり抜け(相互回避の一時無効化) =====
+{
+  Game.newGame(); Game.state.rank = 20; Game.raid = null;
+  const mkl = (id, x, y) => { const l = { id, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "adult", xp: 0, level: 5, injuredT: 0, breedCd: 0, traits: [], resting: false }; Game.ensureRuntime(l); l.x = x; l.y = y; l.tx = x; l.ty = y; l.wanderT = 999; return l; };
+  // 平時: 重なる2匹は押し合って離れる(すり抜けは巣出入り個体限定=平時の散らばりは不変)
+  CFG.nestPassthroughOn = true;
+  const w1 = mkl(1001, 600, 400), w2 = mkl(1002, 610, 400);
+  Game.state.lizards = [w1, w2];
+  Game.moveLizards(0.1);
+  ok("V5M-EX2 F: 平時の徘徊個体は従来どおり押し合って離れる", Math.abs(w1.x - w2.x) > 10);
+  // 帰巣中(returning)の2匹はすり抜ける=押し合わない(重なりを許容)
+  const r1 = mkl(1003, 600, 400), r2 = mkl(1004, 604, 400);
+  r1.returning = true; r2.returning = true; r1.moving = true; r2.moving = true;
+  // 巣が遠い位置なら帰巣移動はするが、重なり判定(分離)はスキップされる→接近が維持される
+  Game.state.lizards = [r1, r2];
+  const before = Math.abs(r1.x - r2.x);
+  // 分離ループのみ検証するため、帰巣移動を無効化(returning処理をスキップさせずに分離だけ見る=位置固定でmoveの分離段だけ効くよう近接配置)
+  r1.tx = r1.x; r1.ty = r1.y; r2.tx = r2.x; r2.ty = r2.y;
+  Game.moveLizards(0.1);
+  ok("V5M-EX2 F: 帰巣中の個体は相互回避せず重なりを許容(すり抜け)", Math.abs(r1.x - r2.x) <= before + 0.5);
+  // OFFにすると帰巣個体も従来どおり押し合う
+  CFG.nestPassthroughOn = false;
+  const q1 = mkl(1005, 600, 400), q2 = mkl(1006, 604, 400);
+  q1.returning = true; q2.returning = true; q1.tx = 600; q1.ty = 400; q2.tx = 604; q2.ty = 400;
+  Game.state.lizards = [q1, q2];
+  Game.moveLizards(0.1);
+  ok("V5M-EX2 F: OFFなら帰巣個体も従来の押し合い(退役可能=可逆)", Math.abs(q1.x - q2.x) > 8);
+  CFG.nestPassthroughOn = true;
+  // 出巣直後のすり抜け窓
+  Game.raid = null;
+  const em = { id: 1007, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "adult", xp: 0, level: 5, injuredT: 0, breedCd: 0, traits: [], resting: true };
+  Game.ensureRuntime(em); em.homeX = 700; em.homeY = 400;
+  CFG.motEmergeLookRate = 0; // 見回しは切る(すり抜け窓だけ検査)
+  Game.emergeFromNest(em);
+  ok("V5M-EX2 F: 出巣直後はすり抜け窓が立つ(_emergeThruT>0)", em._emergeThruT > 0);
+}
+
 console.log(`\n=== モーション 回帰テスト結果: ${pass} PASS / ${fail} FAIL ===`);
 if (fail) { console.log("FAILED:\n - " + fails.join("\n - ")); process.exit(1); }
 console.log("すべてPASS(C1割当:決定論/capacity比例/状態非干渉/null・C2配線:到達/ワープなし/解除/数値非干渉・C3姿勢:整数bob/null条件/決定論・V5M第1バッチ:⑦連続/⑧2反転/⑫対面/①K範囲/reduced停止/数値非干渉/クリア)");

@@ -301,6 +301,7 @@ const Game = {
     lz.x = n.x + rnd(-18, 18); lz.y = n.y + rnd(6, 18); // 割り当て入口から這い出す(§8.12で巣は左へ)
     lz.tx = lz.homeX; lz.ty = lz.homeY;
     lz.restedAt = Date.now();
+    lz._emergeThruT = CFG.nestThruSec || 1.5; // 裁定F: 出巣直後はしばらく他個体をすり抜けて入口を離れる(団子防止)
     // V5M-EX パートC(巣の出入り): 出た直後に入口で一瞬周囲をうかがう(⑧キョロ)→その後ねぐらへ。ボス湧出時は省略(急ぐ)。
     if (!this.raid && CFG.motEmergeLookOn !== false && !(window.Motion && Motion.reduced)
       && this.motHash(lz.id * 61 + 18, Math.floor((this._motClock || 0))) < (CFG.motEmergeLookRate || 0.6)) {
@@ -2273,6 +2274,7 @@ const Game = {
       if (lz._dashT > 0) lz._dashT -= dt;   // V5M⑦: 疾走窓の残り
       if (lz._shedT > 0) { const was = lz._shedT; lz._shedT -= dt; if (lz._shedT <= 0 && was > 0 && CFG.motShakeOn !== false && !this.raid && !(window.Motion && Motion.reduced)) lz._shakeT = CFG.motShakeDur || 0.6; } // V5M⑤脱皮→E3ぶるっと(脱皮終了の瞬間に発火)
       if (lz._shakeT > 0) lz._shakeT -= dt;  // E3: 全身ぶるっとの残り
+      if (lz._emergeThruT > 0) lz._emergeThruT -= dt; // 裁定F: 出巣直後のすり抜け窓
       if (lz._digT > 0) lz._digT -= dt;     // V5M⑩: 砂掘りの残り
       if (lz._folT > 0) lz._folT -= dt;     // V5M⑬: 追従の残り
       if (lz.panicT > 0 || lz.injuredT > 0) { lz._shedT = 0; lz._digT = 0; lz._folT = 0; lz._shakeT = 0; } // 逃走/負傷で仕草は中断
@@ -2486,12 +2488,17 @@ const Game = {
     }
 
     // 分離: 重なり合いを防いで自然に分散させる(表示中の個体のみ・縮小時は距離も縮む)
+    // 裁定F(2026-07-26): 巣口すり抜けの根治。「巣へ向かう/巣から出る」個体は相互回避を一時無効化=互いをすり抜けて通過。
+    //   平時の徘徊個体の散らばりは不変(すり抜けフラグ=returning or 出巣直後の窓のみ)。判定基準/戦闘/避難ロジックは非接触。
+    const thru = (l) => CFG.nestPassthroughOn !== false && (l.returning || (l._emergeThruT || 0) > 0);
     const arr = this.state.lizards.filter((l) => this.isVisible(l));
     const minD = 46 * this.crowdScale();
     for (let i = 0; i < arr.length; i++) {
       const a = arr[i];
+      if (thru(a)) continue; // 巣の出入り中の個体は押し合いに参加しない(誰も押さない・誰にも押されない=すり抜け)
       for (let j = i + 1; j < arr.length; j++) {
         const b = arr[j];
+        if (thru(b)) continue;
         const dx = b.x - a.x, dy = b.y - a.y;
         const d2 = dx * dx + dy * dy;
         if (d2 < minD * minD && d2 > 0.01) {
