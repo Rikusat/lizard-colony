@@ -73,13 +73,14 @@ for (const p of ["drink", "bask", "wade", "lookup", "lookout", "emerge", "unknow
   for (let i = 0; i < 200; i++) {
     Render.time = i * 0.1; const b = Render._poseBob(posed(p, { id: i }));
     if (!b || !Number.isInteger(b.dx) || !Number.isInteger(b.dy)) allInt = false;
-    if (b && (Math.abs(b.dx) > amp + 1 || Math.abs(b.dy) > amp + 1)) allRange = false;
+    // M2-EX パートC: 多段化で水飲み(頭下げ深め)/見上げ(個体別浮き)は意図的に深くなる=上限を poseBobPx*1.7+1 へ更新。
+    if (b && (Math.abs(b.dx) > amp + 1 || Math.abs(b.dy) > amp * 1.7 + 1)) allRange = false;
     if (b && p === "wade" && b.dx !== 0) wadeDx = true;
     if (b && p === "drink" && b.dy !== 0) drinkDy = true;
   }
 }
 ok("C3: 全posture整数bob", allInt);
-ok("C3: 振幅内(<=poseBobPx±1)", allRange);
+ok("C3: 振幅内(多段化=<=poseBobPx*1.7±1)", allRange);
 ok("C3: wade=左右(dx)の揺れ", wadeDx);
 ok("C3: drink=上下(dy)の揺れ", drinkDy);
 Render.time = 5.5;
@@ -371,6 +372,52 @@ ok("C3: id位相ずれ(個体で揺れが違う)", s1 !== s2);
   Game.moveLizards(0.05);
   ok("V5M-EX⑲: 飲む隣人の方を向く(cos(angle)>0=右の隣人)", Math.cos(watcher.angle) > 0, "ang=" + watcher.angle.toFixed(2));
   CFG.motGazeOn = true;
+}
+
+// ===== V5M-EX パートC(2026-07-26): 既存行動の多段化(水飲み/巣出入り) =====
+{
+  // C1 水飲み多段: drink位相で「頭下げ(下)」と「見上げ(上)」の両方が出る
+  Game._motClock = 0;
+  const dl = { id: 5, spot: "water-drink", moving: false, _spotPosture: "drink", _spotT: 0 };
+  let sawDown = false, sawUp = false;
+  for (let tq = 0; tq < 200; tq++) {
+    Render.time = tq * 0.05; Game._motClock = tq * 0.05;
+    const b = Render._poseBob(dl);
+    if (b && b.dy > 0) sawDown = true;
+    if (b && b.dy < 0) sawUp = true;
+  }
+  ok("V5M-EX C1: 水飲みが頭下げ(下)と見上げ(上)の両段を持つ", sawDown && sawUp);
+  // C3 出巣の見回し: emergeFromNestが⑧lookを付ける(非ボス・決定論)
+  Game.newGame(); Game.raid = null; Game._motClock = 0;
+  CFG.motEmergeLookRate = 1;
+  const em = { id: 970, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "adult", xp: 0, level: 5, injuredT: 0, breedCd: 0, traits: [], resting: true };
+  Game.ensureRuntime(em); em.homeX = 700; em.homeY = 400;
+  Game.emergeFromNest(em);
+  ok("V5M-EX C3: 出巣直後に見回し(lookT>0・入口で一旦停止)", em._lookT > 0 && em.tx === em.x && em.ty === em.y);
+  // ボス湧出時は見回し省略(急ぐ)
+  Game.raid = { snake: { x: 0, y: 0, arrived: false }, type: {}, typeId: "snake", webs: [] };
+  const em2 = { id: 971, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "adult", xp: 0, level: 5, injuredT: 0, breedCd: 0, traits: [], resting: true };
+  Game.ensureRuntime(em2); em2.homeX = 700; em2.homeY = 400;
+  Game.emergeFromNest(em2);
+  ok("V5M-EX C3: ボス湧出時は見回し省略(ねぐらへ直行)", !(em2._lookT > 0) && em2.tx === em2.homeX);
+  Game.raid = null;
+  // C3 入巣前の振り返り: 通常帰巣で入口手前に来ると_peekTが立つ
+  CFG.motPeekRate = 1; CFG.motPeekBand = 40;
+  const pk = { id: 972, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "adult", xp: 0, level: 5, injuredT: 0, breedCd: 0, traits: [], resting: false };
+  Game.ensureRuntime(pk);
+  Game.state.lizards = [pk];
+  Game.retreatToNest(pk);
+  ok("V5M-EX C3: retreatで振り返りフラグ初期化", pk._peekedTrip === false);
+  // 入口手前に配置してmoveLizards→_peekT>0を確認
+  const nn = Game.nestEntryFor(pk);
+  pk.x = nn.x + 30; pk.y = nn.y + 10; Game._motClock = 0;
+  Game.moveLizards(0.05); // 帯内で_peekT立つ(この時点でcontinue)
+  Game.moveLizards(0.05); // 次フレームで停止して外を向く
+  ok("V5M-EX C3: 入口手前で一瞬振り返る(_peekT>0・その間停止)", pk._peekT > 0 && pk.moving === false);
+  // settleDisplayでパートC残状態クリア
+  pk._peekT = 1; pk._spotT = 5;
+  Game.settleDisplay();
+  ok("V5M-EX C3: settleDisplayでpeek/spotTクリア", pk._peekT === 0 && pk._spotT === null);
 }
 
 console.log(`\n=== モーション 回帰テスト結果: ${pass} PASS / ${fail} FAIL ===`);

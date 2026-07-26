@@ -376,6 +376,15 @@ const CFG = {
   motRippleOn: true,        // ⑲波紋への注目(飲む個体を一瞥)
   motRippleRate: 0.3,       // 6秒窓ごとの発生率
   motRippleRadius: 110,     // この距離内の飲む個体に反応
+  // ★M2-EX パートC: 既存行動の多段化(水飲み/暖取り/巣出入り/見上げ・★全てRic実機判定)
+  drinkCycleSec: 4.5,       // 水飲みの1周期秒(頭下げ→見上げ)
+  drinkRippleOn: true,      // 水飲みの波紋(頭下げ中の水面の輪)
+  motEmergeLookOn: true,    // 巣から出た直後の見回し(⑧キョロ接続)
+  motEmergeLookRate: 0.6,   // 出巣時の見回し発生率
+  motPeekOn: true,          // 入巣前に一瞬振り返る(名残)
+  motPeekRate: 0.4,         // 入口手前での振り返り発生率
+  motPeekBand: 34,          // 入口手前この距離帯で判定
+  motPeekSec: 0.6,          // 振り返って外を見る秒
   // 群衆対策(表示のみ・収益/戦闘は全個体が対象のまま)
   maxVisibleLizards: 70,    // フィールドに同時表示する上限。超過分は巣穴で休憩
   restSwapPerSec: 3,        // 平常時に毎秒この匹数まで休憩⇔活動を入れ替え(漸進=ちらつき防止)

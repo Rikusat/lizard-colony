@@ -234,6 +234,7 @@ const Game = {
       l.spot = null; l._toSpot = null; // モーション: 居場所滞在も即クリア(ロード後は徘徊から再割当・stale姿勢なし)
       l._dashT = 0; l._lookT = 0; l._meetCd = 0; // V5M: モーション残状態もクリア(stale姿勢なし・runtime専用=保存されない)
       l._shedT = 0; l._digT = 0; l._folT = 0; l._shedGo = false; // V5M第3バッチ分
+      l._peekT = 0; l._peekedTrip = false; l._spotT = null; // V5M-EX パートC分
       l.resting = !show.has(l.id);
       if (l.resting) l.restedAt = Date.now();
     }
@@ -299,11 +300,19 @@ const Game = {
     lz.x = n.x + rnd(-18, 18); lz.y = n.y + rnd(6, 18); // 割り当て入口から這い出す(§8.12で巣は左へ)
     lz.tx = lz.homeX; lz.ty = lz.homeY;
     lz.restedAt = Date.now();
+    // V5M-EX パートC(巣の出入り): 出た直後に入口で一瞬周囲をうかがう(⑧キョロ)→その後ねぐらへ。ボス湧出時は省略(急ぐ)。
+    if (!this.raid && CFG.motEmergeLookOn !== false && !(window.Motion && Motion.reduced)
+      && this.motHash(lz.id * 61 + 18, Math.floor((this._motClock || 0))) < (CFG.motEmergeLookRate || 0.6)) {
+      lz.tx = lz.x; lz.ty = lz.y;                 // まず入口で立ち止まる
+      lz._lookT = CFG.motLookDwell || 3.0; lz._lookN = 0;
+      lz.wanderT = (CFG.motLookDwell || 3.0) * 0.7; // 見終えたら通常徘徊でねぐらへ
+    }
   },
   retreatToNest(lz) {
     // §8.14: 瞬間消滅にしない。巣へ向かって歩き出し、到達したら巣に入る(moveLizardsで処理)
     lz.returning = true;
     lz.moving = true;
+    lz._peekedTrip = false; // V5M-EX: この帰巣で入口前の「一瞬振り返る」を未実施に
   },
 
   // 3.12.2: ボス襲来=強者が巣穴から「次々に湧き出す」(一斉でなく時間差)。
@@ -2237,6 +2246,19 @@ const Game = {
         const arriveR = fleeing ? (CFG.nestEntryRadius || CFG.nestArriveR) : CFG.nestArriveR;
         const lane = fleeing ? (((lz.id * 7919) >>> 0) % (arriveR * 2)) - arriveR : 0;
         const dx = (n.x + lane) - lz.x, dy = (n.y + 10) - lz.y, dist = Math.hypot(dx, dy);
+        // V5M-EX パートC(巣の出入り): 通常帰巣で入口の手前に来たら一瞬だけ振り返る(名残)。ボス避難時は省略(急ぐ)。
+        if (!fleeing && CFG.motPeekOn !== false && !(window.Motion && Motion.reduced)) {
+          if (lz._peekT > 0) {
+            lz._peekT -= dt; lz.moving = false;
+            lz.angle = Math.atan2(-dy, -dx); // 巣に背を向けて外を見る
+            lz.x = clamp(lz.x, 20, W - 20); lz.y = clamp(lz.y, FIELD.y1 - 30, H - 20);
+            continue;
+          }
+          if (!lz._peekedTrip && dist > arriveR && dist < arriveR + (CFG.motPeekBand || 34)
+            && this.motHash(lz.id * 59 + 17, Math.floor((this._motClock || 0))) < (CFG.motPeekRate || 0.4)) {
+            lz._peekedTrip = true; lz._peekT = CFG.motPeekSec || 0.6; continue;
+          }
+        }
         if (dist < arriveR) { lz.returning = false; lz.resting = true; lz.restedAt = Date.now(); lz.moving = false; this.refreshCrowdScale(); continue; }
         const spd = CFG.nestWalkSpeed * (fleeing ? (CFG.nestFleeSpeedMult || 3.5) : 1) * dt;
         lz.x += (dx / dist) * Math.min(spd, dist); lz.y += (dy / dist) * Math.min(spd, dist);
@@ -2404,6 +2426,7 @@ const Game = {
         lz.moving = false;
         if (lz._toSpot) { // 居場所へ到達=姿勢に入る(C3で描画)。向きはspot.facingへ寄せる
           lz.spot = lz._toSpot;
+          lz._spotT = this._motClock; // V5M-EX パートC: 到達時刻(多段の姿勢=飲む→見上げ 等の位相基準・runtime専用)
           if (lz._spotFacing === "left") lz.angle = Math.PI;
           else if (lz._spotFacing === "right") lz.angle = 0;
         }

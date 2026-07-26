@@ -1840,11 +1840,23 @@ const Render = {
     const amp = CFG.poseBobPx || 3, sp = CFG.poseBobSpeed || 1.2;
     const t = this.time * sp + (lz.id % 100) * 0.137; // idで位相をずらす(群れが揃って動かない)
     const p = lz._spotPosture;
+    // V5M-EX パートC: スポット滞在の経過秒(到達時刻から)。多段の姿勢の位相基準。
+    const age = (typeof Game !== "undefined" && lz._spotT != null) ? (Game._motClock || 0) - lz._spotT : t;
     let dx = 0, dy = 0;
-    if (p === "drink") dy = Math.max(0, Math.sin(t)) * Math.max(0, Math.sin(t)) * amp;      // 周期的に頭を水面へ沈める(下)
-    else if (p === "bask") dy = 1 + Math.sin(t * 0.8) * amp * 0.5;                            // 伏せて呼吸(わずかに沈む+上下)
-    else if (p === "wade") { dx = Math.sin(t * 1.4) * amp; dy = Math.abs(Math.sin(t)) * amp * 0.4; } // 尾で水を跳ねる左右+軽い上下
-    else if (p === "lookup" || p === "lookout") dy = -1 - Math.abs(Math.sin(t * 0.7)) * amp * 0.4; // 見上げてわずかに浮く
+    if (p === "drink") {
+      // C1 多段化: 4.5秒周期で「頭を下げて飲む(数回)→ 顔を上げて周囲を見る」。飲む間は深く沈め、見上げは浮く。
+      const cyc = age % (CFG.drinkCycleSec || 4.5);
+      const drinkPhase = (CFG.drinkCycleSec || 4.5) * 0.66;
+      if (cyc < drinkPhase) { const s = Math.max(0, Math.sin(t * 1.6)); dy = s * s * amp * 1.3; }        // 頭を水面へ(下・深め)
+      else dy = -1 - Math.abs(Math.sin(t * 0.6)) * amp * 0.5;                                             // 顔を上げて見回す(上)
+    }
+    else if (p === "bask") { dy = 1 + Math.sin(t * 0.8) * amp * 0.5; dx = Math.round(Math.sin(age * 0.5) > 0.985 ? amp * 0.5 : 0); } // 伏せて呼吸+たまに満足の身じろぎ
+    else if (p === "wade") { dx = Math.sin(t * 1.4) * amp; dy = Math.abs(Math.sin(t)) * amp * 0.4; }      // 尾で水を跳ねる左右+軽い上下
+    else if (p === "lookup" || p === "lookout") {
+      // C4 見上げの揺らぎ: 個体ごとに浮きの量と周期を変える(揃わない・単調にしない)
+      const va = 0.7 + (lz.id % 5) * 0.14, vp = 0.6 + (lz.id % 7) * 0.09;
+      dy = -1 - Math.abs(Math.sin(t * vp)) * amp * va;
+    }
     else if (p === "emerge") dy = Math.sin(t * 0.9) * amp * 0.5;                              // 入口で軽い日向ぼっこの上下
     else dy = Math.sin(t * 0.8) * amp * 0.4;                                                  // 既定=穏やかな呼吸
     return { dx: Math.round(dx), dy: Math.round(dy) };
@@ -2337,6 +2349,21 @@ const Render = {
     // --- 状態表示(反転なし) ---
     ctx.save();
     ctx.translate(lz.x, lz.y);
+    // V5M-EX C1: 水飲みの波紋(頭を下げている間だけ・水面に広がる淡い輪)。上乗せ=キャッシュ非接触。
+    if (lz._spotPosture === "drink" && CFG.drinkRippleOn !== false && !lz.moving && !(window.Motion && Motion.reduced)) {
+      const face = Math.cos(lz.angle) >= 0 ? 1 : -1;
+      const age = (lz._spotT != null) ? (Game._motClock || 0) - lz._spotT : this.time;
+      const cyc = age % (CFG.drinkCycleSec || 4.5);
+      if (cyc < (CFG.drinkCycleSec || 4.5) * 0.66) { // 頭下げ中
+        for (let k = 0; k < 2; k++) {
+          const r = ((this.time * 1.1 + k * 0.5) % 1);
+          ctx.strokeStyle = `rgba(188,214,228,${0.42 * (1 - r)})`;
+          ctx.lineWidth = Math.max(0.8, L * 0.008);
+          const rr2 = L * 0.04 + r * L * 0.13;
+          ctx.beginPath(); ctx.ellipse(L * 0.42 * face, L * 0.12, rr2, rr2 * 0.4, 0, 0, 7); ctx.stroke();
+        }
+      }
+    }
     if (Game.selectedId === lz.id) {
       ctx.strokeStyle = "#ffd24c"; ctx.lineWidth = 2.5;
       ctx.setLineDash([6, 5]); ctx.lineDashOffset = -this.time * 24;
