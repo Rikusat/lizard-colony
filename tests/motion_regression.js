@@ -619,6 +619,23 @@ ok("C3: id位相ずれ(個体で揺れが違う)", s1 !== s2);
   CFG.motDashOn = true;
 }
 
+// ===== 調査O: 水飲みの頭下げ描画(全身4px移動→首/頭を実際に下げる=視認可能) =====
+{
+  CFG.drinkDipOn = true;
+  Render.time = 2.0;
+  const dz = { id: 5, spot: "water-drink", moving: false, _spotPosture: "drink", _spotT: 0 };
+  // 飲む位相と見上げ位相の両方でdipが出る(飲む=正/見上げ=負)
+  let sawDown = false, sawUp = false;
+  for (let tq = 0; tq < 200; tq++) { Render.time = tq * 0.05; Game._motClock = tq * 0.05; const d = Render._motDrinkDip(dz); if (d > 0.3) sawDown = true; if (d < 0) sawUp = true; }
+  ok("O: 水飲みの頭下げ(dip>0)と見上げ(dip<0)の両位相", sawDown && sawUp);
+  ok("O: drink spot以外ではdip=0(恒等)", Render._motDrinkDip({ id: 5, spot: "heat-bask", moving: false, _spotPosture: "bask", _spotT: 0 }) === 0);
+  ok("O: 移動中はdip=0", Render._motDrinkDip({ id: 5, spot: "water-drink", moving: true, _spotPosture: "drink", _spotT: 0 }) === 0);
+  CFG.drinkDipOn = false;
+  ok("O: OFFでdip=0(従来ピクセル一致)", (() => { for (let tq = 0; tq < 100; tq++) { Render.time = tq * 0.05; if (Render._motDrinkDip(dz) !== 0) return false; } return true; })());
+  CFG.drinkDipOn = true;
+  sb.Motion.reduced = true; ok("O: reduced-motionでdip=0", Render._motDrinkDip(dz) === 0); sb.Motion.reduced = false;
+}
+
 // ===== 調査J根治: spotFor分配の一様性(小さい連続idで水場spotが0割当にならない) =====
 {
   Game.newGame(); Game.state.rank = 8;

@@ -1882,11 +1882,11 @@ const Render = {
     const age = (typeof Game !== "undefined" && lz._spotT != null) ? (Game._motClock || 0) - lz._spotT : t;
     let dx = 0, dy = 0;
     if (p === "drink") {
-      // C1 多段化: 4.5秒周期で「頭を下げて飲む(数回)→ 顔を上げて周囲を見る」。飲む間は深く沈め、見上げは浮く。
+      // C1 多段化: 頭下げ本体は _motDrinkDip(背骨変形=首/頭が実際に下がる・視認可能)が担う。ここは体幹の軽い沈み込みのみ(補助)。
       const cyc = age % (CFG.drinkCycleSec || 4.5);
       const drinkPhase = (CFG.drinkCycleSec || 4.5) * 0.66;
-      if (cyc < drinkPhase) { const s = Math.max(0, Math.sin(t * 1.6)); dy = s * s * amp * 1.3; }        // 頭を水面へ(下・深め)
-      else dy = -1 - Math.abs(Math.sin(t * 0.6)) * amp * 0.5;                                             // 顔を上げて見回す(上)
+      if (cyc < drinkPhase) dy = amp * 0.4;                                                                // 飲む間は体もわずかに沈む
+      else dy = -1;                                                                                        // 見上げ=わずかに浮く
     }
     else if (p === "bask") {
       dy = 1 + Math.sin(t * 0.8) * amp * 0.5; dx = Math.round(Math.sin(age * 0.5) > 0.985 ? amp * 0.5 : 0); // 伏せて呼吸+たまに満足の身じろぎ
@@ -2081,6 +2081,19 @@ const Render = {
     return Math.sin((local / dur) * Math.PI); // なだらかに上げて、下ろす
   },
 
+  // 調査O(2026-07-26・C=形状変形): 水飲みの頭下げ。これまでの水飲みは全スプライトを4pxだけ平行移動=頭が下がって
+  //   見えず「水辺に立っているだけ」に見えていた(Ric実機不視認の主因)。首〜頭(te>0.72)を実際にL比で下げ、飲む動きを描く。
+  //   返り値=下げ量0..1(飲む位相=正・見上げ位相=負)。0でピクセル恒等。drink spot滞在中のみ。
+  _motDrinkDip(lz) {
+    if (CFG.drinkDipOn === false || lz.moving || lz._spotPosture !== "drink" || !lz.spot) return 0;
+    if (typeof Motion !== "undefined" && Motion.reduced) return 0;
+    const age = (typeof Game !== "undefined" && lz._spotT != null) ? (Game._motClock || 0) - lz._spotT : this.time;
+    const cyc = age % (CFG.drinkCycleSec || 4.5);
+    const drinkPhase = (CFG.drinkCycleSec || 4.5) * 0.66;
+    if (cyc < drinkPhase) { const s = Math.max(0, Math.sin(this.time * 1.6 + lz.id)); return s * s; }  // 飲む=頭を深く下げる(0..1)
+    return -(0.4 + 0.6 * Math.abs(Math.sin(this.time * 0.6 + lz.id))) * 0.5;                              // 見上げ=頭を少し上げる(負・浅め)
+  },
+
   // E3(第3波・C=多パーツ形状変形・特則を最も厳密に): 脱皮直後の全身ぶるっと。背骨全点に短い横揺れ。
   //   状態駆動(lz._shakeT>0=脱皮終了直後にゲームが立てる)。0(=非発生)で加算恒等=ピクセル完全一致。稀(⑤継承)。
   _motShakeK(lz) {
@@ -2143,6 +2156,8 @@ const Render = {
     // E3(第3波): 脱皮直後の全身ぶるっと(C・多パーツ横揺れ)。shakeK=0なら加算ゼロ=恒等。背骨全点へ進行波状のx揺れのみ=特則。
     const shakeK = this._motShakeK(lz);
     const shakePhase = this.time * (CFG.motShakeSpeed || 34);
+    // 調査O: 水飲みの頭下げ(C・drink spotのみ・dipK=0で恒等)。首〜頭を実際に下げる=飲む動きを視認可能に。
+    const dipK = this._motDrinkDip(lz);
     for (let i = 0; i <= N; i++) {
       const t = i / N;
       // §9.1 自切: 再生していない尾先側(t<tailCutStart)は断面(tailCutStart)へ畳む=尾が短い断端に見える
@@ -2151,6 +2166,8 @@ const Render = {
       let w = k.w * L * flatW;  // V5M⑥: 平たく広がる(flatK=0で恒等)
       let y = k.y * L * flatY;  // V5M⑥: 地面へ沈む(同上)
       let xoff = 0;
+      // 調査O: 首〜頭(te>0.72)を前方ほど深く下げる/上げる(dipK=0で加算ゼロ=恒等)。飲む=鼻先が水面へ届く尺。
+      if (dipK !== 0 && te > 0.72) { const w2 = (te - 0.72) / 0.28; y += dipK * w2 * w2 * L * (CFG.drinkDipDepth || 0.22); }
       // V5M-EX⑨: 中背(t~0.60)を中心にアーチを持ち上げる伸び(stretchK=0で加算ゼロ=恒等)。ダウンドッグの気配。
       if (stretchK > 0) y -= Math.exp(-((te - 0.60) * (te - 0.60)) / 0.02) * L * (CFG.motStretchArch || 0.10) * stretchK;
       // E3: 全身ぶるっと(shakeK=0で加算ゼロ=恒等)。胴〜頭ほど大きく揺れる進行波の横ずれ。
@@ -2689,11 +2706,13 @@ const Render = {
     const stretchS = strK > 0 ? "s" + Math.round(strK * 4) : ""; // 0.25粒度で焼き直し(伸びは短時間=軽微)
     const yK = this._motYawn(lz);
     const yawnS = yK > 0.03 ? "y" + Math.round(yK * 3) : ""; // あくびは0.33粒度(短時間・稀)
+    const dipK = this._motDrinkDip(lz);
+    const dipS = dipK !== 0 ? "w" + Math.round(dipK * 5) : ""; // 調査O 水飲み頭下げ 0.2粒度
     const flK = this._motFootLift(lz);
     const footS = flK > 0 ? "f" + Math.round(flK * 3) : ""; // E1 片足上げ 0.33粒度
     const shK = this._motShakeK(lz);
     const shakeS = shK > 0 ? "h" + Math.round(this.time * 20) : ""; // E3 ぶるっとは高速=細かく焼く(稀・短時間=総再焼き少)
-    const sig = phaseStep + "|" + face + "|" + crowdB + "|" + (moving ? 1 : 0) + "|" + (injured ? 1 : 0) + "|" + trB + "|" + this._traitSig(lz) + blinkS + stretchS + yawnS + footS + shakeS;
+    const sig = phaseStep + "|" + face + "|" + crowdB + "|" + (moving ? 1 : 0) + "|" + (injured ? 1 : 0) + "|" + trB + "|" + this._traitSig(lz) + blinkS + stretchS + yawnS + footS + shakeS + dipS;
     // スプライト外接box: 魂の最大範囲(尾先x=-0.80L・鼻先+0.485L、幅/クレスト/脚/デューラップ/尾のしなり)を余裕を持って包む。
     // 左右反転(face)で尾は±0.80Lに振れるため x は対称に確保。原点(lz基準)=(ox,oyTop)
     const ox = Math.ceil(L * 0.98) + 3, oyTop = Math.ceil(L * 0.7) + 3, oyBot = Math.ceil(L * 0.3) + 3;
