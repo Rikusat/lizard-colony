@@ -578,6 +578,31 @@ ok("C3: id位相ずれ(個体で揺れが違う)", s1 !== s2);
   ok("V5M-EX3 I: 遠方は_nearWater=false", Render._nearWater({ x: 1000, y: 200 }) === false);
 }
 
+// ===== 調査J根治: spotFor分配の一様性(小さい連続idで水場spotが0割当にならない) =====
+{
+  Game.newGame(); Game.state.rank = 8;
+  Game.state.facilities = { water: 9, heat: 0, observatory: 0, watchtower: 0 };
+  Game.state.nest = { lv: 3 };
+  const sps = Render.facilitySpots();
+  const waterIds = new Set(sps.filter((s) => s.facility === "water").map((s) => s.id));
+  // 実個体相当の小さい連続id(3-14)で水場に割り当たる個体がいるか
+  let waterAssigned = 0;
+  for (let id = 3; id <= 14; id++) { const s = Game.spotFor({ id }); if (s && waterIds.has(s.id)) waterAssigned++; }
+  ok("J: 小連続id(3-14)で水場spotへ複数割当(旧ハッシュ偏りの根治)", waterAssigned >= 2, waterAssigned + "/12匹");
+  // 道中保持: スポットへ向かう個体がdwell切れで逸れずに到達する(spotTravel)。1窓で届く中距離で検査。
+  Game.state.lizards = [];
+  const midOn = CFG.motDashOn; CFG.motDashOn = false; // ダッシュ介入を切って道中保持を単離
+  CFG.spotVisitChance = 0.35; // 先行テストが0にしている場合の明示回復(スポット誘導を有効化)
+  const far = { id: 5, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40, light: 55, pattern: "none", stage: "adult", xp: 0, level: 5, injuredT: 0, breedCd: 0, traits: [] };
+  Game.ensureRuntime(far); far.x = 520; far.y = 460; far.resting = false; far.wanderT = 0;
+  Game.state.lizards = [far];
+  sb.Math.random = () => 0; // spotVisitChanceを必ず通す
+  let reached = false;
+  for (let t = 0; t < 600 && !reached; t++) { Game.moveLizards(0.1); if (far.spot && Render.facilitySpots().find((s) => s.id === far.spot)) reached = true; }
+  ok("J: スポットへ道中を保持して到達(dwell切れで逸れない=spotTravelSec)", reached, "spot=" + far.spot);
+  CFG.motDashOn = midOn;
+}
+
 // ===== reduced-motionガードの静的検査(2026-07-26・本番実証で発覚した潜在バグの再発防止) =====
 //   `const Motion` はclassic scriptで window に載らない→ `window.Motion && Motion.reduced` はブラウザで常にfalse
 //   =reduced-motionが効かない。正しい形は `typeof Motion !== "undefined" && Motion.reduced`。

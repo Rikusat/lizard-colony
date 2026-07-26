@@ -475,6 +475,7 @@ const CFG = {
   spotVisitChance: 0.35,    // 徘徊の再設定時に居場所へ向かう確率(残りは従来の縄張り徘徊)
   spotDwellMin: 3,          // 居場所に留まる最短秒
   spotDwellMax: 8,          // 居場所に留まる最長秒
+  spotTravelSec: 14,        // 調査J根治: スポットへ道中を保持して到達させる上限秒(遠い水場等に辿り着けるように)
   poseBobPx: 3,             // 居場所での姿勢の揺れ幅(px・整数bob=魂ピクセル不変)。reduced-motionで停止
   poseBobSpeed: 1.2,        // 姿勢アニメの速さ(基準・posture別に係数)
   restReevalSec: 3.5,       // 平常時の表示メンバー再選抜の間隔(秒・長めでちらつき防止)

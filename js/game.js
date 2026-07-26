@@ -235,7 +235,7 @@ const Game = {
       l._dashT = 0; l._lookT = 0; l._meetCd = 0; // V5M: モーション残状態もクリア(stale姿勢なし・runtime専用=保存されない)
       l._shedT = 0; l._digT = 0; l._folT = 0; l._shedGo = false; // V5M第3バッチ分
       l._peekT = 0; l._peekedTrip = false; l._spotT = null; // V5M-EX パートC分
-      l._shakeT = 0; l._spotTier = 0; l._emergeThruT = 0; // V5M-EX2/3分(片足上げ・水遊び=render時間/tier駆動でstate最小)
+      l._shakeT = 0; l._spotTier = 0; l._emergeThruT = 0; l._spotTravelT = 0; // V5M-EX2/3分(片足上げ・水遊び=render時間/tier駆動でstate最小)
       l.resting = !show.has(l.id);
       if (l.resting) l.restedAt = Date.now();
     }
@@ -291,7 +291,9 @@ const Game = {
     const spots = Render.facilitySpots();
     if (!spots || !spots.length) return null;
     let total = 0; for (const s of spots) total += Math.max(1, s.capacity || 1);
-    let k = ((lz.id * 2654435761) >>> 0) % total; // capacityぶん展開したスロットをidハッシュで1つ選ぶ(広い面ほど集まる=群れ表現)
+    // 調査J根治: 旧 (id*2654435761)>>>0 % total は小さい連続idで偏り(実測 id3-14が全員burrow=水場spotへ0割当=水飲みが出ない)。
+    //   fmix32(motHash)へ差し替え=小入力でも一様。capacityぶん展開したスロットをidハッシュで1つ選ぶ(広い面ほど集まる=群れ表現)。
+    let k = Math.floor(this.motHash(lz.id, 1234) * total);
     for (const s of spots) { k -= Math.max(1, s.capacity || 1); if (k < 0) return s; }
     return spots[spots.length - 1];
   },
@@ -2288,6 +2290,7 @@ const Game = {
         }
       }
       lz.wanderT -= dt;
+      if (lz._spotTravelT > 0) lz._spotTravelT -= dt;
       const fighting = snake && lz.stage === "adult" && lz.injuredT <= 0;
       if (fighting) {
         lz.spot = null; lz._toSpot = null; // 戦闘中は居場所より蛇へ群がる(姿勢解除)
@@ -2298,6 +2301,10 @@ const Game = {
           lz.tx = snake.x + Math.cos(ang) * d;
           lz.ty = snake.y + Math.sin(ang) * d * 0.6;
         }
+      } else if (lz._toSpot && lz.spot !== lz._toSpot && (lz._spotTravelT || 0) > 0 && lz.panicT <= 0) {
+        // 調査J根治: スポットへ道中の個体は目的地を保持して到達させる(dwell切れの再抽選で遠い水場等へ辿り着けない問題)。
+        //   到達(spot確定)まで再抽選しない。travelタイムアウトで諦め=無限追尾を防ぐ。純装飾=生産/戦闘の決定論に無影響。
+        lz.wanderT = 0.5; // 次tickも道中判定へ(下の移動処理で歩き続ける)
       } else if (lz.wanderT <= 0) { // 通常の徘徊 or 設備の居場所(スポット)へ
         // V5M⑦: 静→動ダッシュ(トカゲ特有の静→動)。決定論(idハッシュ+時刻バケット)・純装飾・走った後は長めの静止。
         const dashBk = Math.floor(this._motClock / 10);
@@ -2392,6 +2399,7 @@ const Game = {
           lz.ty = clamp(goSpot.center.y + Math.sin(ang) * rad, FIELD.y1 - 10, FIELD.y2);
           lz._toSpot = goSpot.id; lz._spotFacing = goSpot.facing; lz._spotPosture = goSpot.posture;
           lz._spotTier = goSpot.tier || 0; // H: 設備の成長段階(遊びモーションの解禁判定・読み取り専用)
+          lz._spotTravelT = CFG.spotTravelSec || 14; // 調査J: この時間内はスポットへ道中を保持して到達させる
           lz.wanderT = rnd(CFG.spotDwellMin || 3, CFG.spotDwellMax || 8); // 到着後この間は留まる
         } else { // 通常の徘徊: 自分の縄張り周辺をうろつく
           lz.spot = null; lz._toSpot = null;
