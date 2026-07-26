@@ -291,9 +291,11 @@ const Game = {
     const spots = Render.facilitySpots();
     if (!spots || !spots.length) return null;
     let total = 0; for (const s of spots) total += Math.max(1, s.capacity || 1);
-    // 調査J根治: 旧 (id*2654435761)>>>0 % total は小さい連続idで偏り(実測 id3-14が全員burrow=水場spotへ0割当=水飲みが出ない)。
-    //   fmix32(motHash)へ差し替え=小入力でも一様。capacityぶん展開したスロットをidハッシュで1つ選ぶ(広い面ほど集まる=群れ表現)。
-    let k = Math.floor(this.motHash(lz.id, 1234) * total);
+    // 調査J根治: 旧 (id*2654435761)>>>0 % total は小さい連続idで偏り→fmix32(motHash)で一様化。
+    // 調査N根治(2026-07-26): id固定ハッシュだと各個体が"永久に同じspot型"にバインド=可視個体が非水場idだと水場が永遠に0。
+    //   時刻でローテーション(spotRotateSec毎に選好が変わる)=全個体が時々どのspotも訪れる(水飲みが必ず巡ってくる)。決定論は保つ(id+時刻バケット)。
+    const rot = Math.floor((this._motClock || 0) / (CFG.spotRotateSec || 18));
+    let k = Math.floor(this.motHash(lz.id, 1234 + rot) * total);
     for (const s of spots) { k -= Math.max(1, s.capacity || 1); if (k < 0) return s; }
     return spots[spots.length - 1];
   },

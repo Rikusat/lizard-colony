@@ -44,10 +44,12 @@ const lz = { id: 501, speciesId: "kanahebi", morphId: "normal", hue: 40, sat: 40
 Game.state.lizards = [lz]; Game.ensureRuntime(lz); lz.x = 700; lz.y = 400; lz.resting = false;
 sb.Math.random = () => 0; lz.wanderT = 0;
 CFG.motDashOn = false; // V5M第1バッチ: 本節は従来歩行の不変条件を検査(ダッシュの連続性は下のV5M節で別検査)
+const spotRot0 = CFG.spotRotateSec; CFG.spotRotateSec = 99999; // 調査N: 本節は到達検査=選好ローテーションを止めて単離
 const coins0 = Game.state.coins;
-let maxStep = 0, prevX = lz.x, prevY = lz.y;
-for (let i = 0; i < 400; i++) { Game.moveLizards(0.1); const st = Math.hypot(lz.x - prevX, lz.y - prevY); if (st > maxStep) maxStep = st; prevX = lz.x; prevY = lz.y; }
-ok("C2: 歩いて到達しspot確定", !!lz.spot && lz.spot === lz._toSpot, "spot=" + lz.spot);
+let maxStep = 0, prevX = lz.x, prevY = lz.y, arrivedSpot = false;
+for (let i = 0; i < 400; i++) { Game.moveLizards(0.1); if (lz.spot && lz.spot === lz._toSpot) arrivedSpot = true; const st = Math.hypot(lz.x - prevX, lz.y - prevY); if (st > maxStep) maxStep = st; prevX = lz.x; prevY = lz.y; }
+ok("C2: 歩いて到達しspot確定", arrivedSpot, "spot=" + lz.spot);
+CFG.spotRotateSec = spotRot0;
 ok("C2: ワープなし(1step<=8.5px)", maxStep <= 8.5, "maxStep=" + maxStep.toFixed(2));
 ok("C2: 数値非干渉(coins不変)", Game.state.coins === coins0);
 CFG.motDashOn = true;
@@ -654,6 +656,17 @@ ok("C3: id位相ずれ(個体で揺れが違う)", s1 !== s2);
   for (let t = 0; t < 200 && !toSpotWhileRelaxCapable; t++) { Game.moveLizards(0.1); if (rc._toSpot) toSpotWhileRelaxCapable = true; }
   ok("M: くつろぎ個体もスポットへ向かう(凍結しない=水飲み可視化)", toSpotWhileRelaxCapable, "toSpot=" + rc._toSpot);
   CFG.motDashOn = midOn; CFG.motRelaxOn = false;
+  // N根治: spot選好が時刻でローテーション=id固定バインドを解消(可視個体が非水場idでも時々水場を訪れる)
+  Game.newGame(); Game.state.facilities = { water: 20, heat: 20, observatory: 10, watchtower: 10 }; Game.state.nest = { lv: 8 };
+  const wIds = new Set(Render.facilitySpots().filter((s) => s.facility === "water").map((s) => s.id));
+  // 同一idでも時刻(_motClock)が進むと選好spotが変わる=水場も巡ってくる
+  const testId = 8; let hitWater = false, changed = false, prev = null;
+  for (let sec = 0; sec < 600; sec += 6) { Game._motClock = sec; const sp = Game.spotFor({ id: testId }); if (sp && wIds.has(sp.id)) hitWater = true; if (prev && sp && sp.id !== prev) changed = true; prev = sp && sp.id; }
+  ok("N: spot選好が時刻でローテーション(id固定バインドの罠を解消)", changed);
+  ok("N: 固定idでも時間経過で水場spotに巡り当たる", hitWater);
+  // 同一時刻なら決定論(同id→同spot)は保つ
+  Game._motClock = 100;
+  ok("N: 同一時刻では決定論(同id→同spot)", Game.spotFor({ id: 8 }) && Game.spotFor({ id: 8 }).id === Game.spotFor({ id: 8 }).id);
 }
 
 // ===== reduced-motionガードの静的検査(2026-07-26・本番実証で発覚した潜在バグの再発防止) =====
