@@ -313,7 +313,7 @@ const CFG = {
   motTongueWin: 32,         // 1回/この秒数(再調律 45→32・生の気配を増やす)
   motTongueDur: 0.5,        // 舌が出ている秒
   motLookOn: true,          // ⑧キョロキョロ(到着時=じっと見る間→2回だけ向きを変える)
-  motLookRate: 0.07,        // 到着ごとの発生率(再調律 0.10→0.07=数を減らし1回を印象的に)
+  motLookRate: 0.055,       // 到着ごとの発生率(G最終化 0.07→0.055=頭bob等の視線系と競合を均す)
   motLookDwell: 3.2,        // 見る間の長さ秒(再調律で新設・freeze→ゆっくり2反転)
   motMeetOn: true,          // ⑫見合い(すれ違いの一瞥)
   motMeetRate: 0.11,        // 近接すれ違いごとの発生率(再調律 0.07→0.11)
@@ -345,7 +345,7 @@ const CFG = {
   motShedRubPx: 2,          // 擦りの振幅px
   motDigOn: true,           // ⑩砂掘り
   motDigStages: [1, 10],    // 掘る惑星(乾燥地帯/古代遺跡)
-  motDigRate: 0.055,        // 8秒窓ごとの発生率(再調律 0.05→0.055・乾燥惑星で突出しないよう抑制)
+  motDigRate: 0.05,         // 8秒窓ごとの発生率(G最終化 0.055→0.05・乾燥惑星で突出しないよう抑制)
   motDigDur: 3,             // 掻いている秒
   // V5M 第4バッチ(⑥・C=形状変形の初適用・変形はbask中の背骨w/y変調のみ・★Ric実機判定)
   motFlatOn: true,          // ⑥日光浴フラット化
@@ -393,7 +393,7 @@ const CFG = {
   motYawnAngle: 0.5,        // E2 下顎の開口角(rad・0.5≒29度)
   motHeadbobOn: true,       // D2頭のプッシュアップ表示(トカゲ固有の腕立て)
   motHeadbobWin: 34,        // 発生窓(秒)
-  motHeadbobRate: 0.3,      // 窓ごとの発生率
+  motHeadbobRate: 0.24,     // 窓ごとの発生率(G最終化 0.3→0.24=視線系の突出を均す)
   motHeadbobDur: 1.4,       // 表示の秒
   motHeadbobCount: 3,       // 上下の回数
   motHeadbobPx: 4,          // 跳ねる高さpx
@@ -407,7 +407,7 @@ const CFG = {
   motHerdAlertSec: 1.2,     // 警戒静止の秒
   motTurnOn: true,          // D5向き替えの多様化(単発の反転)
   motTurnWin: 14,           // 発生窓(秒)
-  motTurnRate: 0.18,        // 窓ごとの発生率
+  motTurnRate: 0.15,        // 窓ごとの発生率(G最終化 0.18→0.15=視線系を均す)
   motDrowsyOn: true,        // D6まどろみ(眼の半閉じ)
   motDrowsyWin: 40,         // 発生窓(秒)
   motDrowsyRate: 0.3,       // 窓ごとの発生率
