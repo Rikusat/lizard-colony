@@ -286,5 +286,51 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
       window.addEventListener("hashchange", ssGate);
       if (location.hash === "#slitskin") setTimeout(ssGate, 400);
     }
+
+    // dev支援(V5C C1・2026-07-27): オープニング基準カットの3案比較(?tune=1#opening・読み取り専用・本編非干渉)。
+    //   同一カット(カット2「脱出」)を絵作りの流儀が異なる3案で同時再生。再生は本ビューア専用のrAF=本編描画ループに条件分岐を足さない。
+    {
+      let opPanel = null, opRaf = 0;
+      const stopOP = () => { if (opRaf) cancelAnimationFrame(opRaf); opRaf = 0; if (opPanel) opPanel.remove(); opPanel = null; };
+      const STYLES = [
+        { id: "dither", label: "案A ディザ・セル", note: "PC-98流。硬い影の面＋市松ディザで階調(グラデ不使用)" },
+        { id: "poly", label: "案B 面取りポリゴン", note: "多角形の面だけで造形。影も面として割る=装置の幾何と接続" },
+        { id: "silhouette", label: "案C 切り絵シルエット", note: "前景を暗い塊に。奥行きは重なりと明度差のみ" },
+      ];
+      const buildOP = () => {
+        stopOP();
+        if (typeof Opening === "undefined") { console.warn("[opening] Opening モジュール未読込"); return; }
+        const panel = document.createElement("div"); panel.id = "opening-view";
+        panel.style.cssText = "position:fixed;inset:0;z-index:9999;background:#07080c;color:#e8dccb;font:13px/1.5 system-ui;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;overflow:auto;";
+        const title = document.createElement("div"); title.style.cssText = "font-size:15px;font-weight:600;";
+        title.textContent = "オープニング 基準カット3案 (?tune=1#opening) — 同一カット「脱出 — 積んだのは科学だけ」。#で閉じる";
+        panel.appendChild(title);
+        const row = document.createElement("div"); row.style.cssText = "display:flex;flex-wrap:wrap;gap:14px;justify-content:center;"; panel.appendChild(row);
+        const cvs = [];
+        STYLES.forEach((st) => {
+          const box = document.createElement("div"); box.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:6px;width:440px;";
+          const cv = document.createElement("canvas"); cv.width = 440; cv.height = 248;
+          cv.style.cssText = "width:440px;height:248px;background:#000;border-radius:4px;";
+          const lab = document.createElement("div"); lab.style.cssText = "font-weight:600;"; lab.textContent = st.label;
+          const note = document.createElement("div"); note.style.cssText = "font-size:11px;opacity:.66;text-align:center;min-height:30px;"; note.textContent = st.note;
+          box.appendChild(cv); box.appendChild(lab); box.appendChild(note); row.appendChild(box);
+          cvs.push({ ctx: cv.getContext("2d"), cv, id: st.id });
+        });
+        const bar = document.createElement("div"); bar.style.cssText = "font-size:11px;opacity:.6;"; bar.textContent = "2.4秒ループで同時再生(3案の位相は完全に同期)";
+        panel.appendChild(bar);
+        document.body.appendChild(panel); opPanel = panel;
+        const t0 = performance.now(), DUR = 2400;
+        const calm = typeof Motion !== "undefined" && Motion.reduced;
+        const loop = () => {
+          const u = calm ? 0.62 : ((performance.now() - t0) % DUR) / DUR;
+          for (const c of cvs) Opening.drawCut2(c.ctx, c.cv.width, c.cv.height, u, c.id);
+          if (!calm) opRaf = requestAnimationFrame(loop);
+        };
+        loop();
+      };
+      const opGate = () => { if (location.hash === "#opening") { buildOP(); console.log("[opening] 基準カット3案ビューア表示"); } else stopOP(); };
+      window.addEventListener("hashchange", opGate);
+      if (location.hash === "#opening") setTimeout(opGate, 400);
+    }
   }
 }

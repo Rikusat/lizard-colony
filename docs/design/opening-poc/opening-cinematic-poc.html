@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>トカゲコロニー — オープニング試作 (Director's Cut)</title>
+<style>
+  html,body{margin:0;height:100%;background:#04060a;overflow:hidden;
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+  #wrap{position:fixed;inset:0;display:grid;place-items:center}
+  canvas{width:min(100vw,177.78vh);height:min(56.25vw,100vh);display:block;background:#04060a;cursor:pointer}
+  #ui{position:fixed;left:0;right:0;bottom:14px;display:flex;gap:10px;justify-content:center;
+    font-size:11px;color:rgba(224,214,198,.42);letter-spacing:.08em;pointer-events:none}
+  #ui b{pointer-events:auto;cursor:pointer;font-weight:500;padding:4px 12px;border:1px solid rgba(224,214,198,.18);
+    border-radius:2px;transition:color .2s,border-color .2s}
+  #ui b:hover{color:rgba(242,211,160,.9);border-color:rgba(242,211,160,.4)}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="1280" height="720"></canvas></div>
+<div id="ui"><b id="replay">もう一度</b><b id="skip">スキップ</b></div>
+<script>
+"use strict";
+/* ============================================================
+   トカゲコロニー オープニング試作 — 約10秒
+   構成: ①故郷の終わり ②脱出 ③航行 ④実験の反復 ⑤生命へ ⑥題
+   素のCanvas 2Dのみ / 依存ゼロ / reduced-motion対応
+   ============================================================ */
+const cv=document.getElementById('c'), x=cv.getContext('2d');
+const W=1280,H=720;
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---- palette (参照映像の実測色調 × 本作の色言語) ---- */
+const VOID='#04060a', NAVY='#101927', SLATE='#3d5a68',
+      CRIM='#c23b4a', CRIM_D='#7a1220', AMB='#d9a441', AMB_L='#f2d3a0',
+      LIFE='#6fa86a', ASH='#8a7f74';
+
+/* ---- helpers ---- */
+const cl=(v,a,b)=>v<a?a:v>b?b:v;
+const ease=t=>{t=cl(t,0,1);return t*t*(3-2*t);};
+const lerp=(a,b,t)=>a+(b-a)*t;
+function hash(a,b){let h=(a*374761393+b*668265263)^(a<<7);h=(h^(h>>13))*1274126177;return((h^(h>>16))>>>0)/4294967295;}
+function sky(c0,c1,c2){const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,c0);g.addColorStop(.55,c1);g.addColorStop(1,c2);x.fillStyle=g;x.fillRect(0,0,W,H);}
+function glow(c,b){x.shadowColor=c;x.shadowBlur=b;}
+function g0(){x.shadowBlur=0;}
+
+/* 起伏のある地平線(決定論) */
+function ridge(y,amp,seed,col,step){
+  x.fillStyle=col; x.beginPath(); x.moveTo(-20,H+20); x.lineTo(-20,y);
+  for(let i=-20;i<=W+20;i+=(step||26)){
+    const n=hash(seed,Math.floor(i/(step||26)))-.5, n2=hash(seed+9,Math.floor(i/((step||26)*4)))-.5;
+    x.lineTo(i,y+n*amp+n2*amp*2.4);
+  }
+  x.lineTo(W+20,H+20); x.closePath(); x.fill();
+}
+/* 巣の丘 */
+function mound(cx,cy,r,col){x.fillStyle=col;x.beginPath();x.ellipse(cx,cy,r,r*.42,0,Math.PI,0);x.fill();
+  x.fillStyle=VOID;x.beginPath();x.ellipse(cx+r*.1,cy,r*.2,r*.12,0,0,6.29);x.fill();}
+
+/* トカゲのシルエット(魂の骨格に準拠: 胴・頭・尾・脚) */
+function lizard(cx,cy,s,dir,col,bob){
+  x.save();x.translate(cx,cy+(bob||0));x.scale(dir,1);x.fillStyle=col;
+  x.beginPath();x.ellipse(0,0,s,s*.36,0,0,6.29);x.fill();                       // 胴
+  x.beginPath();x.ellipse(s*.98,-s*.07,s*.33,s*.21,0,0,6.29);x.fill();          // 頭
+  x.lineWidth=s*.15;x.strokeStyle=col;x.lineCap='round';
+  x.beginPath();x.moveTo(-s*.85,0);x.quadraticCurveTo(-s*1.75,s*.22,-s*2.15,-s*.08);x.stroke(); // 尾
+  x.lineWidth=s*.1;
+  [[-.45,1],[.45,-1]].forEach(([px,d])=>{                                        // 脚
+    x.beginPath();x.moveTo(s*px,s*.2);x.lineTo(s*(px+.12*d),s*.5);x.stroke();
+  });
+  x.restore();
+}
+
+/* ロケット */
+function rocket(cx,cy,s,flame,ang){
+  x.save();x.translate(cx,cy);x.rotate(ang||0);
+  if(flame>0){                                                                    // 噴炎
+    const fl=s*(2.2+flame*3.4);
+    const g=x.createLinearGradient(0,s*1.1,0,s*1.1+fl);
+    g.addColorStop(0,'rgba(242,211,160,.95)');g.addColorStop(.35,'rgba(217,164,65,.6)');
+    g.addColorStop(1,'rgba(194,59,74,0)');
+    x.fillStyle=g;x.beginPath();x.moveTo(-s*.42,s*1.05);
+    x.quadraticCurveTo(0,s*1.1+fl*1.15,s*.42,s*1.05);x.closePath();x.fill();
+  }
+  x.fillStyle='#0a0e14';
+  x.beginPath();x.moveTo(0,-s*1.85);x.quadraticCurveTo(s*.62,-s*.2,s*.5,s*1.05);   // 機体
+  x.lineTo(-s*.5,s*1.05);x.quadraticCurveTo(-s*.62,-s*.2,0,-s*1.85);x.closePath();x.fill();
+  x.fillStyle='#161d26';                                                          // 翼
+  x.beginPath();x.moveTo(s*.5,s*.45);x.lineTo(s*1.02,s*1.15);x.lineTo(s*.5,s*1.05);x.closePath();x.fill();
+  x.beginPath();x.moveTo(-s*.5,s*.45);x.lineTo(-s*1.02,s*1.15);x.lineTo(-s*.5,s*1.05);x.closePath();x.fill();
+  glow(AMB,10);x.fillStyle=AMB_L;                                                 // 窓
+  x.beginPath();x.arc(0,-s*.55,s*.19,0,6.29);x.fill();g0();
+  x.strokeStyle='rgba(210,56,74,.5)';x.lineWidth=s*.07;                           // 深紅の帯
+  x.beginPath();x.moveTo(-s*.52,s*.15);x.lineTo(s*.52,s*.15);x.stroke();
+  x.restore();
+}
+
+/* フラスコ */
+function flask(cx,cy,s,fill,lit){
+  x.save();x.translate(cx,cy);
+  x.strokeStyle='rgba(190,196,205,.5)';x.lineWidth=Math.max(1.2,s*.055);
+  x.beginPath();x.moveTo(-s*.16,-s);x.lineTo(-s*.16,-s*.3);x.lineTo(-s*.62,s*.62);
+  x.quadraticCurveTo(-s*.66,s*.9,-s*.3,s*.9);x.lineTo(s*.3,s*.9);
+  x.quadraticCurveTo(s*.66,s*.9,s*.62,s*.62);x.lineTo(s*.16,-s*.3);x.lineTo(s*.16,-s);x.stroke();
+  if(fill>0){
+    const top=s*.9-fill*s*1.2;
+    if(lit)glow(lit,s*.9);
+    x.fillStyle=lit?lit:'rgba(70,86,96,.75)';
+    x.beginPath();x.moveTo(-s*.6,Math.max(top,s*.6));x.lineTo(-s*.62,s*.62);
+    x.quadraticCurveTo(-s*.66,s*.9,-s*.3,s*.9);x.lineTo(s*.3,s*.9);
+    x.quadraticCurveTo(s*.66,s*.9,s*.62,s*.62);x.lineTo(s*.6,Math.max(top,s*.6));
+    x.closePath();x.fill();g0();
+  }
+  x.restore();
+}
+
+/* 卵 */
+function egg(cx,cy,s,crack,light){
+  x.save();x.translate(cx,cy);
+  if(light>0){glow(AMB_L,40*light);}
+  x.fillStyle='#1b2029';x.beginPath();x.ellipse(0,0,s*.72,s,0,0,6.29);x.fill();g0();
+  x.strokeStyle=`rgba(242,211,160,${.25+.75*light})`;x.lineWidth=s*.055;
+  if(crack>0){
+    const pts=[[0,-s*.9],[s*.2,-s*.5],[-s*.12,-s*.15],[s*.22,s*.25],[-s*.05,s*.7]];
+    x.beginPath();x.moveTo(pts[0][0],pts[0][1]);
+    const n=Math.floor(cl(crack,0,1)*(pts.length-1))+1;
+    for(let i=1;i<n;i++)x.lineTo(pts[i][0],pts[i][1]);
+    x.stroke();
+  }
+  x.restore();
+}
+
+/* 侵食(バガー): 深紅の脈 */
+function erosion(cx,cy,len,br,t,alpha){
+  x.save();x.globalAlpha=alpha;x.strokeStyle=CRIM;x.lineCap='round';
+  glow(CRIM,14);
+  for(let b=0;b<br;b++){
+    const a0=-1.5708+(b/br-.5)*2.4+hash(b,3)*.5;
+    let px=cx,py=cy,a=a0;
+    x.lineWidth=3.2;x.beginPath();x.moveTo(px,py);
+    const seg=Math.floor(len*cl(t,0,1));
+    for(let i=0;i<seg;i++){
+      a+=(hash(b,i)-.5)*.75; px+=Math.cos(a)*11; py+=Math.sin(a)*11;
+      x.lineTo(px,py);
+    }
+    x.stroke();
+  }
+  g0();x.restore();
+}
+
+/* 星 */
+const STARS=Array.from({length:140},(_,i)=>({x:hash(i,1)*W,y:hash(i,2)*H,r:hash(i,3)*1.5+.3,p:hash(i,4)*6.28}));
+function stars(t,alpha,drift){
+  x.save();x.globalAlpha=alpha;
+  STARS.forEach((s,i)=>{
+    const tw=.55+.45*Math.sin(t*2.2+s.p);
+    x.fillStyle=`rgba(226,232,240,${tw})`;
+    let sx=(s.x-drift*(0.35+s.r*0.5))%W; if(sx<0)sx+=W;
+    x.beginPath();x.arc(sx,s.y,s.r,0,6.29);x.fill();
+  });
+  x.restore();
+}
+
+/* 仕上げ: レターボックス・粒子・周辺減光 */
+function grade(t){
+  const v=x.createRadialGradient(W/2,H/2,H*.28,W/2,H/2,H*.86);
+  v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.62)');
+  x.fillStyle=v;x.fillRect(0,0,W,H);
+  x.globalAlpha=.045;                                        // 粒状(決定論)
+  for(let i=0;i<420;i++){
+    const gi=Math.floor(t*12)+i;
+    x.fillStyle=hash(gi,7)>.5?'#fff':'#000';
+    x.fillRect(hash(gi,1)*W,hash(gi,2)*H,1.6,1.6);
+  }
+  x.globalAlpha=1;
+  x.fillStyle=VOID;x.fillRect(0,0,W,58);x.fillRect(0,H-58,W,58);  // レターボックス
+}
+function caption(txt,alpha,y){
+  if(alpha<=0)return;
+  x.save();x.globalAlpha=alpha;x.textAlign='center';
+  x.font='500 19px "Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif';
+  x.fillStyle='rgba(232,224,210,.9)';x.shadowColor='rgba(0,0,0,.8)';x.shadowBlur=12;
+  x.fillText(txt,W/2,y||H-96);x.restore();
+}
+
+/* ============================================================
+   ①  0.0–2.1  故郷の終わり
+   ============================================================ */
+function b1(t,a){
+  x.save();x.globalAlpha=a;
+  const pulse=Math.sin(t*3.1)*.5+.5;
+  sky('#12141c', lerp(0,1,cl(t/2,0,1))>.5?'#241520':'#1a1720', '#0a0b10');
+  x.fillStyle=`rgba(160,30,44,${.06+.1*pulse*cl(t/1.2,0,1)})`;x.fillRect(0,0,W,H);
+  stars(t,.35*(1-cl(t/1.6,0,1)),0);
+  /* 空を覆う侵食 */
+  erosion(W*.72,58,26,7,cl((t-.15)/1.5,0,1),.5*cl(t/.8,0,1));
+  erosion(W*.28,58,20,5,cl((t-.5)/1.5,0,1),.35*cl(t/1.1,0,1));
+  ridge(H*.60,16,3,'#161d27');                                 // 遠景
+  ridge(H*.72,22,11,'#0d1219');                                // 中景
+  mound(W*.24,H*.735,86,'#0a0e14');
+  mound(W*.78,H*.735,64,'#0a0e14');
+  /* 地の裂け目 */
+  x.save();x.globalAlpha=cl((t-.9)/1.0,0,1);
+  x.strokeStyle=CRIM;x.lineWidth=3;glow(CRIM,16);
+  x.beginPath();x.moveTo(W*.05,H*.86);
+  [[.2,.83],[.35,.88],[.52,.82],[.68,.89],[.85,.84],[1,.87]].forEach(([px,py])=>x.lineTo(W*px,H*py));
+  x.stroke();g0();x.restore();
+  /* 逃げ惑うトカゲたち */
+  const flee=ease(cl((t-.7)/1.4,0,1));
+  [[.30,.79,17,-1,0],[.42,.815,13,-1,.6],[.55,.785,15,-1,1.2],[.66,.82,11,-1,1.9]].forEach(([px,py,s,d,ph])=>{
+    lizard(W*px-flee*W*.14, H*py, s, d, '#05070b', Math.sin(t*7+ph)*1.6);
+  });
+  ridge(H*.90,10,21,VOID,18);                                  // 手前
+  caption('その星は、内側から蝕まれた。', cl((t-.45)/.6,0,1)*cl((2.05-t)/.4,0,1));
+  x.restore();
+}
+
+/* ============================================================
+   ②  2.0–3.8  脱出
+   ============================================================ */
+function b2(t,a){
+  x.save();x.globalAlpha=a;
+  const lift=ease(cl((t-.45)/1.25,0,1));
+  sky('#0c1018','#1c1420','#0a0b10');
+  x.fillStyle=`rgba(160,30,44,${.10*(1-lift*.6)})`;x.fillRect(0,0,W,H);
+  stars(t,.25+.45*lift,0);
+  const gy=H*.78+lift*H*.34;                                   // 地面が退く
+  erosion(W*.8,60,18,5,1,.30*(1-lift));
+  ridge(gy-H*.10,16,3,'#161d27');
+  ridge(gy,22,11,'#0d1219');
+  mound(W*.2,gy+H*.015,80,'#0a0e14');
+  /* 見送るトカゲ */
+  [[.16,.02,15],[.26,.03,12],[.85,.02,13]].forEach(([px,dy,s])=>{
+    lizard(W*px, gy+H*dy, s, 1, '#05070b', 0);
+  });
+  /* ロケット */
+  const rx=W*.53, ry=lerp(gy-52, -H*.55, lift*lift);
+  const sh=lerp(1,.62,lift);
+  if(lift>0&&lift<1){                                          // 排煙
+    x.save();x.globalAlpha=.5*(1-lift);
+    for(let i=0;i<8;i++){const p=i/8;
+      x.fillStyle=`rgba(120,108,96,${.5-p*.5})`;
+      x.beginPath();x.arc(rx+Math.sin(i*2.1)*(28+p*70), ry+92+p*180, 22+p*54,0,6.29);x.fill();}
+    x.restore();
+  }
+  rocket(rx, ry, 46*sh, .35+.65*ease(cl((t-.35)/.5,0,1)), Math.sin(t*1.4)*.03);
+  ridge(H*.93,10,21,VOID,18);
+  caption('残された科学だけを積んで、彼らは星を出た。', cl((t-.55)/.6,0,1)*cl((1.85-t)/.45,0,1));
+  x.restore();
+}
+
+/* ============================================================
+   ③  3.7–5.4  航行 — 桃源郷を目指して
+   ============================================================ */
+function b3(t,a){
+  x.save();x.globalAlpha=a;
+  sky('#080b12','#0b101a','#05070c');
+  stars(t,.9,t*46);
+  /* 遠い惑星群(10の暗示) */
+  const worlds=[[.12,.30,26,'#2a3b4a'],[.30,.62,15,'#3b3038'],[.47,.24,10,'#31404a'],
+                [.62,.55,19,'#2c3a33'],[.78,.33,13,'#3a3340'],[.90,.66,22,'#2b3946']];
+  worlds.forEach(([px,py,r,c],i)=>{
+    const dx=(px*W-t*22*(1+i%3*.4))%(W+180); const fx=dx<-90?dx+W+180:dx;
+    x.fillStyle=c;x.beginPath();x.arc(fx,py*H,r,0,6.29);x.fill();
+    x.fillStyle='rgba(0,0,0,.42)';x.beginPath();x.arc(fx+r*.34,py*H-r*.18,r*.92,0,6.29);x.fill();
+  });
+  /* 目指す一点 = 桃源郷 */
+  const tgt=ease(cl((t-.5)/1.2,0,1));
+  const px0=W*.80, py0=H*.42, rr=8+tgt*16;
+  glow(LIFE,26+tgt*40);
+  const g=x.createRadialGradient(px0,py0,0,px0,py0,rr*2.6);
+  g.addColorStop(0,'rgba(190,232,178,.95)');g.addColorStop(.4,'rgba(111,168,106,.55)');g.addColorStop(1,'rgba(111,168,106,0)');
+  x.fillStyle=g;x.beginPath();x.arc(px0,py0,rr*2.6,0,6.29);x.fill();g0();
+  /* 航路 */
+  x.strokeStyle=`rgba(217,164,65,${.30+.3*tgt})`;x.lineWidth=1.6;x.setLineDash([9,10]);x.lineDashOffset=-t*36;
+  x.beginPath();x.moveTo(W*.06,H*.74);x.quadraticCurveTo(W*.42,H*.70,px0,py0);x.stroke();x.setLineDash([]);
+  /* 船 */
+  const sp=ease(cl(t/1.6,0,1));
+  const sx=lerp(W*.10,W*.60,sp), sy=lerp(H*.73,H*.53,sp*sp);
+  rocket(sx,sy,17,.5,1.05);
+  caption('遠い星に、まだ緑があると信じて。', cl((t-.5)/.6,0,1)*cl((1.7-t)/.45,0,1));
+  x.restore();
+}
+
+/* ============================================================
+   ④  5.3–7.6  実験の反復  ← 中核
+   ============================================================ */
+function b4(t,a){
+  x.save();x.globalAlpha=a;
+  sky('#080a10','#0c1017','#05070b');
+  /* 研究区画の壁 */
+  x.fillStyle='#0b0f16';x.fillRect(0,H*.66,W,H*.34);
+  x.strokeStyle='rgba(140,152,168,.10)';x.lineWidth=1;
+  for(let i=0;i<12;i++){x.beginPath();x.moveTo(W*.04+i*W*.08,H*.28);x.lineTo(W*.04+i*W*.08,H*.66);x.stroke();}
+  /* 棚のシルエット */
+  x.fillStyle='#0a0d13';x.fillRect(W*.02,H*.30,W*.13,H*.36);x.fillRect(W*.85,H*.34,W*.13,H*.32);
+  /* フラスコ列 — 何度も失敗する */
+  const N=9, base=H*.60, fs=34;
+  for(let i=0;i<N;i++){
+    const fx=W*(.20+i*.075);
+    const cyc=(t*2.6+i*.37)%1;                       // 各々点いては消える
+    const fail=cyc<.42 ? Math.sin(cyc/.42*Math.PI) : 0;
+    const isHero=(i===4);
+    const held=isHero?ease(cl((t-1.35)/.55,0,1)):0;   // 1本だけ灯り続ける
+    const lv=Math.max(fail*.85,held);
+    flask(fx,base,fs,.42+.2*lv, lv>.05?`rgba(194,59,74,${.35+.6*lv})`:null);
+  }
+  /* 試行カウンタ(署名要素) */
+  const cnt=Math.floor(ease(cl(t/1.5,0,1))*847);
+  x.save();
+  x.textAlign='center';x.font='600 13px ui-monospace,Consolas,monospace';
+  x.fillStyle='rgba(217,164,65,.42)';x.fillText('試行回数 / TRIALS',W*.5,H*.245);
+  x.font='700 52px ui-monospace,Consolas,monospace';
+  const stop=t>1.42;
+  x.fillStyle=stop?'rgba(242,211,160,.96)':'rgba(226,214,196,.8)';
+  if(stop)glow(AMB,18);
+  x.fillText(String(stop?847:cnt).padStart(3,'0'),W*.5,H*.325);g0();
+  x.restore();
+  /* 失敗の明滅が画面を舐める */
+  const fl=Math.max(0,Math.sin(t*13.5))*(t<1.35?.055:0);
+  x.fillStyle=`rgba(194,59,74,${fl})`;x.fillRect(0,0,W,H);
+  /* 成功: 深紅の芯が灯る */
+  const win=ease(cl((t-1.45)/.6,0,1));
+  if(win>0){
+    const cx=W*.20+4*.075*W, cy=base;
+    glow(CRIM,60*win);
+    const g=x.createRadialGradient(cx,cy,0,cx,cy,240*win);
+    g.addColorStop(0,`rgba(242,211,160,${.55*win})`);g.addColorStop(.35,`rgba(194,59,74,${.30*win})`);
+    g.addColorStop(1,'rgba(194,59,74,0)');
+    x.fillStyle=g;x.beginPath();x.arc(cx,cy,240*win,0,6.29);x.fill();g0();
+  }
+  /* 見守るトカゲたち */
+  [[.30,.845,15],[.44,.86,12],[.60,.845,14],[.71,.862,11]].forEach(([px,py,s],i)=>{
+    lizard(W*px,H*py,s,i%2?1:-1,'#05070b',0);
+  });
+  caption('八百四十七回目。ようやく、ひとつが灯った。', cl((t-1.5)/.5,0,1)*cl((2.3-t)/.4,0,1));
+  caption('生命をつなぐために、彼らは科学を注いだ。', cl((t-.35)/.5,0,1)*cl((1.35-t)/.35,0,1));
+  x.restore();
+}
+
+/* ============================================================
+   ⑤  7.5–9.0  生命へ
+   ============================================================ */
+function b5(t,a){
+  x.save();x.globalAlpha=a;
+  const open=ease(cl(t/1.2,0,1));
+  sky(lerp(8,26,open)|0?`rgb(${(10+18*open)|0},${(14+30*open)|0},${(22+26*open)|0})`:'#0a0e16',
+      `rgb(${(16+26*open)|0},${(22+40*open)|0},${(26+26*open)|0})`, '#080b10');
+  stars(t,.4*(1-open),0);
+  /* 地平が開ける = 桃源郷 */
+  x.save();x.globalAlpha=open;
+  const g=x.createLinearGradient(0,H*.42,0,H*.78);
+  g.addColorStop(0,'rgba(111,168,106,.16)');g.addColorStop(1,'rgba(111,168,106,0)');
+  x.fillStyle=g;x.fillRect(0,H*.42,W,H*.36);x.restore();
+  ridge(H*.70,14,5,`rgba(24,38,32,${.6+.4*open})`);
+  ridge(H*.80,20,17,'#0c1310');
+  /* 孵化 */
+  const ct=cl((t-.25)/.75,0,1), lit=ease(cl((t-.72)/.5,0,1));
+  egg(W*.5,H*.66,52,ct,lit);
+  if(lit>0){                                                    // 光条
+    x.save();x.globalAlpha=lit*.85;glow(AMB_L,50);
+    x.strokeStyle=`rgba(242,211,160,${.5*lit})`;x.lineWidth=2;
+    for(let i=0;i<9;i++){const a2=i/9*6.2832+t*.4;
+      x.beginPath();x.moveTo(W*.5+Math.cos(a2)*40,H*.66+Math.sin(a2)*40);
+      x.lineTo(W*.5+Math.cos(a2)*(70+120*lit),H*.66+Math.sin(a2)*(70+120*lit));x.stroke();}
+    g0();x.restore();
+  }
+  /* 新しい仔が立ち上がる */
+  const rise=ease(cl((t-.95)/.5,0,1));
+  if(rise>0){
+    x.save();x.globalAlpha=rise;
+    lizard(W*.5+22,H*.665+lerp(16,0,rise),18,1,'#0b1a14',Math.sin(t*6)*1.2);
+    x.restore();
+  }
+  ridge(H*.94,10,21,VOID,18);
+  caption('その灯が、次の生命を照らす。', cl((t-.75)/.5,0,1)*cl((1.5-t)/.4,0,1));
+  x.restore();
+}
+
+/* ============================================================
+   ⑥  8.9–10.4  題
+   ============================================================ */
+function b6(t,a){
+  x.save();x.globalAlpha=a;
+  sky('#0a0e15','#0d131c','#05070c');
+  stars(t,.5,0);
+  const g=x.createRadialGradient(W/2,H*.52,0,W/2,H*.52,H*.6);
+  g.addColorStop(0,'rgba(217,164,65,.10)');g.addColorStop(1,'rgba(217,164,65,0)');
+  x.fillStyle=g;x.fillRect(0,0,W,H);
+  ridge(H*.84,16,5,'#0b1310');
+  const ap=ease(cl(t/.75,0,1));
+  x.save();x.globalAlpha=ap;x.textAlign='center';
+  glow(AMB,26*ap);
+  x.font='700 66px "Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif';
+  x.fillStyle='#f2d3a0';
+  x.letterSpacing='14px';
+  x.fillText('トカゲコロニー',W/2,H*.49);
+  g0();x.letterSpacing='0px';
+  x.font='500 17px ui-monospace,Consolas,monospace';
+  x.fillStyle='rgba(217,164,65,.55)';x.letterSpacing='9px';
+  x.fillText('LIZARD  COLONY',W/2,H*.565);
+  x.letterSpacing='0px';
+  x.strokeStyle=`rgba(217,164,65,${.4*ap})`;x.lineWidth=1;
+  x.beginPath();x.moveTo(W*.36,H*.525);x.lineTo(W*.64,H*.525);x.stroke();
+  x.restore();
+  /* 静かに一匹 */
+  lizard(W*.5,H*.74,20,1,'#0a1512',Math.sin(t*4)*1.1);
+  x.restore();
+}
+
+/* ============================================================
+   timeline
+   ============================================================ */
+const BEATS=[
+  {f:b1,s:0.00,e:2.10},{f:b2,s:2.00,e:3.80},{f:b3,s:3.70,e:5.40},
+  {f:b4,s:5.30,e:7.60},{f:b5,s:7.50,e:9.00},{f:b6,s:8.90,e:10.40},
+];
+const FADE=0.22, TOTAL=10.4;
+let T0=null, done=false;
+
+function frame(now){
+  if(T0===null)T0=now;
+  let t=(now-T0)/1000;
+  if(RM)t=TOTAL-0.4;                       // reduced-motion: 最終画で静止
+  if(t>TOTAL){ done=true; t=TOTAL; }
+  x.setTransform(1,0,0,1,0,0);
+  x.fillStyle=VOID;x.fillRect(0,0,W,H);
+  BEATS.forEach(b=>{
+    if(t<b.s-FADE||t>b.e+FADE)return;
+    const lt=t-b.s;
+    let a=1;
+    if(t<b.s)a=ease((t-(b.s-FADE))/FADE);
+    else if(t>b.e)a=1-ease((t-b.e)/FADE);
+    if(a>0)b.f(lt,a);
+  });
+  grade(t);
+  if(t<0.35){x.fillStyle=`rgba(4,6,10,${1-ease(t/0.35)})`;x.fillRect(0,0,W,H);}  // 明け
+  if(!done&&!RM)requestAnimationFrame(frame);
+  else if(RM)return;
+  else requestAnimationFrame(frame);        // 最終画を保持
+}
+requestAnimationFrame(frame);
+
+/* controls */
+document.getElementById('replay').onclick=()=>{T0=null;done=false;requestAnimationFrame(frame);};
+document.getElementById('skip').onclick=()=>{T0=performance.now()-(TOTAL-1.3)*1000;done=false;requestAnimationFrame(frame);};
+cv.onclick=()=>{if(!done)T0=performance.now()-(TOTAL-1.3)*1000;};
+</script>
+</body>
+</html>

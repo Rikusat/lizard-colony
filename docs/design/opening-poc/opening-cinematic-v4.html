@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>トカゲコロニー — オープニング試作 v4</title>
+<style>
+  html,body{margin:0;height:100%;background:#07090d;overflow:hidden;
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+  #wrap{position:fixed;inset:0;display:grid;place-items:center}
+  canvas{width:min(100vw,177.78vh);height:min(56.25vw,100vh);display:block;background:#07090d;cursor:pointer}
+  #ui{position:fixed;left:0;right:0;bottom:12px;display:flex;gap:10px;justify-content:center;
+    font-size:11px;color:rgba(224,214,198,.38);letter-spacing:.08em;pointer-events:none}
+  #ui b{pointer-events:auto;cursor:pointer;font-weight:500;padding:4px 12px;
+    border:1px solid rgba(224,214,198,.14);transition:color .2s,border-color .2s}
+  #ui b:hover{color:#eab951;border-color:rgba(234,185,81,.5)}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="1280" height="720"></canvas></div>
+<div id="ui"><b id="replay">もう一度</b><b id="skip">スキップ</b></div>
+<script>
+"use strict";
+/* ==================================================================
+   トカゲコロニー オープニング v4
+   規律(前版の反省):
+     ・線で描かない。すべて「塗りの塊」で構成する。
+     ・物体に陰影グラデを乗せない(立体化の元)。空だけは面として階調可。
+     ・奥行きは値(明度)の差と重なりで作る。手前ほど暗い。
+   ================================================================== */
+const cv=document.getElementById('c'), x=cv.getContext('2d');
+const W=1280,H=720;
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const cl=(v,a,b)=>v<a?a:v>b?b:v;
+const ease=t=>{t=cl(t,0,1);return t*t*(3-2*t);};
+const lerp=(a,b,t)=>a+(b-a)*t;
+function hash(a,b){let h=(a*374761393+b*668265263)^(a<<7);h=(h^(h>>13))*1274126177;return((h^(h>>16))>>>0)/4294967295;}
+
+/* ---- 塗りヘルパ ---- */
+function rect(x0,y0,w,h,c){x.fillStyle=c;x.fillRect(x0,y0,w,h);}
+function skyBands(cols){                     // 空=面の階調(物体には使わない)
+  const g=x.createLinearGradient(0,0,0,H*.8);
+  cols.forEach((c,i)=>g.addColorStop(i/(cols.length-1),c));
+  x.fillStyle=g;x.fillRect(0,0,W,H);
+}
+function poly(pts,c){x.fillStyle=c;x.beginPath();x.moveTo(pts[0][0],pts[0][1]);
+  for(let i=1;i<pts.length;i++)x.lineTo(pts[i][0],pts[i][1]);x.closePath();x.fill();}
+/* 塗りの丘陵(なだらか・塊) */
+function hill(y,amp,seed,col,w){
+  x.fillStyle=col;x.beginPath();x.moveTo(-40,H+40);x.lineTo(-40,y);
+  const st=w||210;
+  for(let i=-40;i<=W+80;i+=st){
+    const n=hash(seed,Math.floor(i/st)), n2=hash(seed+7,Math.floor(i/st));
+    x.quadraticCurveTo(i+st*.5, y-amp*(.35+n*.9), i+st, y-amp*(.1+n2*.35));
+  }
+  x.lineTo(W+40,H+40);x.closePath();x.fill();
+}
+/* 塗りの環(輪郭線でなく面) */
+function ringFill(cx,cy,r0,r1,a0,a1,col){
+  x.fillStyle=col;x.beginPath();
+  x.arc(cx,cy,r1,a0,a1);x.arc(cx,cy,r0,a1,a0,true);
+  x.closePath();x.fill();
+}
+/* 塗りの円盤(影は面で割る) */
+function disc(cx,cy,r,col,shade,ang){
+  x.fillStyle=col;x.beginPath();x.arc(cx,cy,r,0,6.2832);x.fill();
+  if(shade){x.fillStyle=shade;x.beginPath();
+    x.arc(cx,cy,r,(ang||0)-1.35,(ang||0)+1.35);x.closePath();x.fill();}
+}
+
+/* ==================================================================
+   トカゲ(塗りのシルエット・曲線でよい形を作る)
+   s=胴長。原点=前脚あたりの接地点。dir=1で右向き。
+   ================================================================== */
+function lizard(cx,cy,s,dir,col,o){
+  o=o||{};
+  x.save();x.translate(cx,cy);x.scale(dir*s,s);
+  if(o.up)x.rotate(-o.up*.05);
+  /* 奥の脚 */
+  if(o.legs!==false){
+    poly([[-.62,-.16],[-.44,-.16],[-.30,.06],[-.50,.06]],o.dark||col);
+    poly([[.30,-.14],[.48,-.14],[.60,.06],[.40,.06]],o.dark||col);
+  }
+  /* 本体(頭→背→尾→腹→顎) */
+  x.fillStyle=col;x.beginPath();
+  x.moveTo(1.34,-.30);                                   // 鼻先
+  x.quadraticCurveTo(1.16,-.52,.86,-.50);                // 頭上
+  x.quadraticCurveTo(.66,-.48,.56,-.40);                 // 首
+  x.quadraticCurveTo(.20,-.60,-.28,-.56);                // 背
+  x.quadraticCurveTo(-.62,-.53,-.80,-.44);               // 腰
+  x.quadraticCurveTo(-1.50,-.30,-2.36,-.22);             // 尾(上)
+  x.quadraticCurveTo(-1.55,-.16,-.84,-.24);              // 尾(下)
+  x.quadraticCurveTo(-.60,-.18,-.42,-.12);               // 後脚付根
+  x.quadraticCurveTo(-.05,-.02,.34,-.10);                // 腹
+  x.quadraticCurveTo(.60,-.16,.78,-.20);
+  x.quadraticCurveTo(1.02,-.14,1.34,-.30);               // 顎
+  x.closePath();x.fill();
+  /* 手前の脚 */
+  if(o.legs!==false){
+    poly([[-.52,-.24],[-.30,-.24],[-.16,.06],[-.40,.06]],col);
+    poly([[.40,-.22],[.62,-.22],[.74,.06],[.50,.06]],col);
+  }
+  /* 背稜(塊) */
+  if(o.crest!==false){
+    x.fillStyle=o.dark||col;
+    for(let i=0;i<7;i++){const t=i/6, px=lerp(-.70,.50,t), py=lerp(-.50,-.58,Math.sin(t*3.14));
+      poly([[px-.06,py+.03],[px,py-.10],[px+.06,py+.03]],o.dark||col);}
+  }
+  /* 腹の面(明るい塊) */
+  if(o.belly){x.fillStyle=o.belly;x.beginPath();
+    x.moveTo(-.40,-.14);x.quadraticCurveTo(.10,-.02,.62,-.16);
+    x.quadraticCurveTo(.10,-.10,-.40,-.14);x.closePath();x.fill();}
+  /* 眼(塗りの点) */
+  if(o.eye){x.fillStyle=o.eye;x.beginPath();x.ellipse(1.02,-.40,.075,.062,0,0,6.29);x.fill();
+    if(o.pupil){x.fillStyle=o.pupil;x.beginPath();x.ellipse(1.03,-.40,.026,.052,0,0,6.29);x.fill();}}
+  /* 徴(特性) */
+  if(o.mark){x.fillStyle=o.mark;
+    poly([[-.05,-.62],[.14,-.62],[.14,-.46],[-.05,-.46]],o.mark);}
+  x.restore();
+}
+
+function caption(txt,alpha,y){
+  if(alpha<=0)return;
+  x.save();x.globalAlpha=alpha;x.textAlign='center';
+  x.font='600 24px "Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif';
+  x.fillStyle='#efe6d4';x.fillText(txt,W/2,y||H-88);x.restore();
+}
+function bars(){rect(0,0,W,52,'#07090d');rect(0,H-52,W,52,'#07090d');}
+function grain(t){x.globalAlpha=.045;
+  for(let i=0;i<300;i++){const gi=Math.floor(t*11)+i;
+    x.fillStyle=hash(gi,7)>.5?'#fff':'#000';x.fillRect(hash(gi,1)*W,hash(gi,2)*H,2,2);}
+  x.globalAlpha=1;}
+
+/* ==================================================================
+   ① 0.0–1.7  故郷の崩壊
+   ================================================================== */
+function b1(t,a){
+  x.save();x.globalAlpha=a;
+  skyBands(['#5c1626','#8d2430','#c04a3a','#3a1220']);
+  /* 煙の塊(円の重なり) */
+  x.fillStyle='#2a1018';
+  for(let i=0;i<9;i++){const px=W*(.05+i*.12), py=H*(.16+hash(i,1)*.16), r=H*(.09+hash(i,2)*.10);
+    x.beginPath();x.arc(px,py,r*(0.7+cl(t,0,1)*.5),0,6.29);x.fill();}
+  x.fillStyle='#3d1620';
+  for(let i=0;i<7;i++){const px=W*(.12+i*.14), py=H*(.30+hash(i,4)*.10), r=H*(.07+hash(i,5)*.08);
+    x.beginPath();x.arc(px,py,r*(0.7+cl(t,0,1)*.5),0,6.29);x.fill();}
+  /* 侵食=地から立つ黒い塊 */
+  const gr=ease(cl(t/1.2,0,1));
+  x.fillStyle='#1a0a10';
+  for(let i=0;i<11;i++){const px=W*(.02+i*.095), hgt=H*(.10+hash(i,3)*.26)*gr;
+    poly([[px,H*.66],[px+W*.045,H*.66-hgt],[px+W*.075,H*.66]],'#1a0a10');}
+  /* 地層 */
+  hill(H*.68,54,3,'#37131e',260);
+  hill(H*.79,42,11,'#1d0b12',210);
+  /* 逃げる群れ(手前=最暗) */
+  const run=ease(cl(t/1.5,0,1));
+  [[.30,.90,66],[.44,.955,52],[.58,.905,60],[.72,.96,46],[.86,.915,54]].forEach(([px,py,s])=>{
+    lizard(W*px-run*W*.12,H*py,s,-1,'#0d0509',{eye:'#c8384a',crest:true});
+  });
+  bars();
+  caption('故郷は、内側から喰われた。',cl((t-.35)/.4,0,1)*cl((1.62-t)/.3,0,1));
+  x.restore();
+}
+
+/* ==================================================================
+   ② 1.6–3.1  脱出
+   ================================================================== */
+function b2(t,a){
+  x.save();x.globalAlpha=a;
+  skyBands(['#101a2c','#1d2f47','#3d5570','#20161c']);
+  /* 遠い惑星の輪郭(塊) */
+  disc(W*.82,H*.20,86,'#2a3d55','#1d2c3e',2.2);
+  /* 上昇するロケット */
+  const up=ease(cl(t/1.05,0,1));
+  const rx=W*.46, ry=lerp(H*.70,-H*.22,up*up), s=lerp(1,.72,up);
+  /* 炎(塗りの塊) */
+  const fl=1+.28*Math.sin(t*24);
+  x.save();x.translate(rx,ry);x.scale(s,s);
+  poly([[-30,58],[30,58],[16,58+92*fl],[0,58+52*fl],[-18,58+108*fl]],'#e0a83c');
+  poly([[-16,58],[16,58],[6,58+56*fl],[-8,58+74*fl]],'#f6e2b4');
+  /* 機体 */
+  x.fillStyle='#cfc7b4';x.beginPath();
+  x.moveTo(0,-118);x.quadraticCurveTo(38,-40,36,58);x.lineTo(-36,58);
+  x.quadraticCurveTo(-38,-40,0,-118);x.closePath();x.fill();
+  poly([[0,-118],[38,-40],[36,58],[4,58],[4,-118]],'#9a9382');
+  poly([[36,26],[84,74],[36,58]],'#c8384a');
+  poly([[-36,26],[-84,74],[-36,58]],'#8d2430');
+  x.fillStyle='#2e4a63';x.beginPath();x.ellipse(0,-52,17,20,0,0,6.29);x.fill();
+  x.restore();
+  /* 排煙の塊 */
+  if(up<1){x.save();x.globalAlpha=a*(1-up)*.85;x.fillStyle='#5b5348';
+    for(let i=0;i<7;i++){const p=i/7;
+      x.beginPath();x.arc(rx+Math.sin(i*2.3)*(30+p*90),ry+120*s+p*190,26+p*62,0,6.29);x.fill();}
+    x.restore();}
+  /* 見送る群れ(手前) */
+  hill(H*.84,40,5,'#0f1720',240);
+  [[.14,68],[.26,54],[.84,62],[.94,48]].forEach(([px,s2])=>{
+    lizard(W*px,H*.965,s2,px<.5?1:-1,'#080b10',{eye:'#e0a83c',up:1});
+  });
+  bars();
+  caption('積んだのは、科学だけだった。',cl((t-.3)/.4,0,1)*cl((1.4-t)/.3,0,1));
+  x.restore();
+}
+
+/* ==================================================================
+   ③ 3.0–4.7  十の星
+   ================================================================== */
+const PL=[
+  ['#c9a06a','#8a6a3e'],['#3fb6c8','#256b78'],['#6fae62','#3d6b3a'],['#b98a3c','#7a5a22'],
+  ['#d4562f','#8a3419'],['#3f8f5e','#245a38'],['#5fb9a8','#337a6c'],['#9fc4de','#5d84a0'],
+  ['#8a97a4','#525d68'],['#d8b45f','#8f7233']
+];
+function b3(t,a){
+  x.save();x.globalAlpha=a;
+  rect(0,0,W,H,'#080d15');
+  for(let i=0;i<70;i++){x.globalAlpha=a*(.2+hash(i,5)*.5);x.fillStyle='#cfd6e0';
+    x.fillRect(hash(i,1)*W,hash(i,2)*H,2,2);}
+  x.globalAlpha=a;
+  /* 星々が奥から手前へ並ぶ(大小と値で距離) */
+  PL.forEach((p,i)=>{
+    const ap=ease(cl((t-.08-i*.075)/.3,0,1)); if(ap<=0)return;
+    const u=i/9;
+    const px=lerp(W*.12,W*.90,u)+Math.sin(i*2.1)*22;
+    const py=lerp(H*.30,H*.66,Math.abs(Math.sin(i*1.7)))+Math.cos(i*1.3)*40;
+    const r=lerp(26,58,hash(i,9));
+    x.save();x.globalAlpha=a*ap;
+    disc(px,py,r,p[0],p[1],1.9+i*.3);
+    x.restore();
+  });
+  /* 航路=塗りの帯 */
+  const pa=ease(cl((t-.65)/.6,0,1));
+  if(pa>0){x.save();x.globalAlpha=a*pa*.85;
+    x.fillStyle='#e0a83c';x.beginPath();
+    x.moveTo(W*.06,H*.80);x.quadraticCurveTo(W*.45,H*.60,W*.94,H*.30);
+    x.quadraticCurveTo(W*.45,H*.66,W*.06,H*.85);x.closePath();x.fill();x.restore();}
+  /* 船(小さな塊) */
+  const sp=ease(cl(t/1.4,0,1));
+  const sx=lerp(W*.10,W*.86,sp), sy=lerp(H*.82,H*.35,sp*sp);
+  x.save();x.translate(sx,sy);x.rotate(-.5);
+  poly([[0,-16],[7,4],[-7,4]],'#efe6d4');
+  poly([[-5,4],[5,4],[0,20]],'#e0a83c');
+  x.restore();
+  bars();
+  caption('十の星を巡る旅が、始まった。',cl((t-.6)/.4,0,1)*cl((1.62-t)/.3,0,1));
+  x.restore();
+}
+
+/* ==================================================================
+   ④ 4.6–6.1  純血 — 星ごとに二種
+   ================================================================== */
+function b4(t,a){
+  x.save();x.globalAlpha=a;
+  skyBands(['#0f2233','#1b3b52','#2f6274','#123040']);
+  disc(W*.5,H*.30,120,'#2a5468','#1c3c4d',2.3);          // その星の月
+  hill(H*.66,44,4,'#123243',260);
+  hill(H*.78,52,12,'#0b1e2a',220);
+  /* 二種(色で違う・塗りのみ) */
+  const step=ease(cl(t/.8,0,1));
+  lizard(lerp(W*.16,W*.34,step),H*.90,116,1,'#d8b25f',
+    {dark:'#a07f38',belly:'#eed99a',eye:'#1a1208',crest:true});
+  lizard(lerp(W*.84,W*.66,step),H*.90,116,-1,'#7fc0a8',
+    {dark:'#4a8874',belly:'#b9e2d2',eye:'#0d1a16',crest:true});
+  /* 二種の間の境(塗りの柱) */
+  x.save();x.globalAlpha=a*cl((t-.6)/.4,0,1)*.5;
+  rect(W*.497,H*.36,6,H*.52,'#c8384a');x.restore();
+  bars();
+  caption('星ごとに、二種だけが生きる。',cl((t-.4)/.4,0,1)*cl((1.42-t)/.3,0,1));
+  x.restore();
+}
+
+/* ==================================================================
+   ⑤ 6.0–7.7  四重スリットと賢者の石
+   ================================================================== */
+function b5(t,a){
+  x.save();x.globalAlpha=a;
+  rect(0,0,W,H,'#0a0c12');
+  rect(0,H*.62,W,H*.38,'#121620');
+  const cx=W*.5, cy=H*.44;
+  /* 四重の環(塗りの帯・切れ目あり) */
+  const R=[[196,222],[152,176],[110,132],[70,90]];
+  const SP=[.30,-.44,.62,-.88];
+  R.forEach((rr,i)=>{
+    const ap=ease(cl((t-i*.12)/.36,0,1)); if(ap<=0)return;
+    x.save();x.globalAlpha=a*ap;
+    const g=t*SP[i], gap=.34;
+    ringFill(cx,cy,rr[0],rr[1],g+gap,g+6.2832-gap,i===0?'#e0a83c':'#b9b2a2');
+    x.restore();
+  });
+  /* 落ちる球 */
+  const drop=ease(cl((t-.5)/.7,0,1));
+  if(drop>0&&drop<1){x.fillStyle='#efe6d4';
+    x.beginPath();x.arc(cx,lerp(cy-250,cy,drop),8,0,6.29);x.fill();}
+  /* 賢者の石(塗りの菱形+放射の三角) */
+  const born=ease(cl((t-1.15)/.45,0,1));
+  if(born>0){
+    x.save();x.globalAlpha=a*born;
+    for(let i=0;i<10;i++){const ang=i/10*6.2832+t*.25;
+      const c=Math.cos(ang),s2=Math.sin(ang);
+      poly([[cx+c*44,cy+s2*44],[cx+c*140*born-s2*10,cy+s2*140*born+c*10],
+            [cx+c*140*born+s2*10,cy+s2*140*born-c*10]],'rgba(200,56,74,.35)');}
+    const s3=34*born;
+    poly([[cx,cy-s3],[cx+s3*.66,cy],[cx,cy+s3],[cx-s3*.66,cy]],'#c8384a');
+    poly([[cx,cy-s3],[cx+s3*.66,cy],[cx,cy],[cx-s3*.66,cy]],'#e8697a');
+    x.restore();
+  }
+  /* 見上げる二匹(手前=最暗) */
+  lizard(W*.14,H*.96,92,1,'#0b0e15',{eye:'#c8384a',up:1});
+  lizard(W*.88,H*.96,80,-1,'#0b0e15',{eye:'#c8384a',up:1});
+  bars();
+  caption('賢者の石は、四重の壁の先にある。',cl((t-.35)/.4,0,1)*cl((1.62-t)/.3,0,1));
+  x.restore();
+}
+
+/* ==================================================================
+   ⑥ 7.6–9.2  虹と個性(塗りの帯)
+   ================================================================== */
+function b6(t,a){
+  x.save();x.globalAlpha=a;
+  skyBands(['#16202e','#22344a','#3a5570','#16202e']);
+  /* 虹=太い塗りの帯 */
+  const RB=['#d95f5f','#e0a83c','#ecd764','#6fae62','#4f9ed0','#6f68c8','#a95fc0'];
+  const ra=ease(cl(t/.6,0,1));
+  x.save();x.globalAlpha=a*ra*.92;
+  RB.forEach((c,i)=>{
+    const r1=430-i*30, r0=r1-30;
+    ringFill(W*.5,H*1.02,r0,r1,Math.PI*1.02,Math.PI*1.98,c);
+  });
+  x.restore();
+  hill(H*.74,50,6,'#1b2a1e',250);
+  hill(H*.86,44,14,'#0e170f',210);
+  /* 個性を宿した個体(色と徴) */
+  const set=[['#d8b25f','#c8384a'],['#7fc0a8','#e0a83c'],['#c9a06a','#6f68c8'],['#b0705a','#6fae62']];
+  [[.18,.955,88,1],[.40,.985,74,1],[.62,.96,82,-1],[.84,.99,70,-1]].forEach(([px,py,s,d],i)=>{
+    const ap=ease(cl((t-.4-i*.10)/.32,0,1)); if(ap<=0)return;
+    x.save();x.globalAlpha=a*ap;
+    lizard(W*px,H*py,s,d,set[i][0],{dark:'#00000033',eye:'#14100a',mark:set[i][1],crest:true});
+    x.restore();
+  });
+  bars();
+  caption('虹は生命の祝祭。石は、個性の錬成。',cl((t-.55)/.4,0,1)*cl((1.5-t)/.3,0,1));
+  x.restore();
+}
+
+/* ==================================================================
+   ⑦ 9.1–10.7  コロニー
+   ================================================================== */
+function b7(t,a){
+  x.save();x.globalAlpha=a;
+  skyBands(['#101c2c','#1d3550','#31567a','#101c2c']);
+  disc(W*.78,H*.20,64,'#e8dcb8',null,0);                  // 月
+  /* 都市の塊 */
+  for(let i=0;i<15;i++){const bw=W/15, bh=H*(.07+hash(i,1)*.16);
+    rect(i*bw,H*.46-bh,bw-6,bh,'#16283a');
+    for(let k=0;k<3;k++)for(let j=0;j<2;j++)
+      if(hash(i*3+k,j)>.45)rect(i*bw+12+j*22,H*.46-bh+14+k*20,9,9,'#e0a83c');}
+  /* 地面の層 */
+  hill(H*.58,34,5,'#1e3a2c',260);
+  rect(0,H*.60,W,H*.40,'#4a3a28');
+  /* 水場(塗りの楕円) */
+  x.fillStyle='#2f5a70';x.beginPath();x.ellipse(W*.26,H*.80,168,44,0,0,6.29);x.fill();
+  x.fillStyle='#3d7288';x.beginPath();x.ellipse(W*.26,H*.775,140,30,0,0,6.29);x.fill();
+  /* 巣(塊) */
+  x.fillStyle='#6b5334';x.beginPath();x.ellipse(W*.74,H*.72,116,44,0,Math.PI,0);x.fill();
+  x.fillStyle='#0d0a06';x.beginPath();x.ellipse(W*.74,H*.72,34,18,0,Math.PI,0);x.fill();
+  /* 転送ビーム(塗りの台形) */
+  poly([[W*.50,H*.30],[W*.545,H*.30],[W*.60,H*.66],[W*.44,H*.66]],'rgba(159,196,222,.20)');
+  /* コロニー */
+  const many=[[.10,.90,62,1],[.20,.955,52,1],[.32,.885,68,-1],[.43,.965,48,1],
+              [.55,.90,60,-1],[.66,.96,54,1],[.80,.89,66,-1],[.90,.955,50,-1]];
+  const pal=[['#d8b25f','#c8384a'],['#7fc0a8',null],['#c9a06a','#6f68c8'],['#b0705a',null]];
+  many.forEach(([px,py,s,d],i)=>{
+    const ap=ease(cl((t-i*.05)/.28,0,1)); if(ap<=0)return;
+    x.save();x.globalAlpha=a*ap;
+    lizard(W*px,H*py,s,d,pal[i%4][0],{dark:'#00000030',eye:'#14100a',mark:pal[i%4][1],crest:true});
+    x.restore();
+  });
+  bars();
+  caption('あとは、育てて、眺めるだけ。',cl((t-.6)/.4,0,1)*cl((1.5-t)/.3,0,1));
+  x.restore();
+}
+
+/* ==================================================================
+   ⑧ 10.6–12.0  題
+   ================================================================== */
+function b8(t,a){
+  x.save();x.globalAlpha=a;
+  skyBands(['#0a1018','#0e1622','#141f2c','#0a1018']);
+  hill(H*.80,44,5,'#111c18',250);
+  const ap=ease(cl(t/.6,0,1));
+  x.save();x.globalAlpha=a*ap;x.textAlign='center';
+  x.font='700 70px "Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif';
+  x.fillStyle='#e8c877';x.letterSpacing='16px';
+  x.fillText('トカゲコロニー',W/2,H*.46);x.letterSpacing='0px';
+  rect(W*.37,H*.495,W*.26,3,'#e0a83c');
+  x.font='500 16px ui-monospace,Consolas,monospace';
+  x.fillStyle='rgba(224,168,60,.62)';x.letterSpacing='10px';
+  x.fillText('LIZARD  COLONY',W/2,H*.545);x.letterSpacing='0px';
+  x.restore();
+  lizard(W*.5,H*.87,96,1,'#0b1210',{eye:'#e0a83c',crest:true});
+  bars();
+  x.restore();
+}
+
+/* ---- timeline ---- */
+const BEATS=[
+  {f:b1,s:0.00,e:1.70},{f:b2,s:1.60,e:3.10},{f:b3,s:3.00,e:4.70},
+  {f:b4,s:4.60,e:6.10},{f:b5,s:6.00,e:7.70},{f:b6,s:7.60,e:9.20},
+  {f:b7,s:9.10,e:10.70},{f:b8,s:10.60,e:12.00},
+];
+const FADE=0.18, TOTAL=12.0;
+let T0=null, ended=false;
+function frame(now){
+  if(T0===null)T0=now;
+  let t=(now-T0)/1000;
+  if(RM)t=TOTAL-.5;
+  if(t>TOTAL){t=TOTAL;ended=true;}
+  x.setTransform(1,0,0,1,0,0);
+  rect(0,0,W,H,'#07090d');
+  BEATS.forEach(b=>{
+    if(t<b.s-FADE||t>b.e+FADE)return;
+    let al=1;
+    if(t<b.s)al=ease((t-(b.s-FADE))/FADE);
+    else if(t>b.e)al=1-ease((t-b.e)/FADE);
+    if(al>0){x.save();b.f(t-b.s,al);x.restore();}
+  });
+  x.setTransform(1,0,0,1,0,0);
+  grain(t);
+  if(t<.3){x.fillStyle=`rgba(7,9,13,${1-ease(t/.3)})`;x.fillRect(0,0,W,H);}
+  if(!RM)requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+document.getElementById('replay').onclick=()=>{T0=null;ended=false;};
+document.getElementById('skip').onclick=()=>{T0=performance.now()-(TOTAL-1.3)*1000;};
+cv.onclick=()=>{if(!ended)T0=performance.now()-(TOTAL-1.3)*1000;};
+</script>
+</body>
+</html>
