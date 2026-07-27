@@ -285,6 +285,49 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
       const ssGate = () => { if (location.hash === "#slitskin") { buildSS(); console.log("[slitskin] 意匠比較ビューア表示"); } else stopSS(); };
       window.addEventListener("hashchange", ssGate);
       if (location.hash === "#slitskin") setTimeout(ssGate, 400);
+
+    // dev支援(W1・2026-07-27): 天候の検分(?tune=1#weather・読み取り専用)。
+    //   全10惑星の天候意匠を一覧し、クリックでその惑星の「最盛時刻」へ表示クロックを飛ばす=待たずに見られる。
+    //   触るのは表示クロック(Game._motClock=保存しない)と表示中の惑星のみ。経済・確率・セーブに非接触。
+    {
+      let wPanel = null;
+      const stopW = () => { if (wPanel) wPanel.remove(); wPanel = null; };
+      const buildW = () => {
+        stopW();
+        if (typeof Weather === "undefined") { console.warn("[weather] Weather 未読込"); return; }
+        const panel = document.createElement("div"); panel.id = "weather-view";
+        panel.style.cssText = "position:fixed;right:12px;top:12px;z-index:9999;background:rgba(10,12,16,.94);color:#e8dccb;font:12px/1.6 system-ui;padding:10px 12px;border-radius:6px;max-height:92vh;overflow:auto;min-width:300px;";
+        let html = "<b>天候の検分 (?tune=1#weather)</b><br><span style='opacity:.6'>行をクリック=その惑星の最盛時刻へ飛ぶ。#で閉じる</span><hr style='border-color:#333'>";
+        for (const st of STAGES) {
+          const d = Weather.def(st.id);
+          if (!d) { html += `<div style='opacity:.4'>${st.id} ${st.name} — 天候なし</div>`; continue; }
+          html += `<div data-sid='${st.id}' style='cursor:pointer;padding:2px 0'>${st.id} <b>${st.name}</b> — ${d.kind} <span style='opacity:.6'>(${d.shape}/n${d.n})</span></div>`;
+        }
+        html += "<hr style='border-color:#333'><div id='wv-now' style='opacity:.75'></div>";
+        panel.innerHTML = html;
+        panel.onclick = (e) => {
+          const row = e.target.closest("[data-sid]"); if (!row) return;
+          const sid = Number(row.dataset.sid);
+          Game.state.rank = Math.max(Game.state.rank, 99); Game.state.stageSel = sid;
+          if (typeof Render !== "undefined") Render._bgCache = null;
+          for (let t = 0; t < 20000; t += 0.5) { const w = Weather.now(sid, t); if (w.on && w.k > 0.95) { Game._motClock = t; break; } }
+        };
+        document.body.appendChild(panel); wPanel = panel;
+        const tick = () => {
+          if (!wPanel) return;
+          const w = (typeof Game !== "undefined") ? Weather.now(Game.currentStage().id, Game._motClock || 0) : null;
+          const el = document.getElementById("wv-now");
+          if (el) el.textContent = w && w.on
+            ? `現在: ${w.def.kind} / 相=${w.phase} / 強度=${w.k.toFixed(2)} / 粒子=${(Render && Render._wxParts) || 0}`
+            : "現在: 天候なし(周期待ち)";
+          requestAnimationFrame(tick);
+        };
+        tick();
+      };
+      const wGate = () => { if (location.hash === "#weather") { buildW(); console.log("[weather] 検分パネル表示"); } else stopW(); };
+      window.addEventListener("hashchange", wGate);
+      if (location.hash === "#weather") setTimeout(wGate, 400);
+    }
     }
   }
 }
