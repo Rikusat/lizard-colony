@@ -33,29 +33,70 @@ Object.assign(UI, {
     this._slitFx.push({ kind: "win", t: 1.1, ttl: 1.1 });
   },
 
-  // 切れ目付きリングを「線のみ」で(ギャップ=スリットを飛ばして描く)。θ: 0=右/90=上、y上向き。
-  // sides省略/0=円弧(原型)。sides>=3=多角形枠: 角度で outline をサンプルし、各角度の半径を多角形式で算出。
-  //   頂点=rr(物理半径radii[i]に接する)/辺=rr*cos(π/sides)へ僅かに窪む。切れ目は円弧と同じく「角度」で飛ばす=物理の角度窓と厳密一致。
-  //   枠は baseDeg(=そのリングの現在の切れ目角=独立回転)に追従して丸ごと回る=頂点が回転を可視化=「回転しあう幾何」。
-  _slitRing(ctx, cx, cy, rr, baseDeg, halfDeg, stroke, lw, sides) {
-    const start = baseDeg + halfDeg, span = 360 - 2 * halfDeg;
-    const poly = sides && sides >= 3;
-    const steps = poly ? Math.max(48, Math.round(span / 2)) : Math.max(20, Math.round(span / 5));
-    const seg = poly ? (2 * Math.PI / sides) : 0;
-    const kfac = poly ? Math.cos(Math.PI / sides) : 1;      // 辺の窪み率(apothem/circumradius)
-    const rot = baseDeg * Math.PI / 180;                    // 枠の向き=切れ目角に追従(枠ごと回転)
-    ctx.beginPath();
-    for (let k = 0; k <= steps; k++) {
-      const th = (start + span * k / steps) * Math.PI / 180;
-      let r = rr;
-      if (poly) {
-        const a = ((th - rot) % seg + seg) % seg - seg / 2; // -seg/2..seg/2(辺内の位置)
-        r = rr * kfac / Math.cos(a);                        // 頂点=rr/辺=rr*kfac
-      }
-      const x = cx + r * Math.cos(th), y = cy - r * Math.sin(th);
-      k === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  // 姿形の半径変調(語彙A環/B多角/D有機)。thDeg=描く角度・rotDeg=枠の向き(=そのリングの切れ目角=独立回転に追従)。
+  //   物理は「角度窓」判定(slit.js: 固定半径radii[i]跨ぎ時に角度のみ照合)=形状は視覚的に自由。半径変調は意匠のみで確率に非接触。
+  //   B多角: 頂点が物理半径rrに接し、辺はrr*cos(π/sides)へ窪む。D有機: rrの周りに小振幅で揺らぐ(半径が視覚上ズレない様、振幅は数%に制限)。
+  _slitShapeR(sk, rr, thDeg, rotDeg) {
+    const k = sk && sk.shape;
+    if (k === "poly" && sk.sides >= 3) {
+      const seg = 360 / sk.sides;
+      const a = (((thDeg - rotDeg) % seg + seg) % seg - seg / 2) * Math.PI / 180; // 辺内の位置
+      return rr * Math.cos(Math.PI / sk.sides) / Math.cos(a);
     }
-    ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke();
+    if (k === "organic") {                                   // 葉脈/蔓=2波の重ね(不規則だが決定論・角度の純関数)
+      const t = (thDeg - rotDeg) * Math.PI / 180;
+      const a1 = sk.wobAmp != null ? sk.wobAmp : 0.03, l1 = sk.wobLobes || 7;
+      const a2 = sk.wobAmp2 != null ? sk.wobAmp2 : 0.012, l2 = sk.wobLobes2 || 17;
+      return rr * (1 + a1 * Math.sin(l1 * t) + a2 * Math.sin(l2 * t + 1.7));
+    }
+    return rr;                                               // A環(原型)/C分節/E二重/F標識=半径は物理そのまま
+  },
+
+  // 切れ目付きリングを「線のみ」で(ギャップ=スリットを飛ばして描く)。θ: 0=右/90=上、y上向き。
+  // 全語彙で切れ目は「角度」で飛ばす=物理の角度窓と厳密一致(見た目の隙間=粒子が通れる角度)。
+  //   A環(既定)=円弧 / B多角=多角形枠 / C分節=短いsegmentの列(石列・殻片) / D有機=揺らぐ曲線(葉脈・蔓)
+  //   E二重=同じ角度窓を持つ内外2本 / F標識=警戒縞(破線)の枠。
+  //   C分節の「粒の隙間」は物理の切れ目より必ず十分小さく保つ(segGapMaxDeg上限)=切れ目の位置が曖昧にならない。
+  _slitRing(ctx, cx, cy, rr, baseDeg, halfDeg, stroke, lw, sk) {
+    sk = sk || {};
+    const kind = sk.shape || "ring";
+    const start = baseDeg + halfDeg, span = 360 - 2 * halfDeg;
+    const curved = (kind === "poly" || kind === "organic");
+    ctx.strokeStyle = stroke; ctx.lineWidth = lw * (sk.lwMul || 1);
+    // 角度[a0,a1]の弧を1本描く(半径は姿形で変調)
+    const arc = (a0, a1, rmul) => {
+      const sp = a1 - a0, steps = Math.max(curved ? 8 : 2, Math.round(sp / (curved ? 2 : 5)));
+      ctx.beginPath();
+      for (let k = 0; k <= steps; k++) {
+        const thd = a0 + sp * k / steps;
+        const r = this._slitShapeR(sk, rr, thd, baseDeg) * rmul;
+        const th = thd * Math.PI / 180;
+        const x = cx + r * Math.cos(th), y = cy - r * Math.sin(th);
+        k === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    };
+    if (kind === "segment") {                                 // C分節: span を等分し各セルの一部だけ描く(隙間=粒の流れ)
+      const n = Math.max(4, Math.round(span / (sk.segStepDeg || 14)));
+      const cell = span / n;
+      const gap = Math.min(cell * (sk.segGapFrac != null ? sk.segGapFrac : 0.24), sk.segGapMaxDeg || 4);
+      ctx.lineCap = sk.segCap || "butt";
+      for (let s = 0; s < n; s++) arc(start + s * cell + gap / 2, start + (s + 1) * cell - gap / 2, 1);
+      ctx.lineCap = "butt";
+      return;
+    }
+    if (kind === "double") {                                  // E二重: 同じ角度窓の内外2本(波紋の厚み)
+      const sep = sk.dblSep != null ? sk.dblSep : 0.035;
+      arc(start, start + span, 1 - sep); arc(start, start + span, 1 + sep);
+      return;
+    }
+    if (kind === "sign") {                                    // F標識: 警戒縞(破線)の枠
+      ctx.save(); ctx.setLineDash(sk.dashPx || [7, 5]);
+      arc(start, start + span, 1);
+      ctx.restore();
+      return;
+    }
+    arc(start, start + span, 1);                              // A環 / B多角 / D有機
   },
 
   // 惑星別の意匠パレット(骨格・確率は不変=色のみ)。現惑星のCFG.slitSkinByStageを既定にマージ。読み取り専用。
@@ -108,16 +149,29 @@ Object.assign(UI, {
     const lw = Math.max(1.0, 1.15 * sc);
     for (let i = 0; i < N; i++) {
       const sa = sang[i] * 180 / Math.PI;
-      this._slitRing(ctx, cx, cy, radii[i] * R, sa, half[i], rc(sk.rail, baseA), lw, (sk.shape === "poly" ? sk.sides : 0));
+      this._slitRing(ctx, cx, cy, radii[i] * R, sa, half[i], rc(sk.rail, baseA), lw, sk);
     }
-    // 中心=回廊の終点(奇跡の到達点)。ごく小さく静かに
-    ctx.beginPath(); ctx.arc(cx, cy, Math.max(1.6, R * 0.028), 0, 7);
-    ctx.fillStyle = rc(sk.center, 0.4 + align * 0.4); ctx.fill();
+    // 中心=回廊の終点(奇跡の到達点)。ごく小さく静かに。F標識の惑星のみ三葉(放射線標識)で飾る
+    const cr = Math.max(1.6, R * 0.028);
+    ctx.fillStyle = rc(sk.center, 0.4 + align * 0.4);
+    if (sk.centerShape === "trefoil") {                       // 三葉=中心の周りに3枚の扇。最外リングの回転に追従して回る
+      const rot0 = sang[0];
+      for (let t = 0; t < 3; t++) {
+        const a0 = rot0 + t * 2 * Math.PI / 3 - 0.42, a1 = a0 + 0.84;
+        ctx.beginPath(); ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, cr * 2.6, -a0, -a1, true); ctx.closePath(); ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(cx, cy, cr * 0.9, 0, 7); ctx.fill();
+    } else {
+      ctx.beginPath(); ctx.arc(cx, cy, cr, 0, 7); ctx.fill();
+    }
 
     // 張り付いた失敗の痕跡(内側=惜しいほど明るく大きく=静かな殿堂)。寿命は到達の深さ別(§④)。
     const now = (typeof Render !== "undefined") ? Render.time : 0;
     for (const s of Slit.stuck) {
-      const [x, y] = pt(s.r, s.theta);
+      // 痕跡は「弾かれた壁の上」に置く=姿形で変調した半径へ写像(多角形/有機でも痕が枠から浮かない=判定基準5 物理整合)
+      const sr = this._slitShapeR(sk, s.r, s.theta, (sang[s.ring] || 0) * 180 / Math.PI);
+      const [x, y] = pt(sr, s.theta);
       const depth = (s.ring + 1) / N;               // 0..1 内側ほど大
       const life0 = s.life0 || 6;
       let fade = Math.min(1, s.life / Math.min(1.5, life0 * 0.5)); // 消える前に薄く(短寿命でも見える)

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>四重スリット 姿形QA(切れ目=物理の角度窓 の一致証明)</title>
+<style>body{background:#12100f;color:#e8dccb;font:13px/1.6 system-ui;padding:16px}
+.ok{color:#8fd68f}.ng{color:#ff8f8f}h2{font-size:15px;margin:14px 0 6px}pre{white-space:pre-wrap}</style>
+<body>
+<h2>四重スリット 姿形QA — 実描画のピクセルから「見た目の隙間=物理の角度窓」を検証</h2>
+<pre id="out">実行中…</pre>
+<script src="js/data.js"></script>
+<script>var UI = {}; var Motion = { reduced: false };</script>
+<script src="js/ui/screens/slit.js"></script>
+<script>
+// 実描画(UI._slitRing)を1リングずつ描き、円周上のピクセルを走査して「線が不在の角度区間」を実測する。
+//   期待: 最大の不在区間 = 物理の切れ目 2*slitHalfDeg[i](= 粒子が通れる角度窓)と一致し、その中心 = 基準角。
+//   期待: それ以外の不在区間(分節の粒の隙間・標識の警戒縞)は物理の切れ目より十分小さい(曖昧にならない)。
+const L = [], P = (s, ok) => L.push((ok === undefined ? "" : (ok ? "  [PASS] " : "  [FAIL] ")) + s);
+let pass = 0, fail = 0;
+const chk = (cond, msg) => { cond ? pass++ : fail++; P(msg, !!cond); };
+
+const S = 900, cv = document.createElement("canvas"); cv.width = cv.height = S;
+const ctx = cv.getContext("2d");
+const cx = S / 2, cy = S / 2, R = S * 0.44;
+
+// 1リングを描いて、角度ごとに「その姿形の半径帯に線があるか」を判定 → 不在区間(度)の一覧を返す
+function gapsOf(sk, rr, baseDeg, halfDeg) {
+  ctx.clearRect(0, 0, S, S);
+  UI._slitRing(ctx, cx, cy, rr, baseDeg, halfDeg, "rgba(255,255,255,1)", 2.2, sk);
+  const img = ctx.getImageData(0, 0, S, S).data;
+  const lit = (x, y) => { const i = ((y | 0) * S + (x | 0)) * 4 + 3; return img[i] > 24; };
+  const step = 0.25, on = [];
+  for (let d = 0; d < 360; d += step) {
+    const th = d * Math.PI / 180;
+    const r0 = UI._slitShapeR(sk, rr, d, baseDeg);
+    let hit = false;
+    // 姿形の半径帯(±10%)を放射方向に走査。二重(E)は内外どちらでも可
+    for (let f = 0.88; f <= 1.12 && !hit; f += 0.006) {
+      const r = r0 * f;
+      if (lit(cx + r * Math.cos(th), cy - r * Math.sin(th))) hit = true;
+    }
+    on.push(hit);
+  }
+  const n = on.length, gaps = [];
+  let i0 = 0; while (i0 < n && !on[i0]) i0++;           // 線のある位置から走査開始(区間の分断を避ける)
+  if (i0 >= n) return [{ span: 360, mid: 0 }];
+  let run = 0;
+  for (let k = 1; k <= n; k++) {
+    const idx = (i0 + k) % n;
+    if (!on[idx]) run++;
+    else if (run) { const endD = ((i0 + k) % n) * step; gaps.push({ span: run * step, mid: (endD - run * step / 2 + 360) % 360 }); run = 0; }
+  }
+  return gaps.sort((a, b) => b.span - a.span);
+}
+
+const angDist = (a, b) => { let d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
+const def = CFG.slitSkinDefault, byStage = CFG.slitSkinByStage;
+const names = {}; STAGES.forEach((s) => names[s.id] = s.name);
+const cells = [["default", def]].concat(Object.keys(byStage).map(Number).sort((a, b) => a - b).map((id) => [names[id] + "(" + id + ")", Object.assign({}, def, byStage[id])]));
+
+for (const [label, sk] of cells) {
+  P("■ " + label + " shape=" + (sk.shape || "ring") + (sk.sides ? " sides=" + sk.sides : ""));
+  for (let i = 0; i < CFG.slitRings; i++) {
+    const half = CFG.slitHalfDeg[i], base = CFG.slitBaseAngleDeg + i * 37; // 基準角は任意(回転しても成立すること)
+    const rr = CFG.slitRadiif[i] * R;
+    const g = gapsOf(sk, rr, base, half);
+    const top = g[0] || { span: 0, mid: 0 }, second = g[1] || { span: 0 };
+    // ① 最大の不在区間 = 物理の切れ目 2*half(描画の離散化とlineWidth分の誤差を許容)
+    chk(Math.abs(top.span - 2 * half) <= 4, `ring${i} 切れ目の幅 実測${top.span.toFixed(1)}° = 物理2*half ${2 * half}°`);
+    // ② 切れ目の中心 = 物理の基準角(見た目の隙間が物理の通過角と同じ位置)
+    chk(angDist(top.mid, base) <= 3, `ring${i} 切れ目の中心 実測${top.mid.toFixed(1)}° = 物理の基準角 ${base}°`);
+    // ③ 他の隙間(分節の粒間/警戒縞)は物理の切れ目の半分未満=切れ目の位置が曖昧にならない
+    chk(second.span < top.span * 0.5, `ring${i} 次に大きい隙間 ${second.span.toFixed(1)}° < 切れ目${top.span.toFixed(1)}°の半分`);
+  }
+}
+P("");
+P(`=== 四重スリット姿形 QA: ${pass} PASS / ${fail} FAIL ===`);
+P(fail === 0 ? "すべてPASS(全10惑星+default×4リング: 見た目の隙間=物理の角度窓と一致・位置も一致・分節/標識の粒間は曖昧化しない)" : "要修正");
+document.getElementById("out").innerHTML = L.join("\n").replace(/\[PASS\]/g, '<span class="ok">[PASS]</span>').replace(/\[FAIL\]/g, '<span class="ng">[FAIL]</span>');
+document.title = (fail === 0 ? "ALLPASS " : "FAIL ") + pass + "/" + (pass + fail);
+</script>
+</body>

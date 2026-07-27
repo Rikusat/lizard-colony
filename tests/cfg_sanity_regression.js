@@ -31,22 +31,48 @@ console.log("== 1) CFGリテラルの重複キー検出(静的) ==");
     if (src[i] === "{") depth++;
     else if (src[i] === "}") { depth--; if (depth === 0) { end = i; break; } }
   }
-  const body = src.slice(start, end);
-  // 深さ1のキーのみ収集(ネストしたオブジェクトの内側キーは除外)
-  const keys = [];
-  let d = 0;
-  const lines = body.split("\n");
-  for (const line of lines) {
-    const opens = (line.match(/\{/g) || []).length, closes = (line.match(/\}/g) || []).length;
-    if (d === 1) {
-      const m = line.match(/^\s{2}([A-Za-z_$][\w$]*)\s*:/);
-      if (m) keys.push(m[1]);
+  const body = src.slice(start, end + 1);
+  // 全階層のオブジェクトスコープを字句解析して重複キーを検出。
+  //   旧版は深さ1のキーのみ見ており、ネストの重複(例: slitSkinByStage内で 6: を二重定義)を素通りさせた。
+  //   重複キーは「後勝ち」で実行時に無症状=テストでしか捕まえられないため、全階層に一般化する(§5ttt/§5uuuの教訓)。
+  const dup = [];
+  {
+    const stack = [];                       // {arr:bool, path:string, keys:Set}
+    let expectKey = false, pendingKey = null, lastKey = null;
+    const isIdent = (c) => /[A-Za-z0-9_$"'.\-]/.test(c);
+    for (let i = 0; i < body.length; i++) {
+      const c = body[i], n = body[i + 1];
+      if (c === "/" && n === "/") { while (i < body.length && body[i] !== "\n") i++; continue; }
+      if (c === "/" && n === "*") { i = body.indexOf("*/", i) + 1; continue; }
+      if (c === '"' || c === "'" || c === "`") {  // 文字列は丸ごと読み飛ばす(キー文字列はpendingKeyで拾う)
+        const q = c; let s = i + 1;
+        while (s < body.length && body[s] !== q) { if (body[s] === "\\") s++; s++; }
+        if (expectKey) pendingKey = body.slice(i + 1, s);
+        i = s; continue;
+      }
+      if (c === "{" || c === "[") {
+        const top = stack[stack.length - 1];
+        stack.push({ arr: c === "[", path: (top ? top.path + "." : "") + (lastKey || "CFG"), keys: new Set() });
+        expectKey = c === "{"; pendingKey = null; continue;
+      }
+      if (c === "}" || c === "]") { stack.pop(); expectKey = false; pendingKey = null; continue; }
+      const top = stack[stack.length - 1];
+      if (!top) continue;
+      if (c === ",") { expectKey = !top.arr; pendingKey = null; continue; }
+      if (!expectKey || top.arr) continue;
+      if (c === ":") {
+        if (pendingKey != null) {
+          if (top.keys.has(pendingKey)) dup.push(top.path + " → " + pendingKey);
+          top.keys.add(pendingKey); lastKey = pendingKey;
+        }
+        expectKey = false; pendingKey = null; continue;
+      }
+      if (isIdent(c)) { let s = i; while (s < body.length && isIdent(body[s])) s++; pendingKey = body.slice(i, s); i = s - 1; }
     }
-    d += opens - closes;
   }
-  const seen = new Set(), dup = [];
-  for (const k of keys) { if (seen.has(k)) dup.push(k); seen.add(k); }
-  check(`CFG直下キー ${keys.length}個に重複なし`, keys.length > 100 && dup.length === 0, "重複=[" + dup.join(",") + "]");
+  // 深さ1のキー数(規模の健全性=スキャナが空振りしていないことの担保)
+  const top1 = (body.match(/^\s{2}[A-Za-z_$][\w$]*\s*:/gm) || []).length;
+  check(`CFG全階層のキーに重複なし(直下${top1}個+ネスト全て)`, top1 > 100 && dup.length === 0, "重複=[" + dup.join(" / ") + "]");
 }
 
 console.log("== 2) dockStages写像+3) 宇宙港rocketStages無傷(実コード) ==");
@@ -73,9 +99,9 @@ console.log("== 2) dockStages写像+3) 宇宙港rocketStages無傷(実コード)
   vm.createContext(sandbox);
   let code = "";
   for (const f of ["js/data.js", "js/game.js", "js/render.js", "js/ui/screens/hqlab.js"]) code += fs.readFileSync(path.join(ROOT, f), "utf8") + "\n;\n";
-  code += "globalThis.__exp = { Game, CFG, UI };";
+  code += "globalThis.__exp = { Game, CFG, UI, STAGES };";
   vm.runInContext(code, sandbox, { filename: "concat.js" });
-  const { Game, CFG, UI } = sandbox.__exp;
+  const { Game, CFG, UI, STAGES } = sandbox.__exp;
 
   // R4-1(2026-07-25): dockStages写像はロケット構想撤廃で退役(git記録)。宇宙港rocketStagesの無傷監視は継続。
   check("dockStagesは退役済(未定義)", CFG.dockStages === undefined, JSON.stringify(CFG.dockStages));
@@ -107,6 +133,25 @@ console.log("== 2) dockStages写像+3) 宇宙港rocketStages無傷(実コード)
   let bonusOk = true, bonusV = null;
   try { bonusV = Game.researchBonus("hatch"); } catch (e) { bonusOk = false; }
   check("researchBonus: レシピ購入済みでもTypeErrorなし(eff無し研究=0)", bonusOk && typeof bonusV === "number", `ok=${bonusOk} v=${bonusV}`);
+
+  // 6) S-SLIT 四重スリット惑星別意匠(姿形+色)のデータ健全性。見た目の実測はtest-slitshape-qa.html(ピクセル走査)が担当。
+  {
+    const by = CFG.slitSkinByStage || {};
+    const missing = STAGES.map((s) => s.id).filter((id) => !(id in by));
+    check("slitSkin: 全10惑星の意匠が定義済み", missing.length === 0, `未定義=[${missing}]`);
+    const SHAPES = ["ring", "poly", "segment", "organic", "double", "sign"];
+    const bad = Object.entries(by).filter(([, v]) => v.shape && !SHAPES.includes(v.shape)).map(([k]) => k);
+    check("slitSkin: shapeは実装済み語彙のみ(A環/B多角/C分節/D有機/E二重/F標識)", bad.length === 0, `未実装shape=[${bad}]`);
+    const noPoly = Object.entries(by).filter(([, v]) => v.shape === "poly" && !(v.sides >= 3)).map(([k]) => k);
+    check("slitSkin: B多角は sides>=3 を持つ", noPoly.length === 0, `sides欠落=[${noPoly}]`);
+    // C分節の「粒の隙間」は物理の最小の切れ目より十分小さいこと=切れ目の位置が曖昧にならない(Ric指摘への恒久ガード)
+    const minGap = Math.min(...CFG.slitHalfDeg.map((h) => 2 * h));
+    const ambiguous = Object.entries(by).filter(([, v]) => v.shape === "segment").filter(([, v]) => {
+      const span = 360 - minGap, n = Math.max(4, Math.round(span / (v.segStepDeg || 14))), cell = span / n;
+      return Math.min(cell * (v.segGapFrac != null ? v.segGapFrac : 0.24), v.segGapMaxDeg || 4) >= minGap * 0.5;
+    }).map(([k]) => k);
+    check("slitSkin: C分節の粒間 < 最小の切れ目の半分(切れ目が曖昧にならない)", ambiguous.length === 0, `曖昧=[${ambiguous}]`);
+  }
 }
 
 console.log("\n============================================");
