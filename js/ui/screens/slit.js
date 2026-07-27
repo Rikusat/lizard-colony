@@ -46,10 +46,21 @@ Object.assign(UI, {
     ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke();
   },
 
+  // 惑星別の意匠パレット(骨格・確率は不変=色のみ)。現惑星のCFG.slitSkinByStageを既定にマージ。読み取り専用。
+  _slitSkin() {
+    const def = (typeof CFG !== "undefined" && CFG.slitSkinDefault) || { rail: [170, 214, 236], glow: [214, 236, 255], center: [226, 168, 192], trace: [205, 232, 246], traceRing: [230, 165, 190], laser: [220, 245, 255], bloom: [255, 215, 190] };
+    let id = null;
+    if (typeof Game !== "undefined") id = (Game.currentStage && Game.currentStage() && Game.currentStage().id) || (Game.state && Game.state.stageSel);
+    const byStage = (typeof CFG !== "undefined" && CFG.slitSkinByStage) || {};
+    return Object.assign({}, def, byStage[id] || {});
+  },
+
   drawSlit() {
     const ctx = this._slitCtx, cv = this._slitCv;
     if (!ctx || !cv || typeof Slit === "undefined") return;
     if (!this._syncSlitSize()) return;
+    const sk = this._slitSkin();
+    const rc = (a, alpha) => `rgba(${a[0]},${a[1]},${a[2]},${alpha})`; // パレット色→rgba
     const cw = cv.width, ch = cv.height, cx = cw / 2, cy = ch / 2;
     const R = Math.min(cw, ch) * 0.44;
     const calm = typeof Motion !== "undefined" && Motion.reduced;
@@ -75,7 +86,7 @@ Object.assign(UI, {
       const gi = align * (calm ? 0.09 : 0.16);
       const ex = cx + Math.cos(meanA) * R * 1.02, ey = cy - Math.sin(meanA) * R * 1.02;
       const g = ctx.createLinearGradient(cx, cy, ex, ey);
-      g.addColorStop(0, `rgba(214,236,255,${gi})`); g.addColorStop(1, "rgba(214,236,255,0)");
+      g.addColorStop(0, rc(sk.glow, gi)); g.addColorStop(1, rc(sk.glow, 0));
       ctx.strokeStyle = g; ctx.lineWidth = Math.max(1.5, 5 * sc * align); ctx.lineCap = "round";
       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(ex, ey); ctx.stroke();
     }
@@ -85,11 +96,11 @@ Object.assign(UI, {
     const lw = Math.max(1.0, 1.15 * sc);
     for (let i = 0; i < N; i++) {
       const sa = sang[i] * 180 / Math.PI;
-      this._slitRing(ctx, cx, cy, radii[i] * R, sa, half[i], `rgba(170,214,236,${baseA})`, lw);
+      this._slitRing(ctx, cx, cy, radii[i] * R, sa, half[i], rc(sk.rail, baseA), lw);
     }
     // 中心=回廊の終点(奇跡の到達点)。ごく小さく静かに
     ctx.beginPath(); ctx.arc(cx, cy, Math.max(1.6, R * 0.028), 0, 7);
-    ctx.fillStyle = `rgba(226,168,192,${0.4 + align * 0.4})`; ctx.fill();
+    ctx.fillStyle = rc(sk.center, 0.4 + align * 0.4); ctx.fill();
 
     // 張り付いた失敗の痕跡(内側=惜しいほど明るく大きく=静かな殿堂)。寿命は到達の深さ別(§④)。
     const now = (typeof Render !== "undefined") ? Render.time : 0;
@@ -103,10 +114,10 @@ Object.assign(UI, {
       const rad = (2.0 + depth * 2.8) * sc;
       const a = (0.5 + depth * 0.45) * fade;
       ctx.beginPath(); ctx.arc(x, y, rad, 0, 7);
-      ctx.fillStyle = `rgba(205,232,246,${a})`; ctx.fill();
+      ctx.fillStyle = rc(sk.trace, a); ctx.fill();
       if (depth >= 0.99) { // 最内到達=最高記録は静かに光る(reduced-motionでもリングは出す=記録の可視化を優先)
         ctx.beginPath(); ctx.arc(x, y, rad + 2.2 * sc, 0, 7);
-        ctx.strokeStyle = `rgba(230,165,190,${0.7 * fade})`; ctx.lineWidth = 1.2 * sc; ctx.stroke();
+        ctx.strokeStyle = rc(sk.traceRing, 0.7 * fade); ctx.lineWidth = 1.2 * sc; ctx.stroke();
       }
     }
 
@@ -116,11 +127,11 @@ Object.assign(UI, {
       const [x, y] = pt(b.r, b.theta);
       const [x2, y2] = pt(Math.min(1, b.r + 0.14), b.theta); // 外向きの尾
       const g = ctx.createLinearGradient(x2, y2, x, y);
-      g.addColorStop(0, "rgba(180,235,255,0)"); g.addColorStop(1, "rgba(220,245,255,.95)");
+      g.addColorStop(0, rc(sk.laser, 0)); g.addColorStop(1, rc(sk.laser, 0.95));
       ctx.strokeStyle = g; ctx.lineWidth = Math.max(1.4, 1.8 * (cw / 200)); ctx.lineCap = "round";
       ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x, y); ctx.stroke();
       ctx.beginPath(); ctx.arc(x, y, Math.max(1.4, 1.6 * (cw / 200)), 0, 7);
-      ctx.fillStyle = "rgba(235,250,255,.95)"; ctx.fill();
+      ctx.fillStyle = rc(sk.laser, 0.98); ctx.fill();
     }
 
     // イベント購読: 成功=食の成立のみ控えめに祝う(§9.5: 端点マーカー/惜しさドットは置かない=幾何の純度)
@@ -133,10 +144,10 @@ Object.assign(UI, {
     for (const f of this._slitFx) {
       f.t -= 0.016;
       const q = 1 - f.t / f.ttl;
-      if (f.kind === "win") { // 中心の控えめな金/桃のブルーム(賢者の石)
+      if (f.kind === "win") { // 中心の控えめなブルーム(賢者の石)=惑星別の成功色(タイミング・尺は不変)
         const rr = R * (0.1 + q * 0.9);
         const gg = ctx.createRadialGradient(cx, cy, 1, cx, cy, rr);
-        gg.addColorStop(0, `rgba(255,215,190,${(1 - q) * 0.8})`); gg.addColorStop(1, "rgba(255,215,190,0)");
+        gg.addColorStop(0, rc(sk.bloom, (1 - q) * 0.8)); gg.addColorStop(1, rc(sk.bloom, 0));
         ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(cx, cy, rr, 0, 7); ctx.fill();
       }
     }
