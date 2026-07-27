@@ -327,6 +327,54 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
       const wGate = () => { if (location.hash === "#weather") { buildW(); console.log("[weather] 検分パネル表示"); } else stopW(); };
       window.addEventListener("hashchange", wGate);
       if (location.hash === "#weather") setTimeout(wGate, 400);
+
+    // dev支援(C2・2026-07-28): HOLO BRIEFING 基準カットの2案比較(?tune=1#opening・読み取り専用・本編非干渉)。
+    //   導火線の様式: 案a=深紅の芯線が走る / 案b=走査ビームが横断する。同一タイムラインで同時ループ再生。
+    //   再生は本ビューア専用のrAF=本編描画ループに条件分岐を足さない。
+    {
+      let hPanel = null, hSt = [];
+      const stopH = () => { for (const s of hSt) if (s && s.skip) s.skip(); hSt = []; if (hPanel) hPanel.remove(); hPanel = null; };
+      const VAR = [
+        { id: "core", label: "案a 深紅の芯線が走る", note: "合成特性の共通の格=芯線を導火線に見立て、焼け跡と火花を残して走る" },
+        { id: "beam", label: "案b 走査ビームが横断する", note: "白青の走査ビームが横断し、通過した後ろにHUDの格子が起動して残る" },
+      ];
+      const buildH = () => {
+        stopH();
+        if (typeof Holo === "undefined") { console.warn("[opening] Holo 未読込"); return; }
+        const panel = document.createElement("div"); panel.id = "opening-view";
+        panel.style.cssText = "position:fixed;inset:0;z-index:9999;background:#05060a;color:#e8dccb;font:13px/1.6 system-ui;display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px;overflow:auto;";
+        const ttl = document.createElement("div"); ttl.style.cssText = "font-size:15px;font-weight:600;";
+        ttl.textContent = "HOLO BRIEFING 基準カット (?tune=1#opening) — 起動+点火+ノード1〜2 / " + Holo.cutDur().toFixed(1) + "秒 · 導火線2案。#で閉じる";
+        panel.appendChild(ttl);
+        const row = document.createElement("div"); row.style.cssText = "display:flex;flex-wrap:wrap;gap:14px;justify-content:center;"; panel.appendChild(row);
+        const cvs = [];
+        VAR.forEach((v) => {
+          const box = document.createElement("div"); box.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:5px;width:620px;";
+          const cv = document.createElement("canvas"); cv.width = 620; cv.height = 349;
+          cv.style.cssText = "width:620px;height:349px;background:#04060a;border-radius:3px;";
+          const lb = document.createElement("div"); lb.style.cssText = "font-weight:600;"; lb.textContent = v.label;
+          const nt = document.createElement("div"); nt.style.cssText = "font-size:11px;opacity:.66;text-align:center;min-height:32px;"; nt.textContent = v.note;
+          box.appendChild(cv); box.appendChild(lb); box.appendChild(nt); row.appendChild(box);
+          cvs.push({ cv: cv, id: v.id });
+        });
+        const bar = document.createElement("div"); bar.style.cssText = "font-size:11px;opacity:.6;";
+        bar.textContent = "0.4秒グリッド: 0.0起動 / 0.4ブラケット / 0.8 BOOT / 1.2点火 / 2.0ノード1(崩壊) / 2.4ノード2(十の星)  — ループ再生・2案の位相は完全同期";
+        panel.appendChild(bar);
+        document.body.appendChild(panel); hPanel = panel;
+        const T = Holo.cutDur(), t0 = performance.now();
+        const calm = typeof Motion !== "undefined" && Motion.reduced;
+        const loop = () => {
+          if (!hPanel) return;
+          const t = calm ? T * 0.86 : ((performance.now() - t0) / 1000) % T;
+          for (const c of cvs) Holo.drawCut(c.cv.getContext("2d"), c.cv.width, c.cv.height, t, c.id);
+          if (!calm) hSt[0] = { skip: () => {} }, requestAnimationFrame(loop);
+        };
+        loop();
+      };
+      const hGate = () => { if (location.hash === "#opening") { buildH(); console.log("[opening] HOLO BRIEFING 基準カット2案を表示"); } else stopH(); };
+      window.addEventListener("hashchange", hGate);
+      if (location.hash === "#opening") setTimeout(hGate, 400);
+    }
     }
     }
   }
