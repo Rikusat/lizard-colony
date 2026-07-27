@@ -1667,13 +1667,13 @@ Ric承認（Step A→B順・移行案A全6）に基づき、**1惑星ずつ**の
 ### 7C.1 ★掃除系一括 — test-v3/legend死コード撤去(2026-07-27・本番反映済・挙動見た目不変が合格条件)
 「何も変わらない」が正解の掃除タスク。参照0件をgrep+実行トレースで再証明の上で撤去。
 - **撤去物(削除)**:
-  - (dev・クランク骨格の旧手動確認ページ)=index非読込・唯一legend.jsを読んでいたページ。
-  - (~26行・定義)=**index.html非読込かつ呼び出し0件**(grep実証: heroLegendBirthの呼び出し元は自身のみ)=完全な死コード。
-  -  の  群(2201-2225・legend-stage/pillar/halo/orb + legend専用keyframe pillar-in/orb-in)=legend.jsのマークアップ専用・in-game非出現。
-  -  の test-v3.html 行。
-- **温存(消せるが消さない/共有)**: (2138)=**meteorite.jsが伝説隕石で使用**→削除不可。共有keyframe (2093)/(2135)=他演出(隕石/ic-lucky)が使用→温存。(game.js・legend無関係の実関数)=温存。
-- **crank.md追随**: 旧  参照を撤去済みと明記しspin-proof(残存)へ集約(手動実操作の同等検証はspinproof.jsが担う)。charter整合を回復。
-- **タスク2(退役残骸)=削除対象なし**: 旧卵ヘルパー(spawnRouletteEgg等)・dockStagesは**既に撤去済**(残るのはtests/cfg_sanityの非存在ガード=意図的)。=**「GBA基準カット(採用版の記録)」=意図的な記録ページ**(§6R系)→保持(削除しない)。
+  - test-v3.html(dev・クランク骨格の旧手動確認ページ)=index非読込・唯一 legend.js を読んでいたページ。
+  - js/ui/hero/legend.js(~26行・UI.heroLegendBirth定義)=index.html非読込かつ呼び出し0件(grep実証: heroLegendBirthの呼び出し元は自身のみ)=完全な死コード。
+  - style.css の .hero-legend 群(2201-2225・legend-stage/pillar/halo/orb + legend専用keyframe pillar-in/orb-in)=legend.jsのマークアップ専用・in-game非出現。
+  - .vercelignore の test-v3.html 行。
+- **温存(消せるが消さない/共有)**: .hero-stamp.legendbadge(2138)=meteorite.jsが伝説隕石で使用→削除不可。共有keyframe burst-ring(2093)/rainbow-shift(2135)=他演出(隕石/ic-lucky)が使用→温存。genesisTrait(game.js・legend無関係の実関数)=温存。
+- **crank.md追随**: 旧 test-v3#wheel-diag2 参照を撤去済みと明記し spin-proof(残存)へ集約(手動実操作の同等検証はspinproof.jsが担う)。charter整合を回復。
+- **タスク2(退役残骸)=削除対象なし**: 旧卵ヘルパー(spawnRouletteEgg等)・dockStagesは既に撤去済(残るのはtests/cfg_sanityの非存在ガード=意図的)。test-hqlab-pixel.html=「GBA基準カット(採用版の記録)」=意図的な記録ページ(§6R系)→保持(削除しない)。
 - **不変の証明**: 主要3画面(飼育槽/繁殖/本部HOLO)before/afterスクショ=**視覚的に完全一致**(md5差はトップバー経過時間表示・背景デコ乱数のみ=削除と無関係)。撤去物はいずれもindex.html非読込=構造的に不変。node13本FAIL0+audit16+hqlab-qa48+統合11+boot console0。出荷変更=style.css(不活性ルール削除)+legend.js/test-v3.html削除+.vercelignore。
 - **次: 指示待ち。S6着手禁止を維持。**
 
