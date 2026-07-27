@@ -156,6 +156,61 @@ const CFG = {
   //   確率は装置本来の設計値 ∏(2*slitHalfDeg/360)=1/4339 へ揃う。false で従来挙動(_time=0)へ即復帰できる。
   slitStartPhaseRandom: true,
   slitStartPhaseMaxSec: 3600, // 初期位相の範囲(秒)。回転比が無理数比のため、この幅で相対配置は十分に混ざる
+  // ===== W1 動的環境演出(天候) =====================================================================
+  //   骨格=共通1つ / 意匠=惑星別。表示層のみ(経済・生産・繁殖・戦闘・確率・純血・魂・セーブに非接触)。
+  //   サイクル: weatherCycleSec ごとに weatherChance の確率で1回だけ発生し、rise→hold→fall で終息する。
+  //   決定論: 発生の有無・開始位置は hash(惑星id, バケット) で決まる(乱数不使用)=同一条件で同一の天候。
+  //   D7(常時の漂う粒子)とは棲み分け: 天候中はD7を強度kに比例して減衰し、最盛時は完全停止=二重に降らない。
+  weatherOn: true,          // ★天候システム全体のON/OFF
+  weatherCycleSec: 150,     // ★1周期(秒)。この中で最大1回だけ天候が起きる
+  weatherChance: 0.35,      // ★周期あたりの発生確率(既定)。惑星別に上書き可。控えめ=常時降らせない
+  weatherRiseSec: 6,        // ★発生(強度0→1)
+  weatherHoldSec: 20,       // ★継続(強度1)
+  weatherFallSec: 8,        // ★終息(強度1→0)。合計34秒/150秒×0.35 ≒ 稼働率8%
+  weatherMaxParticles: 90,  // ★粒子数の上限(負荷の天井。惑星別のnがこれを超えても切り詰める)
+  weatherDefault: { n: 40, vy: 120, vx: 0, windAmp: 0, windSec: 7, rMin: 1, rMax: 2, alpha: 0.5, shape: "dot", haze: 0, str: 1,
+    react: { look: 0, follow: 0, huddle: 0, relaxMult: 1 } },
+  //   意匠パラメータ: n=粒子数 / vy=落下速度(負=上昇) / vx=基本風 / windAmp,windSec=風の強弱の時間変化
+  //     shape= dot(砂・灰・埃) | line(雨) | flake(雪) | bubble(気泡) | beam(光条)
+  //     tint=[r,g,b,a] 空の色味の上乗せ / haze=遠景の霞の濃さ / hazeCol=霞の色
+  //     react: look=見上げる確率 / follow=降下物を目で追う確率 / huddle=巣口へ避難する割合 / relaxMult=くつろぎ率の倍率
+  weatherByStage: {
+    1:  { kind: "砂嵐",           n: 70, vy: 40,  vx: 260, windAmp: 120, windSec: 5.5, rMin: 0.8, rMax: 2.0, alpha: 0.42, shape: "dot",
+          col: "rgba(226,196,138,1)", tint: [190, 150, 90, 0.20], haze: 0.16, hazeCol: [214, 186, 130], chance: 0.38,
+          react: { look: 0.35, follow: 0.15, huddle: 0.45, relaxMult: 0.25 } },
+    2:  { kind: "酸性雨",         n: 62, vy: 420, vx: 70,  windAmp: 40,  windSec: 6,   rMin: 0.9, rMax: 1.6, alpha: 0.40, len: 16, shape: "line",
+          col: "rgba(150,230,235,1)", tint: [30, 60, 90, 0.24], haze: 0.10, hazeCol: [90, 150, 175],
+          react: { look: 0.45, follow: 0.40, huddle: 0.55, relaxMult: 0.20 } },
+    3:  { kind: "霧と木漏れ日",   n: 7,  vy: 6,   vx: 16,  windAmp: 8,   windSec: 11,  alpha: 0.16, shape: "beam", beamW: 30, beamSkew: 70,
+          col: "rgba(238,244,206,1)", tint: [210, 226, 190, 0.16], haze: 0.30, hazeCol: [214, 226, 206], chance: 0.30,
+          react: { look: 0.05, follow: 0, huddle: 0, relaxMult: 1.25 } },
+    4:  { kind: "黄砂",           n: 66, vy: 55,  vx: 190, windAmp: 80,  windSec: 6.5, rMin: 0.7, rMax: 1.5, alpha: 0.34, shape: "dot",
+          col: "rgba(216,186,120,1)", tint: [176, 146, 84, 0.20], haze: 0.22, hazeCol: [206, 180, 124],
+          react: { look: 0.25, follow: 0.10, huddle: 0.35, relaxMult: 0.40 } },
+    5:  { kind: "降灰と火の粉",   n: 54, vy: 46,  vx: 40,  windAmp: 34,  windSec: 8,   rMin: 0.9, rMax: 2.2, alpha: 0.44, shape: "dot",
+          col: "rgba(120,112,108,1)", tint: [120, 50, 30, 0.20], haze: 0.16, hazeCol: [150, 96, 74],
+          emberEvery: 9, emberCol: "rgba(255,150,60,1)",
+          react: { look: 0.40, follow: 0.35, huddle: 0.50, relaxMult: 0.25 } },
+    6:  { kind: "豪雨(スコール)", n: 82, vy: 520, vx: 110, windAmp: 60,  windSec: 4.5, rMin: 1.0, rMax: 1.8, alpha: 0.44, len: 22, shape: "line",
+          col: "rgba(190,220,225,1)", tint: [20, 45, 40, 0.28], haze: 0.14, hazeCol: [120, 160, 150], chance: 0.42,
+          react: { look: 0.50, follow: 0.45, huddle: 0.70, relaxMult: 0.15 } },
+    7:  { kind: "気泡の上昇流",   n: 46, vy: -70, vx: 18,  windAmp: 14,  windSec: 9,   rMin: 1.2, rMax: 3.4, alpha: 0.34, shape: "bubble",
+          col: "rgba(206,244,240,1)", tint: [60, 130, 140, 0.14], haze: 0.12, hazeCol: [140, 200, 200], chance: 0.32,
+          react: { look: 0.30, follow: 0.50, huddle: 0, relaxMult: 1.10 } },
+    8:  { kind: "吹雪",           n: 78, vy: 130, vx: 300, windAmp: 150, windSec: 4,   rMin: 1.0, rMax: 2.2, alpha: 0.50, shape: "flake",
+          col: "rgba(240,246,255,1)", tint: [200, 220, 245, 0.24], haze: 0.26, hazeCol: [226, 236, 250], chance: 0.40,
+          react: { look: 0.30, follow: 0.20, huddle: 0.75, relaxMult: 0.15 } },
+    9:  { kind: "冷たい灰と放射霧", n: 40, vy: 34, vx: 26,  windAmp: 18,  windSec: 10,  rMin: 0.8, rMax: 1.8, alpha: 0.32, shape: "dot",
+          col: "rgba(168,176,170,1)", tint: [70, 110, 92, 0.20], haze: 0.30, hazeCol: [120, 168, 146], chance: 0.34,
+          react: { look: 0.15, follow: 0.10, huddle: 0.40, relaxMult: 0.35 } },
+    10: { kind: "光の柱と舞う埃", n: 9,  vy: 10,  vx: 12,  windAmp: 6,   windSec: 12,  alpha: 0.14, shape: "beam", beamW: 22, beamSkew: 46,
+          col: "rgba(246,214,150,1)", tint: [180, 146, 90, 0.14], haze: 0.18, hazeCol: [206, 176, 124], chance: 0.30,
+          react: { look: 0.55, follow: 0.05, huddle: 0, relaxMult: 1.30 } },
+  },
+  weatherHuddleK: 0.55,     // ★この強度を超えると避難(巣口へ寄る)が発生する
+  weatherLookSec: 2.2,      // ★見上げの持続(秒)
+  weatherLookBucketSec: 5,  // ★見上げ/目追いの判定バケット(秒)
+  weatherHuddleSpeedMult: 1.8, // ★避難時の歩行速度倍率(ボス避難のnestFleeSpeedMultとは別枠=軽い急ぎ)
   // 中心=球の着地点/賢者の石の生成点。ここは常に最も明瞭であること(意匠の合格条件4)。
   slitCenterCoreF: 0.028,  // 中心コアの半径(装置半径R比)。表示そのもの。
   slitCenterClearF: 2.5,   // 中心の確保余白 = コア半径×この係数。全リングの描画はこの内側へ侵入してはならない(姿形QAが全惑星×全リングで実測)。

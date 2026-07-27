@@ -2242,6 +2242,11 @@ const Game = {
     const ph = (t % cyc) / cyc; // 0..1
     let ratio = CFG.motRelaxRatio != null ? CFG.motRelaxRatio : 0.5;
     if (lz.spot && (lz._spotPosture === "bask" || lz._spotPosture === "lookout")) ratio = Math.min(0.9, ratio + (CFG.motRelaxSpotBonus || 0.2)); // 快適な場所
+    // W1-C4: 天候中はくつろぎ率が下がる(荒天ほど強く)。霧/光柱など穏やかな天候では逆に上がる。終息で自動復帰
+    if (typeof Weather !== "undefined" && this._wx && this._wx.on) {
+      const rm = (this._wx.def.react && this._wx.def.react.relaxMult != null) ? this._wx.def.react.relaxMult : 1;
+      ratio = Math.max(0, Math.min(0.95, ratio * (1 + (rm - 1) * this._wx.k)));
+    }
     return ph < ratio;
   },
 
@@ -2250,6 +2255,9 @@ const Game = {
     const webs = this.raid && this.raid.typeId === "spider" ? this.raid.webs.filter((w) => w.hp > 0) : [];
     // V5M: 表示クロック(モーション発生バケット用・純装飾=保存しない)。reduced-motionでは新モーションを発生させない。
     this._motClock = (this._motClock || 0) + dt;
+    // W1: 表示層の天候状態(読み取り専用・保存しない)。描画/モーション接続の共通入力
+    this._wx = (typeof Weather !== "undefined" && CFG.weatherOn !== false)
+      ? Weather.now(this.currentStage().id, this._motClock) : null;
     const motOff = !!(typeof Motion !== "undefined" && Motion.reduced);
     for (const lz of this.state.lizards) {
       this.ensureRuntime(lz);
@@ -2292,6 +2300,7 @@ const Game = {
       if (lz._dashT > 0) lz._dashT -= dt;   // V5M⑦: 疾走窓の残り
       if (lz._shedT > 0) { const was = lz._shedT; lz._shedT -= dt; if (lz._shedT <= 0 && was > 0 && CFG.motShakeOn !== false && !this.raid && !(typeof Motion !== "undefined" && Motion.reduced)) lz._shakeT = CFG.motShakeDur || 0.6; } // V5M⑤脱皮→E3ぶるっと(脱皮終了の瞬間に発火)
       if (lz._shakeT > 0) lz._shakeT -= dt;  // E3: 全身ぶるっとの残り
+      if (lz._skyT > 0) lz._skyT -= dt;      // W1: 見上げ姿勢の残り
       if (lz._emergeThruT > 0) lz._emergeThruT -= dt; // 裁定F: 出巣直後のすり抜け窓
       if (lz._digT > 0) lz._digT -= dt;     // V5M⑩: 砂掘りの残り
       if (lz._folT > 0) lz._folT -= dt;     // V5M⑬: 追従の残り
@@ -2321,6 +2330,21 @@ const Game = {
         // 調査J根治: スポットへ道中の個体は目的地を保持して到達させる(dwell切れの再抽選で遠い水場等へ辿り着けない問題)。
         //   到達(spot確定)まで再抽選しない。travelタイムアウトで諦め=無限追尾を防ぐ。純装飾=生産/戦闘の決定論に無影響。
         lz.wanderT = 0.5; // 次tickも道中判定へ(下の移動処理で歩き続ける)
+      } else if (this._wx && this._wx.on && !this.raid && lz.stage === "adult" && (() => {
+        // W1-C3: 荒天の避難。強度が weatherHuddleK を超えると、割当入口(動線分散)へ寄って身を寄せる。
+        //   ボス避難(returning=true→resting)とは別枠: 巣には入らない=表示枠コントローラ(emerge/retreat)と競合しない。
+        //   ボス襲来中は本分岐に入らない(戦闘の避難が最優先)。天候終息で自動的に通常徘徊へ戻る。
+        const r = this._wx.def.react || {};
+        if (!(r.huddle > 0) || this._wx.k < (CFG.weatherHuddleK || 0.55)) return false;
+        if (this.motHash(lz.id * 83 + 41, this._wx.bucket) >= r.huddle) return false; // 個体の一部だけ(決定論)
+        const n = this.nestEntryFor(lz);
+        const lane = (((lz.id * 7919) >>> 0) % 60) - 30;
+        lz.spot = null; lz._toSpot = null; lz._relaxing = false;
+        lz.tx = n.x + lane; lz.ty = n.y + 26 + (((lz.id * 31) >>> 0) % 18);
+        lz.wanderT = 0.4; lz._wxHuddle = true;
+        return true;
+      })()) {
+        // (W1 荒天の避難=巣口へ寄る)
       } else if (lz.wanderT <= 0) { // 通常の徘徊 or 設備の居場所(スポット)へ
         // K くつろぎ(調査M改修): 休息個体は「その場凍結」でなく、まず快適なスポット(水/暖/岩)へ向かって"そこで"休む。
         //   凍結だと水飲み・設備利用が激減する(実測)→スポット誘導を優先し、届かなければ近場で留まる。設備が景色になる思想と整合。
@@ -2489,6 +2513,24 @@ const Game = {
         if (CFG.motGazeOn !== false && typeof UI !== "undefined" && UI._bossRewardOpen) {
           const bx = (FIELD.x1 + FIELD.x2) / 2, by = FIELD.y2 + 40;
           lz.angle = Math.atan2(by - lz.y, bx - lz.x);
+        } else if (this._wx && this._wx.on && CFG.weatherOn !== false && (() => {
+          // W1-C1/C2: 天候への反応。発生相=空(風上)を見上げる / 継続相=降下物を目で追う。
+          //   既存⑯(盤への目線)と同じ「向きだけ・静止中のみ」の仕組みを流用=新規モーションを増やさない。
+          const d = this._wx.def, r = d.react || {};
+          const bk = Math.floor(this._motClock / (CFG.weatherLookBucketSec || 5));
+          if (lz._wxBk === bk) return false;
+          const rise = this._wx.phase === "rise";
+          const rate = (rise ? (r.look || 0) : (r.follow || 0)) * this._wx.k;
+          if (rate <= 0 || this.motHash(lz.id * 71 + 29, bk) >= rate) return false;
+          lz._wxBk = bk;
+          // 風上(粒子が流れてくる側)の斜め上を向く。上昇流(vy<0)の惑星は下から昇るものを追う
+          const up = (d.vy || 0) < 0 ? 1 : -1;
+          lz.angle = Math.atan2(up * 0.9, -(d.vx || 0) >= 0 ? 1 : -1);
+          lz._skyT = CFG.weatherLookSec || 2.2;   // 見上げ姿勢の窓(描画側が頭を上げる)
+          lz._alertT = Math.max(lz._alertT || 0, (CFG.weatherLookSec || 2.2) * 0.6); // 短く静止
+          return true;
+        })()) {
+          // (W1 天候への視線)
         } else if (CFG.motHerdOn !== false && (() => {
           // D4 群れの同期・警戒: 近くで誰かがダッシュすると、こちらも顔を上げてそちらを向く(1匹の動きが伝播)
           const dasher = this.state.lizards.find((d) => d !== lz && (d._dashT || 0) > 0

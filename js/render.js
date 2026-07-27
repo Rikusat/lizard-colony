@@ -183,6 +183,8 @@ const Render = {
     for (const lz of sorted) this.drawLizard(ctx, lz);
     this._pruneLizCache();
     this.drawDriftMotes(ctx); // D7(第2波) 漂う環境粒子(惑星別・控えめな背景装飾)
+    // W1 天候の粒子(D7と同じ層。天候中はD7側が減衰するので二重に降らない)
+    if (typeof Weather !== "undefined") this._wxParts = Weather.drawParticles(ctx, W, H, this.time, this._wx, FIELD.y1, FIELD.y2);
     this.drawSpawnFx(ctx); // §9-C2 誕生の登場エフェクト(生き物の上に重ねる祝祭)
     this.drawGenesisFx(ctx); // S5 創世エフェクト(賢者の石の錬成=深紅の静かな重み)
     if (Game.raid) this.drawBoss(ctx, Game.raid);
@@ -215,6 +217,11 @@ const Render = {
       this.paintBackground(this._bgCache.getContext("2d"), st);
     }
     ctx.drawImage(this._bgCache, 0, 0);
+    // W1 天候: 光量と色味の変化+遠景の霞(背景アセットは非改変=上乗せのみ・生き物より奥)
+    if (typeof Weather !== "undefined") {
+      this._wx = Weather.now(st.id, (typeof Game !== "undefined" && Game._motClock) || 0);
+      Weather.drawSky(ctx, W, H, this._wx, FIELD.y1, FIELD.y2);
+    }
     // ステージ名プレート(動的でないが軽いので直描き)
     // 3.11.1: 現在地表示(全惑星統一・STAGE後の数字は付けない)。トカゲ数を下に併記(3.10.3)
     this.pill(ctx, 20, 18, `${st.pname} ${st.name} STAGE`, "rgba(0,0,0,.45)", "rgba(255,255,255,.82)", 15);
@@ -1654,6 +1661,9 @@ const Render = {
     if (!st) return;
     const conf = (CFG.motMotesByStage && CFG.motMotesByStage[st.id]);
     if (!conf) return; // 該当惑星のみ(綿毛/胞子等が成立する惑星だけ・★CFG割当)
+    // W1 棲み分け: 天候中はD7を強度kに比例して減衰し、最盛時(k=1)は完全停止=二重に降らない
+    const wk = (this._wx && this._wx.on) ? this._wx.k : 0;
+    if (wk >= 0.999) return;
     const n = CFG.motMotesCount || 6, col = conf.color || "rgba(240,240,230,0.5)", drift = conf.drift || 14;
     ctx.save();
     for (let i = 0; i < n; i++) {
@@ -1661,7 +1671,7 @@ const Render = {
       const yb = FIELD.y1 + 20 + seedY * (FIELD.y2 - FIELD.y1 - 40);
       const bobY = yb + Math.sin(this.time * 0.4 + i) * 8; // ゆらゆら上下
       const x = ((seedX * W + this.time * drift * (i % 2 ? 1 : -1)) % (W + 60) + (W + 60)) % (W + 60) - 30;
-      ctx.globalAlpha = (conf.alpha || 0.5) * (0.6 + 0.4 * Math.sin(this.time * 0.7 + i * 1.3));
+      ctx.globalAlpha = (conf.alpha || 0.5) * (0.6 + 0.4 * Math.sin(this.time * 0.7 + i * 1.3)) * (1 - wk);
       ctx.fillStyle = col;
       ctx.beginPath(); ctx.arc(x, bobY, conf.r || 2, 0, 7); ctx.fill();
       if (conf.halo) { ctx.globalAlpha *= 0.4; ctx.beginPath(); ctx.arc(x, bobY, (conf.r || 2) * 2.2, 0, 7); ctx.fill(); }
@@ -1874,6 +1884,11 @@ const Render = {
     // D2 頭のプッシュアップ表示(第2波・非スポット静止のみ・環境反応より優先)
     if (!lz.spot) { const hb = this._motHeadbob(lz); if (hb) return hb; }
     // V5M⑰: 惑星の環境反応(スポット外の静止個体)。骨格2種=震え(寒)/頭上げ(熱)・惑星割当はCFG配列。
+    // W1-C1: 天候の見上げ窓は、既存の lookup 姿勢(頭を上げてわずかに浮く)を流用=新規モーションを増やさない
+    if ((lz._skyT || 0) > 0 && !lz.moving && !(typeof Motion !== "undefined" && Motion.reduced)) {
+      const amp0 = CFG.poseBobPx || 3;
+      return { dx: 0, dy: Math.round(-amp0 * 1.1 + Math.sin(this.time * 1.1 + (lz.id % 50) * 0.2) * amp0 * 0.35), sky: 1 };
+    }
     if (!lz.spot) return this._motEnv(lz);
     const amp = CFG.poseBobPx || 3, sp = CFG.poseBobSpeed || 1.2;
     const t = this.time * sp + (lz.id % 100) * 0.137; // idで位相をずらす(群れが揃って動かない)
