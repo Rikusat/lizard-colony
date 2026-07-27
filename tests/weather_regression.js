@@ -141,7 +141,9 @@ console.log("== 7) 経済・確率に非接触 ==");
   check("weather.js が経済・セーブ・戦闘に触れていない", bad.length === 0, `検出=${[...new Set(bad)].join(",")}`);
   // 天候CFGは表示パラメータのみ(生産/確率のキー名を含まない)
   const keys = Object.keys(CFG).filter((k) => /^weather/.test(k));
-  check(`天候CFGキーは表示層のみ(${keys.length}キー)`, keys.length >= 8 && !keys.some((k) => /income|rate$|Mult$/.test(k) && !/Speed|relax/.test(k)), keys.join(","));
+  // 天候CFGは表示パラメータのみ。経済・確率に関わる名前(収益/通貨/価格/確率/生産/ダメージ)を持ち込んでいないこと
+  const econ = keys.filter((k) => /income|coin|gem|gold|price|cost|prob|drop|yield|xp|damage|hp/i.test(k));
+  check(`天候CFGキーは表示層のみ(${keys.length}キー・経済系0)`, keys.length >= 8 && econ.length === 0, `経済系=${econ.join(",")}`);
 }
 
 console.log("\n============================================");

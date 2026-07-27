@@ -2507,13 +2507,21 @@ const Game = {
           if (want !== (lz._lookN || 0)) { lz._lookN = want; lz.angle = Math.PI - lz.angle; }
         }
       }
+      // W1-C1b: 居場所(spot)に居る個体も天候には反応する(頭を上げるだけ・向きは spot の指定を壊さない)。
+      //   実測(パートD)で「少数個体+くつろぎON」だと全個体がspotに居て見上げが0になったため追加。
+      if (!motOff && !this.raid && this._wx && this._wx.on && lz.spot && !lz.moving && (lz._skyT || 0) <= 0) {
+        const r2 = this._wx.def.react || {};
+        const bk2 = Math.floor(this._motClock / (CFG.weatherLookBucketSec || 5));
+        const rate2 = ((this._wx.phase === "rise" ? (r2.look || 0) : (r2.follow || 0)) * this._wx.k) * (CFG.weatherSpotLookMult || 0.6);
+        if (lz._wxBk !== bk2 && rate2 > 0 && this.motHash(lz.id * 97 + 13, bk2) < rate2) { lz._wxBk = bk2; lz._skyT = CFG.weatherLookSec || 2.2; }
+      }
       // V5M-EX⑯/⑲ + 第2波D4/D5: 環境への視線(向きだけ・読み取り専用)。静止中のみ。優先=盤>群れ警戒>波紋>向き替え。
       if (!motOff && !lz.moving && !lz.spot && (lz._lookT || 0) <= 0 && lz.injuredT <= 0) {
         // ⑯ ルーレット球の目線: 報酬盤が出ている間、下中央(盤のせり上がる位置)へ向く
         if (CFG.motGazeOn !== false && typeof UI !== "undefined" && UI._bossRewardOpen) {
           const bx = (FIELD.x1 + FIELD.x2) / 2, by = FIELD.y2 + 40;
           lz.angle = Math.atan2(by - lz.y, bx - lz.x);
-        } else if (this._wx && this._wx.on && CFG.weatherOn !== false && (() => {
+        } else if (this._wx && this._wx.on && !this.raid && CFG.weatherOn !== false && (() => {
           // W1-C1/C2: 天候への反応。発生相=空(風上)を見上げる / 継続相=降下物を目で追う。
           //   既存⑯(盤への目線)と同じ「向きだけ・静止中のみ」の仕組みを流用=新規モーションを増やさない。
           const d = this._wx.def, r = d.react || {};

@@ -175,41 +175,42 @@ const CFG = {
   //     tint=[r,g,b,a] 空の色味の上乗せ / haze=遠景の霞の濃さ / hazeCol=霞の色
   //     react: look=見上げる確率 / follow=降下物を目で追う確率 / huddle=巣口へ避難する割合 / relaxMult=くつろぎ率の倍率
   weatherByStage: {
-    1:  { kind: "砂嵐",           n: 70, vy: 40,  vx: 260, windAmp: 120, windSec: 5.5, rMin: 0.8, rMax: 2.0, alpha: 0.42, shape: "dot",
-          col: "rgba(226,196,138,1)", tint: [190, 150, 90, 0.20], haze: 0.16, hazeCol: [214, 186, 130], chance: 0.38,
+    1:  { kind: "砂嵐",           n: 70, vy: 40,  vx: 260, windAmp: 120, windSec: 5.5, rMin: 0.8, rMax: 2.0, alpha: 0.52, shape: "dot",
+          col: "rgba(250,238,206,1)", tint: [128, 92, 46, 0.26], haze: 0.26, hazeCol: [198, 162, 104], chance: 0.38,
           react: { look: 0.35, follow: 0.15, huddle: 0.45, relaxMult: 0.25 } },
     2:  { kind: "酸性雨",         n: 62, vy: 420, vx: 70,  windAmp: 40,  windSec: 6,   rMin: 0.9, rMax: 1.6, alpha: 0.40, len: 16, shape: "line",
           col: "rgba(150,230,235,1)", tint: [30, 60, 90, 0.24], haze: 0.10, hazeCol: [90, 150, 175],
           react: { look: 0.45, follow: 0.40, huddle: 0.55, relaxMult: 0.20 } },
-    3:  { kind: "霧と木漏れ日",   n: 7,  vy: 6,   vx: 16,  windAmp: 8,   windSec: 11,  alpha: 0.16, shape: "beam", beamW: 30, beamSkew: 70,
-          col: "rgba(238,244,206,1)", tint: [210, 226, 190, 0.16], haze: 0.30, hazeCol: [214, 226, 206], chance: 0.30,
+    3:  { kind: "霧と木漏れ日",   n: 7,  vy: 6,   vx: 16,  windAmp: 8,   windSec: 11,  alpha: 0.22, shape: "beam", beamW: 30, beamSkew: 70,
+          col: "rgba(252,255,226,1)", tint: [178, 200, 158, 0.18], haze: 0.30, hazeCol: [214, 226, 206], chance: 0.30,
           react: { look: 0.05, follow: 0, huddle: 0, relaxMult: 1.25 } },
     4:  { kind: "黄砂",           n: 66, vy: 55,  vx: 190, windAmp: 80,  windSec: 6.5, rMin: 0.7, rMax: 1.5, alpha: 0.34, shape: "dot",
-          col: "rgba(216,186,120,1)", tint: [176, 146, 84, 0.20], haze: 0.22, hazeCol: [206, 180, 124],
+          col: "rgba(246,230,182,1)", tint: [130, 100, 50, 0.22], haze: 0.30, hazeCol: [196, 166, 106],
           react: { look: 0.25, follow: 0.10, huddle: 0.35, relaxMult: 0.40 } },
     5:  { kind: "降灰と火の粉",   n: 54, vy: 46,  vx: 40,  windAmp: 34,  windSec: 8,   rMin: 0.9, rMax: 2.2, alpha: 0.44, shape: "dot",
-          col: "rgba(120,112,108,1)", tint: [120, 50, 30, 0.20], haze: 0.16, hazeCol: [150, 96, 74],
+          col: "rgba(198,190,182,1)", tint: [96, 34, 20, 0.24], haze: 0.16, hazeCol: [150, 96, 74],
           emberEvery: 9, emberCol: "rgba(255,150,60,1)",
           react: { look: 0.40, follow: 0.35, huddle: 0.50, relaxMult: 0.25 } },
     6:  { kind: "豪雨(スコール)", n: 82, vy: 520, vx: 110, windAmp: 60,  windSec: 4.5, rMin: 1.0, rMax: 1.8, alpha: 0.44, len: 22, shape: "line",
           col: "rgba(190,220,225,1)", tint: [20, 45, 40, 0.28], haze: 0.14, hazeCol: [120, 160, 150], chance: 0.42,
           react: { look: 0.50, follow: 0.45, huddle: 0.70, relaxMult: 0.15 } },
     7:  { kind: "気泡の上昇流",   n: 46, vy: -70, vx: 18,  windAmp: 14,  windSec: 9,   rMin: 1.2, rMax: 3.4, alpha: 0.34, shape: "bubble",
-          col: "rgba(206,244,240,1)", tint: [60, 130, 140, 0.14], haze: 0.12, hazeCol: [140, 200, 200], chance: 0.32,
+          col: "rgba(228,252,250,1)", tint: [36, 92, 104, 0.16], haze: 0.12, hazeCol: [140, 200, 200], chance: 0.32,
           react: { look: 0.30, follow: 0.50, huddle: 0, relaxMult: 1.10 } },
-    8:  { kind: "吹雪",           n: 78, vy: 130, vx: 300, windAmp: 150, windSec: 4,   rMin: 1.0, rMax: 2.2, alpha: 0.50, shape: "flake",
-          col: "rgba(240,246,255,1)", tint: [200, 220, 245, 0.24], haze: 0.26, hazeCol: [226, 236, 250], chance: 0.40,
+    8:  { kind: "吹雪",           n: 78, vy: 130, vx: 300, windAmp: 150, windSec: 4,   rMin: 1.0, rMax: 2.2, alpha: 0.72, shape: "flake",
+          col: "rgba(255,255,255,1)", tint: [104, 138, 186, 0.30], haze: 0.30, hazeCol: [156, 184, 220], chance: 0.40,
           react: { look: 0.30, follow: 0.20, huddle: 0.75, relaxMult: 0.15 } },
     9:  { kind: "冷たい灰と放射霧", n: 40, vy: 34, vx: 26,  windAmp: 18,  windSec: 10,  rMin: 0.8, rMax: 1.8, alpha: 0.32, shape: "dot",
-          col: "rgba(168,176,170,1)", tint: [70, 110, 92, 0.20], haze: 0.30, hazeCol: [120, 168, 146], chance: 0.34,
+          col: "rgba(214,224,214,1)", tint: [46, 80, 66, 0.24], haze: 0.30, hazeCol: [120, 168, 146], chance: 0.34,
           react: { look: 0.15, follow: 0.10, huddle: 0.40, relaxMult: 0.35 } },
-    10: { kind: "光の柱と舞う埃", n: 9,  vy: 10,  vx: 12,  windAmp: 6,   windSec: 12,  alpha: 0.14, shape: "beam", beamW: 22, beamSkew: 46,
-          col: "rgba(246,214,150,1)", tint: [180, 146, 90, 0.14], haze: 0.18, hazeCol: [206, 176, 124], chance: 0.30,
+    10: { kind: "光の柱と舞う埃", n: 9,  vy: 10,  vx: 12,  windAmp: 6,   windSec: 12,  alpha: 0.20, shape: "beam", beamW: 22, beamSkew: 46,
+          col: "rgba(255,244,206,1)", tint: [128, 100, 56, 0.16], haze: 0.18, hazeCol: [206, 176, 124], chance: 0.30,
           react: { look: 0.55, follow: 0.05, huddle: 0, relaxMult: 1.30 } },
   },
   weatherHuddleK: 0.55,     // ★この強度を超えると避難(巣口へ寄る)が発生する
   weatherLookSec: 2.2,      // ★見上げの持続(秒)
   weatherLookBucketSec: 5,  // ★見上げ/目追いの判定バケット(秒)
+  weatherSpotLookMult: 0.6,   // ★居場所に居る個体の見上げ確率倍率(spotの向き指定は壊さず姿勢だけ)
   weatherHuddleSpeedMult: 1.8, // ★避難時の歩行速度倍率(ボス避難のnestFleeSpeedMultとは別枠=軽い急ぎ)
   // 中心=球の着地点/賢者の石の生成点。ここは常に最も明瞭であること(意匠の合格条件4)。
   slitCenterCoreF: 0.028,  // 中心コアの半径(装置半径R比)。表示そのもの。
