@@ -49,23 +49,49 @@ Object.assign(UI, {
       const a2 = sk.wobAmp2 != null ? sk.wobAmp2 : 0.012, l2 = sk.wobLobes2 || 17;
       return rr * (1 + a1 * Math.sin(l1 * t) + a2 * Math.sin(l2 * t + 1.7));
     }
-    return rr;                                               // A環(原型)/C分節/E二重/F標識=半径は物理そのまま
+    const D = Math.PI / 180;
+    if (k === "star") {                                      // 星形(尖った頂点が外へ突き出す)。頂点=物理半径rr / 谷=rr*innerF
+      const pts = sk.points || 5, inF = sk.innerF != null ? sk.innerF : 0.45;
+      const seg = 2 * Math.PI / pts, a = (((thDeg - rotDeg) * D) % seg + seg) % seg, h = seg / 2;
+      // 極座標での直線(頂点→谷): 2点(a1,r1),(a2,r2)を通る直線の半径 r(a)
+      const line = (a1, r1, a2, r2) => (r1 * r2 * Math.sin(a2 - a1)) / (r1 * Math.sin(a - a1) + r2 * Math.sin(a2 - a));
+      return a <= h ? line(0, rr, h, rr * inF) : line(h, rr * inF, seg, rr);
+    }
+    if (k === "gear") {                                      // 歯車環(内向きの歯)。歯先=物理半径rr / 歯底=rr*(1-toothDepth)
+      const n = sk.teeth || 14, dep = sk.toothDepth != null ? sk.toothDepth : 0.16, fr = sk.toothFrac != null ? sk.toothFrac : 0.45;
+      const seg = 360 / n, a = (((thDeg - rotDeg) % seg) + seg) % seg;
+      return a < seg * fr ? rr * (1 - dep) : rr;
+    }
+    if (k === "reuleaux") {                                  // ルーロー三角形(定幅曲線)。頂点=物理半径rr・幅が一定=回転しても隙間の読みが安定
+      // 中心-頂点距離d=rr / 円弧半径s=rr√3。頂点Vの対辺の弧: |P-V|=s を極座標で解いて r=rr[cosΔ+√(3-sin²Δ)](Δ=V基準で120°..240°)
+      for (let kk = 0; kk < 3; kk++) {
+        const d = ((thDeg - rotDeg - kk * 120) % 360 + 360) % 360;
+        if (d >= 120 && d <= 240) { const t = d * D; return rr * (Math.cos(t) + Math.sqrt(3 - Math.sin(t) * Math.sin(t))); }
+      }
+      return rr;
+    }
+    return rr;                                               // 円(原型)=半径は物理そのまま
+  },
+
+  // リング別の意匠を解決(惑星スキンに rings[i] を重ねる)。rings未定義の惑星は従来どおり惑星単位の単一shape=既存6惑星は不変。
+  _slitRingSkin(sk, i) {
+    const per = sk && sk.rings && sk.rings[i];
+    return per ? Object.assign({}, sk, per) : (sk || {});
   },
 
   // 切れ目付きリングを「線のみ」で(ギャップ=スリットを飛ばして描く)。θ: 0=右/90=上、y上向き。
-  // 全語彙で切れ目は「角度」で飛ばす=物理の角度窓と厳密一致(見た目の隙間=粒子が通れる角度)。
-  //   A環(既定)=円弧 / B多角=多角形枠 / C分節=短いsegmentの列(石列・殻片) / D有機=揺らぐ曲線(葉脈・蔓)
-  //   E二重=同じ角度窓を持つ内外2本 / F標識=警戒縞(破線)の枠。
-  //   C分節の「粒の隙間」は物理の切れ目より必ず十分小さく保つ(segGapMaxDeg上限)=切れ目の位置が曖昧にならない。
+  // 全形状で切れ目は「角度」で飛ばす=物理の角度窓と厳密一致(見た目の隙間=粒子が通れる角度)。
+  //   円(既定)/ 多角形 / 有機曲線 / 星形 / 歯車環 / ルーロー三角形。いずれも輪郭そのものが姿形を作る(線種で円をなぞらない=合格条件1)。
   _slitRing(ctx, cx, cy, rr, baseDeg, halfDeg, stroke, lw, sk) {
     sk = sk || {};
     const kind = sk.shape || "ring";
     const start = baseDeg + halfDeg, span = 360 - 2 * halfDeg;
-    const curved = (kind === "poly" || kind === "organic");
+    const shaped = (kind === "poly" || kind === "organic" || kind === "star" || kind === "gear" || kind === "reuleaux");
+    const stepDeg = kind === "gear" ? 0.4 : (shaped ? 2 : 5);  // 歯車は角を立てるため細かく刻む
     ctx.strokeStyle = stroke; ctx.lineWidth = lw * (sk.lwMul || 1);
     // 角度[a0,a1]の弧を1本描く(半径は姿形で変調)
     const arc = (a0, a1, rmul) => {
-      const sp = a1 - a0, steps = Math.max(curved ? 8 : 2, Math.round(sp / (curved ? 2 : 5)));
+      const sp = a1 - a0, steps = Math.max(shaped ? 8 : 2, Math.round(sp / stepDeg));
       ctx.beginPath();
       for (let k = 0; k <= steps; k++) {
         const thd = a0 + sp * k / steps;
@@ -76,27 +102,21 @@ Object.assign(UI, {
       }
       ctx.stroke();
     };
-    if (kind === "segment") {                                 // C分節: span を等分し各セルの一部だけ描く(隙間=粒の流れ)
-      const n = Math.max(4, Math.round(span / (sk.segStepDeg || 14)));
-      const cell = span / n;
-      const gap = Math.min(cell * (sk.segGapFrac != null ? sk.segGapFrac : 0.24), sk.segGapMaxDeg || 4);
-      ctx.lineCap = sk.segCap || "butt";
-      for (let s = 0; s < n; s++) arc(start + s * cell + gap / 2, start + (s + 1) * cell - gap / 2, 1);
-      ctx.lineCap = "butt";
-      return;
+    arc(start, start + span, 1);                              // 円 / 多角形 / 有機 / 星形 / 歯車 / ルーロー
+    if (kind === "gear" && sk.flankStripe) {                   // 警戒縞=歯の側面(歯先↔歯底をつなぐ半径方向の辺)を強調して縞に見せる
+      const n = sk.teeth || 14, dep = sk.toothDepth != null ? sk.toothDepth : 0.16, fr = sk.toothFrac != null ? sk.toothFrac : 0.45;
+      const seg = 360 / n, r0 = rr * (1 - dep);
+      ctx.lineWidth = lw * (sk.lwMul || 1) * 1.6;
+      for (let t = -1; t <= n; t++) for (const off of [0, seg * fr]) {
+        const a = baseDeg + t * seg + off;
+        if (a < start || a > start + span) continue;           // 切れ目の中には描かない(角度窓を侵さない)
+        const th = a * Math.PI / 180;
+        ctx.beginPath();
+        ctx.moveTo(cx + r0 * Math.cos(th), cy - r0 * Math.sin(th));
+        ctx.lineTo(cx + rr * Math.cos(th), cy - rr * Math.sin(th));
+        ctx.stroke();
+      }
     }
-    if (kind === "double") {                                  // E二重: 同じ角度窓の内外2本(波紋の厚み)
-      const sep = sk.dblSep != null ? sk.dblSep : 0.035;
-      arc(start, start + span, 1 - sep); arc(start, start + span, 1 + sep);
-      return;
-    }
-    if (kind === "sign") {                                    // F標識: 警戒縞(破線)の枠
-      ctx.save(); ctx.setLineDash(sk.dashPx || [7, 5]);
-      arc(start, start + span, 1);
-      ctx.restore();
-      return;
-    }
-    arc(start, start + span, 1);                              // A環 / B多角 / D有機
   },
 
   // 惑星別の意匠パレット(骨格・確率は不変=色のみ)。現惑星のCFG.slitSkinByStageを既定にマージ。読み取り専用。
@@ -148,29 +168,20 @@ Object.assign(UI, {
     const baseA = 0.4 + align * 0.14;                       // 揃うほど僅かに明るく(気配)
     const lw = Math.max(1.0, 1.15 * sc);
     for (let i = 0; i < N; i++) {
-      const sa = sang[i] * 180 / Math.PI;
-      this._slitRing(ctx, cx, cy, radii[i] * R, sa, half[i], rc(sk.rail, baseA), lw, sk);
+      const sa = sang[i] * 180 / Math.PI, rsk = this._slitRingSkin(sk, i); // リング別の幾何(未指定なら惑星単位)
+      this._slitRing(ctx, cx, cy, radii[i] * R, sa, half[i], rc(rsk.rail, baseA), lw, rsk);
     }
-    // 中心=回廊の終点(奇跡の到達点)。ごく小さく静かに。F標識の惑星のみ三葉(放射線標識)で飾る
-    const cr = Math.max(1.6, R * 0.028);
+    // 中心=回廊の終点(球の着地点・賢者の石の生成点)。ごく小さく静かに、しかし常に最も明瞭に(合格条件4)。
+    // 全リングの描画は R*slitCenterCoreF*slitCenterClearF の内側へ侵入しない(姿形QAが全惑星×全リングで実測)。
+    const cr = Math.max(1.6, R * (CFG.slitCenterCoreF || 0.028));
     ctx.fillStyle = rc(sk.center, 0.4 + align * 0.4);
-    if (sk.centerShape === "trefoil") {                       // 三葉=中心の周りに3枚の扇。最外リングの回転に追従して回る
-      const rot0 = sang[0];
-      for (let t = 0; t < 3; t++) {
-        const a0 = rot0 + t * 2 * Math.PI / 3 - 0.42, a1 = a0 + 0.84;
-        ctx.beginPath(); ctx.moveTo(cx, cy);
-        ctx.arc(cx, cy, cr * 2.6, -a0, -a1, true); ctx.closePath(); ctx.fill();
-      }
-      ctx.beginPath(); ctx.arc(cx, cy, cr * 0.9, 0, 7); ctx.fill();
-    } else {
-      ctx.beginPath(); ctx.arc(cx, cy, cr, 0, 7); ctx.fill();
-    }
+    ctx.beginPath(); ctx.arc(cx, cy, cr, 0, 7); ctx.fill();
 
     // 張り付いた失敗の痕跡(内側=惜しいほど明るく大きく=静かな殿堂)。寿命は到達の深さ別(§④)。
     const now = (typeof Render !== "undefined") ? Render.time : 0;
     for (const s of Slit.stuck) {
-      // 痕跡は「弾かれた壁の上」に置く=姿形で変調した半径へ写像(多角形/有機でも痕が枠から浮かない=判定基準5 物理整合)
-      const sr = this._slitShapeR(sk, s.r, s.theta, (sang[s.ring] || 0) * 180 / Math.PI);
+      // 痕跡は「弾かれた壁の上」に置く=そのリングの姿形で変調した半径へ写像(痕が枠から浮かない=判定基準5 物理整合)
+      const sr = this._slitShapeR(this._slitRingSkin(sk, s.ring), s.r, s.theta, (sang[s.ring] || 0) * 180 / Math.PI);
       const [x, y] = pt(sr, s.theta);
       const depth = (s.ring + 1) / N;               // 0..1 内側ほど大
       const life0 = s.life0 || 6;

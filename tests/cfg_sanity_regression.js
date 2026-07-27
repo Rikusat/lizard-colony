@@ -139,18 +139,27 @@ console.log("== 2) dockStages写像+3) 宇宙港rocketStages無傷(実コード)
     const by = CFG.slitSkinByStage || {};
     const missing = STAGES.map((s) => s.id).filter((id) => !(id in by));
     check("slitSkin: 全10惑星の意匠が定義済み", missing.length === 0, `未定義=[${missing}]`);
-    const SHAPES = ["ring", "poly", "segment", "organic", "double", "sign"];
-    const bad = Object.entries(by).filter(([, v]) => v.shape && !SHAPES.includes(v.shape)).map(([k]) => k);
-    check("slitSkin: shapeは実装済み語彙のみ(A環/B多角/C分節/D有機/E二重/F標識)", bad.length === 0, `未実装shape=[${bad}]`);
-    const noPoly = Object.entries(by).filter(([, v]) => v.shape === "poly" && !(v.sides >= 3)).map(([k]) => k);
-    check("slitSkin: B多角は sides>=3 を持つ", noPoly.length === 0, `sides欠落=[${noPoly}]`);
-    // C分節の「粒の隙間」は物理の最小の切れ目より十分小さいこと=切れ目の位置が曖昧にならない(Ric指摘への恒久ガード)
-    const minGap = Math.min(...CFG.slitHalfDeg.map((h) => 2 * h));
-    const ambiguous = Object.entries(by).filter(([, v]) => v.shape === "segment").filter(([, v]) => {
-      const span = 360 - minGap, n = Math.max(4, Math.round(span / (v.segStepDeg || 14))), cell = span / n;
-      return Math.min(cell * (v.segGapFrac != null ? v.segGapFrac : 0.24), v.segGapMaxDeg || 4) >= minGap * 0.5;
-    }).map(([k]) => k);
-    check("slitSkin: C分節の粒間 < 最小の切れ目の半分(切れ目が曖昧にならない)", ambiguous.length === 0, `曖昧=[${ambiguous}]`);
+    // リング別指定(rings[i])まで解決してから検査する(惑星単位のshapeしか見ないと⑤⑦⑨⑩を素通りする)
+    const resolved = [];
+    for (const [id, v] of Object.entries(by)) for (let i = 0; i < CFG.slitRings; i++) resolved.push([id, i, Object.assign({}, v, (v.rings && v.rings[i]) || {})]);
+    // 却下語彙(輪郭が真円のまま)は撤去済み。復活すると意匠の合格条件1を破るため、データ側でも恒久的に禁止する。
+    const SHAPES = ["ring", "poly", "organic", "star", "gear", "reuleaux"];
+    const REJECTED = ["segment", "double", "sign", "trefoil"];
+    const bad = resolved.filter(([, , s]) => s.shape && !SHAPES.includes(s.shape)).map(([id, i, s]) => `${id}#${i}:${s.shape}`);
+    check("slitSkin: shapeは実装済み語彙のみ(円/多角/有機/星形/歯車/ルーロー)", bad.length === 0, `未実装shape=[${bad}]`);
+    const revived = resolved.filter(([, , s]) => REJECTED.includes(s.shape)).map(([id, i]) => `${id}#${i}`);
+    check("slitSkin: 却下語彙(分節/二重/破線標識/重なる円の三葉)が復活していない", revived.length === 0, `復活=[${revived}]`);
+    const noPoly = resolved.filter(([, , s]) => s.shape === "poly" && !(s.sides >= 3)).map(([id, i]) => `${id}#${i}`);
+    check("slitSkin: 多角形は sides>=3 を持つ", noPoly.length === 0, `sides欠落=[${noPoly}]`);
+    const noStar = resolved.filter(([, , s]) => s.shape === "star" && !(s.points >= 3 && s.innerF > 0)).map(([id, i]) => `${id}#${i}`);
+    check("slitSkin: 星形は points>=3 と innerF>0 を持つ", noStar.length === 0, `不備=[${noStar}]`);
+    // 合格条件4(着地点の可読性): 各リングの最小半径が中心の確保余白を侵さない。ピクセル実測はtest-slitshape-qa.htmlが担当。
+    const clear = (CFG.slitCenterCoreF || 0.028) * (CFG.slitCenterClearF || 2.5);
+    const rMinOf = (s) => s.shape === "poly" ? Math.cos(Math.PI / s.sides) : s.shape === "star" ? s.innerF
+      : s.shape === "gear" ? 1 - (s.toothDepth != null ? s.toothDepth : 0.16) : s.shape === "reuleaux" ? Math.sqrt(3) - 1
+        : s.shape === "organic" ? 1 - (s.wobAmp || 0) - (s.wobAmp2 || 0) : 1;
+    const intrude = resolved.filter(([, i, s]) => CFG.slitRadiif[i] * rMinOf(s) < clear).map(([id, i]) => `${id}#${i}`);
+    check("slitSkin: 全リングが中心の確保余白を侵さない(着地点の可読性)", intrude.length === 0, `侵入=[${intrude}]`);
   }
 }
 

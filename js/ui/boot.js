@@ -248,15 +248,15 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
         // リング描画は実描画関数(UI._slitRing)をそのまま呼ぶ=ビューアと実機の描画が原理的にズレない(Slit物理には非接触=角度は自前で与える)
         // 各リングの切れ目角=静止スナップショット(物理の独立回転slitSpinDegを6秒相当で位相化=枠が互いにズレて回る様を静止画で読ませる)
         const ang = []; for (let i = 0; i < N; i++) ang.push(base + (CFG.slitSpinDeg && CFG.slitSpinDeg[i] ? CFG.slitSpinDeg[i] * 6 : 0));
-        for (let i = 0; i < N; i++) UI._slitRing(ctx, cx, cy, radii[i] * R, ang[i], half[i], rc(sk.rail, 0.5), Math.max(1, 1.15 * sc), sk); // レール(姿形は惑星別・枠ごと位相回転)
+        const rsk = (i) => UI._slitRingSkin(sk, i); // リング別の幾何(惑星によっては4基が別々の幾何=重なりが組み変わる)
+        for (let i = 0; i < N; i++) UI._slitRing(ctx, cx, cy, radii[i] * R, ang[i], half[i], rc(rsk(i).rail, 0.5), Math.max(1, 1.15 * sc), rsk(i)); // レール(枠ごと位相回転)
         // 角度窓ガイド(物理整合の証明・淡): 各リングの切れ目「中心角」へ中心から極細の破線=見た目の隙間と物理の通過角が一致することを可視化
         ctx.save(); ctx.setLineDash([3, 4]); ctx.lineWidth = 1; for (let i = 0; i < N; i++) { const t = ang[i] * Math.PI / 180, r0 = (i < N - 1 ? radii[i + 1] : 0) * R, r1 = radii[i] * R; ctx.strokeStyle = rc(sk.glow, 0.16); ctx.beginPath(); ctx.moveTo(cx + r0 * Math.cos(t), cy - r0 * Math.sin(t)); ctx.lineTo(cx + r1 * Math.cos(t), cy - r1 * Math.sin(t)); ctx.stroke(); } ctx.restore();
         // 失敗痕(固定・比較用)。実機同様に「弾かれた壁の上」=姿形で変調した半径へ写像=痕が枠から浮かないことも確認できる
-        for (let i = 0; i < N; i++) { const thd = 60 + i * 40; const [x, y] = pt(UI._slitShapeR(sk, radii[i], thd, ang[i]), thd); const depth = (i + 1) / N; ctx.beginPath(); ctx.arc(x, y, (2 + depth * 2.8) * sc, 0, 7); ctx.fillStyle = rc(sk.trace, 0.5 + depth * 0.45); ctx.fill(); if (depth >= 0.99) { ctx.beginPath(); ctx.arc(x, y, (2 + depth * 2.8) * sc + 2.2 * sc, 0, 7); ctx.strokeStyle = rc(sk.traceRing, 0.7); ctx.lineWidth = 1.2 * sc; ctx.stroke(); } }
-        // 中心(F標識の惑星は三葉=放射線標識)
-        ctx.fillStyle = rc(sk.center, 0.7); const cr0 = Math.max(1.6, R * 0.028);
-        if (sk.centerShape === "trefoil") { const r0 = ang[0] * Math.PI / 180; for (let t = 0; t < 3; t++) { const a0 = r0 + t * 2 * Math.PI / 3 - 0.42; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, cr0 * 2.6, -a0, -(a0 + 0.84), true); ctx.closePath(); ctx.fill(); } ctx.beginPath(); ctx.arc(cx, cy, cr0 * 0.9, 0, 7); ctx.fill(); }
-        else { ctx.beginPath(); ctx.arc(cx, cy, cr0, 0, 7); ctx.fill(); }
+        for (let i = 0; i < N; i++) { const thd = 60 + i * 40; const [x, y] = pt(UI._slitShapeR(rsk(i), radii[i], thd, ang[i]), thd); const depth = (i + 1) / N; ctx.beginPath(); ctx.arc(x, y, (2 + depth * 2.8) * sc, 0, 7); ctx.fillStyle = rc(sk.trace, 0.5 + depth * 0.45); ctx.fill(); if (depth >= 0.99) { ctx.beginPath(); ctx.arc(x, y, (2 + depth * 2.8) * sc + 2.2 * sc, 0, 7); ctx.strokeStyle = rc(sk.traceRing, 0.7); ctx.lineWidth = 1.2 * sc; ctx.stroke(); } }
+        // 中心=球の着地点/石の生成点(常に最も明瞭・合格条件4)
+        ctx.fillStyle = rc(sk.center, 0.7); const cr0 = Math.max(1.6, R * (CFG.slitCenterCoreF || 0.028));
+        ctx.beginPath(); ctx.arc(cx, cy, cr0, 0, 7); ctx.fill();
         const [lx, ly] = pt(0.6, ang[0]), [lx2, ly2] = pt(0.74, ang[0]); const g = ctx.createLinearGradient(lx2, ly2, lx, ly); g.addColorStop(0, rc(sk.laser, 0)); g.addColorStop(1, rc(sk.laser, 0.95)); ctx.strokeStyle = g; ctx.lineWidth = Math.max(1.4, 1.8 * (W / 200)); ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(lx2, ly2); ctx.lineTo(lx, ly); ctx.stroke(); ctx.beginPath(); ctx.arc(lx, ly, Math.max(1.4, 1.6 * (W / 200)), 0, 7); ctx.fillStyle = rc(sk.laser, 0.98); ctx.fill(); // 飛行球
         const bl = R * 0.5, gg = ctx.createRadialGradient(cx, cy, 1, cx, cy, bl); gg.addColorStop(0, rc(sk.bloom, 0.5)); gg.addColorStop(1, rc(sk.bloom, 0)); ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(cx, cy, bl, 0, 7); ctx.fill(); // 成功ブルーム(色見本)
       };

@@ -28,17 +28,18 @@ function gapsOf(sk, rr, baseDeg, halfDeg) {
   const img = ctx.getImageData(0, 0, S, S).data;
   const lit = (x, y) => { const i = ((y | 0) * S + (x | 0)) * 4 + 3; return img[i] > 24; };
   const step = 0.25, on = [];
+  let rMinLit = Infinity;                                 // 描画が中心へどこまで迫ったか(px)=着地点の可読性検査に使う
   for (let d = 0; d < 360; d += step) {
     const th = d * Math.PI / 180;
-    const r0 = UI._slitShapeR(sk, rr, d, baseDeg);
     let hit = false;
-    // 姿形の半径帯(±10%)を放射方向に走査。二重(E)は内外どちらでも可
-    for (let f = 0.88; f <= 1.12 && !hit; f += 0.006) {
-      const r = r0 * f;
-      if (lit(cx + r * Math.cos(th), cy - r * Math.sin(th))) hit = true;
+    // 中心付近から外まで放射方向を全走査(星形の谷/歯車の歯底/ルーローの窪みまで届く)。内側から見て最初に当たった半径を記録。
+    // 切れ目の中は「どの半径にも線が無い」ため広く走っても偽陽性にならない(1リングだけを描いて判定しているため)。
+    for (let r = R * 0.008; r <= rr * 1.18; r += 0.6) {
+      if (lit(cx + r * Math.cos(th), cy - r * Math.sin(th))) { hit = true; if (r < rMinLit) rMinLit = r; break; }
     }
     on.push(hit);
   }
+  gapsOf.rMinLit = rMinLit;
   const n = on.length, gaps = [];
   let i0 = 0; while (i0 < n && !on[i0]) i0++;           // 線のある位置から走査開始(区間の分断を避ける)
   if (i0 >= n) return [{ span: 360, mid: 0 }];
@@ -56,9 +57,12 @@ const def = CFG.slitSkinDefault, byStage = CFG.slitSkinByStage;
 const names = {}; STAGES.forEach((s) => names[s.id] = s.name);
 const cells = [["default", def]].concat(Object.keys(byStage).map(Number).sort((a, b) => a - b).map((id) => [names[id] + "(" + id + ")", Object.assign({}, def, byStage[id])]));
 
-for (const [label, sk] of cells) {
-  P("■ " + label + " shape=" + (sk.shape || "ring") + (sk.sides ? " sides=" + sk.sides : ""));
+for (const [label, sk0] of cells) {
+  const shapes = [];
+  for (let i = 0; i < CFG.slitRings; i++) { const s = UI._slitRingSkin(sk0, i); shapes.push((s.shape || "ring") + (s.sides ? "/" + s.sides : "") + (s.points ? "/" + s.points + "点" : "")); }
+  P("■ " + label + " リング別=" + shapes.join(" → "));
   for (let i = 0; i < CFG.slitRings; i++) {
+    const sk = UI._slitRingSkin(sk0, i);            // リング別の幾何で検証(惑星単位の単一shapeなら従来どおり)
     const half = CFG.slitHalfDeg[i], base = CFG.slitBaseAngleDeg + i * 37; // 基準角は任意(回転しても成立すること)
     const rr = CFG.slitRadiif[i] * R;
     const g = gapsOf(sk, rr, base, half);
@@ -67,8 +71,11 @@ for (const [label, sk] of cells) {
     chk(Math.abs(top.span - 2 * half) <= 4, `ring${i} 切れ目の幅 実測${top.span.toFixed(1)}° = 物理2*half ${2 * half}°`);
     // ② 切れ目の中心 = 物理の基準角(見た目の隙間が物理の通過角と同じ位置)
     chk(angDist(top.mid, base) <= 3, `ring${i} 切れ目の中心 実測${top.mid.toFixed(1)}° = 物理の基準角 ${base}°`);
-    // ③ 他の隙間(分節の粒間/警戒縞)は物理の切れ目の半分未満=切れ目の位置が曖昧にならない
+    // ③ 他の隙間は物理の切れ目の半分未満=切れ目の位置が曖昧にならない
     chk(second.span < top.span * 0.5, `ring${i} 次に大きい隙間 ${second.span.toFixed(1)}° < 切れ目${top.span.toFixed(1)}°の半分`);
+    // ④ 着地点の可読性(合格条件4): 描画が中心の確保余白 R*coreF*clearF の内側へ侵入しない
+    const rMin = R * (CFG.slitCenterCoreF || 0.028) * (CFG.slitCenterClearF || 2.5);
+    chk(gapsOf.rMinLit >= rMin, `ring${i} 最内到達 ${(gapsOf.rMinLit / R).toFixed(3)}R >= 確保余白 ${(rMin / R).toFixed(3)}R(中心を覆わない)`);
   }
 }
 P("");
