@@ -2175,7 +2175,7 @@ const Render = {
       // 尾のしなり(先端ほど大きく)
       if (te < 0.42) y += Math.sin(phase * 0.8 - te * 9) * tailAmp * Math.pow((0.42 - te) / 0.42, 1.6);
       // 種族ごとの体型(尾に掛かるものは te=自切反映後のtで判定=断端でも整合)
-      if (sp.id === "leopa" && te > 0.14 && te < 0.48) w *= 1.8;   // 脂肪を蓄えた太い尾
+      if (sp.id === "leopa" && te > 0.14 && te < 0.48) w *= (CFG.leopaTailFat || 1.55); // 脂肪を蓄えた太い尾(調査P: 1.8は尾基部が腰を超え瘤に見える→1.55で腰≈尾基部の自然な太尾へ・CFG)
       if (sp.id === "futoago" && t > 0.5 && t < 0.8) w *= 1.18;  // 幅広の胴
       if (sp.id === "komodo") w *= 1.15;                          // 重量級
       if (sp.id === "kanahebi" && te < 0.48) w *= 0.7;             // 細い尾

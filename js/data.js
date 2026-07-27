@@ -381,6 +381,7 @@ const CFG = {
   drinkRippleOn: true,      // 水飲みの波紋(頭下げ中の水面の輪)
   drinkDipOn: true,         // 調査O: 水飲みの頭下げ(首/頭を実際に下げる=飲む動きが視認可能)
   drinkDipDepth: 0.22,      // 頭下げの深さ(体長比・鼻先が下がる量)。★Ric実機で自然さ調整
+  leopaTailFat: 1.55,       // 調査P: レオパ(ヒョウモントカゲモドキ)の脂肪尾の太さ倍率。1.8=尾基部が腰を超え瘤/1.55=腰≈尾基部の自然な太尾。★Ric調整
   motEmergeLookOn: true,    // 巣から出た直後の見回し(⑧キョロ接続)
   motEmergeLookRate: 0.6,   // 出巣時の見回し発生率
   motPeekOn: true,          // 入巣前に一瞬振り返る(名残)
