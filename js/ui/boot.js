@@ -287,48 +287,62 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
       if (location.hash === "#slitskin") setTimeout(ssGate, 400);
     }
 
-    // dev支援(V5C C1・2026-07-27): オープニング基準カットの3案比較(?tune=1#opening・読み取り専用・本編非干渉)。
-    //   同一カット(カット2「脱出」)を絵作りの流儀が異なる3案で同時再生。再生は本ビューア専用のrAF=本編描画ループに条件分岐を足さない。
+    // dev支援(V5C C1・2026-07-27): オープニング全編プレビュー(?tune=1#opening・読み取り専用・本編非干渉)。
+    //   流儀=案C 切り絵シルエット。再生は本ビューア専用のrAF=本編描画ループに条件分岐を足さない。
+    //   全編再生 / カット別の代表フレーム / スキップ・reduced-motion・決定論の実測をここで確認できる。
     {
-      let opPanel = null, opRaf = 0;
-      const stopOP = () => { if (opRaf) cancelAnimationFrame(opRaf); opRaf = 0; if (opPanel) opPanel.remove(); opPanel = null; };
-      const STYLES = [
-        { id: "dither", label: "案A ディザ・セル", note: "PC-98流。硬い影の面＋市松ディザで階調(グラデ不使用)" },
-        { id: "poly", label: "案B 面取りポリゴン", note: "多角形の面だけで造形。影も面として割る=装置の幾何と接続" },
-        { id: "silhouette", label: "案C 切り絵シルエット", note: "前景を暗い塊に。奥行きは重なりと明度差のみ" },
-      ];
+      let opPanel = null, opState = null;
+      const stopOP = () => { if (opState && opState.skip) opState.skip(); opState = null; if (opPanel) opPanel.remove(); opPanel = null; };
+      const CUTNAME = ["①崩壊", "②脱出", "③航行(十の星+固有種)", "④実験", "⑤祝祭", "⑥コロニーと題"];
       const buildOP = () => {
         stopOP();
         if (typeof Opening === "undefined") { console.warn("[opening] Opening モジュール未読込"); return; }
+        const D = Opening.durs(), TOT = Opening.total();
         const panel = document.createElement("div"); panel.id = "opening-view";
-        panel.style.cssText = "position:fixed;inset:0;z-index:9999;background:#07080c;color:#e8dccb;font:13px/1.5 system-ui;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;overflow:auto;";
+        panel.style.cssText = "position:fixed;inset:0;z-index:9999;background:#05060a;color:#e8dccb;font:13px/1.5 system-ui;display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px;overflow:auto;";
         const title = document.createElement("div"); title.style.cssText = "font-size:15px;font-weight:600;";
-        title.textContent = "オープニング 基準カット3案 (?tune=1#opening) — 同一カット「脱出 — 積んだのは科学だけ」。#で閉じる";
+        title.textContent = "オープニング 全編 (?tune=1#opening) — 案C 切り絵シルエット / 計" + TOT.toFixed(1) + "秒。#で閉じる";
         panel.appendChild(title);
-        const row = document.createElement("div"); row.style.cssText = "display:flex;flex-wrap:wrap;gap:14px;justify-content:center;"; panel.appendChild(row);
-        const cvs = [];
-        STYLES.forEach((st) => {
-          const box = document.createElement("div"); box.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:6px;width:440px;";
-          const cv = document.createElement("canvas"); cv.width = 440; cv.height = 248;
-          cv.style.cssText = "width:440px;height:248px;background:#000;border-radius:4px;";
-          const lab = document.createElement("div"); lab.style.cssText = "font-weight:600;"; lab.textContent = st.label;
-          const note = document.createElement("div"); note.style.cssText = "font-size:11px;opacity:.66;text-align:center;min-height:30px;"; note.textContent = st.note;
-          box.appendChild(cv); box.appendChild(lab); box.appendChild(note); row.appendChild(box);
-          cvs.push({ ctx: cv.getContext("2d"), cv, id: st.id });
-        });
-        const bar = document.createElement("div"); bar.style.cssText = "font-size:11px;opacity:.6;"; bar.textContent = "2.4秒ループで同時再生(3案の位相は完全に同期)";
+        const main = document.createElement("canvas"); main.width = 960; main.height = 540;
+        main.style.cssText = "width:min(960px,92vw);aspect-ratio:16/9;height:auto;background:#000;border-radius:4px;cursor:pointer;";
+        panel.appendChild(main);
+        const bar = document.createElement("div"); bar.style.cssText = "font-size:12px;opacity:.75;";
         panel.appendChild(bar);
+        const btns = document.createElement("div"); btns.style.cssText = "display:flex;gap:8px;font-size:12px;";
+        const mk = (t) => { const b = document.createElement("button"); b.textContent = t; b.style.cssText = "background:#141824;color:#e8dccb;border:1px solid #2b3345;border-radius:3px;padding:4px 12px;cursor:pointer;"; btns.appendChild(b); return b; };
+        const bReplay = mk("もう一度"), bSkip = mk("スキップ"), bCalm = mk("reduced-motion で再生");
+        panel.appendChild(btns);
+        // カット別の代表フレーム(各カットの中央 u=0.5)
+        const strip = document.createElement("div"); strip.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:4px;";
+        panel.appendChild(strip);
         document.body.appendChild(panel); opPanel = panel;
-        const t0 = performance.now(), DUR = 2400;
-        const calm = typeof Motion !== "undefined" && Motion.reduced;
-        const loop = () => {
-          const u = calm ? 0.62 : ((performance.now() - t0) % DUR) / DUR;
-          for (const c of cvs) Opening.drawCut2(c.ctx, c.cv.width, c.cv.height, u, c.id);
-          if (!calm) opRaf = requestAnimationFrame(loop);
+        let acc = 0;
+        for (let i = 0; i < D.length; i++) {
+          const box = document.createElement("div"); box.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:3px;";
+          const cv = document.createElement("canvas"); cv.width = 288; cv.height = 162;
+          cv.style.cssText = "width:288px;height:162px;background:#000;border-radius:3px;";
+          const lb = document.createElement("div"); lb.style.cssText = "font-size:11px;opacity:.7;"; lb.textContent = CUTNAME[i] + " " + D[i].toFixed(1) + "s";
+          box.appendChild(cv); box.appendChild(lb); strip.appendChild(box);
+          Opening.drawAt(cv.getContext("2d"), cv.width, cv.height, acc + D[i] * 0.5);
+          acc += D[i];
+        }
+        const start = (calm) => {
+          if (opState && opState.skip) opState.skip();
+          opState = Opening.play(main, {
+            reduced: !!calm,
+            onEnd: (s) => { bar.textContent = calm ? "reduced-motion: アニメを止め最終画(タイトル)を静止表示" : (s.skipped ? "スキップで中断 → 最終画を表示" : "再生完了 " + TOT.toFixed(1) + "秒"); },
+          });
+          if (!calm) {
+            const tick = () => { if (!opState || opState.done) return; const r = Opening.drawAt ? null : null; bar.textContent = "再生中 " + opState.t.toFixed(1) + "s / " + TOT.toFixed(1) + "s"; requestAnimationFrame(tick); };
+            tick();
+          }
         };
-        loop();
+        bReplay.onclick = () => start(false);
+        bSkip.onclick = () => { if (opState && opState.skip) opState.skip(); };
+        bCalm.onclick = () => start(true);
+        start(false);
       };
-      const opGate = () => { if (location.hash === "#opening") { buildOP(); console.log("[opening] 基準カット3案ビューア表示"); } else stopOP(); };
+      const opGate = () => { if (location.hash === "#opening") { buildOP(); console.log("[opening] オープニング全編プレビュー表示"); } else stopOP(); };
       window.addEventListener("hashchange", opGate);
       if (location.hash === "#opening") setTimeout(opGate, 400);
     }
