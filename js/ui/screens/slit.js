@@ -33,14 +33,26 @@ Object.assign(UI, {
     this._slitFx.push({ kind: "win", t: 1.1, ttl: 1.1 });
   },
 
-  // 円の切れ目付き弧を「線のみ」で(ギャップ=スリットを飛ばして描く)。θ: 0=右/90=上、y上向き
-  _slitRing(ctx, cx, cy, rr, baseDeg, halfDeg, stroke, lw) {
+  // 切れ目付きリングを「線のみ」で(ギャップ=スリットを飛ばして描く)。θ: 0=右/90=上、y上向き。
+  // sides省略/0=円弧(原型)。sides>=3=多角形枠: 角度で outline をサンプルし、各角度の半径を多角形式で算出。
+  //   頂点=rr(物理半径radii[i]に接する)/辺=rr*cos(π/sides)へ僅かに窪む。切れ目は円弧と同じく「角度」で飛ばす=物理の角度窓と厳密一致。
+  //   枠は baseDeg(=そのリングの現在の切れ目角=独立回転)に追従して丸ごと回る=頂点が回転を可視化=「回転しあう幾何」。
+  _slitRing(ctx, cx, cy, rr, baseDeg, halfDeg, stroke, lw, sides) {
     const start = baseDeg + halfDeg, span = 360 - 2 * halfDeg;
-    const steps = Math.max(20, Math.round(span / 5));
+    const poly = sides && sides >= 3;
+    const steps = poly ? Math.max(48, Math.round(span / 2)) : Math.max(20, Math.round(span / 5));
+    const seg = poly ? (2 * Math.PI / sides) : 0;
+    const kfac = poly ? Math.cos(Math.PI / sides) : 1;      // 辺の窪み率(apothem/circumradius)
+    const rot = baseDeg * Math.PI / 180;                    // 枠の向き=切れ目角に追従(枠ごと回転)
     ctx.beginPath();
     for (let k = 0; k <= steps; k++) {
       const th = (start + span * k / steps) * Math.PI / 180;
-      const x = cx + rr * Math.cos(th), y = cy - rr * Math.sin(th);
+      let r = rr;
+      if (poly) {
+        const a = ((th - rot) % seg + seg) % seg - seg / 2; // -seg/2..seg/2(辺内の位置)
+        r = rr * kfac / Math.cos(a);                        // 頂点=rr/辺=rr*kfac
+      }
+      const x = cx + r * Math.cos(th), y = cy - r * Math.sin(th);
       k === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
     ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke();
@@ -96,7 +108,7 @@ Object.assign(UI, {
     const lw = Math.max(1.0, 1.15 * sc);
     for (let i = 0; i < N; i++) {
       const sa = sang[i] * 180 / Math.PI;
-      this._slitRing(ctx, cx, cy, radii[i] * R, sa, half[i], rc(sk.rail, baseA), lw);
+      this._slitRing(ctx, cx, cy, radii[i] * R, sa, half[i], rc(sk.rail, baseA), lw, (sk.shape === "poly" ? sk.sides : 0));
     }
     // 中心=回廊の終点(奇跡の到達点)。ごく小さく静かに
     ctx.beginPath(); ctx.arc(cx, cy, Math.max(1.6, R * 0.028), 0, 7);
