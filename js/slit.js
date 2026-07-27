@@ -26,6 +26,8 @@ const Slit = {
   _stuckSeq: 1,
   _time: 0,       // 回転の累積時間(固定dt・時間の純関数=決定論。ウォールクロック非依存)
   _acc: 0,        // 固定dt積分のアキュムレータ
+  _prng: null,    // 初期位相専用の乱数(球のθ用 _rng とは分離=θ系列の再現性を壊さない)
+  _forcedPhase: null, // テスト/リプレイ用の固定初期位相(null=通常)
 
   // 円iの切れ目の中心角(度)=基準角+回転。時刻tの純関数
   ringSlitAngle(i) { return CFG.slitBaseAngleDeg + CFG.slitSpinDeg[i] * this._time; },
@@ -42,6 +44,31 @@ const Slit = {
     return this;
   },
   getSeed() { return this._seed; },
+
+  // ---- 初期位相(S-SLIT-R・Ric承認 2026-07-27) --------------------------------
+  // 従来は reset() で _time=0 に戻していたため、起動時と惑星切替時に「4つの切れ目が基準角に完全整列した
+  // 状態」から必ず始まっていた。これは(a)毎回同じ盤面=緊張が薄れる (b)整列直後の成功率が定常の約240倍
+  // =惑星往復で石を稼げる不公平な経路、の二つを生んでいた。よって開始時刻を軌道上のランダムな一点にする。
+  //   ・回転比 1:√2:√3:√5 は有理独立=軌道は4次元トーラス上で等分布。ゆえに「ランダムな_time」は
+  //     「リング毎に独立一様な初期角」と同分布(MCで一致を確認済み)。角度式 ringSlitAngle は無改変。
+  //   ・乱数は _prng(初期位相専用)。球のθは従来どおり _rng =既存の再現性に非接触。
+  //   ・1プレイ内は固定(reset時のみ決定)=挑戦中に盤面が飛ばない。
+  //   ・CFG.slitStartPhaseRandom=false で従来挙動(_time=0)へ即復帰できる。
+  setStartPhase(sec) { this._forcedPhase = (sec == null ? null : +sec); return this; }, // テスト/リプレイ用に固定(nullで解除)
+  _startPhase() {
+    if (this._forcedPhase != null) return this._forcedPhase;
+    if (!CFG.slitStartPhaseRandom) return 0;
+    if (!this._prng) {
+      let a = ((Date.now() ^ (Math.random() * 0x7fffffff)) >>> 0) || 1;
+      this._prng = function () {
+        a |= 0; a = (a + 0x6D2B79F5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+    return this._prng() * (CFG.slitStartPhaseMaxSec || 3600);
+  },
 
   // 作動: 外縁の360°ランダム角θから中心へ放射状に射出
   launch(seed) {
@@ -122,7 +149,9 @@ const Slit = {
 
   active() { return !!this.ball && this.ball.phase === "fly"; },
   outcome() { return this.ball ? this.ball.phase : "idle"; }, // "fly"|"blocked"|"success"|"idle"
-  reset() { this.ball = null; this.passed = 0; this.stuck = []; this._cd = 0; this._time = 0; this._acc = 0; this._stuckSeq = 1; }, // 惑星切替/新セッションで痕跡・採番もクリア(=完全な再現性)
+  // 惑星切替/新セッションで痕跡・採番もクリア。_time は軌道上のランダムな一点から開始(§S-SLIT-R)=毎回違う盤面。
+  // setStartPhase(x) を与えれば完全に再現できる(テスト/リプレイ/黄金値監視)。
+  reset() { this.ball = null; this.passed = 0; this.stuck = []; this._cd = 0; this._time = this._startPhase(); this._acc = 0; this._stuckSeq = 1; },
   drainEvents() { const ev = this.events.slice(); this.events.length = 0; return ev; },
 };
 

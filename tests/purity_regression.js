@@ -220,7 +220,10 @@ for (let S = 1; S <= 10; S++) {
   check("スリット装置: 成功時は賢者の石のみ付与", (Game.state.stones || 0) - st0 === success && success === 40, `stonesΔ=${(Game.state.stones || 0) - st0} success=${success}`);
 
   // (7b) 回転の決定論(§9.5): 同一シード+同一時間スケジュール=同一結果(時間の純関数・ウォールクロック非依存)
+  // S-SLIT-R(2026-07-27): reset()の初期位相をランダム化したため、決定論の検査は位相を固定して行う
+  //   (setStartPhase はまさにそのためのテスト/リプレイ用API)。位相さえ与えれば従来どおり完全に再現される。
   const trace = () => {
+    Slit.setStartPhase(0);
     Slit.reset(); Slit.setSeed(2024);
     let s = "";
     for (let i = 0; i < 300; i++) {
