@@ -2198,31 +2198,8 @@ button.holding::after {
 }
 @keyframes beam-grow { to { height: 420px; } }
 
-/* 伝説誕生(一生に数回級): 光の柱+虹のオーブ+称号スタンプ */
-#hero-overlay.hero-legend { background: rgba(12, 8, 16, .78); }
-.hero-legend .legend-stage { position: relative; width: 160px; height: 200px; }
-.hero-legend .pillar {
-  position: absolute; left: 50%; top: -140px; bottom: -60px; width: 74px;
-  transform: translateX(-50%);
-  background: linear-gradient(rgba(255, 255, 255, 0), rgba(255, 248, 224, .30) 35%, rgba(255, 248, 224, .12) 75%, transparent);
-  clip-path: polygon(28% 0, 72% 0, 100% 100%, 0 100%);
-  animation: pillar-in 900ms var(--ease-out);
-}
-@keyframes pillar-in { from { opacity: 0; transform: translateX(-50%) scaleY(.2); transform-origin: top; } }
-.hero-legend .halo {
-  position: absolute; left: 50%; top: 55%; width: 130px; height: 130px;
-  transform: translate(-50%, -50%); border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, .55); opacity: 0;
-  animation: burst-ring 1.1s var(--ease-out) 500ms infinite;
-}
-.hero-legend .orb {
-  position: absolute; left: 50%; top: 55%; width: 74px; height: 74px;
-  transform: translate(-50%, -50%); border-radius: 50%;
-  background: radial-gradient(circle at 36% 30%, #fff, hsl(0, 75%, 62%));
-  box-shadow: 0 0 44px rgba(255, 255, 255, .55);
-  animation: orb-in 700ms var(--ease-pop) 250ms backwards, rainbow-shift 1.8s linear infinite;
-}
-@keyframes orb-in { from { transform: translate(-50%, -50%) scale(.2); opacity: 0; } }
+/* 掃除(2026-07-27): 伝説誕生(hero-legend)CSSは legend.js/test-v3.html 撤去に伴い削除(index.html非読込=死コード)。
+   共有keyframe burst-ring/rainbow-shift と .hero-stamp.legendbadge(meteorite.jsが使用)は温存。 */
 
 /* ============ C2c 虹の最大ジュース(新種お披露目) ============ */
 /* 盤(#boss-reward z320)より上に出す。新種の姿を大きく=主役 */
