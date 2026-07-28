@@ -328,50 +328,128 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
       window.addEventListener("hashchange", wGate);
       if (location.hash === "#weather") setTimeout(wGate, 400);
 
-    // dev支援(C2・2026-07-28): HOLO BRIEFING 基準カットの2案比較(?tune=1#opening・読み取り専用・本編非干渉)。
-    //   導火線の様式: 案a=深紅の芯線が走る / 案b=走査ビームが横断する。同一タイムラインで同時ループ再生。
+    // dev支援(C2・2026-07-28): HOLO BRIEFING 基準カットの検分ビューア(?tune=1#opening・読み取り専用・本編非干渉)。
+    //   導火線の様式: 案a=深紅の芯線が走る / 案b=走査ビームが横断する。2案の位相は常に完全同期。
+    //   §6-4「静止画では伝わらない」ため、再生/やり直し/速度/ループ/カット頭ジャンプ/スクラブを操作できる
+    //   =自動再生に頼らない(基準カットは3.2秒と短く、流し見では判定できないため)。
+    //   ★URLの落とし穴: serve等のcleanUrlsは `/index.html?tune=1` を `/index`→`/` へ301し**クエリを落とす**。
+    //     必ず拡張子なしで `http://localhost:3000/?tune=1#opening` を開くこと(クエリが消えるとtuneゲート自体が起動しない)。
     //   再生は本ビューア専用のrAF=本編描画ループに条件分岐を足さない。
     {
-      let hPanel = null, hSt = [];
-      const stopH = () => { for (const s of hSt) if (s && s.skip) s.skip(); hSt = []; if (hPanel) hPanel.remove(); hPanel = null; };
+      let hPanel = null, hRaf = 0;
+      const stopH = () => { if (hRaf) cancelAnimationFrame(hRaf); hRaf = 0; if (hPanel) hPanel.remove(); hPanel = null; };
       const VAR = [
         { id: "core", label: "案a 深紅の芯線が走る", note: "合成特性の共通の格=芯線を導火線に見立て、焼け跡と火花を残して走る" },
         { id: "beam", label: "案b 走査ビームが横断する", note: "白青の走査ビームが横断し、通過した後ろにHUDの格子が起動して残る" },
       ];
+      const BOFF = "background:#171a22;color:#e8dccb;border:1px solid #3a3f4d;border-radius:3px;padding:5px 10px;font:12px system-ui;cursor:pointer;";
+      const BON = "background:#4a3a12;color:#ffb547;border:1px solid #ffb547;border-radius:3px;padding:5px 10px;font:12px system-ui;cursor:pointer;";
       const buildH = () => {
         stopH();
         if (typeof Holo === "undefined") { console.warn("[opening] Holo 未読込"); return; }
+        const T = Holo.cutDur();
+        const G = (typeof CFG !== "undefined" && CFG.holoGridSec) || 0.4;
+        const SPD = (typeof CFG !== "undefined" && CFG.holoViewSpeeds) || [1, 0.5, 0.25];
+        const MARKS = [[0, "起動"], [G, "ブラケット"], [G * 2, "BOOT"], [G * 3, "点火"], [G * 5, "ノード1"], [G * 6, "ノード2"]];
+        const VIEWS = [["both", "並べて比較"], ["core", "案aのみ"], ["beam", "案bのみ"]];
+        const S = { t: 0, playing: true, speed: SPD[0], loop: true, view: "both" };
+
         const panel = document.createElement("div"); panel.id = "opening-view";
-        panel.style.cssText = "position:fixed;inset:0;z-index:9999;background:#05060a;color:#e8dccb;font:13px/1.6 system-ui;display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px;overflow:auto;";
+        panel.style.cssText = "position:fixed;inset:0;z-index:9999;background:#05060a;color:#e8dccb;font:13px/1.6 system-ui;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px;overflow:auto;";
         const ttl = document.createElement("div"); ttl.style.cssText = "font-size:15px;font-weight:600;";
-        ttl.textContent = "HOLO BRIEFING 基準カット (?tune=1#opening) — 起動+点火+ノード1〜2 / " + Holo.cutDur().toFixed(1) + "秒 · 導火線2案。#で閉じる";
+        ttl.textContent = "HOLO BRIEFING 基準カット (?tune=1#opening) — 起動+点火+ノード1〜2 / " + T.toFixed(1) + "秒 · 導火線2案。#で閉じる";
         panel.appendChild(ttl);
+
+        // ---- 操作バー(自動再生に頼らない) ----
+        const ctl = document.createElement("div");
+        ctl.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;";
+        panel.appendChild(ctl);
+        const mk = (parent, txt, fn, css) => {
+          const b = document.createElement("button"); b.style.cssText = css || BOFF; b.textContent = txt; b.onclick = fn; parent.appendChild(b); return b;
+        };
+        const sep = () => { const s = document.createElement("span"); s.style.cssText = "opacity:.28;padding:0 3px;"; s.textContent = "|"; ctl.appendChild(s); };
+        const bPlay = mk(ctl, "⏸ 一時停止", () => { S.playing = !S.playing; sync(); });
+        mk(ctl, "↻ 最初から", () => { S.t = 0; S.playing = true; sync(); });
+        sep();
+        const bSpd = SPD.map((v) => mk(ctl, "×" + v, () => { S.speed = v; sync(); }));
+        sep();
+        const bLoop = mk(ctl, "ループ ON", () => { S.loop = !S.loop; sync(); });
+        sep();
+        const bView = VIEWS.map(([id, lb]) => mk(ctl, lb, () => { S.view = id; layout(); sync(); }));
+
+        // ---- カット頭へジャンプ(0.4秒グリッドの節目) ----
+        const jump = document.createElement("div");
+        jump.style.cssText = "display:flex;flex-wrap:wrap;gap:5px;align-items:center;justify-content:center;font-size:11px;";
+        panel.appendChild(jump);
+        const jl = document.createElement("span"); jl.style.cssText = "opacity:.55;"; jl.textContent = "カット頭へ:"; jump.appendChild(jl);
+        MARKS.forEach(([mt, lb]) => mk(jump, mt.toFixed(1) + " " + lb, () => { S.t = mt; S.playing = false; sync(); }, BOFF + "font-size:11px;padding:3px 8px;"));
+
+        // ---- スクラブ(任意位相を止めて見る) ----
+        const sw = document.createElement("div");
+        sw.style.cssText = "display:flex;gap:10px;align-items:center;width:min(1000px,92vw);";
+        const scrub = document.createElement("input");
+        scrub.type = "range"; scrub.min = "0"; scrub.max = String(T); scrub.step = "0.01"; scrub.value = "0";
+        scrub.style.cssText = "flex:1;";
+        scrub.oninput = () => { S.t = parseFloat(scrub.value); S.playing = false; sync(); };
+        const readout = document.createElement("div");
+        readout.style.cssText = "font:12px ui-monospace,Consolas,monospace;opacity:.85;min-width:250px;text-align:right;";
+        sw.appendChild(scrub); sw.appendChild(readout); panel.appendChild(sw);
+
+        // ---- canvas群(表示モードで作り直す) ----
         const row = document.createElement("div"); row.style.cssText = "display:flex;flex-wrap:wrap;gap:14px;justify-content:center;"; panel.appendChild(row);
-        const cvs = [];
-        VAR.forEach((v) => {
-          const box = document.createElement("div"); box.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:5px;width:620px;";
-          const cv = document.createElement("canvas"); cv.width = 620; cv.height = 349;
-          cv.style.cssText = "width:620px;height:349px;background:#04060a;border-radius:3px;";
-          const lb = document.createElement("div"); lb.style.cssText = "font-weight:600;"; lb.textContent = v.label;
-          const nt = document.createElement("div"); nt.style.cssText = "font-size:11px;opacity:.66;text-align:center;min-height:32px;"; nt.textContent = v.note;
-          box.appendChild(cv); box.appendChild(lb); box.appendChild(nt); row.appendChild(box);
-          cvs.push({ cv: cv, id: v.id });
-        });
-        const bar = document.createElement("div"); bar.style.cssText = "font-size:11px;opacity:.6;";
-        bar.textContent = "0.4秒グリッド: 0.0起動 / 0.4ブラケット / 0.8 BOOT / 1.2点火 / 2.0ノード1(崩壊) / 2.4ノード2(十の星)  — ループ再生・2案の位相は完全同期";
+        let cvs = [];
+        const layout = () => {
+          row.innerHTML = ""; cvs = [];
+          const shown = S.view === "both" ? VAR : VAR.filter((v) => v.id === S.view);
+          const w = S.view === "both" ? 620 : 1000, h = Math.round(w * 349 / 620);
+          shown.forEach((v) => {
+            const box = document.createElement("div"); box.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:5px;width:" + w + "px;max-width:92vw;";
+            const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+            cv.style.cssText = "width:100%;height:auto;background:#04060a;border-radius:3px;";
+            const lb = document.createElement("div"); lb.style.cssText = "font-weight:600;"; lb.textContent = v.label;
+            const nt = document.createElement("div"); nt.style.cssText = "font-size:11px;opacity:.66;text-align:center;min-height:32px;"; nt.textContent = v.note;
+            box.appendChild(cv); box.appendChild(lb); box.appendChild(nt); row.appendChild(box);
+            cvs.push({ cv: cv, id: v.id });
+          });
+        };
+        layout();
+
+        const bar = document.createElement("div"); bar.style.cssText = "font-size:11px;opacity:.55;text-align:center;";
+        bar.textContent = "0.4秒グリッド: 0.0起動 / 0.4ブラケット / 0.8 BOOT / 1.2点火 / 2.0ノード1(崩壊) / 2.4ノード2(十の星) — 2案の位相は完全同期";
         panel.appendChild(bar);
         document.body.appendChild(panel); hPanel = panel;
-        const T = Holo.cutDur(), t0 = performance.now();
-        const calm = typeof Motion !== "undefined" && Motion.reduced;
+
+        // 状態→表示は一方向(UIは状態表示と入力受付のみ)
+        let lastRead = "";
+        const sync = () => {
+          bPlay.textContent = S.playing ? "⏸ 一時停止" : "▶ 再生";
+          bPlay.style.cssText = S.playing ? BOFF : BON;
+          bSpd.forEach((b, i) => { b.style.cssText = (SPD[i] === S.speed) ? BON : BOFF; });
+          bLoop.textContent = "ループ " + (S.loop ? "ON" : "OFF");
+          bLoop.style.cssText = S.loop ? BON : BOFF;
+          bView.forEach((b, i) => { b.style.cssText = (VIEWS[i][0] === S.view) ? BON : BOFF; });
+          scrub.value = String(S.t);
+          const txt = "t=" + S.t.toFixed(2) + "s / " + T.toFixed(1) + "s  グリッド" + Math.floor(S.t / G + 1e-6) + "  速度×" + S.speed;
+          if (txt !== lastRead) { readout.textContent = txt; lastRead = txt; }   // 毎フレームのDOM書込みを避ける
+        };
+
+        // reduced-motion: 動かさず静止画で見せる(情報は残す・操作は可能)
+        if (typeof Motion !== "undefined" && Motion.reduced) { S.playing = false; S.t = T * 0.86; }
+        let last = performance.now();
         const loop = () => {
           if (!hPanel) return;
-          const t = calm ? T * 0.86 : ((performance.now() - t0) / 1000) % T;
-          for (const c of cvs) Holo.drawCut(c.cv.getContext("2d"), c.cv.width, c.cv.height, t, c.id);
-          if (!calm) hSt[0] = { skip: () => {} }, requestAnimationFrame(loop);
+          const now = performance.now(), dt = Math.min(0.25, (now - last) / 1000); last = now;
+          if (S.playing) {
+            S.t += dt * S.speed;
+            if (S.t >= T) { if (S.loop) S.t %= T; else { S.t = T - 0.001; S.playing = false; } }
+          }
+          for (const c of cvs) Holo.drawCut(c.cv.getContext("2d"), c.cv.width, c.cv.height, S.t, c.id);
+          sync();
+          hRaf = requestAnimationFrame(loop);
         };
-        loop();
+        sync(); loop();
       };
-      const hGate = () => { if (location.hash === "#opening") { buildH(); console.log("[opening] HOLO BRIEFING 基準カット2案を表示"); } else stopH(); };
+      const hGate = () => { if (location.hash === "#opening") { buildH(); console.log("[opening] HOLO BRIEFING 検分ビューア表示(再生/速度/ループ/スクラブ)"); } else stopH(); };
       window.addEventListener("hashchange", hGate);
       if (location.hash === "#opening") setTimeout(hGate, 400);
     }
