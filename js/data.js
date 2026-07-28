@@ -165,8 +165,17 @@ const CFG = {
   holoSkippable: true,       // ★クリック/タップ/キーで即時中断(確認を挟まない)
   holoGlitchRate: 0.10,      // ★グリッチの発生率(決定論・バケット判定)
   holoPal: { void: "#04060a", amber: "#ffb547", crim: "#d2384a", pale: "#dfe9ee" }, // 色は3色+虚空に厳しく制限
-  holoFuseVariant: "core",   // ★導火線の様式: "core"=深紅の芯線が走る / "beam"=走査ビームが横断する
+  holoFuseVariant: "beam",   // ★導火線の様式(C2改訂でRic採用=beam): "core"=深紅の芯線が走る / "beam"=走査ビームが横断する
   holoViewSpeeds: [1, 0.5, 0.25], // ★検分ビューア(?tune=1#opening)の再生速度。3.2秒は等速だと判定しづらいため低速を用意
+  holoBeamTailF: 0.18,       // ★ビームが横断完了後に減衰して消える尾の割合(基準カットの欠陥=右端に留まる、の是正)
+  // ---- C2改訂 フェーズ1: 惑星移動トランジション(頻発する導線=摩擦にしない) ----
+  //   OFF(false)にすると従来の宇宙船トランジション(planetTravelSec)へ完全復帰する=可逆。
+  holoTravelOn: true,
+  holoTravelMaxSec: 1.2,     // ★尺の上限(恒久テストのガード)。これを超える値を下に書いてもクランプされる
+  holoTravelFullSec: 1.10,   // ★初訪(惑星名・固有種2種・脅威型を表示)。実測の壁時計は+0.03秒前後→上限1.2sに余裕を残す
+  holoTravelShortSec: 0.80,  // ★既訪(ビームの走査+惑星名のみ)
+  holoTravelReducedSec: 0.45,// ★reduced-motion(静止画・情報は残す)
+  holoTravelFullOnUnpioneered: true, // ★初回/既訪のしきい値: 未開拓(=初めて訪れる)なら情報表示ありの長い版。false=常に長い版
   // ===== W1 動的環境演出(天候) =====================================================================
   //   骨格=共通1つ / 意匠=惑星別。表示層のみ(経済・生産・繁殖・戦闘・確率・純血・魂・セーブに非接触)。
   //   サイクル: weatherCycleSec ごとに weatherChance の確率で1回だけ発生し、rise→hold→fall で終息する。

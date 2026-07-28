@@ -452,6 +452,109 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
       const hGate = () => { if (location.hash === "#opening") { buildH(); console.log("[opening] HOLO BRIEFING 検分ビューア表示(再生/速度/ループ/スクラブ)"); } else stopH(); };
       window.addEventListener("hashchange", hGate);
       if (location.hash === "#opening") setTimeout(hGate, 400);
+
+      // dev支援(C2改訂 フェーズ1・2026-07-28): 惑星移動トランジションの検分ビューア(?tune=1#travel・読み取り専用)。
+      //   10惑星それぞれを「実際に移動せずに」確認できる導線。初訪版/短縮版・速度・スクラブ・reduced-motionを切替。
+      //   下段に全10惑星の代表フレームを並べる=「全惑星で成立しているか」を一目で判定できる。
+      //   描画は本ビューア専用のrAF=本編描画ループに条件分岐を足さない。Game/セーブは読み取りすらしない。
+      //   ボタン意匠(BOFF/BON)は #opening ビューアと共有するため、そのブロック内に置く=同じ知識を2箇所に持たない。
+      {
+        let tPanel = null, tRaf = 0;
+        const stopT = () => { if (tRaf) cancelAnimationFrame(tRaf); tRaf = 0; if (tPanel) tPanel.remove(); tPanel = null; };
+        const buildT = () => {
+          stopT();
+          if (typeof Holo === "undefined" || typeof STAGES === "undefined") { console.warn("[travel] Holo/STAGES 未読込"); return; }
+          const SPD = (typeof CFG !== "undefined" && CFG.holoViewSpeeds) || [1, 0.5, 0.25];
+          const S = { id: STAGES[0].id, full: true, reduced: false, speed: SPD[0], playing: true, loop: true, t: 0 };
+          const durOf = () => Holo.travelDur(S.full, S.reduced);
+
+          const panel = document.createElement("div"); panel.id = "travel-view";
+          panel.style.cssText = "position:fixed;inset:0;z-index:9999;background:#05060a;color:#e8dccb;font:13px/1.6 system-ui;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px;overflow:auto;";
+          const ttl = document.createElement("div"); ttl.style.cssText = "font-size:15px;font-weight:600;";
+          ttl.textContent = "惑星移動トランジション 検分 (?tune=1#travel) — 共通様式=走査ビーム(案b)。全10惑星を移動せずに確認できる。#で閉じる";
+          panel.appendChild(ttl);
+
+          const mk = (parent, txt, fn, css) => { const b = document.createElement("button"); b.style.cssText = css || BOFF; b.textContent = txt; b.onclick = fn; parent.appendChild(b); return b; };
+          const ctl = document.createElement("div"); ctl.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;"; panel.appendChild(ctl);
+          const bPlay = mk(ctl, "一時停止", () => { S.playing = !S.playing; sync(); });
+          mk(ctl, "最初から", () => { S.t = 0; S.playing = true; sync(); });
+          const sep = () => { const s = document.createElement("span"); s.style.cssText = "opacity:.28;padding:0 3px;"; s.textContent = "|"; ctl.appendChild(s); };
+          sep();
+          const bFull = [mk(ctl, "初訪(情報表示あり)", () => { S.full = true; S.t = 0; sync(); }), mk(ctl, "既訪(短縮版)", () => { S.full = false; S.t = 0; sync(); })];
+          sep();
+          const bSpd = SPD.map((v) => mk(ctl, "x" + v, () => { S.speed = v; sync(); }));
+          sep();
+          const bRed = mk(ctl, "reduced-motion", () => { S.reduced = !S.reduced; S.t = 0; sync(); });
+          const bLoop = mk(ctl, "ループ ON", () => { S.loop = !S.loop; sync(); });
+
+          const rowP = document.createElement("div"); rowP.style.cssText = "display:flex;flex-wrap:wrap;gap:5px;justify-content:center;font-size:11px;"; panel.appendChild(rowP);
+          const pl = document.createElement("span"); pl.style.cssText = "opacity:.55;"; pl.textContent = "行き先:"; rowP.appendChild(pl);
+          const bPl = STAGES.map((st) => mk(rowP, st.id + " " + (st.pname || "").replace(/^惑星/, ""), () => { S.id = st.id; S.t = 0; S.playing = true; sync(); }, BOFF + "font-size:11px;padding:3px 8px;"));
+
+          const sw = document.createElement("div"); sw.style.cssText = "display:flex;gap:10px;align-items:center;width:min(1000px,92vw);";
+          const scrub = document.createElement("input"); scrub.type = "range"; scrub.min = "0"; scrub.max = "1"; scrub.step = "0.005"; scrub.value = "0"; scrub.style.cssText = "flex:1;";
+          scrub.oninput = () => { S.t = parseFloat(scrub.value) * durOf(); S.playing = false; sync(); };
+          const readout = document.createElement("div"); readout.style.cssText = "font:12px ui-monospace,Consolas,monospace;opacity:.85;min-width:270px;text-align:right;";
+          sw.appendChild(scrub); sw.appendChild(readout); panel.appendChild(sw);
+
+          const big = document.createElement("canvas"); big.width = 1000; big.height = 563;
+          big.style.cssText = "width:min(1000px,92vw);height:auto;background:#04060a;border-radius:3px;"; panel.appendChild(big);
+          const note = document.createElement("div"); note.style.cssText = "font-size:11px;opacity:.6;text-align:center;max-width:min(1000px,92vw);";
+          panel.appendChild(note);
+
+          // 全10惑星の代表フレーム(静止・同一位相)=惑星ごとに色調と幾何環が変わることを一目で確認
+          const gl = document.createElement("div"); gl.style.cssText = "font-size:12px;opacity:.7;margin-top:6px;";
+          gl.textContent = "全10惑星の代表フレーム(初訪版・同一位相 p=0.55) — 色調はその惑星のパレット引用 / 環は四重スリットの確定意匠";
+          panel.appendChild(gl);
+          const grid = document.createElement("div"); grid.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding-bottom:16px;"; panel.appendChild(grid);
+          document.body.appendChild(panel); tPanel = panel;
+          for (const st of STAGES) {
+            const box = document.createElement("div"); box.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:3px;";
+            const cv = document.createElement("canvas"); cv.width = 340; cv.height = 191;
+            cv.style.cssText = "width:340px;max-width:44vw;height:auto;background:#04060a;border-radius:3px;cursor:pointer;";
+            cv.onclick = () => { S.id = st.id; S.t = 0; S.playing = true; sync(); panel.scrollTop = 0; };
+            const lb = document.createElement("div"); lb.style.cssText = "font-size:11px;opacity:.72;"; lb.textContent = st.id + " " + st.pname;
+            box.appendChild(cv); box.appendChild(lb); grid.appendChild(box);
+            const inf = Holo.travelInfo(st.id), d = Holo.travelDur(true, false);
+            Holo.drawTravel(cv.getContext("2d"), cv.width, cv.height, d * 0.55, inf, { dur: d, full: true, from: "惑星" + "(現在地)" });
+          }
+
+          let lastRead = "";
+          const sync = () => {
+            const D = durOf();
+            bPlay.textContent = S.playing ? "一時停止" : "再生";
+            bPlay.style.cssText = S.playing ? BOFF : BON;
+            bFull[0].style.cssText = S.full ? BON : BOFF; bFull[1].style.cssText = S.full ? BOFF : BON;
+            bSpd.forEach((b, i) => { b.style.cssText = (SPD[i] === S.speed) ? BON : BOFF; });
+            bRed.style.cssText = S.reduced ? BON : BOFF;
+            bLoop.textContent = "ループ " + (S.loop ? "ON" : "OFF"); bLoop.style.cssText = S.loop ? BON : BOFF;
+            bPl.forEach((b, i) => { b.style.cssText = (STAGES[i].id === S.id) ? BON + "font-size:11px;padding:3px 8px;" : BOFF + "font-size:11px;padding:3px 8px;"; });
+            scrub.value = String(Math.min(1, S.t / D));
+            const inf = Holo.travelInfo(S.id);
+            const txt = "t=" + S.t.toFixed(2) + "s / " + D.toFixed(2) + "s (上限" + ((CFG && CFG.holoTravelMaxSec) || 1.2) + "s)  " + (S.full ? "初訪" : "既訪") + (S.reduced ? " reduced" : "") + "  x" + S.speed;
+            if (txt !== lastRead) {
+              readout.textContent = txt; lastRead = txt;
+              note.textContent = inf ? (inf.pname + " / " + inf.name + " — 固有種: " + (inf.sp.join(" · ") || "なし") + " / 脅威型: " + (inf.threat || "未設定") + "(" + (inf.threatText || "-") + ") / 素材: " + (inf.mat || "-") + " — 表示は全て実データ(STAGES/SPECIES/PLANET_BOSS/BOSS_TYPES)由来") : "";
+            }
+          };
+          let last = performance.now();
+          const loop = () => {
+            if (!tPanel) return;
+            const now = performance.now(), dt = Math.min(0.25, (now - last) / 1000); last = now;
+            const D = durOf();
+            if (S.reduced) { S.t = D * 0.86; S.playing = false; }        // reduced-motion: 動かさず最終画で止める
+            else if (S.playing) { S.t += dt * S.speed; if (S.t >= D) { if (S.loop) S.t %= D; else { S.t = D - 0.001; S.playing = false; } } }
+            const inf = Holo.travelInfo(S.id);
+            Holo.drawTravel(big.getContext("2d"), big.width, big.height, S.t, inf, { dur: D, full: S.full, from: "惑星(出発地)" });
+            sync();
+            tRaf = requestAnimationFrame(loop);
+          };
+          sync(); loop();
+        };
+        const tGate = () => { if (location.hash === "#travel") { buildT(); console.log("[travel] 惑星移動トランジション 検分ビューア表示(全10惑星)"); } else stopT(); };
+        window.addEventListener("hashchange", tGate);
+        if (location.hash === "#travel") setTimeout(tGate, 400);
+      }
     }
     }
     }

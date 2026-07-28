@@ -1879,7 +1879,16 @@ button.holding::after {
 .map-ero .bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--boss-600), var(--boss-500)); border-radius: inherit; }
 .map-ero b { color: var(--boss-400); font-variant-numeric: tabular-nums; }
 
-/* 宇宙船トランジション */
+/* HUDトランジション(C2改訂・UISkills §5.10): 節目に挟む共通の器。
+   中身は Canvas 2D(js/holo.js)が全て描く=CSSは器と可視制御のみ。頻発するため軽く・終わったら完全に消える。 */
+#holo-travel {
+  position: fixed; inset: 0; z-index: 210; display: none;
+  background: #04060a; cursor: pointer;
+}
+#holo-travel.show { display: block; }
+#holo-travel canvas { width: 100%; height: 100%; display: block; }
+
+/* 宇宙船トランジション(CFG.holoTravelOn=false 時の復帰先) */
 #travel-overlay {
   position: fixed; inset: 0; z-index: 200; display: none;
   background:

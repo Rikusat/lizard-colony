@@ -26,6 +26,32 @@ const Holo = {
     return { void: c.void || "#04060a", amber: c.amber || "#ffb547", crim: c.crim || "#d2384a", pale: c.pale || "#dfe9ee" };
   },
   grid() { return (typeof CFG !== "undefined" && CFG.holoGridSec) || 0.4; },
+  // 色ユーティリティ(hex→rgba / 虚空の上で読める明度まで持ち上げる)
+  rgba(hex, a) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex).trim());
+    if (!m) return `rgba(223,233,238,${a})`;
+    const n = parseInt(m[1], 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+  },
+  // 惑星の色調(その惑星のパレットを引用)。虚空#04060aの上で線が読めない暗い空は明度を底上げする
+  tintOf(st) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String((st && (st.sky || st.ground)) || "").trim());
+    if (!m) return this.C().amber;
+    const n = parseInt(m[1], 16);
+    let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    const MIN = 168, lum = (rr, gg, bb) => 0.299 * rr + 0.587 * gg + 0.114 * bb;
+    const l0 = lum(r, g, b);
+    if (l0 < MIN) {   // ①色相を保ったまま増幅 → ②飽和(255で頭打ち)で届かない分だけ白へ寄せる
+      const f = MIN / Math.max(1, l0);
+      r = Math.min(255, Math.round(r * f)); g = Math.min(255, Math.round(g * f)); b = Math.min(255, Math.round(b * f));
+      const l1 = lum(r, g, b);
+      if (l1 < MIN) {
+        const w = (MIN - l1) / (255 - l1);
+        r = Math.round(r + (255 - r) * w); g = Math.round(g + (255 - g) * w); b = Math.round(b + (255 - b) * w);
+      }
+    }
+    return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+  },
 
   // ---- 実データ(捏造しない) ----
   planets() {
@@ -154,6 +180,44 @@ const Holo = {
   },
 
   // =============================================================
+  // 【共通様式】走査ビーム(案b・C2改訂でHUDトランジションの共通の格として採用)
+  //   白青のビームが横断し、通過した後ろにHUDの格子が起動して残る=システムが立ち上がっていく。
+  //   ★基準カットの欠陥是正: 従来は横断完了(p=1)後もビームが右端(0.94W)に描かれ続け、
+  //     後続のノード表示と競合した。head を画面外まで走らせ、末尾 CFG.holoBeamTailF で減衰させて必ず消す。
+  //   戻り値 {x,a} は「通過後に残っていないこと」を恒久テストで測るための観測点。
+  // =============================================================
+  beam(ctx, W, H, p, opts) {
+    opts = opts || {};
+    const C = this.C();
+    const col = opts.col || C.pale, gcol = opts.grid || C.amber;
+    const y0 = opts.y0 != null ? opts.y0 : H * 0.12, y1 = opts.y1 != null ? opts.y1 : H * 0.88;
+    const tail = (typeof CFG !== "undefined" && CFG.holoBeamTailF != null) ? CFG.holoBeamTailF : 0.18;
+    const k = Math.max(0, Math.min(1, p));
+    const x = W * (-0.04 + 1.12 * k);                                        // 画面外→画面外(必ず抜ける)
+    let a = k <= 1 - tail ? 1 : Math.max(0, 1 - (k - (1 - tail)) / tail);     // 末尾で減衰して消える
+    if (a < 1e-6) a = 0;   // 浮動小数の残差(≒1e-16)で「消えたはずのビーム」が描かれるのを断つ
+    const gx0 = W * 0.06, gx1 = Math.min(x, W * 0.94);
+    const gy0 = y0 + (y1 - y0) * 0.03, gy1 = y1 - (y1 - y0) * 0.03;
+    ctx.save();
+    if (gx1 > gx0) {                                                          // 通過済みの格子(ビームが消えた後も残る)
+      ctx.strokeStyle = gcol; ctx.globalAlpha = 0.16 * (opts.gridA != null ? opts.gridA : 1); ctx.lineWidth = 1;
+      for (let gx = gx0; gx < gx1; gx += 42) { ctx.beginPath(); ctx.moveTo(gx, gy0); ctx.lineTo(gx, gy1); ctx.stroke(); }
+      for (let gy = gy0; gy < gy1; gy += 42) { ctx.beginPath(); ctx.moveTo(gx0, gy); ctx.lineTo(gx1, gy); ctx.stroke(); }
+    }
+    if (a > 0) {
+      const g = ctx.createLinearGradient(x - 90, 0, x + 26, 0);                // 尾(減衰)→先端(白青の閃光)
+      g.addColorStop(0, this.rgba(C.crim, 0)); g.addColorStop(0.72, this.rgba(C.crim, 0.30 * a)); g.addColorStop(1, this.rgba(col, 0.85 * a));
+      ctx.fillStyle = g; ctx.fillRect(x - 90, y0, 116, y1 - y0);
+      this.glow(ctx, col, 18);
+      ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.globalAlpha = 0.95 * a;
+      ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke();
+      this.noGlow(ctx);
+    }
+    ctx.restore(); ctx.globalAlpha = 1;
+    return { x: x, a: a };
+  },
+
+  // =============================================================
   // 基準カット(§6-1): 起動 → 点火 → ノード1 → ノード2 の最初の3.2秒
   //   0.4秒のリズムグリッド上でのみカットを切る(§3-4)
   //   variant: "core"(深紅の芯線が走る) | "beam"(走査ビームが横断する)
@@ -208,18 +272,9 @@ const Holo = {
       const k = Math.min(1, since(3) / (G * 2));      // 2グリッド=0.8秒で横断
       fuseX = W * (0.06 + 0.88 * k);
       if (variant === "beam") {
-        // 案b: 走査ビームが横断する。通過した後ろにHUDの格子が残る(=システムが起動していく)
-        const g = ctx.createLinearGradient(fuseX - 90, 0, fuseX + 26, 0);
-        g.addColorStop(0, "rgba(210,56,74,0)"); g.addColorStop(0.72, "rgba(210,56,74,0.30)"); g.addColorStop(1, "rgba(223,233,238,0.85)");
-        ctx.fillStyle = g; ctx.fillRect(fuseX - 90, H * 0.12, 116, H * 0.76);
-        this.glow(ctx, C.pale, 18);
-        ctx.strokeStyle = C.pale; ctx.lineWidth = 1.6; ctx.globalAlpha = 0.95;
-        ctx.beginPath(); ctx.moveTo(fuseX, H * 0.12); ctx.lineTo(fuseX, H * 0.88); ctx.stroke();
-        this.noGlow(ctx); ctx.globalAlpha = 1;
-        ctx.strokeStyle = C.amber; ctx.globalAlpha = 0.16; ctx.lineWidth = 1;  // 通過済みの格子
-        for (let gx = W * 0.06; gx < fuseX; gx += 42) { ctx.beginPath(); ctx.moveTo(gx, H * 0.14); ctx.lineTo(gx, H * 0.86); ctx.stroke(); }
-        for (let gy = H * 0.16; gy < H * 0.86; gy += 42) { ctx.beginPath(); ctx.moveTo(W * 0.06, gy); ctx.lineTo(fuseX, gy); ctx.stroke(); }
-        ctx.globalAlpha = 1;
+        // 案b(C2改訂で共通様式に採用): 共通の beam() を呼ぶ=同じ知識を2箇所に持たない。
+        //   横断後は減衰して消えるため、ノード1〜2の視認性を奪わない(欠陥是正)。
+        fuseX = this.beam(ctx, W, H, k, { y0: H * 0.12, y1: H * 0.88 }).x;
       } else {
         // 案a: 深紅の芯線が走る。合成特性の共通の格=芯線を導火線に見立てる
         const yOf = (x) => cy + Math.sin(x / W * 6.0) * H * 0.055 + Math.sin(x / W * 17.0) * H * 0.012;
@@ -325,47 +380,168 @@ const Holo = {
 
   cutDur() { return this.grid() * 8; },   // 基準カット=8グリッド=3.2秒
 
-  // ---- 再生機構(将来の差込先に再利用・本編ループには足さない) ----
+  // =============================================================
+  // 惑星移動トランジション(C2改訂 フェーズ1) — 共通様式=beam を使う差込先の第1号
+  //   頻度への配慮: 尺は CFG.holoTravelMaxSec 以下 / スキップ即時 / 初訪と既訪で尺と情報量を変える。
+  //   表示は全て実データ由来(travelInfo)。惑星ごとに色調(tint)が変わる。
+  // =============================================================
+
+  // ルール層(純関数・DOM非依存): 何を表示するかを実データから解決する。捏造しない・欠落は遮蔽表示。
+  travelInfo(id) {
+    const st = (typeof stageById === "function") ? stageById(id) : null;
+    if (!st) return null;
+    const pb = (typeof PLANET_BOSS !== "undefined") ? PLANET_BOSS[id] : null;
+    const bt = (pb && typeof BOSS_TYPES !== "undefined") ? BOSS_TYPES.find((b) => b.id === pb.threat) : null;
+    return {
+      id: id,
+      pname: st.pname,                                             // 惑星アリド
+      short: (st.pname || "").replace(/^惑星/, ""),                 // アリド
+      name: st.name,                                               // 乾燥地帯
+      rank: st.rank,
+      mat: st.mat || null,
+      sp: (typeof SPECIES !== "undefined" ? SPECIES.filter((x) => x.stage === id).map((x) => x.name) : []),
+      threat: bt ? bt.name : null,
+      threatText: bt ? bt.threat : null,
+      sk: (typeof CFG !== "undefined" && CFG.slitSkinByStage && CFG.slitSkinByStage[id]) || null,
+      tint: this.tintOf(st),
+    };
+  },
+  // 尺(CFG・上限でクランプ)。full=初訪(情報表示あり) / 短縮=既訪(ビームの走査のみ)
+  travelDur(full, reduced) {
+    const c = (typeof CFG !== "undefined" && CFG) || {};
+    const max = c.holoTravelMaxSec || 1.2;
+    if (reduced) return Math.min(max, c.holoTravelReducedSec || 0.45);
+    return Math.min(max, full ? (c.holoTravelFullSec || 1.15) : (c.holoTravelShortSec || 0.8));
+  },
+  // 初回/既訪の分岐(しきい値はCFG)。判定材料はセーブ済みの pioneered を**読むだけ**(新規保存なし)
+  travelFull(stageData) {
+    const c = (typeof CFG !== "undefined" && CFG) || {};
+    if (c.holoTravelFullOnUnpioneered === false) return true;
+    return !(stageData && stageData.pioneered);
+  },
+
+  drawTravel(ctx, W, H, t, info, opts) {
+    opts = opts || {};
+    const C = this.C();
+    const full = opts.full !== false;
+    const dur = opts.dur || this.travelDur(full);
+    const p = Math.max(0, Math.min(1, t / dur));
+    ctx.fillStyle = C.void; ctx.fillRect(0, 0, W, H);
+    if (!info) return;
+    const tint = info.tint || C.amber;
+    const seg = (a, b) => Math.max(0, Math.min(1, (p - a) / (b - a)));
+    const ease = (k) => 1 - Math.pow(1 - k, 3);
+    const out = 1 - seg(0.86, 1);      // 抜ける=平常画面へ残り香を持ち込まない(UISkills §5.8)
+    const S = Math.max(0.75, Math.min(2, H / 675));   // 文字組みは画面サイズに追従(1.15秒で読める大きさを保つ)
+
+    // ---- 行き先の惑星: ワイヤーフレーム球が回転して現れる + 固有幾何環(四重スリットの確定意匠を引用) ----
+    const cx = full ? W * 0.32 : W * 0.5, cy = H * (full ? 0.50 : 0.46);
+    const pk = ease(seg(0.16, 0.62));
+    const r = Math.min(W, H) * (full ? 0.21 : 0.17) * (0.70 + 0.30 * pk);
+    if (pk > 0) {
+      this.glow(ctx, tint, 12);
+      this.sphere(ctx, cx, cy, r, 0.38, t * 2.0, tint, 0.92 * pk * out, 12);
+      this.noGlow(ctx);
+      this.planetRing(ctx, cx, cy, r * 1.55, info.sk, tint, 0.70 * pk * out);
+      this.tickRing(ctx, cx, cy, r * 1.92, 36, -2.4, 2.4, C.amber, 0.22 * pk * out, 1, 5);
+      if (!full) this.jp(ctx, info.short, cx, cy + r * 2.30, 22 * S, C.pale, 0.92 * pk * out, "center");
+    }
+    // 着地の一閃: 球が出そろった瞬間に細い環が一度だけ広がって消える=「着いた」の句読点
+    const fl = seg(0.56, 0.76);
+    if (fl > 0 && fl < 1) {
+      const e = 1 - Math.pow(1 - fl, 2);
+      this.glow(ctx, C.pale, 10);
+      ctx.strokeStyle = C.pale; ctx.globalAlpha = 0.55 * (1 - fl) * out; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(cx, cy, r * (1.0 + 1.5 * e), 0, 6.28318); ctx.stroke();
+      ctx.globalAlpha = 1; this.noGlow(ctx);
+    }
+
+    // ---- 実データ(初訪のみ・等幅で一瞬): 惑星名 / 固有種2種 / 脅威型 ----
+    if (full) {
+      const tk = seg(0.26, 0.74), head = Math.min(1, tk * 3);
+      const x = W * 0.57, y = H * 0.34;
+      this.bracket(ctx, x - 18 * S, y - 40 * S, W * 0.38, 160 * S, 14 * S, C.amber, 0.40 * Math.min(1, tk * 2) * out, 1.2);
+      this.glow(ctx, tint, 10);
+      this.jp(ctx, info.short, x, y, 34 * S, C.pale, 0.96 * head * out);
+      this.noGlow(ctx);
+      this.mono(ctx, info.name, x, y + 21 * S, 12 * S, tint, 0.60 * head * out);
+      const rows = [
+        ["PLANET", `${("0" + info.id).slice(-2)} / HQ Lv${info.rank}`],
+        ["ENDEMIC", info.sp.length ? info.sp.join(" · ") : "REDACTED"],
+        ["THREAT", info.threat ? `${info.threat} / ${info.threatText}` : "UNRESOLVED"],
+        ["MATERIAL", info.mat || "REDACTED"],
+      ];
+      for (let i = 0; i < rows.length; i++) {
+        const a = Math.max(0, Math.min(1, tk * (rows.length + 1) - i));
+        if (a <= 0) break;
+        const yy = y + (56 + i * 22) * S;
+        this.mono(ctx, (rows[i][0] + " ..........").slice(0, 11), x, yy, 13 * S, tint, 0.55 * a * out);
+        this.mono(ctx, rows[i][1], x + 105 * S, yy, 13 * S, C.pale, 0.85 * a * out);
+      }
+    }
+
+    // ---- テレメトリ(共通・機構であることの明示) ----
+    this.mono(ctx, "HQ HOLO COMMAND / TRANSIT", W * 0.06, H * 0.085, 11 * S, C.amber, 0.55 * out);
+    if (opts.from) this.mono(ctx, `${opts.from}  >>  ${info.pname}`, W * 0.94, H * 0.085, 11 * S, C.pale, 0.50 * out, "right");
+
+    // ---- 共通様式: 走査ビームが横断して抜ける(格子はその惑星の色調で残る) ----
+    this.beam(ctx, W, H, p / 0.70, { grid: tint, gridA: out });
+    this.scan(ctx, W, H, t, 0.8);
+  },
+
+  // ---- 再生機構(共通・差込先で再利用。opts.draw で描画を差し替える=演出のコピペ亜種を作らない) ----
   play(canvas, opts) {
     opts = opts || {};
     const ctx = canvas.getContext("2d"), W = canvas.width, H = canvas.height;
     const reduced = opts.reduced != null ? opts.reduced : (typeof Motion !== "undefined" && Motion.reduced);
     const total = opts.total || this.cutDur();
     const variant = opts.variant || "core";
+    const draw = opts.draw || ((c, w, h, tt) => this.drawCut(c, w, h, tt, variant));
     const st = { done: false, skipped: false, raf: 0, t: 0 };
     const finish = (sk) => {
       if (st.done) return; st.done = true; st.skipped = !!sk;
       if (st.raf) cancelAnimationFrame(st.raf);
+      if (st._to) clearTimeout(st._to);
       if (st._unbind) st._unbind();
-      this.drawCut(ctx, W, H, total - 0.001, variant);
+      draw(ctx, W, H, total - 0.001);
       if (opts.onEnd) opts.onEnd(st);
     };
     st.skip = function () { finish(true); };
-    if (reduced) { this.drawCut(ctx, W, H, total * 0.86, variant); st.done = true; if (opts.onEnd) opts.onEnd(st); return st; }
+    // スキップは即時・確認なし(クリック/タップ/キー)
+    const bindSkip = () => {
+      if (opts.bind === false || ((typeof CFG !== "undefined") && CFG.holoSkippable === false)) return;
+      const onSkip = () => st.skip();
+      st._unbind = () => { canvas.removeEventListener("pointerdown", onSkip); window.removeEventListener("keydown", onSkip); };
+      canvas.addEventListener("pointerdown", onSkip);
+      window.addEventListener("keydown", onSkip);
+    };
+    if (reduced) {
+      // reduced-motion: 動かさず最終画を静止表示(情報は残す)。保持秒があればその間だけ見せて終わる
+      draw(ctx, W, H, total * 0.86);
+      st.reducedStatic = true;
+      if (opts.reducedHoldSec > 0) { st._to = setTimeout(() => finish(false), opts.reducedHoldSec * 1000); bindSkip(); }
+      else { st.done = true; if (opts.onEnd) opts.onEnd(st); }
+      return st;
+    }
     const now = opts.now || (() => performance.now());
     const t0 = now();
     const loop = () => {
       st.t = (now() - t0) / 1000;
       if (st.t >= total) { if (opts.loop) { st.t = 0; return finishLoop(); } return finish(false); }
-      this.drawCut(ctx, W, H, st.t, variant);
+      draw(ctx, W, H, st.t);
       st.raf = requestAnimationFrame(loop);
     };
     const finishLoop = () => { const t1 = now(); st._t0 = t1; loopFrom(t1); };
     const loopFrom = (base) => {
       const l2 = () => {
         st.t = ((now() - base) / 1000) % total;
-        this.drawCut(ctx, W, H, st.t, variant);
+        draw(ctx, W, H, st.t);
         st.raf = requestAnimationFrame(l2);
       };
       l2();
     };
     loop();
-    if (opts.bind !== false && ((typeof CFG === "undefined") || CFG.holoSkippable !== false)) {
-      const onSkip = () => st.skip();
-      st._unbind = () => { canvas.removeEventListener("pointerdown", onSkip); window.removeEventListener("keydown", onSkip); };
-      canvas.addEventListener("pointerdown", onSkip);
-      window.addEventListener("keydown", onSkip);
-    }
+    bindSkip();
     return st;
   },
   PLAYED_KEY: "holoPlayed",

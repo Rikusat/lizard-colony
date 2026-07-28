@@ -118,10 +118,42 @@ Object.assign(UI, {
     });
   },
 
-  // ⑥ 宇宙船トランジション(スキップ不可=待ち時間で惑星間の距離を想像させる。長さはCFG.planetTravelSec)
-
+  // ---------------- C2改訂 フェーズ1: 惑星移動 HUDトランジション ----------------
+  // 共通様式=Holo.beam(走査ビーム)。惑星移動は頻発するため摩擦にしない: 尺≦CFG.holoTravelMaxSec /
+  //   スキップ即時(クリック・タップ・キー) / 初訪は情報表示あり・既訪は短縮 / CFGで完全OFF。
+  // 惑星切替の既存処理(confirmSwitch→selectStage→reset群)の**順序は不変**: 従来どおり演出の完了後に呼ぶ。
+  // 本編の時間経過・生産はトランジション中も進む(UI.loopは走り続ける)。§判断はHANDOFF参照。
   travelTo(id) {
     this.closeModal();
+    if (typeof CFG === "undefined" || CFG.holoTravelOn === false || typeof Holo === "undefined") return this.travelToLegacy(id);
+    const info = Holo.travelInfo(id);
+    if (!info) return this.travelToLegacy(id);
+    const from = Game.currentStage();
+    const full = Holo.travelFull(Game.stageData(id));
+    const reduced = !!(typeof Motion !== "undefined" && Motion.reduced);
+    const dur = Holo.travelDur(full, reduced);
+
+    let ov = document.getElementById("holo-travel");
+    if (!ov) {
+      ov = document.createElement("div");
+      ov.id = "holo-travel";
+      ov.innerHTML = `<canvas></canvas>`;
+      document.body.appendChild(ov);
+    }
+    const cv = ov.querySelector("canvas");
+    cv.width = Math.min(1600, Math.max(320, window.innerWidth));
+    cv.height = Math.min(1000, Math.max(200, window.innerHeight));
+    ov.classList.add("show");
+    Holo.play(cv, {
+      total: dur, reduced: reduced, reducedHoldSec: reduced ? dur : 0,
+      draw: (c, w, h, t) => Holo.drawTravel(c, w, h, t, info, { dur: dur, full: full, from: from.pname }),
+      onEnd: () => { ov.classList.remove("show"); this.confirmSwitch(id); },
+    });
+  },
+
+  // ⑥ 宇宙船トランジション(スキップ不可=待ち時間で惑星間の距離を想像させる。長さはCFG.planetTravelSec)
+  //    CFG.holoTravelOn=false のときの復帰先として残す(可逆性の担保)。
+  travelToLegacy(id) {
     const from = Game.currentStage();
     const to = stageById(id);
     let ov = document.getElementById("travel-overlay");
