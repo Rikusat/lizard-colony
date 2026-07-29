@@ -241,6 +241,10 @@ const Render = {
       haze.addColorStop(0, "rgba(220,228,235,.30)");
       haze.addColorStop(1, "rgba(220,228,235,0)");
       ctx.fillStyle = haze; ctx.fillRect(1000, 0, 200, 150);
+    } else if (st.id === 7) {
+      // メアリス(水中都市): 天体を出さない(Ric裁定 2026-07-29)。
+      //   水中に月/太陽の輪郭が浮かぶと「水底の都」の像が壊れるため。上からの光は
+      //   §水中都市ブロックの光のシャフトと drawAbyss7 のコースティクスだけが担う。
     } else if (st.id !== 5) {
       const glow = ctx.createRadialGradient(1080, 70, 8, 1080, 70, 90);
       glow.addColorStop(0, "rgba(255,245,200,.95)");
