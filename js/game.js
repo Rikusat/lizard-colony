@@ -78,7 +78,7 @@ const Game = {
       erosion: 0,          // バガー侵食率(全惑星共通)
       rocket: { stage: 0, invested: 0, done: false },
       forged: {},          // チタン鉱による設備の上限突破
-      autoBreed: false,    // V4: 繁殖予約
+      autoBreed: false,    // V4: 繁殖予約【機能撤廃済(Ric裁定 2026-07-29)】セーブ互換のため素通しで保持するだけ=もう読まない
       dial: { auto: false, rate: 1, supply: false }, // Brushup V2: 給餌ダイヤル
       stageWins: 0,        // この惑星での撃退数(Elite周期用)
       nest: { lv: 1 }, // すみか(住居)Lv・ピン留め個体
@@ -1289,36 +1289,8 @@ const Game = {
     return true;
   },
 
-  // クイック繁殖: 最善の2匹を自動選抜 (GameExpansion_v2 ⑧)
-  // スコア = レア度(星×モーフ倍率)×3 + レベル。同系統ペアを優先し、次点で異系統
-  quickBreedScore(lz) {
-    const sp = speciesById(lz.speciesId), mo = morphById(lz.morphId);
-    return sp.stars * mo.mult * 3 + lz.level;
-  },
-  quickBreedPick() {
-    const cands = this.state.lizards.filter((lz) => this.canBreed(lz));
-    if (cands.length < 2) return null;
-    cands.sort((a, b) => this.quickBreedScore(b) - this.quickBreedScore(a));
-    const bySp = {};
-    for (const lz of cands) (bySp[lz.speciesId] = bySp[lz.speciesId] || []).push(lz);
-    let best = null, bestScore = -1;
-    for (const id in bySp) {
-      const arr = bySp[id];
-      if (arr.length >= 2) {
-        const s2 = this.quickBreedScore(arr[0]) + this.quickBreedScore(arr[1]);
-        if (s2 > bestScore) { bestScore = s2; best = [arr[0], arr[1]]; }
-      }
-    }
-    return best || [cands[0], cands[1]];
-  },
-  quickBreed(silent) {
-    const pair = this.quickBreedPick();
-    if (!pair) {
-      if (!silent) UI.toast("繁殖可能なペアがいない", true);
-      return false;
-    }
-    return this.breed(pair[0].id, pair[1].id, silent);
-  },
+  // 【撤廃(Ric裁定 2026-07-29)】クイック繁殖(quickBreedScore/quickBreedPick/quickBreed)はここにあった。
+  //   手動での掛け合わせがゲームUXの核につき、自動選出の機構ごと廃止。再実装禁止。実行経路は Game.breed のみ。
 
   // 遺伝: 種族50/50(低確率で上位変異)、体色は平均±ゆらぎ、モーフ突然変異
   // §8.12: 上位種変異/モーフ変異/伝説の底上げは巣(nest.lv)が担う(旧・繁殖施設から統合)。環境モーフ・研究は据置
@@ -2115,14 +2087,9 @@ const Game = {
       // 巣・施設・その他いかなる経路にも自動給餌を作らないこと。
       // ここには旧「§8.12 巣の自動給餌」があったが、523be66(餌場→巣統合)で駆動が nestLv()(最低1=常時ON)化し
       // 無操作でも毎秒発火する想定外の機構となったため撤廃した(ゲート復活ではなく機構ごと廃止)。再実装禁止。
-      // §8.12: 繁殖予約(巣Lv5+・ONのとき自動でクイック繁殖)
-      if (s.autoBreed && this.nestLv() >= CFG.nestReserveLv) {
-        this._autoBreedT = (this._autoBreedT || 0) + 1;
-        if (this._autoBreedT >= CFG.autoBreedInterval) {
-          this._autoBreedT = 0;
-          if (s.eggs.length < this.eggSlotCap()) this.quickBreed(true);
-        }
-      }
+      // 【恒久設計方針・Ric裁定 2026-07-29】繁殖の自動化も作らない。手動での掛け合わせがゲームUXの核であり、
+      // 自動選出(クイック繁殖)と繁殖予約(autoBreed)はその体験を痩せさせるため機構ごと撤廃した。再実装禁止。
+      // (旧「§8.12 繁殖予約(巣Lv5+)」がここにあった。state.autoBreed はセーブ互換のため残るが**もう読まない**)
       for (const a of ALLIES) {
         if (s.allies[a.id]) continue;
         const u = a.unlock;

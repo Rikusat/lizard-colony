@@ -133,7 +133,60 @@ console.log("== 4) 惑星切替の球残留対策: 排出+報酬機会の全数�
   check("報酬外の残留球: 排出のみ(返却なし)", Roulette.balls.length === 0 && !Roulette.calls.find((c) => c[0] === "startReward"), `balls=${Roulette.balls.length}`);
 }
 
+// ============================================================
+// 4) 繁殖の自動化は存在しない(Ric裁定 2026-07-29・§5ddd)
+//    手動での掛け合わせがゲームUXの核。クイック繁殖(自動選出)と繁殖予約(autoBreed)は機構ごと撤廃。
+//    給餌の自動化がクランク経路のみに限定されているのと同じ規律を、繁殖にも恒久で敷く。
+// ============================================================
+{
+  const gsrc = fs.readFileSync(path.join(ROOT, "js/game.js"), "utf8");
+  const bsrc = fs.readFileSync(path.join(ROOT, "js/ui/screens/breeding.js"), "utf8");
+  const dsrc = fs.readFileSync(path.join(ROOT, "js/data.js"), "utf8");
+  // コメント(撤廃の記録・行末注記とも)を落として実コードだけを見る。
+  //   ※行末注記にも "Game.breed(" のような字面が出るため、行頭コメントの除去だけでは二重計上する。
+  const code = (s) => s.split("\n")
+    .filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l))
+    .map((l) => l.replace(/\/\/.*$/, ""))
+    .join("\n");
+
+  check("Game.quickBreed 系が実コードに無い", !/quickBreed(Score|Pick)?\s*[({]/.test(code(gsrc)));
+  check("UIの自動選出(breedQuickPick/希少スコア)が実コードに無い",
+    !/breedQuickPick|breedPairScore|breedLizardScore/.test(code(bsrc)));
+  check("CFG.breedScoreW / breedScoreUpMut が実コードに無い", !/breedScoreW|breedScoreUpMut/.test(code(dsrc) + code(bsrc)));
+  check("クイック繁殖ボタン(#bm-quick)が無い", !/bm-quick/.test(code(bsrc)));
+  check("繁殖予約トグル(#bm-reserve)が無い", !/bm-reserve/.test(code(bsrc)));
+  check("毎秒ブロックに繁殖の自動発火が無い",
+    !/quickBreed|autoBreed/.test(code((gsrc.split("this._allyT >= 1")[1] || "").slice(0, 1600))));
+  check("state.autoBreed はセーブ素通しのみ(挙動から読まない)",
+    !/if\s*\([^)]*\bautoBreed\b/.test(code(gsrc)), "autoBreedで分岐している箇所がある");
+  check("繁殖の実行経路は Game.breed のみ(UIから直接呼ぶのは確定ボタン1箇所)",
+    (code(bsrc).match(/Game\.breed\(/g) || []).length === 1);
+  // 維持すべきUI資産が消えていないこと(撤廃のやりすぎ検知)
+  check("維持: 種×モーフタイル", /sp-tile/.test(bsrc));
+  check("維持: A/Bスロット", /_bmSlotHtml|sp-slot/.test(bsrc));
+  check("維持: 特性チップ(breedTraitChips)", /breedTraitChips/.test(bsrc));
+  check("維持: ◀▶ 切替(data-nav)", /data-nav/.test(bsrc));
+  check("維持: 同種残0のグレーアウト", /grayed/.test(bsrc));
+  check("巡回は id 昇順の安定順序(希少スコア順でない)", /sort\(\(x, y\) => x\.id - y\.id\)/.test(bsrc));
+  // 挙動: 旧 autoBreed が true でも tick で繁殖が起きない
+  {
+    Game.newGame();
+    Game.state.rank = 95; Game.state.autoBreed = true;
+    if (Game.state.nest) Game.state.nest.lv = 9;
+    for (let i = 0; i < 6; i++) {
+      const c = JSON.parse(JSON.stringify(Game.state.lizards[0]));
+      c.id = 700 + i; c.stage = "adult"; c.breedCd = 0; c.injuredT = 0;
+      Game.state.lizards.push(c);
+    }
+    const eggs0 = Game.state.eggs.length, n0 = Game.state.lizards.length;
+    for (let i = 0; i < 120 * 60; i++) Game.tick(1 / 60);   // 無操作120秒
+    check("旧autoBreed=true+巣Lv9でも無操作120秒で卵が増えない",
+      Game.state.eggs.length === eggs0, `卵 ${eggs0} → ${Game.state.eggs.length}`);
+    check("同上: 個体も勝手に増えない", Game.state.lizards.length <= n0, `個体 ${n0} → ${Game.state.lizards.length}`);
+  }
+}
+
 console.log("\n============================================");
 console.log(`結果: ${pass} PASS / ${fail} FAIL`);
-if (fail > 0) { process.exitCode = 1; console.log("→ 給餌規律の破れ、または球残留対策の回帰。§5nnnの裁定を確認のこと。"); }
-else console.log("→ 給餌の自動化はクランクのみ・球残留は排出+全数返却を維持。");
+if (fail > 0) { process.exitCode = 1; console.log("→ 給餌/繁殖規律の破れ、または球残留対策の回帰。§5nnn・§5ddd の裁定を確認のこと。"); }
+else console.log("→ 給餌の自動化はクランクのみ・繁殖の自動化は無し・球残留は排出+全数返却を維持。");

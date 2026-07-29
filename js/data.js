@@ -369,9 +369,9 @@ const CFG = {
   holoTrackSec: 5,            // 個体追跡ロックオンの巡回間隔(秒・決定論=乱数不使用)
   amethystCdResetCost: 2,     // R3: 繁殖CDリセット1回のアメジスト消費(★[A]調整)
   // 本部右メニュー(UISkills §14・表示のみ・★Ric調整)
-  // R1(2026-07-25承認): 繁殖UI刷新=種×モーフタイル+A/Bスロット+クイック繁殖(希少スコア)。選出のみUI側・実行/CD/確率/遺伝は不変
-  breedScoreW: { dex: 1000, recipe: 100, rare: 10, fixed: 1 }, // 希少スコア重み(桁分離=優先度(1)図鑑>(2)レシピ>(3)希少特性>(4)固定印)★
-  breedScoreUpMut: false,     // dex到達に上位種変異先を含めるか(既定OFF=承認どおり)
+  // R1(2026-07-25承認): 繁殖UI=種×モーフタイル+A/Bスロット。実行/CD/確率/遺伝は不変
+  //   ★2026-07-29 Ric裁定: クイック繁殖と希少スコア(breedScoreW / breedScoreUpMut)は撤廃。
+  //     選出はスコアでなく id 昇順の安定順序。自動選出の再実装禁止。
   breedTileMinW: 150,         // 種×モーフタイルの最小幅(px)
   breedSlotMinH: 92,          // A/Bスロットの最小高(px)
   breedCountBadge: true,      // タイルの所持数/繁殖可バッジ表示
@@ -685,7 +685,7 @@ const CFG = {
   nestCricketPerLv: 0.625,    // コオロギ自然湧き +0.625/秒/Lv (旧 餌場 +0.5×10=5/秒 → Lv8で5/秒)
   nestAutoFeedPerLv: 1.25,    // 【撤廃済・Ric裁定 2026-07-24 §5nnn】給餌の自動化はクランク経路のみ(コード参照なし・記録として残置)
   nestOmenLv: 3,              // 卵のレア予兆を出す巣Lv閾値(旧 繁殖施設Lv3)
-  nestReserveLv: 5,           // 繁殖予約が解禁される巣Lv閾値(旧 繁殖施設Lv5)
+  nestReserveLv: 5,           // 【撤廃済・Ric裁定 2026-07-29】繁殖予約の解禁巣Lv(コード参照なし・記録として残置)
   sciencePerDepth: 1,       // 探索の深層(6層以降)1層ごとの研究力
   goldToFoodRate: 100,      // 100G → 食料1
   goldToEnergyRate: 150,    // 150G → エネルギー1
@@ -720,8 +720,8 @@ const CFG = {
   invasionRaidWin: 5,       // 撃退での減少
   invasionBuggerWin: 10,    // バガー撃破での減少
   invasionRaidAccel: 0.002, // 1ptごとの襲撃間隔短縮率(最大0.2)
-  // V4: 繁殖予約(QoL §3.1.3)
-  autoBreedInterval: 6,     // 自動繁殖の試行間隔(秒)
+  // V4: 繁殖予約(QoL §3.1.3)【撤廃済・Ric裁定 2026-07-29: 繁殖の自動化は作らない】
+  autoBreedInterval: 6,     // 自動繁殖の試行間隔(秒)。コード参照なし・記録として残置
   dialRates: [4, 1, 0.15],  // 給餌間隔(秒) 低/中/高。高=旧・長押し一括餌やり速度(v2.1 §1.4)
   dialSpinSec: [5, 1.6, 0.4], // オート回転の1周秒数(視覚)。レートに同期(v2.1 §1.4)
   crankFxLevel: 1,          // 機構スキンのエフェクト量(0=最小/1=標準。Crank_Deepening)
