@@ -270,7 +270,7 @@ const UI = {
       rt.classList.add("soon");
       this.els["raid-banner"].classList.remove("hidden");
       this.els["raid-banner"].innerHTML =
-        `${r.elite ? Icon.svg("crown") + " " : ""}${Icon.svg(r.type.icon)} ${r.type.name}${r.tier ? " T" + r.tier : ""} 襲来中!!`;
+        `${r.elite ? Icon.svg("crown") + " " : ""}${Icon.svg(r.type.icon)} ${Game.bossDisplayName(r)}${r.tier ? " T" + r.tier : ""} 襲来中!!`;
       nb.classList.add("hidden");
     } else {
       rt.textContent = fmtTime(s.raidTimer);

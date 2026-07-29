@@ -1214,17 +1214,21 @@ const bossTypeById = (id) => BOSS_TYPES.find((b) => b.id === id);
 // Phase6 惑星署名ボス(単一の真実): stageId -> { threat: 既存脅威型, draw: render.jsの描画メソッド名 }。
 //   roll(game.js rollNextRaid)=ボスをこの署名脅威型にする / 描画(render.js planetBossDraw)=署名脅威型の姿に差替。
 //   脅威メカニクス(勝敗ロジック)自体は既存のまま=描画と"どの脅威型をボスに選ぶか"のみ。惑星ごとに1エントリ+1描画メソッド。
+//   name(2026-07-29 Ric裁定・Phase6「署名ボス10」の完了): 表示名。**単独名のみ**を出す。
+//     異名(泥沼蟲・電脳蠍・墳王・贄蛇・熔鮫・親個体・臨界獣・守墓像)は設定資料としてコメントに残すだけで表示しない
+//     (気配だけ見せて説明しない)。名前の解決は Game.bossDisplayName() が単一の窓口(姿の Render.bossDrawName と対)。
+//     BOSS_TYPES は温存=非ボスの通常襲来は従来どおり汎用名(ダイジャ/アオダイショウ等)のまま。
 const PLANET_BOSS = {
-  1: { threat: "snake", draw: "drawDoronumaWorm" },   // アリド: ドロヌマ・ワーム(泥沼蟲)
-  2: { threat: "scorpion", draw: "drawCyberScorpio" }, // ネオヴェルデ: サイバー・スコルピオ(電脳蠍)
-  3: { threat: "hawk", draw: "drawChronoMantis" },    // シルヴァ: クロノ・マンティス(飛翔し鎌で獲物をさらう=hawk)
-  4: { threat: "monitor", draw: "drawHaniwaGolem" },  // パルス: ハニワ・ゴーレム/墳王
-  5: { threat: "snake", draw: "drawSlagHydra" },      // イグニス: スラグ・ヒドラ(鉱滓の多頭竜)
-  6: { threat: "spider", draw: "drawSkullAnaconda" }, // ユンガ: ドクロ・アナコンダ/贄蛇(大蛇の締め付け=絡めて拘束=spider・webは蔓/翡翠紐へリスキン)
-  7: { threat: "snake", draw: "drawMagmaShark" },     // メアリス: マグマ・シャーク/熔鮫
-  8: { threat: "bugger", draw: "drawBaggerParent" },  // グラキス: ヌシ・バガー/親個体(既存bagger流用のelite変種)
-  9: { threat: "scorpion", draw: "drawMeltGolem" },   // ヴォルタ: メルト・ゴーレム/臨界獣
-  10: { threat: "crow", draw: "drawRelicSphinx" },    // オリジン: レリック・スフィンクス/守墓像(有翼が卵=系譜を博物館へ収蔵=crow)
+  1: { threat: "snake", draw: "drawDoronumaWorm", name: "ドロヌマ・ワーム" },       // アリド。異名=泥沼蟲
+  2: { threat: "scorpion", draw: "drawCyberScorpio", name: "サイバー・スコルピオ" }, // ネオヴェルデ。異名=電脳蠍
+  3: { threat: "hawk", draw: "drawChronoMantis", name: "クロノ・マンティス" },      // シルヴァ(飛翔し鎌で獲物をさらう=hawk)
+  4: { threat: "monitor", draw: "drawHaniwaGolem", name: "ハニワ・ゴーレム" },      // パルス。異名=墳王
+  5: { threat: "snake", draw: "drawSlagHydra", name: "スラグ・ヒドラ" },            // イグニス。異名=鉱滓の多頭竜
+  6: { threat: "spider", draw: "drawSkullAnaconda", name: "ドクロ・アナコンダ" },   // ユンガ。異名=贄蛇(締め付け=拘束=spider・webは蔓/翡翠紐へリスキン)
+  7: { threat: "snake", draw: "drawMagmaShark", name: "マグマ・シャーク" },         // メアリス。異名=熔鮫
+  8: { threat: "bugger", draw: "drawBaggerParent", name: "ヌシ・バガー" },          // グラキス。異名=親個体(既存bagger流用のelite変種)
+  9: { threat: "scorpion", draw: "drawMeltGolem", name: "メルト・ゴーレム" },       // ヴォルタ。異名=臨界獣
+  10: { threat: "crow", draw: "drawRelicSphinx", name: "レリック・スフィンクス" },  // オリジン。異名=守墓像(有翼が卵=系譜を博物館へ収蔵=crow)
 };
 
 // Phase6 署名生成物(敵ボス/惑星味方)の調整可パレット＝Ricが濃さ/視認性を実機で詰める単一の真実(描画専用・魂/確率/物理に無影響)。

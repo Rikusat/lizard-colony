@@ -28,11 +28,14 @@ Object.assign(UI, {
     if (!r) { el.classList.add("hidden"); this._hudTypeId = null; return; }
     el.classList.remove("hidden");
     el.classList.toggle("enraged", !!r.enraged);
-    if (this._hudTypeId !== r.typeId) { // 襲撃ごとに1回だけ組み立て
-      this._hudTypeId = r.typeId;
+    // 襲撃ごとに1回だけ組み立て。★キーは typeId だけでなく boss/惑星も含める:
+    //   名前は Game.bossDisplayName で解決され、同じ typeId でも「ボスか」「どの惑星か」で変わるため、
+    //   typeId だけをキーにすると連続する襲撃で名前が更新されない(表示側キャッシュと真実のズレ)。
+    const hudKey = `${r.typeId}:${r.boss ? 1 : 0}:${Game.currentStage().id}`;
+    if (this._hudTypeId !== hudKey) {
+      this._hudTypeId = hudKey;
       document.getElementById("bh-portrait").innerHTML = Icon.svg(r.type.icon);
-      document.getElementById("bh-name").textContent =
-        r.typeId === "snake" ? r.snakeTier.name : r.type.name;
+      document.getElementById("bh-name").textContent = Game.bossDisplayName(r);
       const tier = document.getElementById("bh-tier");
       tier.classList.toggle("hidden", !r.tier);
       tier.textContent = r.tier ? "T" + r.tier : "";

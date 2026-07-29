@@ -84,6 +84,49 @@ ok("非boss(通常襲来)は署名を出さない(null)", Render.planetBossDraw(
   for (const n in orig) Render[n] = orig[n];
 }
 
+// ⑤ ★ボス名の署名化(Ric裁定 2026-07-29・Phase6「署名ボス10」の完了)
+//    姿だけ署名で名前が汎用(ダイジャ)というズレを断つ。名前の解決は Game.bossDisplayName の単一窓口。
+{
+  const NAMES = {
+    1: "ドロヌマ・ワーム", 2: "サイバー・スコルピオ", 3: "クロノ・マンティス", 4: "ハニワ・ゴーレム", 5: "スラグ・ヒドラ",
+    6: "ドクロ・アナコンダ", 7: "マグマ・シャーク", 8: "ヌシ・バガー", 9: "メルト・ゴーレム", 10: "レリック・スフィンクス",
+  };
+  ok("Game.bossDisplayName が存在(名前の単一の解決口)", typeof Game.bossDisplayName === "function");
+  Game.newGame(); Game.state.rank = 95;
+  for (const st of STAGES) {
+    const pb = PLANET_BOSS[st.id]; if (!pb) continue;
+    Game.state.stageSel = st.id; Game.state.currentStageId = st.id;
+    ok(`ID${st.id}: PLANET_BOSS.name が単独名(${NAMES[st.id]})`, pb.name === NAMES[st.id], "name=" + pb.name);
+    ok(`ID${st.id}: 異名を表示名に含めない(「/」なし)`, !/[/／]/.test(pb.name || ""), pb.name);
+    ok(`ID${st.id}: ボスの表示名=署名名`, Game.bossDisplayName({ boss: true, typeId: pb.threat }) === pb.name);
+    // ★姿と名前が同じ条件で切り替わる(pre-R30の案B=typeIdがsnakeでもボスなら署名)
+    ok(`ID${st.id}: 姿と名前が一致する条件(boss時は typeId によらず署名)`,
+      (Render.planetBossDraw({ boss: true, typeId: "snake" }) === pb.draw) === (Game.bossDisplayName({ boss: true, typeId: "snake" }) === pb.name));
+    // 非ボスの通常襲来は従来どおり汎用名(BOSS_TYPES温存の意味を保つ)
+    const generic = sb.__t.bossTypeById(pb.threat).name;
+    ok(`ID${st.id}: 非ボスは汎用名のまま(${generic})`, Game.bossDisplayName({ boss: false, typeId: pb.threat }) === generic);
+  }
+  // 非ボスの蛇は階級名(アオダイショウ等)を出す=既存挙動の保全
+  ok("非ボスの蛇は階級名を出す", Game.bossDisplayName({ boss: false, typeId: "snake", snakeTier: { name: "アオダイショウ" } }) === "アオダイショウ");
+  ok("null/未知でも落ちない", Game.bossDisplayName(null) === "" && typeof Game.bossDisplayName({ typeId: "??" }) === "string");
+  // 表示経路がすべて単一窓口を通る(汎用名の直書きが残っていない)
+  const gsrc = fs.readFileSync(path.join(ROOT, "js/game.js"), "utf8");
+  const csrc = fs.readFileSync(path.join(ROOT, "js/ui/core.js"), "utf8");
+  const msrc = fs.readFileSync(path.join(ROOT, "js/ui/screens/main.js"), "utf8");
+  const strip = (s) => s.split("\n").filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).map((l) => l.replace(/\/\/.*$/, "")).join("\n");
+  for (const [label, src] of [["game.js", gsrc], ["ui/core.js", csrc], ["screens/main.js", msrc]]) {
+    // 直書きが残っている行を洗い出す。ただし解決口 bossDisplayName 自身の内部は当然の例外。
+    const bad = strip(src).split("\n")
+      .filter((l) => /\br\.type\.name|\br\.snakeTier\.name/.test(l))
+      .filter((l) => !/return r\.snakeTier\.name/.test(l));   // 解決口の内部(蛇の階級名を返す行)
+    ok(`${label}: 敵名の直書き(type.name / snakeTier.name)が表示に残っていない`, bad.length === 0, bad.join(" | "));
+  }
+  // 解決口の内部にだけ階級名の参照が残っていること(=知識が1箇所に集約されている)の確認
+  ok("階級名の参照は解決口の内部1行のみ(知識が1箇所に集約されている)",
+    strip(gsrc).split("\n").filter((l) => /r\.snakeTier\.name/.test(l)).length === 1);
+  ok("ボスHUDのキャッシュキーに boss/惑星が含まれる(名前が更新されないズレの防止)", /hudKey[\s\S]{0,120}r\.boss[\s\S]{0,80}currentStage/.test(msrc));
+}
+
 // ② 配分の網羅: 7脅威型すべてが最低1惑星
 const dist = new Set(Object.values(PLANET_BOSS).map((p) => p.threat));
 for (const t of THREATS) ok(`脅威型 ${t} が最低1惑星で発火`, dist.has(t), "配分=" + [...dist].join(","));

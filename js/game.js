@@ -1292,6 +1292,23 @@ const Game = {
   // 【撤廃(Ric裁定 2026-07-29)】クイック繁殖(quickBreedScore/quickBreedPick/quickBreed)はここにあった。
   //   手動での掛け合わせがゲームUXの核につき、自動選出の機構ごと廃止。再実装禁止。実行経路は Game.breed のみ。
 
+  // ★「敵の名前」の単一の解決口(姿の Render.bossDrawName と対・Ric裁定 2026-07-29)。
+  //   r は raid / nextRaid / corpse のいずれでもよい({typeId, boss} があれば解決できる)。
+  //   ボスなら現在の惑星の署名名。**姿の解決と同じ条件(bossなら常に署名)**にすることで、
+  //   「姿は署名なのに名前は汎用(ダイジャ)」というズレが生まれない(pre-R30の案Bでも一致する)。
+  //   非ボスの通常襲来は従来どおり: 蛇は階級名(アオダイショウ等)、それ以外は脅威型名。
+  bossDisplayName(r) {
+    if (!r) return "";
+    if (r.boss) {
+      const st = this.currentStage && this.currentStage();
+      const pb = (typeof PLANET_BOSS !== "undefined") && st && PLANET_BOSS[st.id];
+      if (pb && pb.name) return pb.name;
+    }
+    if (r.typeId === "snake" && r.snakeTier && r.snakeTier.name) return r.snakeTier.name;
+    const t = r.type || (typeof bossTypeById === "function" ? bossTypeById(r.typeId) : null);
+    return (t && t.name) || "";
+  },
+
   // 遺伝: 種族50/50(低確率で上位変異)、体色は平均±ゆらぎ、モーフ突然変異
   // §8.12: 上位種変異/モーフ変異/伝説の底上げは巣(nest.lv)が担う(旧・繁殖施設から統合)。環境モーフ・研究は据置
   inherit(a, b) {
@@ -1674,11 +1691,11 @@ const Game = {
       webs: [], grabs: 0, stingN: 0, enraged: false,
       dive: null, recoverT: 0, animT: 0, fleeing: false, stolenEgg: null,
     };
-    const label = `${nr.elite ? "Elite " : ""}${type.name}${nr.tier ? " T" + nr.tier : ""}`;
+    const label = `${nr.elite ? "Elite " : ""}${this.bossDisplayName(this.raid)}${nr.tier ? " T" + nr.tier : ""}`;
     // §9.2: ボス出現の全画面カットイン/トーストを撤廃。飼育槽中央の軽い通知のみ(タップ不要・自動フェード)
     if (typeof Render !== "undefined" && Render.showCenterNotice) {
       const boss = nr.boss || nr.tier;
-      Render.showCenterNotice(boss ? `${label} 襲来` : `${this.raid.snakeTier.name} 襲来`, boss ? (type.threat || "コロニーを守れ") : "コロニーを守れ", "boss");
+      Render.showCenterNotice(boss ? `${label} 襲来` : `${this.bossDisplayName(this.raid)} 襲来`, boss ? (type.threat || "コロニーを守れ") : "コロニーを守れ", "boss");
     }
     this.combatSurge(); // V3: 巣から全軍一斉出撃
   },
@@ -1958,7 +1975,7 @@ const Game = {
         s.gems += gems;
         this.addRes("science", sci);
         this.addRes("bio", bio);
-        msg = ` BOSS撃破! ${r.elite ? "Elite " : ""}${r.type.name} T${r.tier} / +${fmt(coins)}G +ジェム${gems} +研究力${sci} +生態データ${bio}`;
+        msg = ` BOSS撃破! ${r.elite ? "Elite " : ""}${this.bossDisplayName(r)} T${r.tier} / +${fmt(coins)}G +ジェム${gems} +研究力${sci} +生態データ${bio}`;
         if (isBugger) msg += " / 侵略圧を押し返した!";
         this.addRankXp(r.elite ? 120 : 60);
       } else if (r.boss) {
@@ -1990,7 +2007,7 @@ const Game = {
         s.eggs.push(r.stolenEgg);
         msg += " / 卵を取り返した!";
       }
-      this.notice(`${r.type.name} 撃破`, msg, "boss"); // §9: 全画面撃破演出→中央の軽い通知(戦利品は報酬盤が見せる)
+      this.notice(`${this.bossDisplayName(r)} 撃破`, msg, "boss"); // §9: 全画面撃破演出→中央の軽い通知(戦利品は報酬盤が見せる)
       this.popupBurst(r.snake.x, r.snake.y);
       this.motVictoryGather(r.snake.x, r.snake.y); // V5M-EX⑭: 撃破地点へ近くの数匹が寄る(数秒で散る)
       this.slowmo = 0.6; // 撃破スローモーション
