@@ -95,6 +95,60 @@ for (const [label, fn] of CASES) {
   ok("§5nnn の再実装禁止メモがコードに残っている(意図の保存)", /再実装禁止/.test(src));
 }
 
+// ---- ⑥ 切れ時トグル: 既定ON / 移行は一度きり / OFFの選択は尊重(Ric裁定 2026-07-29) ----
+{
+  Game.newGame();
+  ok("新規コロニーの切れ時トグルは既定ON", Game.ensureDial().stopOnEmpty === true, JSON.stringify(Game.ensureDial()));
+  ok("新規コロニーには移行フラグが立っている(以後反転しない)", Game.ensureDial().emptyDefaultOnV1 === 1);
+
+  // 旧セーブ(明示的 false)は1度だけ true へ反転する
+  const oldSave = { version: 15, dial: { auto: true, rate: 1, stopOnEmpty: false } };
+  const m1 = Game.migrateStopOnEmpty(JSON.parse(JSON.stringify(oldSave)));
+  ok("旧セーブ(明示的OFF)は移行でONへ反転する", m1.dial.stopOnEmpty === true);
+  ok("移行でフラグが立つ", m1.dial.emptyDefaultOnV1 === 1);
+
+  // ★一度きり: 移行後にプレイヤーがOFFへ戻したら、次回以降の移行は触らない
+  const afterPlayerOff = JSON.parse(JSON.stringify(m1));
+  afterPlayerOff.dial.stopOnEmpty = false;             // プレイヤーが意図的にOFFへ
+  const m2 = Game.migrateStopOnEmpty(afterPlayerOff);
+  ok("★移行は一度きり: プレイヤーがOFFに戻した選択を尊重する", m2.dial.stopOnEmpty === false);
+  const m3 = Game.migrateStopOnEmpty(m2);
+  ok("何度通しても冪等(OFFのまま)", m3.dial.stopOnEmpty === false);
+
+  // dial が無い壊れたセーブでも落ちない
+  const m4 = Game.migrateStopOnEmpty({ version: 15 });
+  ok("dial欠落セーブでも移行が成立する", m4.dial && m4.dial.stopOnEmpty === true && m4.dial.emptyDefaultOnV1 === 1);
+
+  // フラグは dial に載る=toWorld/applyWorld で自動的に往復する(保存の追加配線が要らない)
+  Game.newGame();
+  Game.ensureDial().stopOnEmpty = false;               // プレイヤーがOFFを選ぶ
+  const w = Game.toWorld();
+  ok("dialごと保存される(フラグが往復する)", w.dial && w.dial.emptyDefaultOnV1 === 1 && w.dial.stopOnEmpty === false);
+  const w2 = Game.migrateStopOnEmpty(w);
+  ok("★保存往復後も、OFFの選択が移行で上書きされない", w2.dial.stopOnEmpty === false);
+
+  // 経済: 在庫0+オートON のとき、ONならGoldが減らない / OFFなら減る
+  const goldAfter = (stopOnEmpty) => {
+    Game.newGame();
+    const d = Game.ensureDial(); d.auto = true; d.rate = 2; d.stopOnEmpty = stopOnEmpty;
+    Game.state.crickets = 0; Game.state.coins = 100000;
+    for (let i = 0; i < 8; i++) { const c = JSON.parse(JSON.stringify(Game.state.lizards[0])); c.id = 800 + i; Game.state.lizards.push(c); }
+    const c0 = Game.state.coins, f0 = (Game.state.stats && Game.state.stats.fed) || 0;
+    for (let i = 0; i < 15 * 60; i++) Game.tick(1 / 60);
+    return { dGold: Game.state.coins - c0, dFed: ((Game.state.stats && Game.state.stats.fed) || 0) - f0 };
+  };
+  const on = goldAfter(true), off = goldAfter(false);
+  ok(`★切れ時ON: 在庫0でもGoldが減らない(${on.dGold.toFixed(0)}G)`, on.dGold >= 0, JSON.stringify(on));
+  ok(`切れ時OFF: 在庫0だとGoldが減る(${off.dGold.toFixed(0)}G)=OFFの意味は保たれる`, off.dGold < 0, JSON.stringify(off));
+  ok(`切れ時ONでも育成は止まらない(自然湧きぶんは食べる: 給餌${on.dFed}回)`, on.dFed > 0, JSON.stringify(on));
+  ok("切れ時ONの給餌回数はOFFより少ない(Gold換算補充が止まっている)", on.dFed < off.dFed, `on=${on.dFed} off=${off.dFed}`);
+
+  // 在庫僅少ランプは「あえてOFFにした人」にだけ点く(既定ONでは点かない)
+  const fd = fs.readFileSync(path.join(ROOT, "js/ui/screens/feeder.js"), "utf8");
+  ok("在庫僅少ランプの条件は !stopOnEmpty && auto のまま(既定ONでは点かない)",
+    /const low = !d\.stopOnEmpty && d\.auto &&/.test(fd));
+}
+
 // ---- ③④⑤ UI側(feeder.js)の停止保険・冪等性のソース検査 ----
 {
   const fd = fs.readFileSync(path.join(ROOT, "js/ui/screens/feeder.js"), "utf8");

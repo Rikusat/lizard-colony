@@ -79,7 +79,7 @@ const Game = {
       rocket: { stage: 0, invested: 0, done: false },
       forged: {},          // チタン鉱による設備の上限突破
       autoBreed: false,    // V4: 繁殖予約【機能撤廃済(Ric裁定 2026-07-29)】セーブ互換のため素通しで保持するだけ=もう読まない
-      dial: { auto: false, rate: 1, supply: false }, // Brushup V2: 給餌ダイヤル
+      dial: { auto: false, rate: 1, supply: false, stopOnEmpty: true, emptyDefaultOnV1: 1 }, // Brushup V2: 給餌ダイヤル(切れ時トグルは既定ON)
       stageWins: 0,        // この惑星での撃退数(Elite周期用)
       nest: { lv: 1 }, // すみか(住居)Lv・ピン留め個体
       research: {},        // HQ研究
@@ -1173,9 +1173,13 @@ const Game = {
     return true;
   },
 
+  // 切れ時トグル(stopOnEmpty): ON=コオロギが尽きたら給餌を止める(安全) / OFF=Goldで換算補充して継続。
+  //   ★既定はON(Ric裁定 2026-07-29)。旧既定OFFでは、在庫が尽きた後もオート給餌が**無音でGoldを溶かし続けた**
+  //     (実測: 在庫0・個体10匹・高レートで約500G/秒)。既定は安全側に置き、OFFは上級者の意図的な選択とする。
+  //   OFFのままにしたい人は1タップで戻せる=可逆。既存セーブの一度きりの移行は migrateStopOnEmpty() が行う。
   ensureDial() {
-    if (!this.state.dial) this.state.dial = { auto: false, rate: 1, stopOnEmpty: false };
-    if (this.state.dial.stopOnEmpty === undefined) this.state.dial.stopOnEmpty = false; // V5.2: 既定OFF=Gold補充
+    if (!this.state.dial) this.state.dial = { auto: false, rate: 1, stopOnEmpty: true };
+    if (this.state.dial.stopOnEmpty === undefined) this.state.dial.stopOnEmpty = true;
     return this.state.dial;
   },
 
@@ -2843,6 +2847,23 @@ const Game = {
     return w;
   },
 
+  // 切れ時トグルの既定ON化(Ric裁定 2026-07-29)。**一度きり**の移行。
+  //   旧既定OFFのまま保存された人は、在庫が尽きた後もオート給餌が無音でGoldを溶かし続けていた
+  //   (実測: 在庫0・個体10匹・高レートで約500G/秒)。既定値の変更だけでは
+  //   **明示的な false が既に永続化されている**ため救われないので、1度だけ true へ反転する。
+  //   ★以後はプレイヤーの選択を尊重する: フラグが立っていれば二度と触らない(OFFにし直せばOFFのまま)。
+  //   バージョンは上げず、**dial 内へのフラグの単調追加**でゲートする(移行チェーン・バックアップ鍵に影響させない)。
+  //   フラグを dial に置く理由: dial オブジェクトは toWorld/applyWorld を丸ごと往復するため、
+  //   保存の追加配線なしで永続化される(=「一度きり」が構造的に保証される)。
+  //   移行時に通知は出さない(気配だけ見せて説明しない)。
+  migrateStopOnEmpty(w) {
+    w.dial = w.dial || { auto: false, rate: 1 };
+    if (w.dial.emptyDefaultOnV1) return w;    // 既に適用済み=二度と反転しない
+    w.dial.emptyDefaultOnV1 = 1;
+    if (w.dial.stopOnEmpty !== true) w.dial.stopOnEmpty = true;
+    return w;
+  },
+
   // 3.11.3: ボス見届け化。「今すぐ呼ぶ」1日カウンタ(bossCall)を追加。既存の保留ボス状態(nextRaid/raidTimer)は
   // StageData側に保持されるので触らない。バージョンゲートで冪等
   migrateV7to8(w) {
@@ -3285,6 +3306,7 @@ const Game = {
       // Phase10: 再純血化(v14→v15)は個体を除去しうる。混入の有無に関わらず、purify前を必ず退避(全版共通=ロールバック保証)
       if ((data.version || 0) < 15) { try { localStorage.setItem(CFG.saveBackupKeyV15, raw); } catch (e) { /* noop */ } }
       world = this.migrateV14to15(this.migrateV13to14(this.migrateV12to13(this.migrateV11to12(this.migrateV10to11(this.migrateV9to10(this.migrateV8to9(this.migrateV7to8(this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world)))))))))));
+      world = this.migrateStopOnEmpty(world);   // 版に依らない一度きりの移行(専用フラグでゲート)
       if (world._purifyV9 && (world._purifyV9.lizards > 0 || world._purifyV9.eggs > 0)) {
         const p9 = world._purifyV9;
         setTimeout(() => UI.toast(`${Icon.svg("planet")} 純血化: 各惑星は固有種のみになりました(他惑星種 ${p9.lizards}匹${p9.eggs > 0 ? "・卵" + p9.eggs : ""}が去った。設定からロールバック可)`, true), 900);

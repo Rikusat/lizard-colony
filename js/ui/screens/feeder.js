@@ -200,7 +200,10 @@ Object.assign(UI, {
     if (emp) {
       emp.classList.toggle("on", !!d.stopOnEmpty); // ON=安全装置(琥珀の後光)
       emp.setAttribute("aria-checked", !!d.stopOnEmpty);
-      // 2-5: OFF(=Gold補充で回り続ける)かつ在庫が僅少になったら警告ランプ点灯
+      // 2-5: OFF(=Gold補充で回り続ける)かつ在庫が僅少になったら警告ランプ点灯。
+      //   ★切れ時トグルの既定がONになった(2026-07-29)ことで、この条件は
+      //   「**あえてOFFにした人**にだけ、Goldが溶け始める前触れを見せる」という役割に純化した
+      //   (既定のままの人には点かない=平常画面を賑やかにしない)。通知は増やさない。
       const low = !d.stopOnEmpty && d.auto && Math.floor(Game.state.crickets || 0) < CFG.cricketLowWarn;
       emp.classList.toggle("warn", low);
     }
