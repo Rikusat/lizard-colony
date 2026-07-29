@@ -33,7 +33,11 @@ function stubCtx(log) {
     save: rec("save"), restore: rec("restore"), beginPath: rec("beginPath"), closePath: rec("closePath"),
     moveTo: rec("moveTo"), lineTo: rec("lineTo"), arc: rec("arc"), stroke: rec("stroke"), fill: rec("fill"),
     fillRect: rec("fillRect"), strokeRect: rec("strokeRect"), fillText: rec("fillText"), measureText: () => ({ width: 10 }),
+    // 幾何・クリップ系(オープニングの侵食被膜/影のクリップで使う)。命令列には残さない=位相比較のノイズにしない
+    clip: () => {}, rect: () => {}, ellipse: () => {}, setLineDash: () => {}, clearRect: () => {},
+    translate: () => {}, scale: () => {}, rotate: () => {}, quadraticCurveTo: () => {}, bezierCurveTo: () => {},
     createLinearGradient: (...a) => { if (log) log.push("grad(" + a.map((v) => v.toFixed(3)).join(",") + ")"); return { addColorStop: (o, c) => { if (log) log.push("stop(" + o + "," + c + ")"); } }; },
+    createRadialGradient: (...a) => { if (log) log.push("rgrad(" + a.map((v) => v.toFixed(3)).join(",") + ")"); return { addColorStop: (o, c) => { if (log) log.push("stop(" + o + "," + c + ")"); } }; },
   };
   for (const k of ["fillStyle", "strokeStyle", "lineWidth", "globalAlpha", "font", "textAlign", "shadowColor", "shadowBlur"]) {
     let v = null;
@@ -243,6 +247,69 @@ console.log("== 9) ビームの欠陥是正: 横断後に画面へ残らない =
   const l4 = [];
   Holo.drawCut(stubCtx(l4), W, H, Holo.grid() * 3.8, "beam");
   check("基準カット 案b: 横断中(t=1.52s)はビームが描かれる", beamGrads(l4) === 1, "beamGrad=" + beamGrads(l4));
+}
+
+console.log("== 11) C2フェーズ2 オープニング前半(静穏→異常→暴走→バガーの影) ==");
+{
+  const G = Holo.grid();
+  const nodes = Holo.openNodes();
+  const ids = nodes.map((n) => n.id);
+  const at = (id) => Holo.openAt(id);
+  check("ノード表が CFG にある(尺の唯一の真実)", Array.isArray(CFG.holoOpenNodes) && CFG.holoOpenNodes.length === nodes.length);
+  check("物語の4ノード+暗転+終端が揃う", ["calm", "anomaly", "rampage", "blackout", "bagger", "end"].every((k) => ids.includes(k)), ids.join(","));
+  // ★0.4秒グリッド遵守: すべてのカット境界がグリッド上
+  for (const n of nodes) check(`${n.id}: グリッド番号が整数=0.4秒グリッド上(${(n.grid * G).toFixed(1)}s)`, Number.isInteger(n.grid), String(n.grid));
+  for (let i = 1; i < nodes.length; i++) check(`${nodes[i].id} は ${nodes[i - 1].id} より後(物語の順が入れ替わらない)`, nodes[i].grid > nodes[i - 1].grid);
+  check(`前半の尺 ${Holo.openDur().toFixed(1)}s が上限 ${CFG.holoOpenMaxSec}s 以下`, Holo.openDur() <= CFG.holoOpenMaxSec);
+  {
+    const L = loadHolo(); L.api.CFG.holoOpenNodes = [{ id: "calm", grid: 0 }, { id: "end", grid: 999 }];
+    check("上限を超えるノード表を書いてもクランプされる", L.api.Holo.openDur() === L.api.CFG.holoOpenMaxSec);
+  }
+  check("暗転(溜め)が 暴走→バガー の間に置かれている", at("blackout") > at("rampage") && at("bagger") > at("blackout"));
+  check(`暗転の長さが1グリッド以上(${(at("bagger") - at("blackout")).toFixed(1)}s)`, at("bagger") - at("blackout") >= G - 1e-9);
+  check(`バガーの露出は${(CFG.holoOpenBaggerGrids * G).toFixed(1)}秒(長く見せない)`, CFG.holoOpenBaggerGrids * G <= 0.5);
+
+  // 決定論
+  for (const t of [1.0, 3.2, 5.6, 7.0, 7.3]) {
+    const a = [], b = [];
+    Holo.drawOpening(stubCtx(a), 1200, 675, t);
+    Holo.drawOpening(stubCtx(b), 1200, 675, t);
+    check(`t=${t}: 同一位相で命令列が完全一致(${a.length}命令)`, a.length > 40 && a.join("|") === b.join("|"));
+  }
+  {
+    let threw = null;
+    try { for (let t = 0; t <= Holo.openDur() + 0.5; t += 0.1) Holo.drawOpening(stubCtx(null), 1200, 675, t); } catch (e) { threw = e; }
+    check("0〜終端+0.5秒まで例外なく描ける", !threw, threw && threw.message);
+  }
+  // ★暗転(溜め)が実際に「落ちて」いる
+  const ops = (t) => { const l = []; Holo.drawOpening(stubCtx(l), 1200, 675, t); return l.length; };
+  const opsRampage = ops(at("rampage") + G * 4), opsDark = ops(at("blackout") + G * 0.4);
+  check(`暗転は密度が落ちる(暴走 ${opsRampage}命令 → 暗転 ${opsDark}命令)`, opsDark < opsRampage * 0.5, `${opsRampage} → ${opsDark}`);
+
+  // 表示文字列: 実データ由来 or 遮蔽表示のみ(捏造しない)
+  const textsAt = (t) => { const l = []; Holo.drawOpening(stubCtx(l), 1200, 675, t); return l.filter((x) => x.startsWith("fillText")).map((x) => x.slice(9, -1).split(",")[0]); };
+  const calm = textsAt(1.0);
+  check("静穏: PLANETS が実データ(" + STAGES.length + ")", calm.includes(String(STAGES.length)), calm.join("/"));
+  check("静穏: CONTAINMENT は NOMINAL(まだ壊れていない)", calm.includes("NOMINAL"));
+  const rage = textsAt(at("rampage") + G * 6);
+  check("暴走: CONTAINMENT FAILED が出る", rage.includes("CONTAINMENT FAILED"));
+  check("暴走: 欠落は REDACTED / UNRESOLVED の遮蔽表示", rage.includes("REDACTED") || rage.includes("UNRESOLVED"));
+  check("バガー: UNRESOLVED(伏線として伏せる)", textsAt(at("bagger") + 0.05).includes("UNRESOLVED"));
+  const allTexts = [].concat.apply([], [0.5, 1.0, 3.0, 5.0, 6.5, 7.3].map(textsAt));
+  const planetNames = Object.keys(PLANET_NAMES).map((k) => PLANET_NAMES[k]);
+  check("故郷に実在の惑星名を名乗らせない(捏造なし)", !allTexts.some((x) => planetNames.includes(x)));
+  check("故郷は HOMEWORLD / REDACTED で伏せる", allTexts.some((x) => /HOMEWORLD/.test(x)));
+
+  // ★ヌシ・バガーの影: 実物(Render.drawBaggerParent)を呼ぶ。無い環境では影を出さず落ちない
+  check("Render 不在でも baggerShade が落ちず false を返す", Holo.baggerShade(stubCtx(null), 300, 200, 1, 7.3, 1) === false);
+  {
+    const src = fs.readFileSync(path.join(ROOT, "js/holo.js"), "utf8");
+    check("バガーの影は Render.drawBaggerParent を直接呼ぶ(自前の似顔絵を描かない)", /Render\.drawBaggerParent\(ctx,/.test(src));
+    check("Render.time を借用したら必ず戻す(決定論と本編非干渉)", /const saved = Render\.time[\s\S]{0,1200}Render\.time = saved;/.test(src));
+    check("案a(core)の語彙が転用されている(焼け跡+火花=emberOnSphere)", /emberOnSphere\(ctx/.test(src));
+    check("オープニング追加後も holo.js は Game を参照しない", !/\bGame\b/.test(src));
+    check("オープニング追加後も holo.js は localStorage を参照しない", !/localStorage/.test(src));
+  }
 }
 
 console.log("== 10) CFGで完全OFFにできる(可逆) ==");

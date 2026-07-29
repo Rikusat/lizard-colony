@@ -347,17 +347,20 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
       const buildH = () => {
         stopH();
         if (typeof Holo === "undefined") { console.warn("[opening] Holo 未読込"); return; }
-        const T = Holo.cutDur();
+        // C2フェーズ2(2026-07-30): 既定の表示を**新オープニング(物語軸)**へ。
+        //   前版の基準カット(導火線2案の比較)は判断の記録として "cut" ビューに残す。
+        const T = Holo.openDur();
         const G = (typeof CFG !== "undefined" && CFG.holoGridSec) || 0.4;
         const SPD = (typeof CFG !== "undefined" && CFG.holoViewSpeeds) || [1, 0.5, 0.25];
-        const MARKS = [[0, "起動"], [G, "ブラケット"], [G * 2, "BOOT"], [G * 3, "点火"], [G * 5, "ノード1"], [G * 6, "ノード2"]];
-        const VIEWS = [["both", "並べて比較"], ["core", "案aのみ"], ["beam", "案bのみ"]];
-        const S = { t: 0, playing: true, speed: SPD[0], loop: true, view: "both" };
+        const NODE_LBL = { calm: "1 静穏", anomaly: "2 異常", rampage: "3 暴走", blackout: "暗転(溜め)", bagger: "4 バガーの影", end: "終端" };
+        const MARKS = Holo.openNodes().map((n) => [n.grid * G, NODE_LBL[n.id] || n.id]);
+        const VIEWS = [["open", "オープニング(フェーズ2)"], ["cut", "前版の基準カット(記録)"]];
+        const S = { t: 0, playing: true, speed: SPD[0], loop: true, view: "open" };
 
         const panel = document.createElement("div"); panel.id = "opening-view";
         panel.style.cssText = "position:fixed;inset:0;z-index:9999;background:#05060a;color:#e8dccb;font:13px/1.6 system-ui;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px;overflow:auto;";
         const ttl = document.createElement("div"); ttl.style.cssText = "font-size:15px;font-weight:600;";
-        ttl.textContent = "HOLO BRIEFING 基準カット (?tune=1#opening) — 起動+点火+ノード1〜2 / " + T.toFixed(1) + "秒 · 導火線2案。#で閉じる";
+        ttl.textContent = "C2 オープニング 前半 (?tune=1#opening) — 静穏→異常→暴走→ヌシ・バガーの影 / " + T.toFixed(1) + "秒(0.4秒グリッド)。#で閉じる";
         panel.appendChild(ttl);
 
         // ---- 操作バー(自動再生に頼らない) ----
@@ -400,8 +403,10 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
         let cvs = [];
         const layout = () => {
           row.innerHTML = ""; cvs = [];
-          const shown = S.view === "both" ? VAR : VAR.filter((v) => v.id === S.view);
-          const w = S.view === "both" ? 620 : 1000, h = Math.round(w * 349 / 620);
+          const shown = S.view === "open"
+            ? [{ id: "open", label: "オープニング 前半(物語軸)", note: "1 静穏 → 2 異常 → 3 暴走(案aの芯線を転用) → 暗転(溜め) → 4 ヌシ・バガーの影(0.4秒)" }]
+            : VAR;   // 前版の基準カット=導火線2案の比較(判断の記録として残置)
+          const w = shown.length > 1 ? 620 : 1000, h = Math.round(w * 349 / 620);
           shown.forEach((v) => {
             const box = document.createElement("div"); box.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:5px;width:" + w + "px;max-width:92vw;";
             const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
@@ -415,7 +420,8 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
         layout();
 
         const bar = document.createElement("div"); bar.style.cssText = "font-size:11px;opacity:.55;text-align:center;";
-        bar.textContent = "0.4秒グリッド: 0.0起動 / 0.4ブラケット / 0.8 BOOT / 1.2点火 / 2.0ノード1(崩壊) / 2.4ノード2(十の星) — 2案の位相は完全同期";
+        bar.textContent = "0.4秒グリッド上のカット割り: " + Holo.openNodes().map((n) => (n.grid * G).toFixed(1) + " " + (NODE_LBL[n.id] || n.id)).join(" / ")
+          + " — 暗転(溜め)は3→4の間に1グリッド";
         panel.appendChild(bar);
         document.body.appendChild(panel); hPanel = panel;
 
@@ -443,7 +449,11 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
             S.t += dt * S.speed;
             if (S.t >= T) { if (S.loop) S.t %= T; else { S.t = T - 0.001; S.playing = false; } }
           }
-          for (const c of cvs) Holo.drawCut(c.cv.getContext("2d"), c.cv.width, c.cv.height, S.t, c.id);
+          for (const c of cvs) {
+            const g = c.cv.getContext("2d");
+            if (c.id === "open") Holo.drawOpening(g, c.cv.width, c.cv.height, S.t);
+            else Holo.drawCut(g, c.cv.width, c.cv.height, Math.min(S.t, Holo.cutDur() - 0.001), c.id);
+          }
           sync();
           hRaf = requestAnimationFrame(loop);
         };

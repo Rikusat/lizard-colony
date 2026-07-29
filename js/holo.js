@@ -381,6 +381,226 @@ const Holo = {
   cutDur() { return this.grid() * 8; },   // 基準カット=8グリッド=3.2秒
 
   // =============================================================
+  // C2 フェーズ2 オープニング「バガー暴走からの飛び立ち」(物語軸)
+  //   前版の9ノード予告モンタージュは破棄。尺の唯一の真実は CFG.holoOpenNodes(グリッド番号の表)。
+  //   本セッションは前半(1 静穏 → 2 異常 → 3 暴走 → 4 ヌシ・バガーの影)のみ。
+  //   ★案a(core=深紅の芯線)の語彙はここで正式に役割を得る: 「焼け跡が残り火花が散る」を
+  //     侵食が球面を走る表現へ転用する(横一直線でなく球面上を走らせる)。
+  // =============================================================
+  openNodes() {
+    return (typeof CFG !== "undefined" && CFG.holoOpenNodes) || [
+      { id: "calm", grid: 0 }, { id: "anomaly", grid: 5 }, { id: "rampage", grid: 10 },
+      { id: "blackout", grid: 17 }, { id: "bagger", grid: 18 }, { id: "end", grid: 20 },
+    ];
+  },
+  openAt(id) {                       // ノード開始秒(必ずグリッド上に乗る)
+    const n = this.openNodes().find((x) => x.id === id);
+    return n ? n.grid * this.grid() : 0;
+  },
+  openDur() {                        // 尺(CFGの上限でクランプ)
+    const max = (typeof CFG !== "undefined" && CFG.holoOpenMaxSec) || 15;
+    return Math.min(max, this.openAt("end"));
+  },
+
+  // 球面上を走る侵食の芯線(案a の転用)。焼け跡が残り、先端が燃え、火花が散る。決定論(ハッシュのみ)。
+  //   奥(z>=0)は減光=既存の陰線処理の簡略と同じ規律。
+  emberOnSphere(ctx, cx, cy, r, ax, ay, i, prog, t) {
+    const C = this.C();
+    if (prog <= 0) return;
+    const phi0 = 0.55 + this.h(i, 11) * 2.0;           // 起点(緯)
+    const th0 = this.h(i, 23) * 6.28318;                // 起点(経)
+    const dPhi = (this.h(i, 31) - 0.5) * 1.6, dTh = (this.h(i, 41) - 0.5) * 4.2; // 進む向き
+    const N = 26, span = 2.1 * prog;
+    const pt = (s) => {
+      const phi = Math.max(0.05, Math.min(3.09, phi0 + dPhi * s)), th = th0 + dTh * s;
+      const p = this.rot3([Math.sin(phi) * Math.cos(th), Math.cos(phi), Math.sin(phi) * Math.sin(th)], ax, ay);
+      return { p: p, q: this.proj(p, cx, cy, r) };
+    };
+    // 焼け跡(通過後に残る=点火した因果が絵に残る)
+    ctx.lineWidth = 2.0; ctx.strokeStyle = C.crim;
+    for (let k = 0; k < N; k++) {
+      const a = pt(span * k / N), b = pt(span * (k + 1) / N);
+      ctx.globalAlpha = (a.p[2] < 0 ? 0.40 : 0.12);
+      ctx.beginPath(); ctx.moveTo(a.q.x, a.q.y); ctx.lineTo(b.q.x, b.q.y); ctx.stroke();
+    }
+    // 走る芯(先端ほど明るい)+火花
+    const head = pt(span);
+    if (head.p[2] < 0) {
+      this.glow(ctx, C.crim, 18);
+      ctx.strokeStyle = C.crim; ctx.lineWidth = 2.6; ctx.globalAlpha = 1;
+      ctx.beginPath();
+      for (let k = 0; k <= 6; k++) { const q = pt(Math.max(0, span - 0.22 * (6 - k) / 6)).q; k === 0 ? ctx.moveTo(q.x, q.y) : ctx.lineTo(q.x, q.y); }
+      ctx.stroke();
+      ctx.fillStyle = C.pale; ctx.beginPath(); ctx.arc(head.q.x, head.q.y, 2.6, 0, 7); ctx.fill();
+      this.noGlow(ctx);
+      const bk = Math.floor(t * 24);                    // 火花(決定論・時刻バケット)
+      for (let k = 0; k < 4; k++) {
+        const a = this.h(bk, i * 7 + k) * 6.28, d = 3 + this.h(bk, i * 7 + k + 50) * 13;
+        ctx.globalAlpha = 0.55; ctx.fillStyle = k % 2 ? C.amber : C.crim;
+        ctx.fillRect(head.q.x + Math.cos(a) * d, head.q.y + Math.sin(a) * d, 1.6, 1.6);
+      }
+    }
+    ctx.globalAlpha = 1;
+  },
+
+  // ヌシ・バガーの影(伏線)。★実物と食い違わないよう Render.drawBaggerParent を**そのまま**呼び、
+  //   ホログラム化(低不透明度+走査線+深紅の被膜)だけを被せる。自前で似顔絵を描かない。
+  //   槽面のヒビは FIELD.x2(盤の右端)へ描かれる仕様なので、クリップ矩形の外に落ちて出ない。
+  //   Render.time はパルスの位相源なので、呼出の間だけ t に固定して決定論を保つ(直後に復帰)。
+  baggerShade(ctx, cx, cy, k, t, scale) {
+    const C = this.C();
+    if (typeof Render === "undefined" || typeof Render.drawBaggerParent !== "function") return false;
+    const s = scale || 1;
+    const box = [cx - 200 * s, cy - 150 * s, 400 * s, 300 * s];
+    const saved = Render.time;
+    // 背光(逆光): 影が「浮かび上がる」ための光源。★矩形でなく放射グラデーション=クリップ矩形の縁を見せない
+    const bg = ctx.createRadialGradient(cx, cy, 4 * s, cx, cy, 190 * s);
+    bg.addColorStop(0, this.rgba(C.crim, 0.34 * k));
+    bg.addColorStop(0.55, this.rgba(C.crim, 0.13 * k));
+    bg.addColorStop(1, this.rgba(C.crim, 0));
+    ctx.fillStyle = bg; ctx.fillRect(box[0], box[1], box[2], box[3]);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(box[0], box[1], box[2], box[3]); ctx.clip();
+    try {
+      Render.time = t;
+      ctx.globalAlpha = 0.62 * k;   // 0.4秒で「何かいた」と分かる濃さ(薄すぎると伏線にならない)
+      ctx.translate(cx, cy); ctx.scale(s, s); ctx.translate(-cx, -cy);
+      Render.drawBaggerParent(ctx, { snake: { x: cx, y: cy, hp: 1, maxHp: 1 }, boss: true, elite: true, typeId: "bugger", tier: 5 });
+    } catch (e) { /* 描画資産が揃わない環境では影を出さない(本編には一切影響させない) */ }
+    Render.time = saved;
+    ctx.restore();
+    // ホログラム化: 走査線で刻む。★線の濃さも中心から縁へ落とす=走査線が張られた矩形の輪郭を出さない
+    //   (一様な濃さで矩形を埋めると、暗い背景の上でも「四角い領域」が読めてしまう)
+    const sg = ctx.createRadialGradient(cx, cy, 10 * s, cx, cy, 190 * s);
+    sg.addColorStop(0, this.rgba(C.void, 0.60 * k));
+    sg.addColorStop(0.7, this.rgba(C.void, 0.34 * k));
+    sg.addColorStop(1, this.rgba(C.void, 0));
+    ctx.save();
+    ctx.beginPath(); ctx.rect(box[0], box[1], box[2], box[3]); ctx.clip();
+    ctx.fillStyle = sg;
+    for (let y = box[1]; y < box[1] + box[3]; y += 3) ctx.fillRect(box[0], y, box[2], 1.5);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+    return true;
+  },
+
+  drawOpening(ctx, W, H, t) {
+    const C = this.C(), G = this.grid();
+    const A = (id) => this.openAt(id);
+    const seg = (a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+    const S = Math.max(0.75, Math.min(2, H / 675));
+    ctx.fillStyle = C.void; ctx.fillRect(0, 0, W, H);
+
+    const cx = W * 0.40, cy = H * 0.50, r = Math.min(W, H) * 0.26;
+    const anomaly = seg(A("anomaly"), A("rampage"));      // 異常の進行 0→1
+    const infect = seg(A("rampage"), A("blackout"));      // 侵食の進行 0→1
+    const dark = t >= A("blackout") && t < A("bagger");   // 暗転(溜め・3→4の間)
+    const bgGrids = (typeof CFG !== "undefined" && CFG.holoOpenBaggerGrids) || 1;
+    const baggerK = t >= A("bagger") ? (1 - seg(A("bagger") + G * bgGrids, A("end"))) : 0;
+    const spin = t * 0.42;                                 // 故郷の自転(静かに回る)
+
+    // ---- 暗転(溜め): 深紅の残光だけを置いて全部落とす(空白があるから密が効く §3-4) ----
+    if (dark) {
+      const k = 1 - seg(A("blackout"), A("bagger"));
+      this.glow(ctx, C.crim, 26);
+      ctx.strokeStyle = C.crim; ctx.globalAlpha = 0.34 * k; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.arc(cx, cy, r * (1.0 + (1 - k) * 0.5), 0, 6.28318); ctx.stroke();
+      this.noGlow(ctx); ctx.globalAlpha = 1;
+      this.mono(ctx, "CONTAINMENT FAILED", cx, cy + r * 1.5, 13 * S, C.crim, 0.5 * k, "center");
+      this.scan(ctx, W, H, t, 0.5);
+      this.letterbox(ctx, W, H, 1);
+      return;
+    }
+
+    // ---- 1 静穏 / 2 異常 / 3 暴走: 故郷のワイヤーフレーム球 ----
+    if (t < A("bagger")) {
+      const born = 1 - Math.pow(1 - Math.min(1, t / (G * 2)), 3);   // 起動(最初の2グリッドで現れる)
+      this.glow(ctx, C.amber, 10);
+      this.sphere(ctx, cx, cy, r, 0.38, spin, C.amber, 0.85 * born * (1 - infect * 0.45), 14);
+      this.noGlow(ctx);
+      this.tickRing(ctx, cx, cy, r * 1.28, 48, -2.3, 2.3, C.amber, 0.22 * born, 1, 6);
+      this.mono(ctx, "HOMEWORLD / REDACTED", cx, cy - r * 1.42, 10 * S, C.pale, 0.42 * born, "center");
+
+      // 2 異常: 深紅の点が球面に灯る(決定論・数は進行に比例)
+      if (anomaly > 0) {
+        const n = Math.max(1, Math.round(anomaly * 7));
+        for (let i = 0; i < n; i++) {
+          const phi = 0.5 + this.h(i, 11) * 2.0, th = this.h(i, 23) * 6.28318;
+          const p = this.rot3([Math.sin(phi) * Math.cos(th), Math.cos(phi), Math.sin(phi) * Math.sin(th)], 0.38, spin);
+          if (p[2] >= 0) continue;                                  // 裏側は出さない
+          const q = this.proj(p, cx, cy, r);
+          const pulse = 0.55 + Math.sin(t * 7 + i) * 0.35;
+          this.glow(ctx, C.crim, 12);
+          ctx.fillStyle = C.crim; ctx.globalAlpha = Math.min(1, anomaly * 3) * pulse;
+          ctx.beginPath(); ctx.arc(q.x, q.y, 2.6 + pulse * 1.4, 0, 7); ctx.fill();
+          this.noGlow(ctx); ctx.globalAlpha = 1;
+        }
+      }
+
+      // 3 暴走: 侵食が球面を走り、覆っていく(案a の語彙=焼け跡+火花)
+      if (infect > 0) {
+        for (let i = 0; i < 11; i++) {
+          const delay = this.h(i, 3) * 0.45;                        // 走り出しを filament ごとにずらす=一斉でなく次々に
+          this.emberOnSphere(ctx, cx, cy, r, 0.38, spin, i, Math.max(0, (infect - delay) / (1 - delay)), t);
+        }
+        // 覆っていく=深紅の被膜が球を飲む。★平坦な円で塗ると球が「赤い円盤」に潰れるため、
+        //   侵食の中心から縁へ落ちる放射グラデーションにして立体を残す(縁を暗く=球の丸みが読める)。
+        ctx.save();
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.28318); ctx.clip();
+        const ix = cx - r * 0.22, iy = cy - r * 0.14;               // 侵食の中心(やや手前上)
+        const wash = ctx.createRadialGradient(ix, iy, r * 0.05, ix, iy, r * (0.5 + 1.5 * infect));
+        wash.addColorStop(0, this.rgba(C.crim, 0.52 * infect));
+        wash.addColorStop(0.6, this.rgba(C.crim, 0.30 * infect));
+        wash.addColorStop(1, this.rgba(C.crim, 0));
+        ctx.fillStyle = wash; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.28318); ctx.fill();
+        ctx.restore(); ctx.globalAlpha = 1;
+        if (infect > 0.55) {
+          this.glow(ctx, C.crim, 14);
+          this.mono(ctx, "CONTAINMENT FAILED", cx, cy + r * 1.5, 13 * S, C.crim, Math.min(1, (infect - 0.55) * 5), "center");
+          this.noGlow(ctx);
+        }
+      }
+    }
+
+    // ---- 4 ヌシ・バガーの影(1グリッド=0.4秒だけ。長く見せない) ----
+    if (baggerK > 0) {
+      const drew = this.baggerShade(ctx, cx, cy, baggerK, t, Math.min(W, H) / 620);
+      this.glow(ctx, C.crim, 16);
+      this.mono(ctx, "UNRESOLVED", cx, cy + r * 1.5, 13 * S, C.crim, 0.85 * baggerK, "center");
+      this.noGlow(ctx);
+      if (!drew) this.mono(ctx, "SIGNATURE / REDACTED", cx, cy, 11 * S, C.crim, 0.6 * baggerK, "center");
+    }
+
+    // ---- テレメトリ: 実データが「壊れていく」ことで不穏を作る(偽の数値を足さない) ----
+    {
+      const P = this.planets();
+      const rows = [
+        ["HQ HOLO COMMAND", "BOOT"],
+        ["PLANETS", String(P.length)],
+        ["ENDEMIC / PLANET", "2"],
+        ["TRAITS", String((typeof TRAITS !== "undefined") ? Object.keys(TRAITS).length : 18)],
+        ["CONTAINMENT", infect > 0.55 ? "FAILED" : (anomaly > 0 ? "DEGRADED" : "NOMINAL")],
+      ];
+      // 警告が1つ、また1つ: 異常の間に1行ずつ、暴走で残りが落ちる(いきなり全滅させない=段階が読める)
+      const broken = Math.floor(anomaly * 2.99) + Math.floor(infect * 1.99);
+      const fade = 1 - seg(A("blackout") - G, A("blackout"));
+      for (let i = 0; i < rows.length; i++) {
+        const lost = i > 0 && i <= broken && i < rows.length - 1;
+        const val = lost ? (i % 2 ? "REDACTED" : "UNRESOLVED") : rows[i][1];
+        const col = (i === 0) ? C.amber : (lost || (i === rows.length - 1 && infect > 0) ? C.crim : C.pale);
+        this.mono(ctx, (rows[i][0] + " ...............").slice(0, 18), W * 0.70, H * 0.20 + i * 18 * S, 11 * S, C.amber, 0.42 * fade);
+        this.mono(ctx, val, W * 0.70 + 122 * S, H * 0.20 + i * 18 * S, 11 * S, col, (lost ? 0.9 : 0.72) * fade);
+      }
+      this.mono(ctx, "LIZARD COLONY / SYSTEM", W * 0.06, H * 0.085, 10 * S, C.amber, 0.45 * fade);
+    }
+
+    // ---- 質感: 異常が進むほどグリッチが増える(不穏さは情報の欠落から作る) ----
+    this.glitch(ctx, W, H, t, ((typeof CFG !== "undefined" && CFG.holoGlitchRate != null) ? CFG.holoGlitchRate : 0.10) + anomaly * 0.18 + infect * 0.30);
+    this.scan(ctx, W, H, t, 1);
+    this.letterbox(ctx, W, H, 1);
+  },
+
+  // =============================================================
   // 惑星移動トランジション(C2改訂 フェーズ1) — 共通様式=beam を使う差込先の第1号
   //   頻度への配慮: 尺は CFG.holoTravelMaxSec 以下 / スキップ即時 / 初訪と既訪で尺と情報量を変える。
   //   表示は全て実データ由来(travelInfo)。惑星ごとに色調(tint)が変わる。
