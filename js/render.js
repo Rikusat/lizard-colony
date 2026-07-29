@@ -685,15 +685,33 @@ const Render = {
         ctx.beginPath(); ctx.ellipse(x, y, 60 + rand() * 60, 20 + rand() * 15, 0, 0, 7); ctx.fill();
       }
     } else if (st.id === 7) { // 水中都市: 水底に安らう静かな都(静寂・安寧=引き算の演出)
-      // やわらかな水中光のシャフト(ゆっくり明滅する呼吸)
+      // 水面(Ric承認 2026-07-29・天体の代替): 上端に薄いうねりを1本だけ引き、光のシャフトの起点をそこに揃える。
+      //   天体を置かずに「はるか上に水面がある」ことだけを示す=水中都市の像を壊さない(§説明しない)。
+      //   位置は左上のSTAGEバッジ(DOM)より下に置く=バッジに隠れて読めなくならない。
+      const SURF = 30, surfY = (x) => SURF + Math.sin(x / 118) * 4.2 + Math.sin(x / 47) * 1.8;
+      {
+        const g0 = ctx.createLinearGradient(0, 0, 0, SURF + 34);
+        g0.addColorStop(0, "rgba(198,232,244,.18)");   // 水面直下のわずかな明るさ
+        g0.addColorStop(1, "rgba(198,232,244,0)");
+        ctx.fillStyle = g0;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(W, 0);
+        for (let x = W; x >= 0; x -= 8) ctx.lineTo(x, surfY(x) + 34);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = "rgba(216,242,252,.38)"; ctx.lineWidth = 1.4;   // うねりの線=水面そのもの(薄く1本)
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += 8) x === 0 ? ctx.moveTo(x, surfY(x)) : ctx.lineTo(x, surfY(x));
+        ctx.stroke();
+      }
+      // やわらかな水中光のシャフト(ゆっくり明滅する呼吸)。起点は水面のうねりに接する=光の出どころが繋がる
       for (const [sx, sw2, ph] of [[280, 90, 0], [640, 130, 2.1], [980, 70, 4.2]]) {
         const breathe = 0.05 + Math.sin(this.time * 0.35 + ph) * 0.02;
-        const g2 = ctx.createLinearGradient(sx, 0, sx + 40, H * 0.8);
+        const y0 = surfY(sx);
+        const g2 = ctx.createLinearGradient(sx, y0, sx + 40, H * 0.8);
         g2.addColorStop(0, `rgba(190,225,240,${breathe * 2})`);
         g2.addColorStop(1, "rgba(190,225,240,0)");
         ctx.fillStyle = g2;
         ctx.beginPath();
-        ctx.moveTo(sx - sw2 * 0.3, 0); ctx.lineTo(sx + sw2 * 0.3, 0);
+        ctx.moveTo(sx - sw2 * 0.3, surfY(sx - sw2 * 0.3)); ctx.lineTo(sx + sw2 * 0.3, surfY(sx + sw2 * 0.3));
         ctx.lineTo(sx + sw2, H * 0.82); ctx.lineTo(sx - sw2, H * 0.82);
         ctx.closePath(); ctx.fill();
       }
