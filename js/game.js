@@ -849,6 +849,7 @@ const Game = {
 
     // 進行中の襲撃は破棄(切替=そのStageの現地対応から離れる)
     if (this.raid) { this.raid = null; s.raidTimer = CFG.raidInterval; }
+    this.corpse = null;   // 死に様も破棄: 姿は現在の惑星から解決されるため、跨いで残ると別惑星の姿で描かれる
     this.event = null; this.selectedId = null;
 
     // §5nnn(2026-07-24 Ric承認): 惑星切替時のルーレット球残留対策 — 旧惑星遺伝子を乗せた球が

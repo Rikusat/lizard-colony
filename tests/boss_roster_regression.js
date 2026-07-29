@@ -44,6 +44,46 @@ ok("pre-R30: typeId=snake(案B・軽い挙動)", Game.state.nextRaid.typeId === 
 ok("pre-R30: boss時も署名の姿(汎用の姿を出さない)", Render.planetBossDraw({ boss: true, typeId: "snake" }) === PLANET_BOSS[3].draw);
 ok("非boss(通常襲来)は署名を出さない(null)", Render.planetBossDraw({ boss: false, typeId: "snake" }) === null);
 
+// ④ ★撃破の瞬間に姿が汎用(ダイジャ等)へ切り替わらない(2026-07-29 不具合の再発検知)
+//    旧実装は drawBoss と drawCorpse が別々の switch を持ち、corpse 側が planetBossDraw を通らなかったため、
+//    全10惑星で「倒した瞬間だけ汎用の姿」に戻っていた(例: マグマ・シャーク→ダイジャ)。
+{
+  const GENERIC = ["drawSnake", "drawHawk", "drawCrow", "drawMonitor", "drawScorpion", "drawSpider", "drawBugger"];
+  const SIGS = [...new Set(Object.values(PLANET_BOSS).map((p) => p.draw))];
+  const orig = {}; const called = [];
+  for (const n of [...GENERIC, ...SIGS]) if (typeof Render[n] === "function") { orig[n] = Render[n]; Render[n] = () => called.push(n); }
+  const ctx = new Proxy({}, { get(t, p) { if (p === "canvas") return { width: 900, height: 500 }; if (p === "createRadialGradient" || p === "createLinearGradient") return () => ({ addColorStop() {} }); if (p === "measureText") return () => ({ width: 10 }); return typeof p === "string" ? () => {} : undefined; }, set() { return true; } });
+  for (const st of STAGES) {
+    const pb = PLANET_BOSS[st.id]; if (!pb) continue;
+    Game.newGame(); Game.state.rank = 95;
+    Game.state.stageSel = st.id; Game.state.currentStageId = st.id; Game.state.stageWins = 1;
+    Game.state.nextRaid = { typeId: pb.threat, boss: true, elite: false, tier: 3 };
+    Game.startRaid();
+    called.length = 0; Render.drawBoss(ctx, Game.raid);
+    const alive = called.slice();
+    Game.raid.snake.hp = 0; Game.endRaid(true);           // 正規の討伐経路を通す
+    called.length = 0; if (Game.corpse) Render.drawCorpse(ctx, Game.corpse);
+    const dead = called.slice();
+    ok(`ID${st.id}: 戦闘中の姿=署名(${pb.draw})`, alive.includes(pb.draw), alive.join(",") || "描画なし");
+    ok(`ID${st.id}: ★撃破後(corpse)も署名の姿=汎用へ戻らない`, dead.includes(pb.draw), "corpse=" + (dead.join(",") || "描画なし"));
+    ok(`ID${st.id}: 撃破後に汎用の姿を1つも描かない`, !dead.some((d) => GENERIC.includes(d) && d !== pb.draw), "corpse=" + dead.join(","));
+  }
+  // 型→姿の解決は単一の窓口(bossDrawName)に集約されている=同じ知識を2箇所に持たない
+  ok("bossDrawName が存在(型→姿の単一の解決口)", typeof Render.bossDrawName === "function");
+  ok("raid と corpse が同じ解決口で同じ姿を返す", Render.bossDrawName({ boss: true, typeId: PLANET_BOSS[7].threat }) === Render.bossDrawName({ boss: true, typeId: PLANET_BOSS[7].threat, dyingT: 0.5 }));
+  const src = fs.readFileSync(path.join(ROOT, "js/render.js"), "utf8");
+  const corpseBody = (src.split("drawCorpse(ctx, c) {")[1] || "").slice(0, 1800);
+  ok("drawCorpse が独自の型switchを持たない(重複の再発検知)", corpseBody.indexOf('case "hawk"') < 0 && corpseBody.indexOf("drawSnake") < 0);
+  // 惑星を跨いだ死に様の残留がない(姿は現在の惑星から解決されるため)
+  Game.newGame(); Game.state.rank = 95; Game.state.stageSel = 1; Game.state.currentStageId = 1;
+  Game.state.nextRaid = { typeId: PLANET_BOSS[1].threat, boss: true, elite: false, tier: 3 };
+  Game.startRaid(); Game.raid.snake.hp = 0; Game.endRaid(true);
+  ok("撃破直後にcorpseが存在する(前提)", !!Game.corpse);
+  Game.selectStage(3);
+  ok("★惑星を切り替えると死に様は破棄される(別惑星の姿で描かれない)", Game.corpse === null);
+  for (const n in orig) Render[n] = orig[n];
+}
+
 // ② 配分の網羅: 7脅威型すべてが最低1惑星
 const dist = new Set(Object.values(PLANET_BOSS).map((p) => p.threat));
 for (const t of THREATS) ok(`脅威型 ${t} が最低1惑星で発火`, dist.has(t), "配分=" + [...dist].join(","));

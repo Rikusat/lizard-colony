@@ -2789,15 +2789,7 @@ const Render = {
     ctx.globalAlpha = 1 - clamp((p - 0.55) / 0.45, 0, 1);
     ctx.filter = `saturate(${(1 - collapse * 0.7).toFixed(2)}) brightness(${(1 - collapse * 0.4).toFixed(2)})`;
     ctx.translate(-e.x, -e.y);
-    switch (c.typeId) {
-      case "hawk": this.drawHawk(ctx, c); break;
-      case "crow": this.drawCrow(ctx, c); break;
-      case "monitor": this.drawMonitor(ctx, c); break;
-      case "scorpion": this.drawScorpion(ctx, c); break;
-      case "spider": this.drawSpider(ctx, c); break;
-      case "bugger": this.drawBugger(ctx, c); break;
-      default: this.drawSnake(ctx, c);
-    }
+    this[this.bossDrawName(c)](ctx, c);   // 生前と同じ解決口を通す(撃破の瞬間に姿が変わらない)
     ctx.restore();
     // 崩壊の土煙(簡素な粒・描画のみ)
     if (collapse > 0 && collapse < 1) {
@@ -2822,6 +2814,24 @@ const Render = {
     // Phase6: 署名惑星でボス時は常に署名の姿(汎用の姿をフィールドに出さない)。
     //   R30+はtypeId=pb.threat一致で挙動も署名。pre-R30はtypeId=snakeでも署名の姿+snake挙動(案B=序盤を過酷にしない)。
     return (pb && typeof this[pb.draw] === "function") ? pb.draw : null;
+  },
+
+  // ★「敵の姿」の単一の解決口(raid でも corpse でも同じ答えを返す)。
+  //   旧実装は drawBoss と drawCorpse が**別々に switch を持っていた**ため、
+  //   撃破の瞬間だけ署名ボス(例: マグマ・シャーク)が汎用の姿(ダイジャ)へ戻る不具合があった。
+  //   同じ知識を2箇所に置かない=この関数だけが型→姿の対応を知る。
+  bossDrawName(r) {
+    const sig = this.planetBossDraw(r);
+    if (sig) return sig;
+    switch (r.typeId) {
+      case "hawk": return "drawHawk";
+      case "crow": return "drawCrow";
+      case "monitor": return "drawMonitor";
+      case "scorpion": return "drawScorpion";
+      case "spider": return "drawSpider";
+      case "bugger": return "drawBugger";
+      default: return "drawSnake";
+    }
   },
 
   drawBoss(ctx, raid) {
@@ -2860,17 +2870,7 @@ const Render = {
       ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(e.x, e.y, R, 0, 7); ctx.fill();
     }
     // Phase6 惑星署名ボス: raid.boss時のみ、その惑星の脅威型が一致すれば固有の姿で描画(通常襲来/不一致は既存脅威型のまま)
-    const sig = this.planetBossDraw(raid);
-    if (sig) this[sig](ctx, raid);
-    else switch (raid.typeId) {
-      case "hawk": this.drawHawk(ctx, raid); break;
-      case "crow": this.drawCrow(ctx, raid); break;
-      case "monitor": this.drawMonitor(ctx, raid); break;
-      case "scorpion": this.drawScorpion(ctx, raid); break;
-      case "spider": this.drawSpider(ctx, raid); break;
-      case "bugger": this.drawBugger(ctx, raid); break;
-      default: this.drawSnake(ctx, raid);
-    }
+    this[this.bossDrawName(raid)](ctx, raid);
     // Elite金縁
     if (raid.elite) {
       ctx.strokeStyle = "#ffd700"; ctx.lineWidth = 3;
