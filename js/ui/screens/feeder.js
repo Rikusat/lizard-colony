@@ -12,6 +12,10 @@ Object.assign(UI, {
   initFeeder() {
     const center = document.getElementById("center");
     if (!center) return; // 検証ページ等でフィールドが無ければ据え付けない
+    // ★二重据え付けの防止: 以前は呼ぶたびに #feeder-dial が増え(実測 1→3)、クランクとその連続給餌
+    //   タイマーが多重化して給餌が何倍にもなる温床だった。古い器はリスナーごと捨ててから作り直す。
+    const stale = document.getElementById("feeder-dial");
+    if (stale) stale.remove();
     const el = document.createElement("div");
     el.id = "feeder-dial";
     el.innerHTML = `
@@ -75,6 +79,8 @@ Object.assign(UI, {
       return ok;
     };
     const holdStep = () => {
+      // ★盤から外れたクランクの連続給餌は必ず止める(器を作り直した場合に古いループが生き残らない)
+      if (!crank.isConnected) { stopHold(); return; }
       if (!feedOnce()) { stopHold(); return; }
       // 報酬モーダル中は「見ていられる速さ」(レート別)/平常給餌は高レート同速
       const iv = UI._bossRewardOpen
@@ -83,13 +89,19 @@ Object.assign(UI, {
       holdTimer = setTimeout(holdStep, iv * 1000);
     };
     const stopHold = () => { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } };
+    const release = () => { stopHold(); crank.classList.remove("holding"); };
     crank.addEventListener("pointerdown", () => {
+      stopHold();     // 押下のたびに前のループを畳む(holdTimerの上書きで前のループを迷子にしない)
       held = false;
       holdTimer = setTimeout(() => { held = true; crank.classList.add("holding"); holdStep(); }, CFG.holdDelay * 1000);
     });
-    for (const ev of ["pointerup", "pointerleave", "pointercancel"]) {
-      crank.addEventListener(ev, () => { stopHold(); crank.classList.remove("holding"); });
-    }
+    for (const ev of ["pointerup", "pointerleave", "pointercancel"]) crank.addEventListener(ev, release);
+    // ★停止の保険(在庫とGoldを無音で溶かさないため): 停止条件を「クランク要素にイベントが届くこと」に
+    //   依存させない。要素の差し替え・ポインタ喪失・タブ非表示などで pointerup/leave/cancel が1つも
+    //   届かない状況が実測で到達可能(3秒で給餌+38)だったため、window/document 側にも解除を置く。
+    for (const ev of ["pointerup", "pointercancel"]) window.addEventListener(ev, release);
+    window.addEventListener("blur", release);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) release(); });
     crank.addEventListener("click", (e) => {
       if (held) { e.stopImmediatePropagation(); e.preventDefault(); held = false; return; } // 長押し後の誤発火防止
       feedOnce(); // タップ=1掴み(オート中でも手動で回せる)
