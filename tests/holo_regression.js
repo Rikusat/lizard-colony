@@ -53,7 +53,7 @@ function loadHolo(extra) {
   Object.assign(sb, extra || {});
   vm.createContext(sb);
   for (const f of ["js/data.js", "js/holo.js"]) vm.runInContext(fs.readFileSync(path.join(ROOT, f), "utf8"), sb, { filename: f });
-  vm.runInContext("globalThis.__x = { Holo, CFG, STAGES, SPECIES, PLANET_BOSS, BOSS_TYPES, PLANET_NAMES, stageById }", sb);
+  vm.runInContext("globalThis.__x = { Holo, CFG, STAGES, SPECIES, MORPHS, FACILITIES, RESEARCH, PLANET_BOSS, BOSS_TYPES, PLANET_NAMES, stageById }", sb);
   return { api: sb.__x, sb: sb };
 }
 const __L = loadHolo();
@@ -249,7 +249,7 @@ console.log("== 9) ビームの欠陥是正: 横断後に画面へ残らない =
   check("基準カット 案b: 横断中(t=1.52s)はビームが描かれる", beamGrads(l4) === 1, "beamGrad=" + beamGrads(l4));
 }
 
-console.log("== 11) C2フェーズ2 オープニング前半(静穏→異常→暴走→バガーの影) ==");
+console.log("== 11) C2フェーズ2 オープニング 1〜4(静穏→異常→暴走→バガーの影) ==");
 {
   const G = Holo.grid();
   const nodes = Holo.openNodes();
@@ -260,7 +260,7 @@ console.log("== 11) C2フェーズ2 オープニング前半(静穏→異常→�
   // ★0.4秒グリッド遵守: すべてのカット境界がグリッド上
   for (const n of nodes) check(`${n.id}: グリッド番号が整数=0.4秒グリッド上(${(n.grid * G).toFixed(1)}s)`, Number.isInteger(n.grid), String(n.grid));
   for (let i = 1; i < nodes.length; i++) check(`${nodes[i].id} は ${nodes[i - 1].id} より後(物語の順が入れ替わらない)`, nodes[i].grid > nodes[i - 1].grid);
-  check(`前半の尺 ${Holo.openDur().toFixed(1)}s が上限 ${CFG.holoOpenMaxSec}s 以下`, Holo.openDur() <= CFG.holoOpenMaxSec);
+  check(`全編の尺 ${Holo.openDur().toFixed(1)}s が上限 ${CFG.holoOpenMaxSec}s 以下`, Holo.openDur() <= CFG.holoOpenMaxSec);
   {
     const L = loadHolo(); L.api.CFG.holoOpenNodes = [{ id: "calm", grid: 0 }, { id: "end", grid: 999 }];
     check("上限を超えるノード表を書いてもクランプされる", L.api.Holo.openDur() === L.api.CFG.holoOpenMaxSec);
@@ -295,9 +295,12 @@ console.log("== 11) C2フェーズ2 オープニング前半(静穏→異常→�
   check("暴走: CONTAINMENT FAILED が出る", rage.includes("CONTAINMENT FAILED"));
   check("暴走: 欠落は REDACTED / UNRESOLVED の遮蔽表示", rage.includes("REDACTED") || rage.includes("UNRESOLVED"));
   check("バガー: UNRESOLVED(伏線として伏せる)", textsAt(at("bagger") + 0.05).includes("UNRESOLVED"));
-  const allTexts = [].concat.apply([], [0.5, 1.0, 3.0, 5.0, 6.5, 7.3].map(textsAt));
+  // 故郷の名は伏せたまま(REDACTED)=記録ごと失われた含意。1〜4の全位相で実在の惑星名を名乗らせない
+  //   (7 航路では十の星が実名で並ぶが、それは行き先であって故郷ではない=位相をノード表から限定して測る)
+  const preT = [0.5, 1.0, 3.0, 5.0, 6.5, at("bagger") + 0.05].filter((x) => x < at("decision"));
+  const allTexts = [].concat.apply([], preT.map(textsAt));
   const planetNames = Object.keys(PLANET_NAMES).map((k) => PLANET_NAMES[k]);
-  check("故郷に実在の惑星名を名乗らせない(捏造なし)", !allTexts.some((x) => planetNames.includes(x)));
+  check("故郷に実在の惑星名を名乗らせない(捏造なし・1〜4の全位相)", !allTexts.some((x) => planetNames.includes(x)));
   check("故郷は HOMEWORLD / REDACTED で伏せる", allTexts.some((x) => /HOMEWORLD/.test(x)));
 
   // ★ヌシ・バガーの影: 実物(Render.drawBaggerParent)を呼ぶ。無い環境では影を出さず落ちない
@@ -309,6 +312,135 @@ console.log("== 11) C2フェーズ2 オープニング前半(静穏→異常→�
     check("案a(core)の語彙が転用されている(焼け跡+火花=emberOnSphere)", /emberOnSphere\(ctx/.test(src));
     check("オープニング追加後も holo.js は Game を参照しない", !/\bGame\b/.test(src));
     check("オープニング追加後も holo.js は localStorage を参照しない", !/localStorage/.test(src));
+  }
+}
+
+console.log("== 12) C2フェーズ2 オープニング 5〜8(決断→飛び立ち→航路→題)と全編の通し ==");
+{
+  const G = Holo.grid(), at = (id) => Holo.openAt(id), after = (id) => Holo.openAfter(id);
+  const nodes = Holo.openNodes(), ids = nodes.map((n) => n.id);
+  const ops = (t) => { const l = []; Holo.drawOpening(stubCtx(l), 1200, 675, t); return l.length; };
+  const logAt = (t) => { const l = []; Holo.drawOpening(stubCtx(l), 1200, 675, t); return l; };
+  const textsAt = (t) => logAt(t).filter((x) => x.startsWith("fillText")).map((x) => x.slice(9, -1).split(",")[0]);
+
+  // ---- 構成: 全8ノード+暗転2箇所 ----
+  check("全8ノードが揃う(1静穏/2異常/3暴走/4バガー/5決断/6飛び立ち/7航路/8題)",
+    ["calm", "anomaly", "rampage", "bagger", "decision", "launch", "route", "title"].every((k) => ids.includes(k)), ids.join(","));
+  const darks = ids.filter((k) => /^blackout/.test(k));
+  check(`暗転(溜め)は2箇所(${darks.join(",")})`, darks.length === 2);
+  check("暗転①は 3暴走→4バガー の間", at("blackout") > at("rampage") && at("bagger") > at("blackout"));
+  check("暗転②は 6飛び立ち の直後", at("blackout2") >= after("launch") - 1e-9 && at("route") > at("blackout2"));
+  for (const d of darks) check(`${d}: 長さが1グリッド以上(${(after(d) - at(d)).toFixed(1)}s)`, after(d) - at(d) >= G - 1e-9);
+
+  // ---- 全編の尺と間合い(通すと冗長、を数値で検分する) ----
+  const T = Holo.openDur();
+  check(`全編の尺 ${T.toFixed(1)}s が仕様の12〜15秒に収まる`, T >= 12 && T <= 15, String(T));
+  check(`終端がグリッド上(${(T / G).toFixed(3)} グリッド)`, Math.abs(T / G - Math.round(T / G)) < 1e-9);
+  const lens = [];
+  for (let i = 0; i < nodes.length - 1; i++) lens.push(nodes[i + 1].grid - nodes[i].grid);
+  check(`カット長(グリッド)=${lens.join(",")} : すべて1以上`, lens.every((v) => v >= 1));
+  let run = 1, maxRun = 1;
+  for (let i = 1; i < lens.length; i++) { run = lens[i] === lens[i - 1] ? run + 1 : 1; maxRun = Math.max(maxRun, run); }
+  check(`同じ長さのカットが3連続しない(最長 ${maxRun} 連続・§3-4 単調さの回避)`, maxRun <= 2, String(maxRun));
+  // ★冗長の実測: 各グリッド区画で絵が実際に更新されているか(静止した区画=間延び)
+  const stale = [];
+  for (let g = 0; g * G < T - 1e-9; g++) {
+    const a = logAt(g * G + 0.02).join("|"), b = logAt(g * G + G * 0.55).join("|");
+    if (a === b) stale.push((g * G).toFixed(1));
+  }
+  check(`全${Math.round(T / G)}グリッドで絵が更新される(静止=間延びの区画 ${stale.length}件)`, stale.length === 0, stale.join(","));
+
+  // ---- 暗転2箇所の効き(描画命令数で測る) ----
+  const opsRampage = ops(at("rampage") + G * 4), opsDark1 = ops(at("blackout") + G * 0.4);
+  const opsLaunch = ops(at("launch") + G * 2), opsDark2 = ops(at("blackout2") + G * 0.4);
+  check(`暗転①が効く(暴走 ${opsRampage} → 暗転① ${opsDark1} 命令)`, opsDark1 < opsRampage * 0.5, `${opsRampage} → ${opsDark1}`);
+  check(`暗転②が効く(飛び立ち ${opsLaunch} → 暗転② ${opsDark2} 命令)`, opsDark2 < opsLaunch * 0.5, `${opsLaunch} → ${opsDark2}`);
+  check("暗転②は文字を置かない(説明しない)", textsAt(at("blackout2") + G * 0.4).length === 0);
+
+  // ---- 5 決断: 積載リストは全行が実データ由来 ----
+  {
+    const rows = Holo.manifest();
+    const nSp = SPECIES.length, nMo = __L.api.MORPHS ? __L.api.MORPHS.length : 0;
+    check(`積載リストが実データの総数と一致(${rows.length}行)`, rows.length === nSp + nMo + __L.api.FACILITIES.length + __L.api.RESEARCH.length + 1, String(rows.length));
+    const names = rows.map((r) => r[1]);
+    check("SPECIMEN が SPECIES 由来", SPECIES.every((s) => names.includes(s.name)));
+    check("GENOME が MORPHS 由来", __L.api.MORPHS.every((m) => names.includes(m.name)));
+    check("APPARATUS が FACILITIES 由来", __L.api.FACILITIES.every((f) => names.includes(f.name)));
+    check("ARCHIVE が RESEARCH 由来", __L.api.RESEARCH.every((r) => names.includes(r.name)));
+    check("末尾の1行だけが遮蔽表示(=最大の伏線・偽の品目を足さない)",
+      rows[rows.length - 1][1] === "REDACTED" && rows[rows.length - 1][2] === "UNRESOLVED" &&
+      rows.slice(0, -1).every((r) => r[1] !== "REDACTED"));
+    const tx = textsAt(at("decision") + G * 0.6);
+    check("決断: 退避計画のHUDへ切替(EVACUATION PLAN)", tx.some((x) => /EVACUATION PLAN/.test(x)), tx.join("/"));
+    check("決断: 実データの品目が実際に描かれている", tx.some((x) => names.includes(x)), tx.join("/"));
+    check("決断: 置いていく故郷は伏せたまま(HOMEWORLD / REDACTED)", tx.some((x) => /HOMEWORLD/.test(x)));
+    const late = textsAt(after("decision") - 0.05);
+    check("決断: 流れ切った末尾で遮蔽行が読める(減速して着地する)", late.includes("REDACTED") && late.includes("UNRESOLVED"), late.join("/"));
+  }
+
+  // ---- 6 飛び立ち: 故郷が遠ざかり小さくなる(半径の減少を実測) ----
+  {
+    const radius = (t) => {
+      const m = logAt(t).filter((x) => x.startsWith("rgrad(")).map((x) => parseFloat(x.slice(6, -1).split(",")[5]));
+      return m.length ? Math.max.apply(null, m) : -1;
+    };
+    const r0 = radius(at("launch") + 0.05), r1 = radius(after("launch") - 0.05);
+    check(`飛び立ち: 故郷が小さくなる(被膜半径 ${r0.toFixed(0)} → ${r1.toFixed(0)})`, r0 > 0 && r1 > 0 && r1 < r0 * 0.65, `${r0} → ${r1}`);
+    const tx = textsAt(at("launch") + G * 2);
+    check("飛び立ち: DEPARTURE / VECTOR SET", tx.some((x) => /DEPARTURE/.test(x)), tx.join("/"));
+    const src = fs.readFileSync(path.join(ROOT, "js/holo.js"), "utf8");
+    check("ロケットは回転行列+透視投影の自前3Dで組む(§2-2・ライブラリ不可)", /rocketWire\(ctx[\s\S]{0,400}this\.proj\(this\.rot3\(/.test(src));
+    check("ロケットは立体的な陰影を使わない(唯一の禁則・線の図式のまま)", !/rocketWire\(ctx[\s\S]{0,900}createRadialGradient/.test(src));
+  }
+
+  // ---- 7 航路: フェーズ1の惑星表示語彙を流用し、全10惑星が実データで並ぶ ----
+  {
+    const tx = textsAt(after("route") - 0.05);
+    for (const st of STAGES) check(`航路: 惑星${st.id} ${PLANET_NAMES[st.id]} が実データで並ぶ`, tx.includes(PLANET_NAMES[st.id]), tx.join("/"));
+    check("航路: TEN WORLDS / ROUTE", tx.some((x) => /TEN WORLDS/.test(x)));
+    const src = fs.readFileSync(path.join(ROOT, "js/holo.js"), "utf8");
+    const body = (src.split('if (inNode("route"))')[1] || "").slice(0, 1400);
+    check("航路: フェーズ1と同じ語彙(travelInfo/sphere/planetRing)を流用する=様式が一貫する",
+      /this\.travelInfo\(/.test(body) && /this\.sphere\(/.test(body) && /this\.planetRing\(/.test(body));
+    // 灯り方が段階的(次々に灯る)=一斉表示にしない
+    const early = textsAt(at("route") + G * 0.5).filter((x) => Object.keys(PLANET_NAMES).map((k) => PLANET_NAMES[k]).includes(x)).length;
+    const full = STAGES.length;
+    check(`航路: 十の星が次々に灯る(序盤 ${early}/${full})`, early > 0 && early < full, `${early}/${full}`);
+  }
+
+  // ---- 8 題 → システム起動(導線が途切れない) ----
+  {
+    const tx = textsAt(after("title") - 0.02);
+    check("題: トカゲコロニー", tx.includes("トカゲコロニー"), tx.join("/"));
+    check("題: LIZARD COLONY", tx.includes("LIZARD COLONY"));
+    check("題: SYSTEM ONLINE でシステム起動へ繋ぐ", tx.includes("SYSTEM ONLINE"));
+    // 終端: ビーム本体は抜けて消え、通過済みの格子だけが残る=次の画面(本部)へ地続き
+    const end = logAt(Holo.openDur() - 0.001);
+    const beamGrads = end.filter((l) => /^grad\(-?[\d.]+,0\.000,-?[\d.]+,0\.000\)$/.test(l)).length;
+    check("終端: ビーム本体が残らない(横断して抜けている)", beamGrads === 0, String(beamGrads));
+    check("終端: HUDの格子が残る(導線が途切れない)", end.filter((l) => l.startsWith("moveTo")).length > 20);
+  }
+
+  // ---- reduced-motion: 「最終画」=題を静止表示する(0.86では題に届かない) ----
+  {
+    const st = Holo.openStaticT();
+    check(`reduced の静止位相 ${st.toFixed(2)}s が題ノードの中(${at("title").toFixed(1)}〜${after("title").toFixed(1)}s)`, st >= at("title") && st < after("title"), String(st));
+    const tx = textsAt(st);
+    check("reduced: 静止画に題と情報が残る", tx.includes("トカゲコロニー") && tx.includes("LIZARD COLONY"));
+    const src = fs.readFileSync(path.join(ROOT, "js/holo.js"), "utf8");
+    check("play() が staticT で最終画の位相を受け取れる", /opts\.staticT != null \? opts\.staticT : total \* 0\.86/.test(src));
+  }
+
+  // ---- 全編の決定論・例外なし ----
+  {
+    let threw = null, mism = [];
+    for (let t = 0; t <= T + 0.5; t += 0.1) {
+      const a = [], b = [];
+      try { Holo.drawOpening(stubCtx(a), 1200, 675, t); Holo.drawOpening(stubCtx(b), 1200, 675, t); } catch (e) { threw = e; break; }
+      if (a.join("|") !== b.join("|")) mism.push(t.toFixed(1));
+    }
+    check("全編0〜終端+0.5秒まで例外なく描ける", !threw, threw && threw.message);
+    check("全編すべての位相で決定論(同一tで命令列が一致)", mism.length === 0, mism.join(","));
   }
 }
 
