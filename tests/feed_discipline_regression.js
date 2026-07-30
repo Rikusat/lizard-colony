@@ -168,6 +168,26 @@ console.log("== 4) 惑星切替の球残留対策: 排出+報酬機会の全数�
   check("維持: ◀▶ 切替(data-nav)", /data-nav/.test(bsrc));
   check("維持: 同種残0のグレーアウト", /grayed/.test(bsrc));
   check("巡回は id 昇順の安定順序(希少スコア順でない)", /sort\(\(x, y\) => x\.id - y\.id\)/.test(bsrc));
+  // ★再発防御(2026-07-30): 機能撤廃時の**テスト側の追随漏れ**を機械で検知する。
+  //   実害: 装置QA(test-hqlab-qa.html)が撤廃済み #bm-quick を click し続け、例外でQAが途中終了していた。
+  //   0 FAIL に見えないまま48項目中26で停止=「半分が未実行」を検知できない状態になっていた。
+  //   規律: 撤廃済みのUI/APIは「叩く」のでなく「無いこと」を検査する。叩いている箇所があれば落とす。
+  {
+    const dead = ["bm-quick", "bm-reserve", "quickBreed", "quickBreedPick", "breedQuickPick", "breedPairScore", "breedLizardScore"];
+    const files = fs.readdirSync(ROOT).filter((f) => /^test-.*\.html$/.test(f)).map((f) => [f, path.join(ROOT, f)])
+      .concat(fs.readdirSync(path.join(ROOT, "tests")).filter((f) => f.endsWith(".js")).map((f) => ["tests/" + f, path.join(ROOT, "tests", f)]));
+    const bad = [];
+    for (const [name, fp] of files) {
+      const src = fs.readFileSync(fp, "utf8");
+      for (const id of dead) {
+        // 「取得して叩く」形と「メソッドとして呼ぶ」形だけを違反とする。
+        // 存在しないことの検査(!document.getElementById("bm-quick") 等)は正しい書き方なので通す。
+        if (new RegExp(id + "[\"'`]\\s*\\)\\s*\\.\\s*click").test(src) || new RegExp("\\.\\s*" + id + "\\s*\\(").test(src)) bad.push(name + " → " + id);
+      }
+    }
+    check("撤廃済みUI/APIを叩くテスト・QAページが無い(撤廃とテスト追随は同一コミットで)", bad.length === 0, bad.join(" / "));
+  }
+
   // 挙動: 旧 autoBreed が true でも tick で繁殖が起きない
   {
     Game.newGame();
