@@ -405,9 +405,10 @@ const Holo = {
     const ns = this.openNodes(), i = ns.findIndex((x) => x.id === id);
     return (i >= 0 && ns[i + 1]) ? ns[i + 1].grid * this.grid() : this.openDur();
   },
-  openStaticT() {                    // reduced-motion で見せる「最終画」= 題の中盤(情報が最も残る位相)
+  openStaticT() {                    // reduced-motion で見せる「最終画」= 題の終盤。
+    //   ★0.6ではビームが題の上に重なる位相に当たる。ビームが抜けきり、格子とSYSTEM ONLINEが揃う0.88を採る。
     const a = this.openAt("title"), b = this.openAfter("title");
-    return b > a ? a + (b - a) * 0.6 : this.openDur() * 0.86;
+    return b > a ? a + (b - a) * 0.88 : this.openDur() * 0.86;
   },
 
   // 機構であることの明示(全編共通のアンカー)。同じ知識を2箇所に持たないため関数化する
@@ -429,7 +430,7 @@ const Holo = {
   //   §2-2の規律どおり回転行列+透視投影で本物の3Dを2Dへ落とす(立体的な陰影は使わない=光の投影のまま)。
   rocketWire(ctx, cx, cy, s, spin, col, alpha) {
     const P = (x, y, z) => this.proj(this.rot3([x, y, z], 0.18, spin), cx, cy, s);
-    const prof = [[-1.30, 0.00], [-1.02, 0.20], [-0.62, 0.33], [0.55, 0.33], [0.72, 0.28], [0.88, 0.30]]; // [軸方向(上が負), 半径]
+    const prof = [[-1.48, 0.00], [-1.14, 0.14], [-0.70, 0.24], [0.56, 0.24], [0.74, 0.20], [0.92, 0.22]]; // [軸方向(上が負), 半径]
     ctx.strokeStyle = col; ctx.globalAlpha = alpha; ctx.lineWidth = 1.2;
     for (const [y, rr] of prof) {                      // 輪(横断面)
       if (rr <= 0) continue;
@@ -445,9 +446,9 @@ const Holo = {
     }
     for (let f = 0; f < 3; f++) {                      // フィン
       const th = 6.28318 * f / 3;
-      const a = P(Math.cos(th) * 0.33, 0.30, Math.sin(th) * 0.33);
-      const b = P(Math.cos(th) * 0.33, 0.88, Math.sin(th) * 0.33);
-      const c = P(Math.cos(th) * 0.80, 0.98, Math.sin(th) * 0.80);
+      const a = P(Math.cos(th) * 0.24, 0.34, Math.sin(th) * 0.24);
+      const b = P(Math.cos(th) * 0.24, 0.92, Math.sin(th) * 0.24);
+      const c = P(Math.cos(th) * 0.62, 1.02, Math.sin(th) * 0.62);
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.closePath(); ctx.stroke();
     }
     ctx.globalAlpha = 1;
@@ -492,6 +493,23 @@ const Holo = {
       }
     }
     ctx.globalAlpha = 1;
+  },
+
+  // 侵食の被膜(3 暴走 / 5 決断 / 6 飛び立ちで共有=同じ知識を1箇所に置く)。
+  //   ★平坦な円で塗ると球が「赤い円盤」に潰れるため、侵食の中心から縁へ落ちる放射グラデーションにして
+  //   立体を残す(縁を暗く=球の丸みが読める)。前半のスクショ検分で見つけた欠陥の是正がここに集約される。
+  infectWash(ctx, cx, cy, r, k) {
+    const C = this.C();
+    if (k <= 0) return;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.28318); ctx.clip();
+    const ix = cx - r * 0.22, iy = cy - r * 0.14;                  // 侵食の中心(やや手前上)
+    const w = ctx.createRadialGradient(ix, iy, r * 0.05, ix, iy, r * (0.5 + 1.5 * k));
+    w.addColorStop(0, this.rgba(C.crim, 0.52 * k));
+    w.addColorStop(0.6, this.rgba(C.crim, 0.30 * k));
+    w.addColorStop(1, this.rgba(C.crim, 0));
+    ctx.fillStyle = w; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.28318); ctx.fill();
+    ctx.restore(); ctx.globalAlpha = 1;
   },
 
   // ヌシ・バガーの影(伏線)。★実物と食い違わないよう Render.drawBaggerParent を**そのまま**呼び、
@@ -614,17 +632,7 @@ const Holo = {
           const delay = this.h(i, 3) * 0.45;                        // 走り出しを filament ごとにずらす=一斉でなく次々に
           this.emberOnSphere(ctx, cx, cy, r, 0.38, spin, i, Math.max(0, (infect - delay) / (1 - delay)), t);
         }
-        // 覆っていく=深紅の被膜が球を飲む。★平坦な円で塗ると球が「赤い円盤」に潰れるため、
-        //   侵食の中心から縁へ落ちる放射グラデーションにして立体を残す(縁を暗く=球の丸みが読める)。
-        ctx.save();
-        ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.28318); ctx.clip();
-        const ix = cx - r * 0.22, iy = cy - r * 0.14;               // 侵食の中心(やや手前上)
-        const wash = ctx.createRadialGradient(ix, iy, r * 0.05, ix, iy, r * (0.5 + 1.5 * infect));
-        wash.addColorStop(0, this.rgba(C.crim, 0.52 * infect));
-        wash.addColorStop(0.6, this.rgba(C.crim, 0.30 * infect));
-        wash.addColorStop(1, this.rgba(C.crim, 0));
-        ctx.fillStyle = wash; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.28318); ctx.fill();
-        ctx.restore(); ctx.globalAlpha = 1;
+        this.infectWash(ctx, cx, cy, r, infect);                    // 覆っていく=深紅の被膜が球を飲む
         if (infect > 0.55) {
           this.glow(ctx, C.crim, 14);
           this.mono(ctx, "CONTAINMENT FAILED", cx, cy + r * 1.5, 13 * S, C.crim, Math.min(1, (infect - 0.55) * 5), "center");
@@ -648,11 +656,12 @@ const Holo = {
       const io = Math.min(1, decision * 6) * (1 - Math.max(0, (decision - 0.9) / 0.1));
       // 置いていく故郷(小さく・深紅に覆われ・まだ燃えている)
       const hx = W * 0.16, hy = H * 0.52, hr = r * 0.46;
-      this.sphere(ctx, hx, hy, hr, 0.38, spin, C.crim, 0.42 * io, 10);
+      this.sphere(ctx, hx, hy, hr, 0.38, spin, C.crim, 0.72 * io, 10);
+      this.infectWash(ctx, hx, hy, hr, io);
       for (let i = 0; i < 3; i++) this.emberOnSphere(ctx, hx, hy, hr, 0.38, spin, i, 1, t);
       this.mono(ctx, "HOMEWORLD / REDACTED", hx, hy + hr * 1.75, 10 * S, C.crim, 0.55 * io, "center");
-      // 退避計画のHUD
-      const px = W * 0.36, py = H * 0.19, pw = W * 0.56, ph = H * 0.58;
+      // 退避計画のHUD。★列は行幅に合わせて詰める(枠だけ広いと表でなく「壊れたレイアウト」に読める)
+      const px = W * 0.38, py = H * 0.19, pw = W * 0.31, ph = H * 0.58;
       this.bracket(ctx, px, py, pw, ph, 18 * S, C.amber, 0.45 * io, 1.2);
       this.glow(ctx, C.amber, 8);
       this.mono(ctx, "EVACUATION PLAN / AUTHORIZED", px + 6 * S, py - 10 * S, 12 * S, C.amber, 0.9 * io);
@@ -665,40 +674,46 @@ const Holo = {
         const col = sealed ? C.crim : C.pale;
         this.mono(ctx, rows[i][0], px + 10 * S, y, 10 * S, C.amber, 0.5 * io);
         this.mono(ctx, rows[i][1], px + 88 * S, y, 11 * S, col, (sealed ? 0.95 : 0.8) * io);
-        this.mono(ctx, rows[i][2], px + pw - 10 * S, y, 10 * S, col, 0.6 * io, "right");
+        this.mono(ctx, rows[i][2], px + 262 * S, y, 10 * S, col, 0.6 * io);
       }
       ctx.restore();
       this.mono(ctx, "MANIFEST " + rows.length, px + 6 * S, py + ph + 16 * S, 10 * S, C.amber, 0.55 * io);
-      this.tickRing(ctx, px + pw - 22 * S, py + ph + 10 * S, 12 * S, 24, -1.57, -1.57 + 6.28318 * e, C.pale, 0.5 * io, 1, 4);
+      this.tickRing(ctx, px + pw + 26 * S, py + ph * 0.5, 13 * S, 24, -1.57, -1.57 + 6.28318 * e, C.pale, 0.5 * io, 1, 4);
       this.sysTag(ctx, W, H, S, 0.45 * io);
     }
 
     // ---- 6 飛び立ち: ロケットが離れ、深紅に覆われた故郷が遠ざかり小さくなる ----
     if (inNode("launch")) {
       const e = launch * launch;                            // 離昇=だんだん速く
-      const hx = cx - (cx - W * 0.22) * e, hy = cy + (H * 0.70 - cy) * e, hr = r * (0.62 - 0.46 * e);
-      this.sphere(ctx, hx, hy, hr, 0.38, spin, C.crim, 0.55 * (1 - e * 0.45), 10);
-      ctx.save();                                            // 覆われたまま遠ざかる(縁を暗くして丸みを残す)
-      ctx.beginPath(); ctx.arc(hx, hy, hr, 0, 6.28318); ctx.clip();
-      const ix = hx - hr * 0.22, iy = hy - hr * 0.14;
-      const wash = ctx.createRadialGradient(ix, iy, hr * 0.05, ix, iy, hr * 2);
-      wash.addColorStop(0, this.rgba(C.crim, 0.52)); wash.addColorStop(0.6, this.rgba(C.crim, 0.30)); wash.addColorStop(1, this.rgba(C.crim, 0));
-      ctx.fillStyle = wash; ctx.beginPath(); ctx.arc(hx, hy, hr, 0, 6.28318); ctx.fill();
-      ctx.restore();
-      const rx = W * (0.30 + 0.42 * e), ry = H * (0.80 - 0.62 * e), rs = Math.min(W, H) * (0.135 - 0.05 * e);
+      const io = Math.min(1, launch * 4);
+      // ★故郷は左上へ退き、ロケットは右側を上がる。**全位相でシルエットが重ならない**ように分離する
+      //   (重なると「惑星の上に立つ玩具のロケット」に読めてしまう=スクショ検分で見つけた欠陥)
+      const hx = W * (0.30 - 0.14 * e), hy = H * (0.42 + 0.30 * e), hr = r * (0.60 - 0.44 * e);
+      this.sphere(ctx, hx, hy, hr, 0.38, spin, C.crim, 0.80 * (1 - e * 0.35), 10);
+      this.infectWash(ctx, hx, hy, hr, 1);                   // 覆われたまま遠ざかる(縁を暗くして丸みを残す)
+      const rx = W * (0.50 + 0.26 * e), ry = H * (0.94 - 0.80 * e), rs = Math.min(W, H) * (0.105 - 0.035 * e);
       ctx.strokeStyle = C.pale; ctx.globalAlpha = 0.20; ctx.lineWidth = 1;   // 航跡(通過後に残る)
-      ctx.beginPath(); ctx.moveTo(W * 0.30, H * 0.80); ctx.lineTo(rx, ry); ctx.stroke(); ctx.globalAlpha = 1;
-      this.glow(ctx, C.amber, 14);
-      this.rocketWire(ctx, rx, ry, rs, -0.5 + t * 0.5, C.amber, 0.95);
-      this.noGlow(ctx);
+      ctx.beginPath(); ctx.moveTo(W * 0.50, H * 0.94); ctx.lineTo(rx, ry); ctx.stroke(); ctx.globalAlpha = 1;
       for (let i = 0; i < 9; i++) {                          // 噴射(決定論・時刻バケット)
-        const bk = Math.floor(t * 24), dx = (this.h(bk, i) - 0.5) * rs * 0.55, d = this.h(bk, i + 30) * rs * 1.5;
-        ctx.globalAlpha = 0.55 * (1 - d / (rs * 1.5)); ctx.fillStyle = i % 3 ? C.amber : C.crim;
-        ctx.fillRect(rx + dx, ry + rs * 1.0 + d, 2, 2);
+        const bk = Math.floor(t * 24), dx = (this.h(bk, i) - 0.5) * rs * 0.5, d = this.h(bk, i + 30) * rs * 1.6;
+        ctx.globalAlpha = 0.55 * (1 - d / (rs * 1.6)); ctx.fillStyle = i % 3 ? C.amber : C.crim;
+        ctx.fillRect(rx + dx, ry + rs * 1.05 + d, 2, 2);
       }
       ctx.globalAlpha = 1;
-      this.tickRing(ctx, rx, ry, rs * 1.9, 30, -2.4, 2.4, C.amber, 0.22, 1, 5);
-      this.mono(ctx, "DEPARTURE / VECTOR SET", W * 0.5, H * 0.90, 12 * S, C.amber, 0.75 * Math.min(1, launch * 4), "center");
+      this.glow(ctx, C.amber, 12);
+      this.rocketWire(ctx, rx, ry, rs, -0.5 + t * 0.5, C.amber, 0.95);
+      this.noGlow(ctx);
+      // 追跡ロックオン(本部の個体追跡と同じ語彙)=飾りでなく機構に見せる。目盛環は輪郭が浮くので使わない
+      this.bracket(ctx, rx - rs * 0.95, ry - rs * 1.75, rs * 1.9, rs * 3.1, 11 * S, C.pale, 0.45 * io, 1);
+      // 退避の帳簿(全て実データ由来 or 遮蔽表示)。行き先はまだ UNRESOLVED =7 航路で解決する
+      const bx = W * 0.62, by = H * 0.44, rows = [["HOMEWORLD", "REDACTED"], ["DESTINATION", "UNRESOLVED"], ["MANIFEST", String(this.manifest().length)]];
+      this.bracket(ctx, bx - 12 * S, by - 24 * S, W * 0.27, 90 * S, 14 * S, C.amber, 0.35 * io, 1.2);
+      for (let i = 0; i < rows.length; i++) {
+        const yy = by + i * 22 * S, sealed = i < 2;
+        this.mono(ctx, (rows[i][0] + " ...........").slice(0, 13), bx, yy, 11 * S, C.amber, 0.45 * io);
+        this.mono(ctx, rows[i][1], bx + 104 * S, yy, 11 * S, sealed ? C.crim : C.pale, 0.85 * io);
+      }
+      this.mono(ctx, "DEPARTURE / VECTOR SET", W * 0.5, H * 0.90, 12 * S, C.amber, 0.75 * io, "center");
       this.sysTag(ctx, W, H, S, 0.45);
     }
 
