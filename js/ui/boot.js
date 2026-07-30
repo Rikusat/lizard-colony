@@ -352,7 +352,10 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
         const T = Holo.openDur();
         const G = (typeof CFG !== "undefined" && CFG.holoGridSec) || 0.4;
         const SPD = (typeof CFG !== "undefined" && CFG.holoViewSpeeds) || [1, 0.5, 0.25];
-        const NODE_LBL = { calm: "1 静穏", anomaly: "2 異常", rampage: "3 暴走", blackout: "暗転(溜め)", bagger: "4 バガーの影", end: "終端" };
+        const NODE_LBL = {
+          calm: "1 静穏", anomaly: "2 異常", rampage: "3 暴走", blackout: "暗転①", bagger: "4 バガーの影",
+          decision: "5 決断", launch: "6 飛び立ち", blackout2: "暗転②", route: "7 航路", title: "8 題", end: "終端",
+        };
         const MARKS = Holo.openNodes().map((n) => [n.grid * G, NODE_LBL[n.id] || n.id]);
         const VIEWS = [["open", "オープニング(フェーズ2)"], ["cut", "前版の基準カット(記録)"]];
         const S = { t: 0, playing: true, speed: SPD[0], loop: true, view: "open" };
@@ -360,7 +363,7 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
         const panel = document.createElement("div"); panel.id = "opening-view";
         panel.style.cssText = "position:fixed;inset:0;z-index:9999;background:#05060a;color:#e8dccb;font:13px/1.6 system-ui;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px;overflow:auto;";
         const ttl = document.createElement("div"); ttl.style.cssText = "font-size:15px;font-weight:600;";
-        ttl.textContent = "C2 オープニング 前半 (?tune=1#opening) — 静穏→異常→暴走→ヌシ・バガーの影 / " + T.toFixed(1) + "秒(0.4秒グリッド)。#で閉じる";
+        ttl.textContent = "C2 オープニング 全編 (?tune=1#opening) — 静穏→異常→暴走→バガーの影→決断→飛び立ち→航路→題 / " + T.toFixed(1) + "秒(0.4秒グリッド)。#で閉じる";
         panel.appendChild(ttl);
 
         // ---- 操作バー(自動再生に頼らない) ----
@@ -404,7 +407,7 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
         const layout = () => {
           row.innerHTML = ""; cvs = [];
           const shown = S.view === "open"
-            ? [{ id: "open", label: "オープニング 前半(物語軸)", note: "1 静穏 → 2 異常 → 3 暴走(案aの芯線を転用) → 暗転(溜め) → 4 ヌシ・バガーの影(0.4秒)" }]
+            ? [{ id: "open", label: "オープニング 全編(物語軸)", note: "1 静穏 → 2 異常 → 3 暴走 → 暗転① → 4 バガーの影 → 5 決断(積載リスト) → 6 飛び立ち → 暗転② → 7 航路(十の星) → 8 題 → システム起動" }]
             : VAR;   // 前版の基準カット=導火線2案の比較(判断の記録として残置)
           const w = shown.length > 1 ? 620 : 1000, h = Math.round(w * 349 / 620);
           shown.forEach((v) => {
@@ -421,7 +424,7 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
 
         const bar = document.createElement("div"); bar.style.cssText = "font-size:11px;opacity:.55;text-align:center;";
         bar.textContent = "0.4秒グリッド上のカット割り: " + Holo.openNodes().map((n) => (n.grid * G).toFixed(1) + " " + (NODE_LBL[n.id] || n.id)).join(" / ")
-          + " — 暗転(溜め)は3→4の間に1グリッド";
+          + " — 暗転(溜め)は 3→4の間 と 6の直後 に各1グリッド";
         panel.appendChild(bar);
         document.body.appendChild(panel); hPanel = panel;
 
@@ -440,7 +443,8 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
         };
 
         // reduced-motion: 動かさず静止画で見せる(情報は残す・操作は可能)
-        if (typeof Motion !== "undefined" && Motion.reduced) { S.playing = false; S.t = T * 0.86; }
+        // reduced-motion: 動かさず「最終画」(=題)を静止表示。位相の定義は Holo 側の1箇所だけが持つ
+        if (typeof Motion !== "undefined" && Motion.reduced) { S.playing = false; S.t = Holo.openStaticT(); }
         let last = performance.now();
         const loop = () => {
           if (!hPanel) return;

@@ -401,6 +401,57 @@ const Holo = {
     const max = (typeof CFG !== "undefined" && CFG.holoOpenMaxSec) || 15;
     return Math.min(max, this.openAt("end"));
   },
+  openAfter(id) {                    // そのノードの終端秒(=次ノードの開始)。尺の真実はノード表だけ=長さを別途持たない
+    const ns = this.openNodes(), i = ns.findIndex((x) => x.id === id);
+    return (i >= 0 && ns[i + 1]) ? ns[i + 1].grid * this.grid() : this.openDur();
+  },
+  openStaticT() {                    // reduced-motion で見せる「最終画」= 題の中盤(情報が最も残る位相)
+    const a = this.openAt("title"), b = this.openAfter("title");
+    return b > a ? a + (b - a) * 0.6 : this.openDur() * 0.86;
+  },
+
+  // 機構であることの明示(全編共通のアンカー)。同じ知識を2箇所に持たないため関数化する
+  sysTag(ctx, W, H, S, a) { this.mono(ctx, "LIZARD COLONY / SYSTEM", W * 0.06, H * 0.085, 10 * S, this.C().amber, a); },
+
+  // ---- 積載リスト(5 決断)。全行が実データ由来=それらしい品目を捏造しない ----
+  //   末尾の1行だけは遮蔽表示。「積んだが正体が分からないもの」=最大の伏線(ヌシ・バガーへ接続する)。
+  manifest() {
+    const rows = [];
+    if (typeof SPECIES !== "undefined") for (const s of SPECIES) rows.push(["SPECIMEN", s.name, "★" + s.stars]);
+    if (typeof MORPHS !== "undefined") for (const m of MORPHS) rows.push(["GENOME", m.name, "×" + m.mult.toFixed(1)]);
+    if (typeof FACILITIES !== "undefined") for (const f of FACILITIES) rows.push(["APPARATUS", f.name, "Lv" + f.max]);
+    if (typeof RESEARCH !== "undefined") for (const r of RESEARCH) rows.push(["ARCHIVE", r.name, "SCI " + ((r.cost && r.cost.science) || 0)]);
+    rows.push(["SPECIMEN", "REDACTED", "UNRESOLVED"]);
+    return rows;
+  },
+
+  // ---- ロケット(6 飛び立ち)。実在の描画資産が無いためHUDの図式として線で組む ----
+  //   §2-2の規律どおり回転行列+透視投影で本物の3Dを2Dへ落とす(立体的な陰影は使わない=光の投影のまま)。
+  rocketWire(ctx, cx, cy, s, spin, col, alpha) {
+    const P = (x, y, z) => this.proj(this.rot3([x, y, z], 0.18, spin), cx, cy, s);
+    const prof = [[-1.30, 0.00], [-1.02, 0.20], [-0.62, 0.33], [0.55, 0.33], [0.72, 0.28], [0.88, 0.30]]; // [軸方向(上が負), 半径]
+    ctx.strokeStyle = col; ctx.globalAlpha = alpha; ctx.lineWidth = 1.2;
+    for (const [y, rr] of prof) {                      // 輪(横断面)
+      if (rr <= 0) continue;
+      ctx.beginPath();
+      for (let k = 0; k <= 24; k++) { const th = 6.28318 * k / 24, q = P(Math.cos(th) * rr, y, Math.sin(th) * rr); k === 0 ? ctx.moveTo(q.x, q.y) : ctx.lineTo(q.x, q.y); }
+      ctx.stroke();
+    }
+    for (let j = 0; j < 6; j++) {                      // 母線(縦)
+      const th = 6.28318 * j / 6;
+      ctx.beginPath();
+      for (let i = 0; i < prof.length; i++) { const q = P(Math.cos(th) * prof[i][1], prof[i][0], Math.sin(th) * prof[i][1]); i === 0 ? ctx.moveTo(q.x, q.y) : ctx.lineTo(q.x, q.y); }
+      ctx.stroke();
+    }
+    for (let f = 0; f < 3; f++) {                      // フィン
+      const th = 6.28318 * f / 3;
+      const a = P(Math.cos(th) * 0.33, 0.30, Math.sin(th) * 0.33);
+      const b = P(Math.cos(th) * 0.33, 0.88, Math.sin(th) * 0.33);
+      const c = P(Math.cos(th) * 0.80, 0.98, Math.sin(th) * 0.80);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.closePath(); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  },
 
   // 球面上を走る侵食の芯線(案a の転用)。焼け跡が残り、先端が燃え、火花が散る。決定論(ハッシュのみ)。
   //   奥(z>=0)は減光=既存の陰線処理の簡略と同じ規律。
@@ -492,21 +543,41 @@ const Holo = {
     ctx.fillStyle = C.void; ctx.fillRect(0, 0, W, H);
 
     const cx = W * 0.40, cy = H * 0.50, r = Math.min(W, H) * 0.26;
+    const inNode = (id) => t >= A(id) && t < this.openAfter(id);
     const anomaly = seg(A("anomaly"), A("rampage"));      // 異常の進行 0→1
     const infect = seg(A("rampage"), A("blackout"));      // 侵食の進行 0→1
-    const dark = t >= A("blackout") && t < A("bagger");   // 暗転(溜め・3→4の間)
     const bgGrids = (typeof CFG !== "undefined" && CFG.holoOpenBaggerGrids) || 1;
-    const baggerK = t >= A("bagger") ? (1 - seg(A("bagger") + G * bgGrids, A("end"))) : 0;
+    const baggerK = t >= A("bagger") ? (1 - seg(A("bagger") + G * bgGrids, this.openAfter("bagger"))) : 0;
     const spin = t * 0.42;                                 // 故郷の自転(静かに回る)
+    // 後半(5〜8)の進行。長さは持たず全てノード表から引く=尺の真実を二重化しない
+    const decision = seg(A("decision"), this.openAfter("decision"));
+    const launch = seg(A("launch"), this.openAfter("launch"));
+    const route = seg(A("route"), this.openAfter("route"));
+    const title = seg(A("title"), this.openAfter("title"));
 
     // ---- 暗転(溜め): 深紅の残光だけを置いて全部落とす(空白があるから密が効く §3-4) ----
-    if (dark) {
-      const k = 1 - seg(A("blackout"), A("bagger"));
-      this.glow(ctx, C.crim, 26);
-      ctx.strokeStyle = C.crim; ctx.globalAlpha = 0.34 * k; ctx.lineWidth = 1.4;
-      ctx.beginPath(); ctx.arc(cx, cy, r * (1.0 + (1 - k) * 0.5), 0, 6.28318); ctx.stroke();
-      this.noGlow(ctx); ctx.globalAlpha = 1;
-      this.mono(ctx, "CONTAINMENT FAILED", cx, cy + r * 1.5, 13 * S, C.crim, 0.5 * k, "center");
+    //   置き場所は2箇所(3→4の間 / 6の直後)だが、それを決めるのはノード表の blackout* だけ。
+    const dk = this.openNodes().find((n) => /^blackout/.test(n.id) && t >= A(n.id) && t < this.openAfter(n.id));
+    if (dk) {
+      const k = 1 - seg(A(dk.id), this.openAfter(dk.id));
+      if (dk.id === "blackout") {
+        // 3→4の間: 侵食しきった故郷の残光だけが広がって消える
+        this.glow(ctx, C.crim, 26);
+        ctx.strokeStyle = C.crim; ctx.globalAlpha = 0.34 * k; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.arc(cx, cy, r * (1.0 + (1 - k) * 0.5), 0, 6.28318); ctx.stroke();
+        this.noGlow(ctx); ctx.globalAlpha = 1;
+        this.mono(ctx, "CONTAINMENT FAILED", cx, cy + r * 1.5, 13 * S, C.crim, 0.5 * k, "center");
+      } else {
+        // 6の直後: 遠ざかった故郷の小さな残光と、抜けていった航跡だけ。文字は置かない(説明しない)
+        const px = W * 0.22, py = H * 0.70;
+        this.glow(ctx, C.crim, 14);
+        ctx.strokeStyle = C.crim; ctx.globalAlpha = 0.30 * k; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(px, py, r * 0.16 * (1 + (1 - k) * 0.4), 0, 6.28318); ctx.stroke();
+        this.noGlow(ctx);
+        ctx.strokeStyle = C.pale; ctx.globalAlpha = 0.16 * k; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(W * 0.72, H * 0.24); ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
       this.scan(ctx, W, H, t, 0.5);
       this.letterbox(ctx, W, H, 1);
       return;
@@ -571,8 +642,110 @@ const Holo = {
       if (!drew) this.mono(ctx, "SIGNATURE / REDACTED", cx, cy, 11 * S, C.crim, 0.6 * baggerK, "center");
     }
 
-    // ---- テレメトリ: 実データが「壊れていく」ことで不穏を作る(偽の数値を足さない) ----
-    {
+    // ---- 5 決断: HUDが退避計画へ切替。積載リスト(実データ)が高速で流れ、減速して着地する ----
+    if (inNode("decision")) {
+      const e = 1 - Math.pow(1 - decision, 3);              // 高速→減速: 末尾の数行は読める(§7-6)
+      const io = Math.min(1, decision * 6) * (1 - Math.max(0, (decision - 0.9) / 0.1));
+      // 置いていく故郷(小さく・深紅に覆われ・まだ燃えている)
+      const hx = W * 0.16, hy = H * 0.52, hr = r * 0.46;
+      this.sphere(ctx, hx, hy, hr, 0.38, spin, C.crim, 0.42 * io, 10);
+      for (let i = 0; i < 3; i++) this.emberOnSphere(ctx, hx, hy, hr, 0.38, spin, i, 1, t);
+      this.mono(ctx, "HOMEWORLD / REDACTED", hx, hy + hr * 1.75, 10 * S, C.crim, 0.55 * io, "center");
+      // 退避計画のHUD
+      const px = W * 0.36, py = H * 0.19, pw = W * 0.56, ph = H * 0.58;
+      this.bracket(ctx, px, py, pw, ph, 18 * S, C.amber, 0.45 * io, 1.2);
+      this.glow(ctx, C.amber, 8);
+      this.mono(ctx, "EVACUATION PLAN / AUTHORIZED", px + 6 * S, py - 10 * S, 12 * S, C.amber, 0.9 * io);
+      this.noGlow(ctx);
+      const rows = this.manifest(), VIS = 12, rh = ph / (VIS + 1);
+      const top = e * Math.max(0, rows.length - VIS);
+      ctx.save(); ctx.beginPath(); ctx.rect(px, py, pw, ph); ctx.clip();
+      for (let i = Math.floor(top), last = Math.min(rows.length, Math.floor(top) + VIS + 1); i < last; i++) {
+        const y = py + rh * (1 + i - top), sealed = i === rows.length - 1;   // 遮蔽された1行=最大の伏線
+        const col = sealed ? C.crim : C.pale;
+        this.mono(ctx, rows[i][0], px + 10 * S, y, 10 * S, C.amber, 0.5 * io);
+        this.mono(ctx, rows[i][1], px + 88 * S, y, 11 * S, col, (sealed ? 0.95 : 0.8) * io);
+        this.mono(ctx, rows[i][2], px + pw - 10 * S, y, 10 * S, col, 0.6 * io, "right");
+      }
+      ctx.restore();
+      this.mono(ctx, "MANIFEST " + rows.length, px + 6 * S, py + ph + 16 * S, 10 * S, C.amber, 0.55 * io);
+      this.tickRing(ctx, px + pw - 22 * S, py + ph + 10 * S, 12 * S, 24, -1.57, -1.57 + 6.28318 * e, C.pale, 0.5 * io, 1, 4);
+      this.sysTag(ctx, W, H, S, 0.45 * io);
+    }
+
+    // ---- 6 飛び立ち: ロケットが離れ、深紅に覆われた故郷が遠ざかり小さくなる ----
+    if (inNode("launch")) {
+      const e = launch * launch;                            // 離昇=だんだん速く
+      const hx = cx - (cx - W * 0.22) * e, hy = cy + (H * 0.70 - cy) * e, hr = r * (0.62 - 0.46 * e);
+      this.sphere(ctx, hx, hy, hr, 0.38, spin, C.crim, 0.55 * (1 - e * 0.45), 10);
+      ctx.save();                                            // 覆われたまま遠ざかる(縁を暗くして丸みを残す)
+      ctx.beginPath(); ctx.arc(hx, hy, hr, 0, 6.28318); ctx.clip();
+      const ix = hx - hr * 0.22, iy = hy - hr * 0.14;
+      const wash = ctx.createRadialGradient(ix, iy, hr * 0.05, ix, iy, hr * 2);
+      wash.addColorStop(0, this.rgba(C.crim, 0.52)); wash.addColorStop(0.6, this.rgba(C.crim, 0.30)); wash.addColorStop(1, this.rgba(C.crim, 0));
+      ctx.fillStyle = wash; ctx.beginPath(); ctx.arc(hx, hy, hr, 0, 6.28318); ctx.fill();
+      ctx.restore();
+      const rx = W * (0.30 + 0.42 * e), ry = H * (0.80 - 0.62 * e), rs = Math.min(W, H) * (0.135 - 0.05 * e);
+      ctx.strokeStyle = C.pale; ctx.globalAlpha = 0.20; ctx.lineWidth = 1;   // 航跡(通過後に残る)
+      ctx.beginPath(); ctx.moveTo(W * 0.30, H * 0.80); ctx.lineTo(rx, ry); ctx.stroke(); ctx.globalAlpha = 1;
+      this.glow(ctx, C.amber, 14);
+      this.rocketWire(ctx, rx, ry, rs, -0.5 + t * 0.5, C.amber, 0.95);
+      this.noGlow(ctx);
+      for (let i = 0; i < 9; i++) {                          // 噴射(決定論・時刻バケット)
+        const bk = Math.floor(t * 24), dx = (this.h(bk, i) - 0.5) * rs * 0.55, d = this.h(bk, i + 30) * rs * 1.5;
+        ctx.globalAlpha = 0.55 * (1 - d / (rs * 1.5)); ctx.fillStyle = i % 3 ? C.amber : C.crim;
+        ctx.fillRect(rx + dx, ry + rs * 1.0 + d, 2, 2);
+      }
+      ctx.globalAlpha = 1;
+      this.tickRing(ctx, rx, ry, rs * 1.9, 30, -2.4, 2.4, C.amber, 0.22, 1, 5);
+      this.mono(ctx, "DEPARTURE / VECTOR SET", W * 0.5, H * 0.90, 12 * S, C.amber, 0.75 * Math.min(1, launch * 4), "center");
+      this.sysTag(ctx, W, H, S, 0.45);
+    }
+
+    // ---- 7 航路: 十の星。フェーズ1(惑星移動トランジション)の惑星表示語彙をそのまま流用する ----
+    if (inNode("route")) {
+      const io = Math.min(1, route * 5) * (1 - Math.max(0, (route - 0.88) / 0.12));
+      const ids = (typeof STAGES !== "undefined") ? STAGES.map((s) => s.id) : [];
+      const n = Math.max(1, ids.length);
+      const pos = (i) => ({ x: W * (0.10 + 0.80 * (i / Math.max(1, n - 1))), y: H * (0.50 + Math.sin(i * 0.92) * 0.155) });
+      ctx.strokeStyle = C.amber; ctx.globalAlpha = 0.26 * io; ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) { const q = pos(i); i === 0 ? ctx.moveTo(q.x, q.y) : ctx.lineTo(q.x, q.y); }
+      ctx.stroke(); ctx.globalAlpha = 1;
+      const pr = Math.min(W, H) * 0.052;
+      for (let i = 0; i < n; i++) {
+        const a = Math.max(0, Math.min(1, route * (n + 2) - i));   // 次々に灯る
+        if (a <= 0) break;
+        const q = pos(i), inf = this.travelInfo(ids[i]), tint = (inf && inf.tint) || C.amber;
+        this.glow(ctx, tint, 8);
+        this.sphere(ctx, q.x, q.y, pr, 0.35, t * 1.2 + i, tint, 0.80 * a * io, 10);
+        this.noGlow(ctx);
+        this.planetRing(ctx, q.x, q.y, pr * 1.5, inf && inf.sk, tint, 0.60 * a * io);
+        this.jp(ctx, (inf && inf.short) || "REDACTED", q.x, q.y + pr * 2.3, 12 * S, C.pale, 0.85 * a * io, "center");
+      }
+      this.mono(ctx, "TEN WORLDS / ROUTE", W * 0.5, H * 0.895, 12 * S, C.amber, 0.8 * io, "center");
+      this.sysTag(ctx, W, H, S, 0.45 * io);
+    }
+
+    // ---- 8 題 → システム起動(導線を途切れさせない: 最後に残るのは本部HUDの格子) ----
+    if (inNode("title")) {
+      const e = 1 - Math.pow(1 - Math.min(1, title * 2.2), 3);
+      const tx = W * 0.5, ty = H * 0.47, bw = W * 0.60, bh = H * 0.26;
+      this.bracket(ctx, tx - bw / 2 - (1 - e) * 80, ty - bh / 2 - (1 - e) * 50, bw + (1 - e) * 160, bh + (1 - e) * 100, 22 * S, C.amber, 0.75 * e, 1.4);
+      this.tickRing(ctx, tx, ty, Math.min(W, H) * 0.34 * (0.86 + 0.14 * e), 48, -2.2, 2.2, C.amber, 0.22 * e, 1, 6);
+      this.glow(ctx, C.pale, 16);
+      this.jp(ctx, "トカゲコロニー", tx, ty + 2 * S, 44 * S, C.pale, 0.98 * e, "center");
+      this.noGlow(ctx);
+      this.mono(ctx, "LIZARD COLONY", tx, ty + 34 * S, 15 * S, C.amber, 0.85 * e, "center");
+      // 走査ビームが横断して抜け、HUDの格子だけが残る=次の画面(本部)が既に起動している
+      const bp = (title - 0.34) / 0.50;
+      if (bp > 0) this.beam(ctx, W, H, bp, { y0: H * 0.10, y1: H * 0.90 });
+      this.mono(ctx, "SYSTEM ONLINE", tx, H * 0.855, 11 * S, C.pale, 0.75 * Math.max(0, Math.min(1, (title - 0.55) / 0.20)), "center");
+      this.sysTag(ctx, W, H, S, 0.45 * e);
+    }
+
+    // ---- テレメトリ(1〜3): 実データが「壊れていく」ことで不穏を作る(偽の数値を足さない) ----
+    if (t < A("blackout")) {
       const P = this.planets();
       const rows = [
         ["HQ HOLO COMMAND", "BOOT"],
@@ -591,11 +764,12 @@ const Holo = {
         this.mono(ctx, (rows[i][0] + " ...............").slice(0, 18), W * 0.70, H * 0.20 + i * 18 * S, 11 * S, C.amber, 0.42 * fade);
         this.mono(ctx, val, W * 0.70 + 122 * S, H * 0.20 + i * 18 * S, 11 * S, col, (lost ? 0.9 : 0.72) * fade);
       }
-      this.mono(ctx, "LIZARD COLONY / SYSTEM", W * 0.06, H * 0.085, 10 * S, C.amber, 0.45 * fade);
+      this.sysTag(ctx, W, H, S, 0.45 * fade);
     }
 
-    // ---- 質感: 異常が進むほどグリッチが増える(不穏さは情報の欠落から作る) ----
-    this.glitch(ctx, W, H, t, ((typeof CFG !== "undefined" && CFG.holoGlitchRate != null) ? CFG.holoGlitchRate : 0.10) + anomaly * 0.18 + infect * 0.30);
+    // ---- 質感: 異常が進むほどグリッチが増え、決断以降は引いていく(題では既定値=系は安定して引き渡される) ----
+    const settle = 1 - seg(A("decision"), A("route"));
+    this.glitch(ctx, W, H, t, ((typeof CFG !== "undefined" && CFG.holoGlitchRate != null) ? CFG.holoGlitchRate : 0.10) + (anomaly * 0.18 + infect * 0.30) * settle);
     this.scan(ctx, W, H, t, 1);
     this.letterbox(ctx, W, H, 1);
   },
@@ -737,7 +911,8 @@ const Holo = {
     };
     if (reduced) {
       // reduced-motion: 動かさず最終画を静止表示(情報は残す)。保持秒があればその間だけ見せて終わる
-      draw(ctx, W, H, total * 0.86);
+      //   opts.staticT=「最終画」の位相(秒)。オープニングは題が最終画なので既定の0.86では届かない
+      draw(ctx, W, H, opts.staticT != null ? opts.staticT : total * 0.86);
       st.reducedStatic = true;
       if (opts.reducedHoldSec > 0) { st._to = setTimeout(() => finish(false), opts.reducedHoldSec * 1000); bindSkip(); }
       else { st.done = true; if (opts.onEnd) opts.onEnd(st); }
