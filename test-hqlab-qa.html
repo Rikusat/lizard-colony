@@ -158,8 +158,11 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       ok("R1: ◀▶で同タイル内の個体が切替わる", UI._bmState.a !== aBefore, aBefore + "→" + UI._bmState.a);
       document.querySelector('.sp-tile[data-tile="nihontokage:normal"]').click();
       ok("R1: 2枚目のタイルでBスロットが埋まる", !!UI._bmState.b);
-      document.getElementById("bm-quick").click();
-      ok("R1: クイック選出でA/Bが埋まる(選出のみ)", !!UI._bmState.a && !!UI._bmState.b);
+      // ③クイック繁殖・繁殖予約の撤廃(§5ddd・70210c0)への追随。★叩くのではなく「無いこと」を検査する
+      //   =撤廃したはずのUIが戻ってきたら落ちる向き。手動での掛け合わせだけが選出経路であることを固定する。
+      ok("R1: クイック繁殖ボタン(#bm-quick)が存在しない(撤廃済)", !document.getElementById("bm-quick"));
+      ok("R1: 繁殖予約トグル(#bm-reserve)が存在しない(撤廃済)", !document.getElementById("bm-reserve"));
+      ok("R1: 手動選出(タイル→A/B)だけでA/Bが揃う=自動選出に依存しない", !!UI._bmState.a && !!UI._bmState.b);
       // 確定=Game.breed同一経路の証明(スパイ+効果検証)
       var bArgs = null, origBreed = Game.breed.bind(Game);
       Game.breed = function (aId, bId, silent) { bArgs = [aId, bId]; return origBreed(aId, bId, silent); };
