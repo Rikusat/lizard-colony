@@ -188,6 +188,13 @@ const CFG = {
   ],
   holoOpenMaxSec: 15,        // ★全編の尺の上限(恒久テストのガード)。超える表を書いてもクランプされる
   holoOpenBaggerGrids: 1,    // ★バガーの露出グリッド数(1=0.4秒)。長く見せない
+  // ---- 本編組み込み(初回起動時の自動再生・2026-08-01 Ric指示) ----
+  //   false にすると自動再生だけが止まり、設定からの再視聴は残る=完全に可逆。
+  //   再生済みフラグは dial(往復する器)の中。詳細は Game.migrateOpeningSeen / HANDOFF §5x-C2.5。
+  openingAutoPlay: true,
+  //   reduced-motion: 動かさず「最終画」(題+SYSTEM ONLINE)だけを静止表示する秒数。
+  //   0だと1フレームで消えて何も伝わらないため、読める長さだけ保持する(スキップは即時のまま)。
+  holoOpenReducedHoldSec: 3.0,
   // ---- C2改訂 フェーズ1: 惑星移動トランジション(頻発する導線=摩擦にしない) ----
   //   OFF(false)にすると従来の宇宙船トランジション(planetTravelSec)へ完全復帰する=可逆。
   holoTravelOn: true,

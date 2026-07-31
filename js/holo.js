@@ -954,8 +954,24 @@ const Holo = {
     bindSkip();
     return st;
   },
-  PLAYED_KEY: "holoPlayed",
-  isPlayed(store) { return !!(store && store[this.PLAYED_KEY]); },
-  markPlayed(store) { if (store) store[this.PLAYED_KEY] = 1; return store; },
+  // 全面オーバーレイの器(UISkills §5.10 `.holo-stage`)を用意して canvas を返す。
+  //   器の寸法という同じ知識を呼び出し側ごとに持たない(惑星移動・オープニングの2箇所で使う)。
+  //   CSSは可視制御のみ=見た目はすべて Canvas 側に閉じる。DOM が無い環境(nodeテスト)では null。
+  mount(id) {
+    if (typeof document === "undefined" || !document.body) return null;
+    let ov = document.getElementById(id);
+    if (!ov) {
+      ov = document.createElement("div");
+      ov.id = id;
+      ov.className = "holo-stage";
+      ov.innerHTML = `<canvas></canvas>`;
+      document.body.appendChild(ov);
+    }
+    const cv = ov.querySelector("canvas");
+    cv.width = Math.min(1600, Math.max(320, window.innerWidth));
+    cv.height = Math.min(1000, Math.max(200, window.innerHeight));
+    ov.classList.add("show");
+    return { ov: ov, cv: cv };
+  },
 };
 if (typeof module !== "undefined" && module.exports) module.exports = { Holo };

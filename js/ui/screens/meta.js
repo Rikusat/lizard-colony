@@ -189,6 +189,8 @@ Object.assign(UI, {
           <button id="set-rollback41">復元</button></div>
         <div class="list-row"><div class="grow"><b>V4移行前のバックアップから復元</b><div class="desc">Planet Reptile(V4)移行前のセーブへ巻き戻す</div></div>
           <button id="set-rollback">復元</button></div>
+        <div class="list-row"><div class="grow"><b>オープニングをもう一度見る</b><div class="desc">本部からの起動ブリーフィング(約15秒・タップで即中断)</div></div>
+          <button id="set-opening">再生</button></div>
         <div class="list-row"><div class="grow"><b>データ初期化</b><div class="desc">すべての進行状況を削除して最初から</div></div>
           <button id="set-reset" class="danger">初期化</button></div>
         <div style="font-size:calc(12px * var(--fs-scale, 1));color:var(--sub);line-height:1.7;margin-top:10px">
@@ -241,9 +243,42 @@ Object.assign(UI, {
       body.querySelector("#set-rollback").addEventListener("click", () => {
         if (confirm("V4移行前のバックアップへ巻き戻しますか? 移行後の進行は失われます。")) Game.restoreV3Backup();
       });
+      body.querySelector("#set-opening").addEventListener("click", () => {
+        this.closeModal();
+        this.playOpening();   // 再視聴。フラグは既に立っているので触らない(markOpeningSeenは冪等)
+      });
       body.querySelector("#set-reset").addEventListener("click", () => {
         if (confirm("本当に初期化しますか? この操作は取り消せません!")) Game.resetSave();
       });
     });
+  },
+
+  // ---------------- C2 フェーズ2: オープニングの本編組み込み(2026-08-01) ----------------
+  // 器は §5.10 の共通 `.holo-stage`(z-index だけ差し替え)。描画・尺・スキップは全て Holo 側の既存機構。
+  // ★本編の時間経過・生産は再生中も進む(UI.loop は走り続ける)。惑星移動トランジションと同じ判断で、
+  //   メインループに条件分岐を足さない=安全境界(経済/戦闘/確率/セーブ)に触れない。実測はHANDOFF §5x-C2.5。
+  playOpening(onDone) {
+    if (typeof Holo === "undefined" || !Holo.drawOpening) return false;
+    const stage = Holo.mount("holo-opening");
+    if (!stage) return false;
+    const reduced = !!(typeof Motion !== "undefined" && Motion.reduced);
+    const total = Holo.openDur();
+    Holo.play(stage.cv, {
+      total: total, reduced: reduced,
+      reducedHoldSec: reduced ? (CFG.holoOpenReducedHoldSec || 2.0) : 0,
+      staticT: Holo.openStaticT(),
+      draw: (c, w, h, t) => Holo.drawOpening(c, w, h, t),
+      onEnd: () => { stage.ov.classList.remove("show"); if (onDone) onDone(); },
+    });
+    return true;
+  },
+
+  // 初回起動時の自動再生。**ゲートはここ1箇所**(CFG / 演出モジュールの有無 / 再生済みフラグ)。
+  // 既存プレイヤーは Game.migrateOpeningSeen で「見た」ことになっているので、ここを通らない。
+  autoPlayOpening() {
+    if (typeof CFG === "undefined" || CFG.openingAutoPlay === false) return false;
+    if (typeof Game === "undefined" || Game.openingSeen()) return false;
+    // 「再生後にフラグを立てる」(Ric指示)。スキップも finish→onEnd を通るので同じく再生済みになる。
+    return this.playOpening(() => Game.markOpeningSeen());
   },
 });

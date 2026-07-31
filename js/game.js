@@ -1183,6 +1183,22 @@ const Game = {
     return this.state.dial;
   },
 
+  // ---- オープニング(C2 HOLO BRIEFING)の再生済みフラグ ----
+  //   置き場所=dial の中(§5z-3 と同じ理由: dial は toWorld/applyWorld を丸ごと往復するため、
+  //   保存の追加配線なしで永続化される。ルート直下に置くと toWorld が組み直す際に脱落し、毎回流れてしまう)。
+  //   ★このフラグ自体が 0→1 の単調ゲートなので、切れ時トグル(emptyDefaultOnV1)のような副フラグは要らない
+  //     =「一度きり」が構造的に保証される。SAVE_VERSION は上げない(dial内キーの単調追加のみ)。
+  //   保存状態の知識はルール層(ここ)だけが持つ。演出層(holo.js)はフラグを知らない。
+  OPENING_SEEN_KEY: "holoPlayed",
+  openingSeen() { return !!this.ensureDial()[this.OPENING_SEEN_KEY]; },
+  markOpeningSeen() {
+    const d = this.ensureDial();
+    if (d[this.OPENING_SEEN_KEY]) return false;   // 冪等(再視聴では何も起きない)
+    d[this.OPENING_SEEN_KEY] = 1;
+    this.save();
+    return true;
+  },
+
   // 給餌ダイヤルのオート(Brushup V2 Phase1)。効果は既存feedAllの再利用・通知は出さない
   dialTick(dt) {
     const d = this.ensureDial();
@@ -2864,6 +2880,17 @@ const Game = {
     return w;
   },
 
+  // オープニングの本編組み込み(2026-08-01 Ric指示)。**既存プレイヤーには流さない**。
+  //   セーブが実在する=すでに遊んでいる人なので「見た」ことにして初回起動の自動再生から外す。
+  //   ★load() の既存セーブ経路からのみ呼ぶ(newGame は通らない)=新規コロニーだけがフラグ未設定で始まる。
+  //   フラグが 0→1 の単調ゲートである以上、この移行は冪等かつ一度きり(副フラグ不要)。
+  //   通知は出さない(気配だけ見せて説明しない)。
+  migrateOpeningSeen(w) {
+    w.dial = w.dial || { auto: false, rate: 1 };
+    if (w.dial[this.OPENING_SEEN_KEY] === undefined) w.dial[this.OPENING_SEEN_KEY] = 1;
+    return w;
+  },
+
   // 3.11.3: ボス見届け化。「今すぐ呼ぶ」1日カウンタ(bossCall)を追加。既存の保留ボス状態(nextRaid/raidTimer)は
   // StageData側に保持されるので触らない。バージョンゲートで冪等
   migrateV7to8(w) {
@@ -3307,6 +3334,7 @@ const Game = {
       if ((data.version || 0) < 15) { try { localStorage.setItem(CFG.saveBackupKeyV15, raw); } catch (e) { /* noop */ } }
       world = this.migrateV14to15(this.migrateV13to14(this.migrateV12to13(this.migrateV11to12(this.migrateV10to11(this.migrateV9to10(this.migrateV8to9(this.migrateV7to8(this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world)))))))))));
       world = this.migrateStopOnEmpty(world);   // 版に依らない一度きりの移行(専用フラグでゲート)
+      world = this.migrateOpeningSeen(world);   // 既存プレイヤーにはオープニングを流さない(=見たことにする)
       if (world._purifyV9 && (world._purifyV9.lizards > 0 || world._purifyV9.eggs > 0)) {
         const p9 = world._purifyV9;
         setTimeout(() => UI.toast(`${Icon.svg("planet")} 純血化: 各惑星は固有種のみになりました(他惑星種 ${p9.lizards}匹${p9.eggs > 0 ? "・卵" + p9.eggs : ""}が去った。設定からロールバック可)`, true), 900);

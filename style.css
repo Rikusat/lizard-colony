@@ -1881,12 +1881,15 @@ button.holding::after {
 
 /* HUDトランジション(C2改訂・UISkills §5.10): 節目に挟む共通の器。
    中身は Canvas 2D(js/holo.js)が全て描く=CSSは器と可視制御のみ。頻発するため軽く・終わったら完全に消える。 */
-#holo-travel {
-  position: fixed; inset: 0; z-index: 210; display: none;
+.holo-stage {
+  position: fixed; inset: 0; display: none;
   background: #04060a; cursor: pointer;
 }
-#holo-travel.show { display: block; }
-#holo-travel canvas { width: 100%; height: 100%; display: block; }
+.holo-stage.show { display: block; }
+.holo-stage canvas { width: 100%; height: 100%; display: block; }
+/* 重なり順だけが用途で異なる(器の見た目は同一=知識を1箇所に置く) */
+#holo-travel { z-index: 210; }   /* 惑星移動: 頻発・軽い */
+#holo-opening { z-index: 500; }  /* 起動ブリーフィング: 初回のみ・全ての上(ヒーロー340/報酬320より上) */
 
 /* 宇宙船トランジション(CFG.holoTravelOn=false 時の復帰先) */
 #travel-overlay {

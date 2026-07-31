@@ -133,17 +133,9 @@ Object.assign(UI, {
     const reduced = !!(typeof Motion !== "undefined" && Motion.reduced);
     const dur = Holo.travelDur(full, reduced);
 
-    let ov = document.getElementById("holo-travel");
-    if (!ov) {
-      ov = document.createElement("div");
-      ov.id = "holo-travel";
-      ov.innerHTML = `<canvas></canvas>`;
-      document.body.appendChild(ov);
-    }
-    const cv = ov.querySelector("canvas");
-    cv.width = Math.min(1600, Math.max(320, window.innerWidth));
-    cv.height = Math.min(1000, Math.max(200, window.innerHeight));
-    ov.classList.add("show");
+    const stage = Holo.mount("holo-travel");
+    if (!stage) return this.travelToLegacy(id);
+    const ov = stage.ov, cv = stage.cv;
     Holo.play(cv, {
       total: dur, reduced: reduced, reducedHoldSec: reduced ? dur : 0,
       draw: (c, w, h, t) => Holo.drawTravel(c, w, h, t, info, { dur: dur, full: full, from: from.pname }),

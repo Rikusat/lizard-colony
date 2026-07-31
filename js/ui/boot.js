@@ -574,3 +574,10 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
     }
   }
 }
+
+// ---- C2 オープニングの自動再生(初回起動時のみ・2026-08-01 Ric指示) ----
+// ゲート判定は UI.autoPlayOpening() に閉じる(ここは呼ぶだけ=起動シーケンスに条件を散らかさない)。
+// ?tune=1 の検分セッションでは流さない(#opening 検分ビューアと二重に描かないため)。
+if (!(typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search))) {
+  if (UI.autoPlayOpening) UI.autoPlayOpening();
+}
