@@ -161,8 +161,38 @@ try {
   await cdp.send("Runtime.enable");
   await cdp.send("Log.enable");
   await cdp.send("Page.enable");
+  // ★ビューポートを明示指定する。--window-size だけだと実測で縮んだ寸法で描画されることがあり、
+  //   スクショが小さくなって検分に使えない(実際に355×200で撮れてしまった)。
+  await cdp.send("Emulation.setDeviceMetricsOverride", { width: size[0], height: size[1], deviceScaleFactor: 1, mobile: false });
 
-  const url = `http://127.0.0.1:${PORT}${target.startsWith("/") ? "" : "/"}${target}`;
+  const base = (t) => (/^https?:\/\//.test(t) ? t : `http://127.0.0.1:${PORT}${t.startsWith("/") ? "" : "/"}${t}`);
+  const url = base(target);
+
+  // ---- --steps: 複数ページ遷移を挟む検証(本番実証など)。1手順ずつ結果を残す ----
+  //   step は {go} / {eval, as} / {wait} / {shot} のいずれか。
+  const stepsFile = arg("--steps", null);
+  if (stepsFile) {
+    const steps = JSON.parse(fs.readFileSync(stepsFile, "utf8"));
+    const results = [];
+    for (const s of steps) {
+      if (s.go != null) { await cdp.send("Page.navigate", { url: base(s.go) }); await sleep(s.settle ?? 1500); results.push({ go: base(s.go) }); }
+      else if (s.wait != null) { await sleep(s.wait); }
+      else if (s.shot) { const r = await cdp.send("Page.captureScreenshot", { format: "png" }); fs.writeFileSync(s.shot, Buffer.from(r.data, "base64")); results.push({ shot: s.shot }); }
+      else if (s.eval != null) {
+        let v, err = null;
+        try { const r = await cdp.send("Runtime.evaluate", { expression: s.eval, returnByValue: true, awaitPromise: true }); v = r.exceptionDetails ? ("EX: " + (r.exceptionDetails.exception?.description || r.exceptionDetails.text)) : r.result.value; }
+        catch (e) { err = e.message; }
+        results.push({ [s.as || "eval"]: err ? "ERR: " + err : v });
+      }
+    }
+    const cons2 = cdp.events.filter((e) => e.method === "Runtime.consoleAPICalled" && ["error", "warning", "assert"].includes(e.params.type))
+      .map((e) => e.params.type + ": " + e.params.args.map((a) => a.value ?? a.description ?? a.type).join(" "));
+    const logs2 = cdp.events.filter((e) => e.method === "Log.entryAdded" && ["error", "warning"].includes(e.params.entry.level))
+      .map((e) => e.params.entry.level + ": " + e.params.entry.text);
+    const exc2 = cdp.events.filter((e) => e.method === "Runtime.exceptionThrown").map((e) => e.params.exceptionDetails.exception?.description || e.params.exceptionDetails.text);
+    await finish({ steps: results, console: [...cons2, ...logs2], exceptions: exc2 }, exc2.length ? 1 : 0);
+  }
+
   await cdp.send("Page.navigate", { url });
 
   const t0 = Date.now();
