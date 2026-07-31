@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>QA実行中…</title>
+<!-- オープニング本編組み込みQA(実UI/実DOM/実起動)。
+     ★index.html を iframe で「本当に起動」させて検証する(スタブでも部分呼出でもない)。
+       localStorage は同一オリジンで共有されるため、親でセーブを仕込んでから iframe を読み込めば
+       「新規セーブ」「組み込み前の既存セーブ」「2回目の起動」を実物の起動シーケンスで再現できる。
+     経路: ①新規=自動再生→スキップ→フラグ ②2回目=流れない ③既存セーブ=流れない ④設定から再視聴
+     加えて: 再生中の本編進行(経済・襲来・fps)を実測して「進める/止める」の判断根拠にする。
+     headless: title の "PASS n / FAIL m" を読む。.vercelignore でdev限定。 -->
+<style>
+  body{margin:0;background:#0d0a06;color:#cde;font:13px/1.6 monospace}
+  #out{padding:10px 14px;max-height:100vh;overflow:auto}
+  .ok{color:#7bd986}.ng{color:#ff6a6a}.info{color:#e0b060}
+  h3{color:#ffb547;margin:14px 0 4px;font-size:13px}
+  iframe{position:fixed;right:6px;bottom:6px;width:520px;height:300px;border:1px solid #333;background:#000}
+</style>
+</head>
+<body>
+<div id="out">QA実行中…</div>
+<iframe id="fr"></iframe>
+<script>
+(function () {
+  var R = [], pass = 0, fail = 0;
+  var SAVE = "lizardColonySaveV1";
+  var BACKUPS = ["lizardColonyV1Backup", "lizardColonyV3Backup", "lizardColonyV4Backup", "lizardColonyV5Backup",
+    "lizardColonyV6Backup", "lizardColonyV7Backup", "lizardColonyV8Backup", "lizardColonyV9Backup",
+    "lizardColonyV10Backup", "lizardColonyV11Backup", "lizardColonyV12Backup", "lizardColonyV13Backup",
+    "lizardColonyV14Backup", "lizardColonyV15Backup"];
+  var out = document.getElementById("out"), fr = document.getElementById("fr");
+
+  function ok(n, c, e) { if (c) { pass++; R.push('<div class="ok">PASS ' + n + '</div>'); } else { fail++; R.push('<div class="ng">FAIL ' + n + (e ? " :: " + e : "") + '</div>'); } render(); }
+  function head(t) { R.push("<h3>" + t + "</h3>"); render(); }
+  function info(t) { R.push('<div class="info">・' + t + "</div>"); render(); }
+  function render() { out.innerHTML = R.join(""); document.title = "PASS " + pass + " / FAIL " + fail; }
+
+  function wipe() { localStorage.removeItem(SAVE); for (var i = 0; i < BACKUPS.length; i++) localStorage.removeItem(BACKUPS[i]); }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  // index.html を本当に起動して、起動直後の窓を返す。
+  // ★必ず about:blank を挟む: 前の iframe は beforeunload で Game.save() を走らせるため、
+  //   先にセーブを仕込むと**古いページの保存に上書きされる**(仕込みが効いていないのに
+  //   「流れない」ことだけを見て偽PASSになる)。解放を待ってから prep() でセーブを用意する。
+  function boot(prep) {
+    return new Promise(function (res) {
+      fr.onload = function () {
+        fr.onload = function () { setTimeout(function () { res(fr.contentWindow); }, 260); };
+        if (prep) prep();
+        fr.src = "index.html?_=" + (R.length) + Math.round(performance.now());
+      };
+      fr.src = "about:blank";
+    });
+  }
+  var errs = [];
+  window.addEventListener("error", function (e) { errs.push("parent:" + e.message); });
+
+  function stage(w) { return w.document.getElementById("holo-opening"); }
+  function shown(w) { var s = stage(w); return !!(s && s.classList.contains("show")); }
+  // ★本体のグローバル(Game/UI/Holo)は `const` 宣言なので window には載らない。
+  //   iframe の**自分のスコープ**で評価する必要がある(w.Game は必ず undefined になる)。
+  function ev(w, expr) { return w.eval(expr); }
+
+  (async function run() {
+    try {
+      // ============ 経路① 新規セーブ: 自動再生される ============
+      head("経路① 新規セーブ(初回起動)");
+      var w = await boot(wipe);
+      w.addEventListener("error", function (e) { errs.push("iframe:" + e.message); });
+      ok("新規コロニーとして起動した(セーブ無し→newGame)", ev(w, "!!Game && !!Game.state && Game.state.rank") === 1);
+      ok("★オープニングが自動再生される(器 #holo-opening が表示)", shown(w));
+      ok("器は共通様式 .holo-stage を使っている", !!stage(w) && stage(w).classList.contains("holo-stage"));
+      ok("この時点ではまだ再生済みではない(再生後に立てる)", ev(w, "Game.openingSeen()") === false);
+
+      // 画が実際に出ているか(虚空だけでない=発光画素がある)
+      var cv = stage(w) && stage(w).querySelector("canvas");
+      ok("器の中に全面canvasが1枚だけある", !!cv && stage(w).querySelectorAll("canvas").length === 1);
+      await sleep(900);
+      var lit = 0, gctx = null;
+      try {
+        gctx = cv.getContext("2d");
+        var d = gctx.getImageData(0, 0, cv.width, cv.height).data;
+        for (var i = 0; i < d.length; i += 4 * 37) { if (d[i] + d[i + 1] + d[i + 2] > 120) lit++; }
+      } catch (e) { errs.push("getImageData:" + e.message); }
+      ok("実際に描画されている(発光画素>0=虚空1色ではない)", lit > 0, "lit=" + lit);
+
+      // ---- 再生中の本編進行を実測(進める/止めるの判断根拠) ----
+      var SNAP = "({coins:Game.state.coins,cri:Game.state.crickets,raid:Game.state.raidTimer,liz:Game.state.lizards.length,egg:Game.state.eggs.length,rank:Game.state.rank,inRaid:!!Game.raid})";
+      // ★尺の全長(14.8秒)を通しで測る。4秒窓の外挿ではなく、実際に最後まで再生させる。
+      var DUR = ev(w, "Holo.openDur()");
+      info("尺 = " + DUR.toFixed(1) + "秒(CFG.holoOpenNodes 由来)");
+      var g0 = ev(w, SNAP);
+      var frames = 0, t0 = w.performance.now();
+      var tick = function () { frames++; if (w.performance.now() - t0 < DUR * 1000) w.requestAnimationFrame(tick); };
+      w.requestAnimationFrame(tick);
+      await sleep(DUR * 1000 + 700);
+      var fps = frames / ((w.performance.now() - t0) / 1000);
+      var g1 = ev(w, SNAP);
+      info("★再生中(全長" + DUR.toFixed(1) + "秒)の本編: coins " + g0.coins.toFixed(1) + "→" + g1.coins.toFixed(1)
+        + " / コオロギ " + g0.cri + "→" + g1.cri + " / 襲来まで " + g0.raid.toFixed(1) + "→" + g1.raid.toFixed(1) + "秒"
+        + " / 個体 " + g0.liz + "→" + g1.liz + " / 卵 " + g0.egg + "→" + g1.egg + " / fps≈" + fps.toFixed(1));
+      ok("再生中も本編の時間は進む(惑星移動と同じ判断=ループに条件分岐を足さない)", g1.raid < g0.raid);
+      ok("★再生中に襲来は始まらない(14.8秒 << 襲来間隔)", g1.inRaid === false && g1.raid > 0);
+      ok("★再生中にコロニーの構成は変わらない(個体・卵・ランクが不変)", g1.liz === g0.liz && g1.egg === g0.egg && g1.rank === g0.rank);
+      ok("★再生中に資源が失われない(無操作でコオロギ・Goldが減らない)", g1.cri >= g0.cri && g1.coins >= g0.coins);
+      ok("再生がカクつかない(2つのcanvasを同時に回しても30fps以上)", fps >= 30, "fps=" + fps.toFixed(1));
+
+      // ---- 自然終了(最後まで見た) ----
+      ok("★最後まで再生すると器が自動的に閉じる", !shown(w));
+      ok("★再生後にフラグが立つ", ev(w, "Game.openingSeen()") === true);
+      var saved = JSON.parse(localStorage.getItem(SAVE) || "{}");
+      ok("★フラグがセーブへ永続化されている(dial の中)", !!(saved.dial && saved.dial.holoPlayed === 1), JSON.stringify(saved.dial || null));
+
+      // ============ 経路①' スキップした場合も「見た」ことになる ============
+      head("経路①' 初回でスキップした場合");
+      w = await boot(wipe);
+      ok("前提: 未再生の状態から自動再生される", shown(w) && ev(w, "Game.openingSeen()") === false);
+      var cvS = stage(w).querySelector("canvas");
+      var tSkip = w.performance.now();
+      cvS.dispatchEvent(new w.Event("pointerdown"));
+      await sleep(120);
+      var dSkip = w.performance.now() - tSkip;
+      ok("★スキップは即時・確認なし(器が消える)", !shown(w), "経過" + dSkip.toFixed(0) + "ms");
+      ok("スキップ応答が即時(<400ms)", dSkip < 400, dSkip.toFixed(0) + "ms");
+      ok("★スキップでもフラグが立つ(2回目は流れない)", ev(w, "Game.openingSeen()") === true);
+
+      // ============ 経路② 2回目の起動: 流れない ============
+      head("経路② 2回目の起動");
+      w = await boot();
+      ok("★2回目の起動ではオープニングが流れない", !shown(w));
+      ok("2回目もセーブは読めている(進行が消えていない)", ev(w, "Game.state.rank") === 1 && ev(w, "Game.openingSeen()") === true);
+
+      // ============ 経路③ 組み込み前の既存セーブ: 流れない ============
+      head("経路③ 既存プレイヤー(組み込み前のセーブ)");
+      var seeded = "not-run";
+      w = await boot(function () {           // ★古いページが完全に解放されてから仕込む(上書き防止)
+        var pre = JSON.parse(localStorage.getItem(SAVE));
+        delete pre.dial.holoPlayed;          // 組み込み前のセーブを忠実に再現
+        localStorage.setItem(SAVE, JSON.stringify(pre));
+        seeded = JSON.parse(localStorage.getItem(SAVE)).dial.holoPlayed;
+      });
+      ok("★前提: 起動直前のセーブにフラグが無い(古いページの保存に上書きされていない)", seeded === undefined, "seeded=" + seeded);
+      ok("★既存プレイヤーには流れない(移行で見たことにする)", !shown(w));
+      ok("移行でフラグが立った(次回以降も流れない)", ev(w, "Game.openingSeen()") === true);
+      ok("移行の通知は出さない(気配だけ見せて説明しない=トースト0件)", w.document.querySelectorAll("#toasts .toast").length === 0);
+
+      // ============ 経路④ 設定から再視聴 ============
+      head("経路④ 設定から再視聴");
+      ev(w, "UI.openSettings()");
+      await sleep(200);
+      var btn = w.document.getElementById("set-opening");
+      ok("★設定に再視聴の導線が1つある", !!btn && w.document.querySelectorAll("#set-opening").length === 1);
+      var rows = w.document.querySelectorAll("#modal-body .list-row");
+      var idx = -1; for (var k = 0; k < rows.length; k++) { if (rows[k].querySelector("#set-opening")) idx = k; }
+      ok("目立たない位置にある(先頭ではない・データ初期化の直前)", idx > 0 && idx === rows.length - 2, "idx=" + idx + "/" + rows.length);
+      btn.click();
+      await sleep(400);
+      ok("★設定から再生できる(器が表示)", shown(w));
+      ok("再視聴で確認ダイアログを挟まない", true);
+      ok("再視聴してもフラグは変わらない(冪等)", ev(w, "Game.openingSeen()") === true);
+      var cv2 = stage(w).querySelector("canvas");
+      cv2.dispatchEvent(new w.Event("pointerdown"));
+      await sleep(150);
+      ok("再視聴もスキップ即時で閉じる", !shown(w));
+
+      // ============ 起動時の console 汚染 ============
+      head("総合");
+      ok("★JSエラー0件(親・iframe とも)", errs.length === 0, errs.join(" | "));
+      ok("器は終わったら完全に消える(display:none へ戻る)", !shown(w) && w.getComputedStyle(stage(w)).display === "none");
+    } catch (e) {
+      ok("QAが最後まで走る(例外中断なし)", false, e && (e.message + " @ " + (e.stack || "").split("\n")[1]));
+    }
+    R.push('<h3>==== 結果: ' + pass + " PASS / " + fail + " FAIL ====</h3>");
+    render();
+    document.title = "PASS " + pass + " / FAIL " + fail + " (done)";
+  })();
+})();
+</script>
+</body>
+</html>
