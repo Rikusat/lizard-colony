@@ -454,5 +454,115 @@ console.log("== 10) CFGで完全OFFにできる(可逆) ==");
   check("holoSkippable でスキップ束縛を切れる", /CFG\.holoSkippable === false/.test(fs.readFileSync(path.join(ROOT, "js/holo.js"), "utf8")));
 }
 
+console.log("== 13) オープニングの本編組み込み(初回だけ自動再生・既存プレイヤーには流さない) ==");
+{
+  // ルール層(セーブ)まで見る必要があるため、この節だけ game.js を含む重いサンドボックスを使う。
+  //   UIスタブ: 内部フラグ(_始まり)は必ず falsy(idle_economy §カナリアと同じ理由=偽の「異常なし」を作らない)。
+  function np() { const fn = function () {}; return new Proxy(fn, { get(t, p) { if (typeof p === "string" && p[0] === "_") return undefined; return p === "svg" ? () => "" : np(); }, apply() { return np(); } }); }
+  function loadGame() {
+    const store = {};
+    const sb = {
+      console: { log() {}, warn() {}, error() {} },
+      localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: (k) => { delete store[k]; } },
+      document: new Proxy({}, { get() { return np(); } }), navigator: { userAgent: "node" }, location: { reload: () => {}, search: "", hash: "" },
+      requestAnimationFrame: () => 0, cancelAnimationFrame: () => {}, setTimeout: () => 0, clearTimeout: () => {}, setInterval: () => 0, clearInterval: () => {},
+      performance: { now: () => 0 }, Math, JSON, Object, Array, String, Number, Boolean, isNaN, parseInt, parseFloat, Date,
+      UI: np(), Icon: np(), Roulette: np(), CrankSkins: np(), Slit: np(), Motion: { reduced: false },
+    };
+    sb.window = sb; sb.globalThis = sb; vm.createContext(sb);
+    let code = ""; for (const f of ["js/data.js", "js/render.js", "js/game.js"]) code += fs.readFileSync(path.join(ROOT, f), "utf8") + "\n;\n";
+    code += "globalThis.__g = { Game, CFG };\n";
+    vm.runInContext(code, sb, { filename: "combined.js" });
+    return { ...sb.__g, store };
+  }
+  const G = loadGame();
+
+  // ---- ★カナリア: この計測系はフラグの違いを本当に観測できるか ----
+  //   ここが効かないなら以降の「流れる/流れない」は全て無意味なので先に証明する。
+  {
+    G.Game.newGame();
+    const before = G.Game.openingSeen();
+    G.Game.ensureDial()[G.Game.OPENING_SEEN_KEY] = 1;
+    const after = G.Game.openingSeen();
+    check("★カナリア: 再生済みフラグの有無を openingSeen() が区別できる", before === false && after === true, `${before}→${after}`);
+  }
+
+  check("CFG.openingAutoPlay が存在し既定ON", CFG.openingAutoPlay === true);
+  check("CFGを false にすれば自動再生だけ止められる(可逆)", (() => { const L = loadHolo(); L.api.CFG.openingAutoPlay = false; return L.api.CFG.openingAutoPlay === false; })());
+  check("reduced-motion の静止保持が0でない(1フレームで消えない)", CFG.holoOpenReducedHoldSec > 0);
+
+  // ---- 新規コロニー=まだ見ていない ----
+  G.Game.newGame();
+  check("★新規コロニーは未再生(=初回起動で流れる)", G.Game.openingSeen() === false);
+  check("フラグは dial の中にある(往復する器・§5z-3と同じ理由)", G.Game.ensureDial()[G.Game.OPENING_SEEN_KEY] === undefined);
+  check("★再生後にフラグが立つ", G.Game.markOpeningSeen() === true && G.Game.openingSeen() === true);
+  check("2度目以降は冪等(再視聴で何も起きない)", G.Game.markOpeningSeen() === false && G.Game.openingSeen() === true);
+
+  // ---- 保存の往復で落ちない(ルート直下に置くと脱落する罠の再発防止) ----
+  {
+    const w = G.Game.toWorld();
+    check("★フラグが toWorld で往復する(保存の追加配線が要らない)", w.dial && w.dial[G.Game.OPENING_SEEN_KEY] === 1);
+    G.Game.applyWorld(JSON.parse(JSON.stringify(w)));
+    check("applyWorld 後も再生済みのまま(読込のたびに流れない)", G.Game.openingSeen() === true);
+  }
+
+  // ---- 既存セーブの移行: 見たことにする ----
+  {
+    const m1 = G.Game.migrateOpeningSeen({ version: 15, dial: { auto: true, rate: 1 } });
+    check("★既存セーブ(フラグ未設定)は移行で再生済みになる=流さない", m1.dial[G.Game.OPENING_SEEN_KEY] === 1);
+    const m2 = G.Game.migrateOpeningSeen(m1);
+    check("移行は冪等(何度通しても1のまま)", m2.dial[G.Game.OPENING_SEEN_KEY] === 1);
+    const m3 = G.Game.migrateOpeningSeen({ version: 15 });
+    check("dial欠落セーブでも移行が成立する", m3.dial && m3.dial[G.Game.OPENING_SEEN_KEY] === 1);
+    check("移行は SAVE_VERSION を上げない(移行チェーン・バックアップ鍵に影響なし)", m3.version === 15);
+  }
+
+  // ---- ★実経路: localStorage の既存セーブを load() させる(移行が本当に配線されているか) ----
+  {
+    G.Game.newGame();
+    const w = G.Game.toWorld();
+    delete w.dial[G.Game.OPENING_SEEN_KEY];                 // 組み込み前のセーブを再現
+    G.store[CFG.saveKey] = JSON.stringify(w);
+    G.Game.state = null;
+    const okLoad = G.Game.load();
+    check("★実経路: 組み込み前のセーブを load() すると再生済みになる(既存プレイヤーには流れない)", okLoad === true && G.Game.openingSeen() === true);
+    // 逆向きの確認: newGame は移行を通らない=新規は必ず流れる
+    G.Game.newGame();
+    check("★newGame は移行を通らない(新規コロニーは必ず流れる)", G.Game.openingSeen() === false);
+  }
+
+  // ---- UI層のゲートと導線(ソース検査) ----
+  {
+    const meta = fs.readFileSync(path.join(ROOT, "js/ui/screens/meta.js"), "utf8");
+    // 行コメントを除いてから数える(説明文に同じ識別子が出ても本数判定が狂わないように)
+    const boot = fs.readFileSync(path.join(ROOT, "js/ui/boot.js"), "utf8").replace(/^\s*\/\/.*$/gm, "");
+    const css = fs.readFileSync(path.join(ROOT, "style.css"), "utf8");
+    const pm2 = fs.readFileSync(path.join(ROOT, "js/ui/screens/planet-map.js"), "utf8");
+    const holo = fs.readFileSync(path.join(ROOT, "js/holo.js"), "utf8");
+    check("自動再生のゲートは1箇所(autoPlayOpening)に閉じている", /autoPlayOpening\(\)\s*\{/.test(meta) && (boot.match(/UI\.autoPlayOpening\(\)/g) || []).length === 1);
+    check("ゲートは CFG と再生済みフラグの両方を見る", /CFG\.openingAutoPlay === false/.test(meta) && /Game\.openingSeen\(\)/.test(meta));
+    check("★再生後にフラグを立てる配線がある", /markOpeningSeen\(\)/.test(meta));
+    check("再視聴の導線が設定に1つだけある(押し売りしない)", (meta.match(/id="set-opening"/g) || []).length === 1);
+    check("再視聴は確認ダイアログを挟まない(スキップ即時の作法と揃える)", !/set-opening[\s\S]{0,200}confirm\(/.test(meta));
+    check("?tune=1 の検分セッションでは自動再生しない(二重描画の回避)", /tune=1[\s\S]{0,200}autoPlayOpening/.test(boot));
+    check("★器は .holo-stage 1つ(見た目の知識を2箇所に置かない)", /\.holo-stage\s*\{/.test(css) && !/#holo-travel\s*\{[^}]*position:\s*fixed/.test(css));
+    check("★オープニングの器はヒーロー(340)・報酬(320)より上", /#holo-opening\s*\{\s*z-index:\s*500/.test(css));
+    check("器の生成は Holo.mount が唯一の窓口(惑星移動も通す)", /mount\(id\)\s*\{/.test(holo) && /Holo\.mount\("holo-travel"\)/.test(pm2) && /Holo\.mount\("holo-opening"\)/.test(meta));
+    check("Holo.mount は DOM 不在で null(node・テスト環境で落ちない)", Holo.mount("holo-opening") === null);
+    check("演出層はセーブのフラグ名を知らない(保存状態はルール層だけが持つ)", !/holoPlayed/.test(holo));
+  }
+
+  // ---- スキップ即時: オープニングでも確認を挟まず onEnd まで届く ----
+  {
+    let ended = false, cv = { width: 1200, height: 675, getContext: () => stubCtx(null), addEventListener: () => {}, removeEventListener: () => {} };
+    const st = Holo.play(cv, {
+      total: Holo.openDur(), reduced: false, bind: false, now: () => 0,
+      draw: (c, w, h, t) => Holo.drawOpening(c, w, h, t), onEnd: () => { ended = true; },
+    });
+    st.skip();
+    check("★オープニングのスキップは即時(確認を挟まず onEnd へ)", st.done === true && st.skipped === true && ended === true);
+  }
+}
+
 console.log(`\n==== holo_regression: ${pass} PASS / ${fail} FAIL ====`);
 process.exit(fail ? 1 : 0);
