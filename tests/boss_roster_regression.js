@@ -136,6 +136,14 @@ ok("非boss(通常襲来)も署名の姿=幼体(汎用の蛇を出さない)", R
       .filter((l) => /\br\.type\.name|\br\.snakeTier\.name/.test(l))
       .filter((l) => !/return r\.snakeTier\.name/.test(l));   // 解決口の内部(蛇の階級名を返す行)
     ok(`${label}: 敵名の直書き(type.name / snakeTier.name)が表示に残っていない`, bad.length === 0, bad.join(" | "));
+    // ★2026-08-01 追加: bossTypeById(...) の戻り値から .name を取り出して表示する経路も禁じる。
+    //   §5z-2 で「表示4経路すべてを新窓口へ」と報告したが、次ボス予告(#next-boss)がこの形で
+    //   汎用名を出しており**5つ目の経路が漏れていた**。パターンを広げて再発を止める。
+    const bad2 = strip(src).split("\n")
+      .filter((l) => /bossTypeById\([^)]*\)\s*\.\s*name/.test(l) || /\bt\.name\b/.test(l))
+      .filter((l) => !/const generic|\bok\(/.test(l))
+      .filter((l) => !/return \(t && t\.name\)/.test(l));  // 解決口 bossDisplayName 自身の最終フォールバック(正当)
+    ok(`${label}: 脅威型の汎用名(bossTypeById().name / t.name)を表示に使っていない`, bad2.length === 0, bad2.join(" | "));
   }
   // 解決口の内部にだけ階級名の参照が残っていること(=知識が1箇所に集約されている)の確認
   ok("階級名の参照は解決口の内部1行のみ(知識が1箇所に集約されている)",

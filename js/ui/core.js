@@ -279,9 +279,12 @@ const UI = {
       // 次の襲撃の予告(R30+はBOSSバッジ+名前+脅威)
       if (s.nextRaid && (s.nextRaid.tier || s.nextRaid.boss)) {
         const t = bossTypeById(s.nextRaid.typeId);
+        // ★名前は必ず単一窓口(Game.bossDisplayName)を通す。ここは §5z-2 で「表示4経路すべてを新窓口へ」と
+        //   報告した際に**見落とされていた5つ目の経路**で、汎用名(オオグモ/ダイジャ等)を直に出していた。
+        //   アイコンと脅威文は脅威型の"挙動"の予告なので従来どおり BOSS_TYPES 由来のままでよい。
         nb.classList.remove("hidden");
         nb.innerHTML = `<span class="boss-badge">BOSS</span>${s.nextRaid.elite ? `<span class="elite-badge">ELITE</span>` : ""}
-          <span class="nb-icon">${Icon.svg(t.icon)}</span> ${t.name}${s.nextRaid.tier ? " T" + s.nextRaid.tier : ""}
+          <span class="nb-icon">${Icon.svg(t.icon)}</span> ${Game.bossDisplayName(s.nextRaid)}${s.nextRaid.tier ? " T" + s.nextRaid.tier : ""}
           <div class="nb-threat">${t.threat}</div>`;
       } else {
         nb.classList.add("hidden");

@@ -77,7 +77,12 @@ window.__err=null; window.addEventListener("error",e=>{window.__err=(window.__er
     var sigDraw=Render.planetBossDraw({boss:true,typeId:"spider"});
     ok("症状1: ID6の署名脅威型(spider)ボスが署名描画(drawSkullAnaconda)", sigDraw==="drawSkullAnaconda", "="+sigDraw);
     ok("症状1: ID6のsnakeボス(非署名脅威型)でも署名の姿(§5ii=汎用の姿ゼロ)", Render.planetBossDraw({boss:true,typeId:"snake"})==="drawSkullAnaconda");
-    ok("症状1: 非boss(通常襲来)はnull(署名は出ない)", Render.planetBossDraw({boss:false,typeId:"spider"})===null);
+    // 【更新2・2026-08-01 案C(Ric裁定)】通常襲来も署名の姿(その惑星の主の「幼体」)へ。旧アサート
+    //   「非bossはnull(署名は出ない)」は、Phase6の議題外だった仮定をCC自身が固定していたもの(§5x-MINION)。
+    //   ★このページは同種の期待値ズレを2度起こしている(2026-07-24 / 今回)。仕様変更時はnode側だけでなく
+    //     ここも同一コミットで追随させること(§5x-OPS ⑫)。
+    ok("症状1: 非boss(通常襲来)も署名の姿=幼体(汎用の姿ゼロ)", Render.planetBossDraw({boss:false,typeId:"spider"})==="drawSkullAnaconda");
+    ok("症状1: 非boss(通常襲来)の名前も惑星固有(幼体ドクロ・アナコンダ)", Game.bossDisplayName({boss:false,typeId:"spider"})===PLANET_BOSS[6].minion);
 
     // (3) 症状2: buildPioneer(開拓UI)に引き連れ選択が存在しない・開拓ボタンのみ
     var div=document.createElement("div");
