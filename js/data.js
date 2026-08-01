@@ -763,7 +763,8 @@ const CFG = {
   // Brushup V2 Phase3: ボス脅威表現(描画のみ・戦闘ロジック不変)
   bossScaleBoss: 1.45,      // ボス級(tier/boss/elite)の基本拡大率
   bossScaleTier: 0.06,      // ティア1ごとの追加拡大
-  bossScaleSnake: 1.1,      // 序盤の通常蛇の控えめな拡大
+  bossScaleSnake: 1.1,      // 序盤の通常襲来(=下位個体)の控えめな拡大
+  minionScale: 0.78,        // ★下位個体(幼体)の追加縮小(案C・2026-08-01)。主より明らかに小さく見せる。★Ric実機で調整可
   bossBreath: 0.035,        // 呼吸(拡縮)の振幅
   bossApproach: 1.3,        // 迫り(未到着シルエット)の追加拡大
   eliteScale: 1.15,         // Phase6: 大ボス(elite)は一回り大きい(通常/eliteの描き分け)。★CFG調整可
@@ -1246,16 +1247,16 @@ const bossTypeById = (id) => BOSS_TYPES.find((b) => b.id === id);
 //     (気配だけ見せて説明しない)。名前の解決は Game.bossDisplayName() が単一の窓口(姿の Render.bossDrawName と対)。
 //     BOSS_TYPES は温存=非ボスの通常襲来は従来どおり汎用名(ダイジャ/アオダイショウ等)のまま。
 const PLANET_BOSS = {
-  1: { threat: "snake", draw: "drawDoronumaWorm", name: "ドロヌマ・ワーム" },       // アリド。異名=泥沼蟲
-  2: { threat: "scorpion", draw: "drawCyberScorpio", name: "サイバー・スコルピオ" }, // ネオヴェルデ。異名=電脳蠍
-  3: { threat: "hawk", draw: "drawChronoMantis", name: "クロノ・マンティス" },      // シルヴァ(飛翔し鎌で獲物をさらう=hawk)
-  4: { threat: "monitor", draw: "drawHaniwaGolem", name: "ハニワ・ゴーレム" },      // パルス。異名=墳王
-  5: { threat: "snake", draw: "drawSlagHydra", name: "スラグ・ヒドラ" },            // イグニス。異名=鉱滓の多頭竜
-  6: { threat: "spider", draw: "drawSkullAnaconda", name: "ドクロ・アナコンダ" },   // ユンガ。異名=贄蛇(締め付け=拘束=spider・webは蔓/翡翠紐へリスキン)
-  7: { threat: "snake", draw: "drawMagmaShark", name: "マグマ・シャーク" },         // メアリス。異名=熔鮫
-  8: { threat: "bugger", draw: "drawBaggerParent", name: "ヌシ・バガー" },          // グラキス。異名=親個体(既存bagger流用のelite変種)
-  9: { threat: "scorpion", draw: "drawMeltGolem", name: "メルト・ゴーレム" },       // ヴォルタ。異名=臨界獣
-  10: { threat: "crow", draw: "drawRelicSphinx", name: "レリック・スフィンクス" },  // オリジン。異名=守墓像(有翼が卵=系譜を博物館へ収蔵=crow)
+  1: { threat: "snake", draw: "drawDoronumaWorm", name: "ドロヌマ・ワーム", minion: "幼体ドロヌマ・ワーム" },       // アリド。異名=泥沼蟲
+  2: { threat: "scorpion", draw: "drawCyberScorpio", name: "サイバー・スコルピオ", minion: "幼体サイバー・スコルピオ" }, // ネオヴェルデ。異名=電脳蠍
+  3: { threat: "hawk", draw: "drawChronoMantis", name: "クロノ・マンティス", minion: "幼体クロノ・マンティス" },      // シルヴァ(飛翔し鎌で獲物をさらう=hawk)
+  4: { threat: "monitor", draw: "drawHaniwaGolem", name: "ハニワ・ゴーレム", minion: "幼体ハニワ・ゴーレム" },      // パルス。異名=墳王
+  5: { threat: "snake", draw: "drawSlagHydra", name: "スラグ・ヒドラ", minion: "幼体スラグ・ヒドラ" },            // イグニス。異名=鉱滓の多頭竜
+  6: { threat: "spider", draw: "drawSkullAnaconda", name: "ドクロ・アナコンダ", minion: "幼体ドクロ・アナコンダ" },   // ユンガ。異名=贄蛇(締め付け=拘束=spider・webは蔓/翡翠紐へリスキン)
+  7: { threat: "snake", draw: "drawMagmaShark", name: "マグマ・シャーク", minion: "幼体マグマ・シャーク" },         // メアリス。異名=熔鮫
+  8: { threat: "bugger", draw: "drawBaggerParent", name: "ヌシ・バガー", minion: "幼体ヌシ・バガー" },          // グラキス。異名=親個体(既存bagger流用のelite変種)
+  9: { threat: "scorpion", draw: "drawMeltGolem", name: "メルト・ゴーレム", minion: "幼体メルト・ゴーレム" },       // ヴォルタ。異名=臨界獣
+  10: { threat: "crow", draw: "drawRelicSphinx", name: "レリック・スフィンクス", minion: "幼体レリック・スフィンクス" },  // オリジン。異名=守墓像(有翼が卵=系譜を博物館へ収蔵=crow)
 };
 
 // Phase6 署名生成物(敵ボス/惑星味方)の調整可パレット＝Ricが濃さ/視認性を実機で詰める単一の真実(描画専用・魂/確率/物理に無影響)。

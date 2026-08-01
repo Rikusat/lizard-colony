@@ -56,7 +56,8 @@ for (let S = 1; S <= 10; S++) {
   ok(`ID${S}: ゲート 署名脅威型=固有描画(${pb.draw})`, Render.planetBossDraw({ boss: true, typeId: pb.threat }) === pb.draw);
   const other = BOSS_TYPES.find((b) => b.id !== pb.threat).id;
   ok(`ID${S}: ゲート 非署名脅威型(${other})でも署名の姿(pre-R30案B=汎用の姿を出さない)`, Render.planetBossDraw({ boss: true, typeId: other }) === pb.draw);
-  ok(`ID${S}: ゲート 非boss(署名型でも)=null(通常襲来は汎用)`, Render.planetBossDraw({ boss: false, typeId: pb.threat }) === null);
+  // ★案C(Ric裁定 2026-08-01)で反転: 通常襲来も署名の姿(幼体)。汎用の姿はフィールドに一切出さない
+  ok(`ID${S}: ゲート 非boss(通常襲来)も署名の姿=幼体(${pb.draw})`, Render.planetBossDraw({ boss: false, typeId: pb.threat }) === pb.draw);
 }
 
 // === 症状1: sigBossChance が効く(0=従来の低率 / 1=ほぼ署名) ===

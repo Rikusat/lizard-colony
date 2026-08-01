@@ -1316,13 +1316,18 @@ const Game = {
   //   r は raid / nextRaid / corpse のいずれでもよい({typeId, boss} があれば解決できる)。
   //   ボスなら現在の惑星の署名名。**姿の解決と同じ条件(bossなら常に署名)**にすることで、
   //   「姿は署名なのに名前は汎用(ダイジャ)」というズレが生まれない(pre-R30の案Bでも一致する)。
-  //   非ボスの通常襲来は従来どおり: 蛇は階級名(アオダイショウ等)、それ以外は脅威型名。
+  //   ★案C(Ric裁定 2026-08-01): **非ボスの通常襲来も惑星固有**にした(その惑星の主の「幼体」)。
+  //     従来は蛇の階級名(アオダイショウ等)を出しており、序盤の襲来の8割が汎用敵になっていた。
+  //     判定条件は姿(Render.planetBossDraw)と**完全に同じ=その惑星に署名があるか**だけ。
+  //     こうしておかないと「姿は幼体なのに名前はアオダイショウ」というズレが再発する。
+  //     署名の無い惑星(将来の追加惑星)は従来の汎用名へフォールバックする。
   bossDisplayName(r) {
     if (!r) return "";
-    if (r.boss) {
-      const st = this.currentStage && this.currentStage();
-      const pb = (typeof PLANET_BOSS !== "undefined") && st && PLANET_BOSS[st.id];
-      if (pb && pb.name) return pb.name;
+    const st = this.currentStage && this.currentStage();
+    const pb = (typeof PLANET_BOSS !== "undefined") && st && PLANET_BOSS[st.id];
+    if (pb) {
+      if (r.boss && pb.name) return pb.name;
+      if (!r.boss && pb.minion) return pb.minion;
     }
     if (r.typeId === "snake" && r.snakeTier && r.snakeTier.name) return r.snakeTier.name;
     const t = r.type || (typeof bossTypeById === "function" ? bossTypeById(r.typeId) : null);
@@ -2034,7 +2039,8 @@ const Game = {
       r.dyingT = 1.15; r.hitT = 0;
       this.corpse = r; // 死に様の描画専用スナップショット(§3.3。ロジックはraid=nullで即終了)
     } else {
-      if (reason === "egg") this.notice("卵を奪われた", "オオガラスが持ち去った", "boss");
+      // 敵名は必ず単一の窓口を通す(署名化の追随漏れ=ID10でレリック・スフィンクスが「オオガラス」と名乗っていた)
+      if (reason === "egg") this.notice("卵を奪われた", `${this.bossDisplayName(r)}が持ち去った`, "boss");
       else if (reason === "grab") this.notice("仲間がさらわれた", "時間で戻ってくる", "boss");
       else this.notice("敵は去った", "負傷者を回復させよう", "boss");
     }

@@ -2783,9 +2783,17 @@ const Render = {
 
   // ---------------- ボス共通ディスパッチ (GameExpansion_v2 ①②) ----------------
   // ボス級の拡大率(Brushup V2 §3.2)。描画のみ・座標や当たり判定は不変
+  // 敵の基本拡大率。生前(bossScale)と死に様(drawCorpse)の**共通の土台**=同じ知識を2箇所に置かない。
+  //   ★下位個体(幼体)の「小ささ」はここだけが知る(案C・2026-08-01)。生前と死骸でサイズが食い違わない
+  //     =§5y① と同種の「撃破の瞬間に見た目が変わる」欠陥を構造的に防ぐ。
+  baseScale(r) {
+    const big = r.tier || r.boss || r.elite;
+    if (big) return CFG.bossScaleBoss + (r.tier || 0) * CFG.bossScaleTier;
+    return CFG.bossScaleSnake * (CFG.minionScale != null ? CFG.minionScale : 1); // 非ボス=その惑星の主の幼体
+  },
+
   bossScale(raid) {
-    const big = raid.tier || raid.boss || raid.elite;
-    let k = big ? CFG.bossScaleBoss + (raid.tier || 0) * CFG.bossScaleTier : CFG.bossScaleSnake;
+    let k = this.baseScale(raid);
     if (raid.elite) k *= (CFG.eliteScale || 1.15); // Phase6: 大ボスは一回り大きい
     if (!raid.snake.arrived && !raid.type.flying) k *= CFG.bossApproach; // 迫り=より大きな影
     if (raid.snake.arrived) {
@@ -2800,8 +2808,7 @@ const Render = {
   drawCorpse(ctx, c) {
     const e = c.snake;
     const T = 1.15, p = clamp(1 - c.dyingT / T, 0, 1);
-    const big = c.tier || c.boss || c.elite;
-    const k = big ? CFG.bossScaleBoss + (c.tier || 0) * CFG.bossScaleTier : CFG.bossScaleSnake;
+    const k = this.baseScale(c);                                         // 生前と同じ土台(幼体は幼体のまま倒れる)
     const rear = Math.sin(Math.min(p / 0.28, 1) * Math.PI) * -0.38;      // のけぞり
     const collapse = clamp((p - 0.3) / 0.5, 0, 1);                       // 崩壊
     ctx.save();
@@ -2828,13 +2835,15 @@ const Render = {
     }
   },
 
-  // Phase6: 現在の惑星の署名ボス描画メソッド名を返す。raid.boss かつ 脅威型が一致するときのみ(通常襲来/不一致はnull=既存描画)。
+  // 現在の惑星の署名描画メソッド名を返す。**ボス/通常襲来を問わず**、署名惑星なら常に署名の姿。
+  //   Phase6は `!raid.boss` で早期returnしていたため、**通常襲来だけ汎用の蛇が出続けていた**
+  //   (序盤の襲来の8割・Phase6の議題外の欠落)。案C(Ric裁定 2026-08-01)でゲートを外し、
+  //   通常襲来は「その惑星の主の幼体」として同じ姿を縮小して描く(小ささは baseScale が一括で持つ)。
+  //   ★typeId は据え置き=挙動・難度・味方効果は不変。飛翔系(hawk/crow)の署名描画は
+  //     `raid.type.flying` を見て接地版へ落ちるため、typeId=snake の通常襲来でも破綻しない。
   planetBossDraw(raid) {
-    if (!raid.boss) return null;
     const st = Game.currentStage && Game.currentStage();
     const pb = st && PLANET_BOSS[st.id];
-    // Phase6: 署名惑星でボス時は常に署名の姿(汎用の姿をフィールドに出さない)。
-    //   R30+はtypeId=pb.threat一致で挙動も署名。pre-R30はtypeId=snakeでも署名の姿+snake挙動(案B=序盤を過酷にしない)。
     return (pb && typeof this[pb.draw] === "function") ? pb.draw : null;
   },
 

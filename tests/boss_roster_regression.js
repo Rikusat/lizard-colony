@@ -11,7 +11,7 @@ const store = {};
 const sb = { console, localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: () => {} }, document: new Proxy({}, { get() { return np(); } }), navigator: { userAgent: "node" }, location: { reload: () => {} }, requestAnimationFrame: () => 0, cancelAnimationFrame: () => {}, setTimeout: () => 0, clearTimeout: () => {}, setInterval: () => 0, clearInterval: () => {}, performance: { now: () => 0 }, Math, JSON, Object, Array, String, Number, Boolean, isNaN, parseInt, parseFloat, UI: np(), Icon: np(), Roulette: np(), CrankSkins: np(), Slit: np(), Motion: { reduced: false } };
 sb.window = sb; sb.globalThis = sb; vm.createContext(sb);
 let code = ""; for (const f of ["js/data.js", "js/render.js", "js/game.js"]) code += fs.readFileSync(path.join(ROOT, f), "utf8") + "\n;\n";
-code += "globalThis.__t = { Game, Render, CFG, PLANET_BOSS, BOSS_TYPES, STAGES, bossTypeById };\n";
+code += "globalThis.__t = { Game, Render, CFG, PLANET_BOSS, BOSS_TYPES, STAGES, bossTypeById, SNAKE_TIERS, snakeTierFor };\n";
 vm.runInContext(code, sb, { filename: "combined.js" });
 const { Game, Render, CFG, PLANET_BOSS, BOSS_TYPES, STAGES } = sb.__t;
 let pass = 0, fail = 0; const fails = [];
@@ -37,12 +37,14 @@ for (const st of STAGES) {
   ok(`ID${st.id}: R95で常に署名threat=${pb.threat}`, allSig);
   ok(`ID${st.id}: boss時 planetBossDraw=署名(${pb.draw})=汎用の姿を出さない`, drawOK);
 }
-// pre-R30(案B): typeId=snakeでも署名の姿・非bossはnull
+// pre-R30(案B): typeId=snakeでも署名の姿。★案C以降は非ボス(通常襲来)も署名の姿=幼体
 Game.state.rank = 20; Game.state.stageSel = 3; Game.state.currentStageId = 3; Game.state.stageWins = 4;
 Game.rollNextRaid();
 ok("pre-R30: typeId=snake(案B・軽い挙動)", Game.state.nextRaid.typeId === "snake");
 ok("pre-R30: boss時も署名の姿(汎用の姿を出さない)", Render.planetBossDraw({ boss: true, typeId: "snake" }) === PLANET_BOSS[3].draw);
-ok("非boss(通常襲来)は署名を出さない(null)", Render.planetBossDraw({ boss: false, typeId: "snake" }) === null);
+// ★案C(Ric裁定 2026-08-01)で反転。旧アサート「非bossは署名を出さない(null)」は、Phase6の議題外だった
+//   仮定を CC 自身が 8156b5b で固定したものであり、外部の要求ではなかった(§5x-MINION の判断記録)。
+ok("非boss(通常襲来)も署名の姿=幼体(汎用の蛇を出さない)", Render.planetBossDraw({ boss: false, typeId: "snake" }) === PLANET_BOSS[3].draw);
 
 // ④ ★撃破の瞬間に姿が汎用(ダイジャ等)へ切り替わらない(2026-07-29 不具合の再発検知)
 //    旧実装は drawBoss と drawCorpse が別々の switch を持ち、corpse 側が planetBossDraw を通らなかったため、
@@ -102,12 +104,26 @@ ok("非boss(通常襲来)は署名を出さない(null)", Render.planetBossDraw(
     // ★姿と名前が同じ条件で切り替わる(pre-R30の案B=typeIdがsnakeでもボスなら署名)
     ok(`ID${st.id}: 姿と名前が一致する条件(boss時は typeId によらず署名)`,
       (Render.planetBossDraw({ boss: true, typeId: "snake" }) === pb.draw) === (Game.bossDisplayName({ boss: true, typeId: "snake" }) === pb.name));
-    // 非ボスの通常襲来は従来どおり汎用名(BOSS_TYPES温存の意味を保つ)
+    // ★案C: 非ボスの通常襲来も惑星固有(その惑星の主の幼体)。汎用名は出さない
     const generic = sb.__t.bossTypeById(pb.threat).name;
-    ok(`ID${st.id}: 非ボスは汎用名のまま(${generic})`, Game.bossDisplayName({ boss: false, typeId: pb.threat }) === generic);
+    ok(`ID${st.id}: 幼体名が定義されている(${pb.minion})`, !!pb.minion && pb.minion !== pb.name);
+    ok(`ID${st.id}: 非ボスは幼体名(${pb.minion})=汎用名(${generic})を出さない`,
+      Game.bossDisplayName({ boss: false, typeId: pb.threat }) === pb.minion);
+    // ★姿と名前が「同じ条件」で切り替わる(非ボスでも): 片方だけ署名になるズレを防ぐ
+    ok(`ID${st.id}: 非ボスでも姿と名前が一致する条件`,
+      (Render.planetBossDraw({ boss: false, typeId: "snake" }) === pb.draw) === (Game.bossDisplayName({ boss: false, typeId: "snake" }) === pb.minion));
+    // 蛇の階級名(アオダイショウ等)が通常襲来で表に出ないこと。snakeTier を渡しても幼体名が勝つ
+    ok(`ID${st.id}: snakeTierを渡しても階級名は出ない`,
+      Game.bossDisplayName({ boss: false, typeId: "snake", snakeTier: { name: "アオダイショウ" } }) === pb.minion);
   }
-  // 非ボスの蛇は階級名(アオダイショウ等)を出す=既存挙動の保全
-  ok("非ボスの蛇は階級名を出す", Game.bossDisplayName({ boss: false, typeId: "snake", snakeTier: { name: "アオダイショウ" } }) === "アオダイショウ");
+  // 署名の無い惑星(将来の追加)では従来どおり階級名へフォールバックする=退路を残す
+  {
+    const save = Game.currentStage;
+    Game.currentStage = () => ({ id: 999 });
+    ok("署名の無い惑星では階級名へフォールバック", Game.bossDisplayName({ boss: false, typeId: "snake", snakeTier: { name: "アオダイショウ" } }) === "アオダイショウ");
+    ok("署名の無い惑星では姿もフォールバック(null=既存描画)", Render.planetBossDraw({ boss: false, typeId: "snake" }) === null);
+    Game.currentStage = save;
+  }
   ok("null/未知でも落ちない", Game.bossDisplayName(null) === "" && typeof Game.bossDisplayName({ typeId: "??" }) === "string");
   // 表示経路がすべて単一窓口を通る(汎用名の直書きが残っていない)
   const gsrc = fs.readFileSync(path.join(ROOT, "js/game.js"), "utf8");
@@ -125,6 +141,63 @@ ok("非boss(通常襲来)は署名を出さない(null)", Render.planetBossDraw(
   ok("階級名の参照は解決口の内部1行のみ(知識が1箇所に集約されている)",
     strip(gsrc).split("\n").filter((l) => /r\.snakeTier\.name/.test(l)).length === 1);
   ok("ボスHUDのキャッシュキーに boss/惑星が含まれる(名前が更新されないズレの防止)", /hudKey[\s\S]{0,120}r\.boss[\s\S]{0,80}currentStage/.test(msrc));
+}
+
+// ⑥ ★通常襲来まで含めた全数走査(案C・Ric裁定 2026-08-01)
+//    ★ここが今回の再発防止の本体。従来の検査は**合成した raid オブジェクト**しか見ておらず、
+//      「実際に rollNextRaid が何を返すか」を一度も見ていなかった。そのため
+//      「通常襲来では汎用の蛇が出続ける(序盤の襲来の8割)」を10ヶ月ぶん見逃した。
+//      以後は**実際に襲来を回して**、出てきた名前と姿を全数照合する。
+{
+  const GENERIC_NAMES = new Set([
+    ...BOSS_TYPES.map((b) => b.name),                       // ダイジャ/オオタカ/オオガラス/ヌシオオトカゲ/オオサソリ/オオグモ/バガー
+    ...sb.__t.SNAKE_TIERS.map((s) => s.name),               // アオダイショウ/マムシ/アカダイジャ/ヤミヘビ/オウゴンダイジャ
+  ]);
+  const GENERIC_DRAWS = new Set(["drawSnake", "drawHawk", "drawCrow", "drawMonitor", "drawScorpion", "drawSpider", "drawBugger"]);
+  const SIG_NAMES = new Set(Object.values(PLANET_BOSS).flatMap((p) => [p.name, p.minion]));
+
+  // ★カナリア: この走査は本当に汎用名を検出できるのか。できないなら以降の「出ない」は無意味。
+  ok("★カナリア: 汎用名の集合が実データを拾えている", GENERIC_NAMES.has("アオダイショウ") && GENERIC_NAMES.has("ダイジャ") && GENERIC_NAMES.size >= 12);
+  ok("★カナリア: 幼体名は汎用名と衝突しない", [...SIG_NAMES].every((n) => !GENERIC_NAMES.has(n)));
+
+  const N = 40;
+  for (const st of STAGES) {
+    const pb = PLANET_BOSS[st.id]; if (!pb) continue;
+    // pre-R30 は「解放ランク<30 の惑星」でしか到達できない(ID6〜10 は構造上、通常襲来が起きない)
+    const ranks = st.rank < 30 ? [st.rank, 95] : [95];
+    for (const rank of ranks) {
+      Game.newGame();
+      Game.state.rank = rank;
+      Game.state.stageSel = st.id; Game.state.currentStageId = st.id;
+      const names = new Set(), draws = new Set();
+      let nonBoss = 0, bossN = 0;
+      for (let w = 0; w < N; w++) {
+        Game.state.stageWins = w;
+        Game.rollNextRaid();
+        const nr = Game.state.nextRaid;
+        // startRaid が組む raid と同じ形(snakeTier も本番どおり載せる=見逃しを作らない)
+        const r = { typeId: nr.typeId, boss: nr.boss, elite: nr.elite, tier: nr.tier, type: sb.__t.bossTypeById(nr.typeId), snakeTier: sb.__t.snakeTierFor(rank) };
+        names.add(Game.bossDisplayName(r));
+        draws.add(Render.bossDrawName(r));
+        nr.boss ? bossN++ : nonBoss++;
+      }
+      const label = `ID${st.id} Rk${rank}`;
+      const badN = [...names].filter((n) => GENERIC_NAMES.has(n));
+      const badD = [...draws].filter((d) => GENERIC_DRAWS.has(d));
+      ok(`${label}: 汎用名が1つも出ない`, badN.length === 0, badN.join(","));
+      ok(`${label}: 汎用の姿が1つも出ない`, badD.length === 0, badD.join(","));
+      ok(`${label}: 出た名前はすべて署名/幼体`, [...names].every((n) => SIG_NAMES.has(n)), [...names].join(","));
+      ok(`${label}: 出た姿はすべてその惑星の署名(${pb.draw})`, [...draws].every((d) => d === pb.draw), [...draws].join(","));
+      // ★挙動不変の証明: typeId と ボス率 は案C適用前と同じでなければならない(難度・味方効果を動かさない)
+      if (rank < 30) {
+        ok(`${label}: 通常襲来の typeId は snake のまま(挙動不変)`, Game.state.nextRaid.typeId === "snake");
+        ok(`${label}: ボス率は 1/${CFG.bossEvery}(頻度不変)`, bossN === N / CFG.bossEvery, `boss=${bossN}/${N}`);
+        ok(`${label}: 通常襲来が実在する(幼体の検査が空振りしていない)`, nonBoss > 0, `nonBoss=${nonBoss}`);
+      } else {
+        ok(`${label}: R30+は全襲来がボス(構造どおり)`, nonBoss === 0 && bossN === N);
+      }
+    }
+  }
 }
 
 // ② 配分の網羅: 7脅威型すべてが最低1惑星
