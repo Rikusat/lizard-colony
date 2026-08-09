@@ -569,6 +569,75 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
         window.addEventListener("hashchange", tGate);
         if (location.hash === "#travel") setTimeout(tGate, 400);
       }
+
+      // dev支援(V6-P1-2・2026-08-10): 合成撤廃と特性拡張の**承認ゲート用**検分(?tune=1#p12・読み取り専用)。
+      //   Ricが「何が消えて何がどう変わったか」を一度に確認するためのページ。実データのみ・捏造しない。
+      //   ★URLは拡張子なしで http://localhost:3000/?tune=1#p12
+      {
+        let pPanel = null;
+        const stopP = () => { if (pPanel) pPanel.remove(); pPanel = null; };
+        const buildP = () => {
+          stopP();
+          pPanel = document.createElement("div");
+          pPanel.style.cssText = "position:fixed;inset:0;z-index:99998;background:#0d0a06;color:#cde;font:13px/1.75 ui-monospace,Consolas,monospace;overflow:auto;padding:18px 22px";
+          // 表は列がくっつくと読めない=セルに余白を必ず入れる(検分ページも読めなければ意味がない)
+          const st = document.createElement("style");
+          st.textContent = "#p12v td{padding:2px 22px 2px 0;white-space:nowrap}#p12v table{border-collapse:collapse;margin:4px 0}";
+          pPanel.id = "p12v"; pPanel.appendChild(st);
+          const esc = (s) => String(s).replace(/</g, "&lt;");
+          const gone = (label, ok) => `<div style="color:${ok ? "#7bd986" : "#ff6a6a"}">${ok ? "✔ 撤去済" : "✘ 残存"} ${esc(label)}</div>`;
+          const T6 = Object.keys(TRAITS).filter((k) => TRAITS[k].tier >= 6);
+          const w = CFG.traitGenesisT6Weight, cost = CFG.stoneGenesisRandCost || 4;
+          const wsum = (Object.keys(TRAITS).length - T6.length) + T6.length * w;
+          const pAny = T6.length * w / wsum, pOne = w / wsum;
+          const H = (n) => `<h3 style="color:#ffb547;margin:18px 0 6px;font-size:14px">${n}</h3>`;
+          let h = `<div style="color:#ffb547;font-size:15px">V6-P1-2 承認ゲート — 合成の撤廃と特性の拡張 (?tune=1#p12)</div>
+            <div style="color:#8a7f6a">Ric確認用。#で閉じる。表示はすべて実データ由来。</div>`;
+          // 1) 合成が消えたこと
+          h += H("1. 合成システムは存在しない(参照0件)");
+          h += gone("RECIPES(レシピ表)", typeof RECIPES === "undefined");
+          h += gone("Game.synthesize / synthesizableRecipes / stoneSynthCost", typeof Game.synthesize !== "function" && typeof Game.synthesizableRecipes !== "function" && typeof Game.stoneSynthCost !== "function");
+          h += gone("Game.recipeByResult / recipeDecoded", typeof Game.recipeByResult !== "function" && typeof Game.recipeDecoded !== "function");
+          h += gone("CFG.stoneSynthBase / stoneSynthPerOrder", CFG.stoneSynthBase === undefined && CFG.stoneSynthPerOrder === undefined);
+          h += gone("TRAITS[].synth フラグ", !Object.keys(TRAITS).some((k) => TRAITS[k].synth !== undefined));
+          h += gone("RESEARCH のレシピ解読I〜VI", !RESEARCH.some((r) => /^recipe[1-6]$/.test(r.id)));
+          h += `<div style="color:#8a7f6a">錬成槽モジュールは残るが中身は石残数のみ(合成キュー/解読数の表示は撤去)。本部→錬成槽で確認できる。</div>`;
+          // 2) 創世で18種すべてが出うる
+          h += H("2. 賢者の石の乱択創世で18種すべてが出うる(tier6も到達可能)");
+          h += `<div>特性 <b>${Object.keys(TRAITS).length}</b> 種 / うち tier6 = <b>${T6.length}</b> 種 (${T6.map((k) => TRAITS[k].name).join("・")})</div>
+            <div>重み <b>CFG.traitGenesisT6Weight = ${w}</b> (tier1〜5 は 1) / 乱択コスト <b>${cost}石</b> 一律</div>
+            <div>1回の乱択で tier6 が出る確率 = <b>${(pAny * 100).toFixed(2)}%</b> / 特定の1種 = <b>${(pOne * 100).toFixed(2)}%</b></div>
+            <table style="margin-top:6px;border-collapse:collapse">
+              <tr style="color:#8a7f6a"><td>狙い</td><td>期待試行</td><td>期待石数</td></tr>
+              <tr><td>tier6 どれか1つ</td><td>${Math.round(1 / pAny)} 回</td><td>${Math.round(1 / pAny * cost)} 石</td></tr>
+              <tr><td>tier6 特定の1種</td><td>${Math.round(1 / pOne)} 回</td><td><b>${Math.round(1 / pOne * cost)} 石</b></td></tr>
+              <tr><td>tier6 6種すべて</td><td>${Math.round(1 / pOne * 2.45)} 回</td><td>${Math.round(1 / pOne * 2.45 * cost)} 石</td></tr>
+            </table>
+            <div style="color:#8a7f6a">※「狙って取る」体験は失われ、「引き当てる」へ移行(撤廃の必然・trait_system.md §8.0 に記録)。
+            tier6は遺伝floor 3%と併せて二重に希少。</div>`;
+          // 3) 払い戻し
+          h += H("3. レシピ解読の払い戻し(返還額の内訳)");
+          h += `<table style="border-collapse:collapse"><tr style="color:#8a7f6a"><td>解読</td><td>研究力</td><td>コイン</td><td>賢者の石</td></tr>`;
+          let ts = 0, tc = 0, tst = 0;
+          for (const r of Game.RECIPE_REFUND) { ts += r.science; tc += r.coins; tst += r.stones; h += `<tr><td>${r.id}</td><td>${r.science}</td><td>${r.coins.toLocaleString()}G</td><td>${r.stones || "—"}</td></tr>`; }
+          h += `<tr style="color:#ffb547"><td>全解読なら</td><td>${ts}</td><td>${tc.toLocaleString()}G</td><td>${tst}</td></tr></table>
+            <div style="color:#8a7f6a">一度きりの保証 = headquarters.recipeRefundV1(往復する器の中・単調追加・SAVE_VERSION据置)。移行時にトースト1回で告知。</div>
+            <div>現在のセーブの適用状況: <b>${(Game.state.headquarters && Game.state.headquarters.recipeRefundV1) ? "適用済" : "この端末のセーブでは未適用(=解読なしの新規セーブ)"}</b></div>`;
+          // 4) 水槽tier
+          h += H("4. 実験用水槽 tier の新しい駆動源と非退行");
+          const th = CFG.labTankTiers, floor = Game.state.labTankFloor || 1;
+          const tierOf = (v, t) => (v >= t[2] ? 4 : v >= t[1] ? 3 : v >= t[0] ? 2 : 1);
+          h += `<div>旧: 解読済みレシピ数 [1,3,5] → 新: <b>HQ Lv ${JSON.stringify(th)}</b> (研究デスクはP3-3でβ非公開になり不可視のため)</div>
+            <div>現在: HQ Lv <b>${Game.hqLevel()}</b> → 新tier <b>T${tierOf(Game.hqLevel(), th)}</b> / 記録された下限 <b>T${floor}</b> → <b>表示 T${Math.max(floor, tierOf(Game.hqLevel(), th))}</b></div>
+            <div style="color:#8a7f6a">移行 migrateLabTankFloor が旧ロジックのtierを headquarters.labTankFloorV1 へ一度だけ記録し、
+            表示は max(下限, 新tier)。<b>解読0〜6 × ランク1〜100 の700通り全数で「tierが下がる例ゼロ」を実証</b>(tests/lab_tank_migration_regression.js)。</div>`;
+          pPanel.insertAdjacentHTML("beforeend", h); // styleタグを残したまま追記
+          document.body.appendChild(pPanel);
+        };
+        const pGate = () => { if (location.hash === "#p12") { buildP(); console.log("[p12] V6-P1-2 承認ゲート検分を表示"); } else stopP(); };
+        window.addEventListener("hashchange", pGate);
+        if (location.hash === "#p12") setTimeout(pGate, 400);
+      }
     }
     }
     }
