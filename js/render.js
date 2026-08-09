@@ -145,8 +145,26 @@ const Render = {
   _bgStage: 0,
 
   init() {
+    this.guardAllCanvases();                 // ★飼育槽以外(本部/オープニング/ルーレット/スリット)も含めて先に包む
     this.ctx = document.getElementById("game").getContext("2d");
     this.guardCtx(this.ctx);
+  },
+
+  // ★全canvasへガードを行き渡らせる(2026-08-10)。init で #game だけを包んでいたため、
+  //   本部HOLO・オープニング・ルーレット・四重スリットの ctx が**無防備のままだった**(本番実証で検出)。
+  //   getContext を一度だけ包めば、以後どこで取得された 2D コンテキストも自動で守られる=知識は1箇所。
+  guardAllCanvases() {
+    if (typeof HTMLCanvasElement === "undefined") return;
+    const proto = HTMLCanvasElement.prototype;
+    if (proto.__finGuardPatched) return;
+    proto.__finGuardPatched = true;
+    const orig = proto.getContext;
+    const self = this;
+    proto.getContext = function (type) {
+      const c = orig.apply(this, arguments);
+      if (c && (type === "2d" || type === undefined)) self.guardCtx(c);
+      return c;
+    };
   },
 
   // ★非有限ガードの一括適用(2026-08-10 Ric裁定)。

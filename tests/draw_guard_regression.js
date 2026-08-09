@@ -116,7 +116,10 @@ console.log("== 配線: init が実際にガードを掛けている(関数が�
   // ★カナリアが落ちなかった経験から追加: guardCtx が正しくても init から呼ばれていなければ本番は無防備。
   //   「動く部品がある」ことと「配線されている」ことは別物なので、ソースで配線そのものを固定する。
   const src = fs.readFileSync(path.join(ROOT, "js/render.js"), "utf8");
-  ok("★Render.init が guardCtx を呼んでいる", /init\(\)\s*\{[\s\S]{0,200}?this\.guardCtx\(this\.ctx\)/.test(src));
+  ok("★Render.init が guardCtx を呼んでいる", /init\(\)\s*\{[\s\S]{0,300}?this\.guardCtx\(this\.ctx\)/.test(src));
+  // ★本番実証で「本部の canvas が無防備」だったため追加: #game だけでなく全canvasを覆うこと
+  ok("★Render.init が guardAllCanvases を呼んでいる(全canvasを覆う)", /init\(\)\s*\{[\s\S]{0,120}?this\.guardAllCanvases\(\)/.test(src));
+  ok("getContext を包む実装がある(以後どこで取得しても守られる)", /getContext\s*=\s*function[\s\S]{0,200}?guardCtx/.test(src));
   ok("guardCtx は二重適用しない(__finGuard で冪等)", /__finGuard/.test(src));
   const g = realisticCtx();
   Render.guardCtx(g); Render.guardCtx(g);   // 2回掛けても壊れない
