@@ -367,7 +367,7 @@ const CFG = {
   stoneFixBase: 4,          // S5-b 固定化コスト = これ + tier×stoneFixPerTier(tier1=6…tier5=14個)。両親固定で2枚持ち確定=601回の錬金ショートカット
   stoneFixPerTier: 2,
   // 本部=研究施設(hq_lab)の設備tier閾値(全て既存stateからの派生=セーブ非接触・★たたき台=Ric調整)
-  labTankTiers: [1, 3, 5],    // 実験用水槽: 解読済みレシピ数でT2/T3/T4
+  labTankTiers: [20, 40, 60], // 実験用水槽: HQ Lv(=hqLevel)でT2/T3/T4。V6-P1-2で駆動源を解読済みレシピ数から変更
   labShelfTiers: [8, 18, 28], // 標本棚: 図鑑登録数でT2/T3/T4(ロケットはrocket状態から直接導出)
   labRoomTiers: [1, 2],       // 部屋の密度tier(T1開設/T2稼働/T3過密): labInvest(鉱石投資)がこの回数以上でT2/T3。★たたき台
   // デスク群=鉱石投資で育つ(hq_lab v2.0 §5.3案B・投資1回=1段T1→T4)。★コストは全てたたき台=Ric実機調整
@@ -410,7 +410,7 @@ const CFG = {
   planDimOpacity: 0.62,       // 不足行・沈みボタンの明度
   labTileScale: 2.0,          // 本部のタイル+設備の一体倍率(大きさ)。★Ric実機調整
   labFacScale: 1.0,           // 設備のみの追加倍率(比較用・既定1=一体拡大方式)
-  traitGenesisT6Weight: 0.1,  // ★V6-P1-2: 乱択創世での tier6(旧・合成専用6種)の重み。他は1。小さいほど希少。★[A]調整
+  traitGenesisT6Weight: 0.3,  // ★V6-P1-2: 乱択創世での tier6(旧・合成専用6種)の重み。他は1。小さいほど希少。★[A]調整
   genesisFxT6Mult: 1.6,       // ★tier6を引いた瞬間だけ錬成Fxを厚くする(演出の種類は増やさない)
   genesisFxSec: 1.5,        // 創世エフェクトの尺(深紅の錬成)
   // R5-b シズミマチ基準(方向(i)沈んだ都市の窓灯り・★全てRic実機判定)

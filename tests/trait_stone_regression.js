@@ -180,14 +180,19 @@ console.log("== R5-a: genesis乱択の統計帯MC(恒久・N=24000・±5σ) ==")
     if (Game.stones() !== 10 - (CFG.stoneGenesisRandCost || 4)) costNg++;
   }
   const basicR = Object.keys(TRAITS).filter((k) => TRAITS[k].tier < 6); // 本番12+ハーネス注入のzt*も含む=プール実数で期待値を出す
+  // ★V6-P1-2: 抽選は重み付きになった(tier6のみ極小)。**tier1〜5の内側では一様**であることを見るため、
+  //   期待値は「tier6を除いた実試行数」から出す(全Nで割ると重み分だけ系統的にずれて偽陽性になる)。
+  const t6Rolls = Object.keys(counts).filter((k) => TRAITS[k].tier >= 6).reduce((a, k) => a + counts[k], 0);
+  const nonT6 = Object.values(counts).reduce((a, b) => a + b, 0) - t6Rolls;
   const pR = 1 / basicR.length;
-  const expR = N * pR, bandR = Math.ceil(5 * Math.sqrt(N * pR * (1 - pR)));
+  const expR = Math.round(nonT6 * pR), bandR = Math.ceil(5 * Math.sqrt(nonT6 * pR * (1 - pR)));
   const offBand = basicR.filter((k) => Math.abs((counts[k] || 0) - expR) > bandR);
   ok("乱択: 12種全到達(N=" + N + ")", basicR.every((k) => (counts[k] || 0) > 0), basicR.filter((k) => !counts[k]).join(","));
   // ★V6-P1-2: tier6は創世プールに入る(到達不能を作らない)が、重みが極小なので**滅多に出ない**。
   //   「ゼロ」ではなく「全体の数%未満」を監視する=規律(到達可能)と体感(希少)の両立を固定する。
   const totalRolls = Object.values(counts).reduce((a, b) => a + b, 0);
-  ok("乱択: tier6(旧・合成専用)は出うるが極小(全体の5%未満)", synthLeak * 20 < totalRolls, `t6=${synthLeak}/${totalRolls}`);
+  //   一様なら 6/18=33% になるところを、重み0.3で理論 13.0% に抑えている。20%未満を監視帯とする。
+  ok("乱択: tier6は出うるが希少(全体の20%未満・理論13.0%)", synthLeak * 5 < totalRolls, `t6=${synthLeak}/${totalRolls}`);
   ok("乱択: 一様性=各" + expR + "±" + bandR + "(±5σ)", offBand.length === 0, offBand.map((k) => k + "=" + counts[k]).join(","));
   ok("乱択: 一律コスト" + (CFG.stoneGenesisRandCost || 4) + "石の消費", costNg === 0, "ng=" + costNg);
   Game.newGame(); Game.state.lizards = [];

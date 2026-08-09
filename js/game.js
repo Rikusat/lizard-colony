@@ -2694,7 +2694,7 @@ const Game = {
       savedAt: Date.now(),
       idSeq: this._idSeq,
       wallet: { coins: s.coins, gems: s.gems, crickets: s.crickets || 0, stones: s.stones || 0 }, // V5.2: 共通在庫。v11: 賢者の石
-      headquarters: { rank: s.rank, rankXp: s.rankXp, research: s.research || {}, rocket: s.rocket || { stage: 0, invested: 0, done: false } },
+      headquarters: { rank: s.rank, rankXp: s.rankXp, labTankFloorV1: s.labTankFloor, research: s.research || {}, rocket: s.rocket || { stage: 0, invested: 0, done: false } },
       collection: {
         dex: s.dex, stats: s.stats, missionsClaimed: s.missionsClaimed,
         titles: s.titles, titleSel: s.titleSel, daily: s.daily,
@@ -2780,6 +2780,24 @@ const Game = {
     if (w.dial.emptyDefaultOnV1) return w;    // 既に適用済み=二度と反転しない
     w.dial.emptyDefaultOnV1 = 1;
     if (w.dial.stopOnEmpty !== true) w.dial.stopOnEmpty = true;
+    return w;
+  },
+
+  // V6-P1-2 ④: 実験用水槽の tier 駆動源を「解読済みレシピ数」→「HQ Lv(=ランク)」へ変えた。
+  //   ★解読数とランクは決定論的に結びついていない(実測: 研究力は制約にならず、効くのはコイン)ため、
+  //     どんなランドしきい値を選んでも一部のプレイヤーの tier は変わってしまう。
+  //     そこで「しきい値で合わせる」のをやめ、**旧ロジックで算出した tier を下限として一度だけ記録**する。
+  //     表示は max(記録された旧tier, 新tier) = **誰の水槽も下がらない**(上がるのは自然な成長のみ)。
+  //   置き場所=headquarters の中(toWorld/applyWorld を丸ごと往復する器)。単調追加=SAVE_VERSION 据置。
+  LAB_TANK_OLD_TH: [1, 3, 5],   // 旧しきい値(解読済みレシピ数)。撤廃済みなのでここが唯一の記録
+  migrateLabTankFloor(w) {
+    w.headquarters = w.headquarters || {};
+    if (w.headquarters.labTankFloorV1 !== undefined) return w;  // 既に記録済み=二度と触らない
+    const rs = w.headquarters.research || {};
+    let decoded = 0;
+    for (let o = 1; o <= 6; o++) if (rs["recipe" + o]) decoded++;
+    const th = this.LAB_TANK_OLD_TH;
+    w.headquarters.labTankFloorV1 = decoded >= th[2] ? 4 : decoded >= th[1] ? 3 : decoded >= th[0] ? 2 : 1;
     return w;
   },
 
@@ -3006,7 +3024,7 @@ const Game = {
       stones: w.wallet.stones || 0, // v11: 賢者の石(旧セーブは既定0で後方互換)
       labInvest: w.labInvest || {}, // hq_lab v2.0: 本部投資(旧セーブは既定{}=後方互換・bump不要)
       crickets: w.wallet.crickets || 0, // V5.2: コオロギ給餌の復活(全コロニー共通在庫)
-      rank: w.headquarters.rank, rankXp: w.headquarters.rankXp,
+      rank: w.headquarters.rank, rankXp: w.headquarters.rankXp, labTankFloor: w.headquarters.labTankFloorV1,
       research: w.headquarters.research || {},
       lizards: active.lizards, eggs: active.eggs,
       facilities: active.facilities,
@@ -3265,6 +3283,7 @@ const Game = {
       world = this.migrateV14to15(this.migrateV13to14(this.migrateV12to13(this.migrateV11to12(this.migrateV10to11(this.migrateV9to10(this.migrateV8to9(this.migrateV7to8(this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world)))))))))));
       world = this.migrateStopOnEmpty(world);   // 版に依らない一度きりの移行(専用フラグでゲート)
       world = this.migrateOpeningSeen(world);
+      world = this.migrateLabTankFloor(world);   // ★払い戻しより先(解読フラグが消える前に旧tierを確定させる)
       world = this.migrateRecipeRefund(world);   // V6-P1-2: レシピ解読の撤廃にともなう全額払い戻し(一度きり)
       if (world._refundRecipe && world._refundRecipe.n > 0) {
         const rr = world._refundRecipe;

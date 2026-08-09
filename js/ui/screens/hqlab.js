@@ -110,7 +110,7 @@ Object.assign(UI, {
       // V6-P1-2: 駆動源=HQ Lv(研究デスクはP3-3でβ非公開になり不可視のため)。
       //   ★HQ Lv の真実は state.rank。headquarters.rank は保存側の器で、applyWorld が state.rank へ復元する
       //     (ランタイムに state.headquarters は存在しない=そこを読むと常に1になる)。
-      tank: tierOf(Game.state.rank || 1, CFG.labTankTiers),
+      tank: Math.max(Game.state.labTankFloor || 1, tierOf(Game.hqLevel(), CFG.labTankTiers)),
       rocket: rk.done ? 4 : rk.stage >= 2 ? 3 : (rk.stage >= 1 || rk.invested > 0) ? 2 : 1,
       shelf: tierOf(Object.keys(Game.state.dex || {}).length, CFG.labShelfTiers),
       room: this.labRoomTier(),
