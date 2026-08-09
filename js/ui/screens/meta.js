@@ -1,44 +1,9 @@
 // =============================================================
-// screens/meta — 小型モーダル群(味方/称号/統計/共有/商人/ミッション/設定)
+// screens/meta — 小型モーダル群(称号/統計/共有/ミッション/設定) ※味方はV6-P1-1で全廃
 // UISkills.md §8: ui/screens相当(1画面=小規模のため束ねる)。
 // =============================================================
 
 Object.assign(UI, {
-  // ---------------- 味方 (GameExpansion_v2 ⑩) ----------------
-  openAllies() {
-    this.openModal(`${Icon.svg("paw")} 味方 (繁殖不可の特別な仲間)`, (body) => {
-      body.innerHTML = `<p style="font-size:calc(13px * var(--fs-scale, 1));color:var(--sub);margin-bottom:10px">
-        惑星ごとの固有の仲間。その惑星に居ると自動で加わり、生態データでLvアップ。
-        所持${Icon.svg("bio")}生態データ: <b style="color:var(--gold)">${fmt(Game.res("bio"))}</b></p>`;
-      for (const a of PLANET_ALLIES) {
-        const owned = Game.state.allies[a.id];
-        const planetName = (STAGES.find((s) => s.id === a.planet) || {}).name || `惑星${a.planet}`;
-        const row = document.createElement("div");
-        row.className = "list-row" + (owned ? "" : " done");
-        if (owned) {
-          const maxed = owned.lv >= CFG.allyMaxLv;
-          const cost = Game.allyLvUpCost(a.id);
-          row.innerHTML = `
-            <span class="fic">${Icon.svg(a.icon)}</span>
-            <div class="grow"><b>${a.name}</b> <span class="lv">Lv${owned.lv}/${CFG.allyMaxLv}</span>
-              <div class="desc">${planetName}の仲間 — ${a.desc}</div></div>
-            <button ${maxed || Game.res("bio") < cost ? "disabled" : ""}>${maxed ? "MAX" : `強化 ${Icon.svg("bio")}` + cost}</button>`;
-          if (!maxed) row.querySelector("button").addEventListener("click", () => {
-            Game.allyLvUp(a.id);
-            this.openAllies();
-          });
-        } else {
-          row.innerHTML = `
-            <span class="fic">${Icon.svg("unknown")}</span>
-            <div class="grow"><b>${a.name}</b>
-              <div class="desc">入手条件: ${planetName}に移住すると加わる</div></div>
-            <span style="color:var(--sub)">未加入</span>`;
-        }
-        body.appendChild(row);
-      }
-    });
-  },
-
   // ---------------- 称号 (⑨-1) ----------------
   openTitles() {
     this.openModal(`${Icon.svg("medal")} 称号`, (body) => {
@@ -175,8 +140,6 @@ Object.assign(UI, {
           <button id="set-purify-preview">診断</button></div>
         <div class="list-row"><div class="grow"><b>惑星の完全独立(再純血化)前のバックアップから復元</b><div class="desc">Phase10 再純血化(v15・自動移行で混入した他惑星種の除去+空惑星への固有ペア再配置)前のセーブへ巻き戻す</div></div>
           <button id="set-rollbackV15">復元</button></div>
-        <div class="list-row"><div class="grow"><b>惑星味方 移行前のバックアップから復元</b><div class="desc">Phase6 惑星固有味方への旧味方Lv移送(v14)前のセーブへ巻き戻す(旧味方のLvデータが移送前の状態に戻る)</div></div>
-          <button id="set-rollbackV14">復元</button></div>
         <div class="list-row"><div class="grow"><b>餌場・繁殖施設 撤廃前のバックアップから復元</b><div class="desc">餌場/繁殖の巣への統合(v13)前のセーブへ巻き戻す(両施設と投資Lvが戻り、払い戻しGoldは無くなる)</div></div>
           <button id="set-rollbackV13">復元</button></div>
         <div class="list-row"><div class="grow"><b>シェルター撤廃前のバックアップから復元</b><div class="desc">シェルター撤廃(v12)前のセーブへ巻き戻す(シェルターと投資Lvが戻り、払い戻しGoldは無くなる)</div></div>
@@ -221,9 +184,6 @@ Object.assign(UI, {
       });
       body.querySelector("#set-rollbackV15").addEventListener("click", () => {
         if (confirm("惑星の完全独立(再純血化)前のバックアップへ巻き戻しますか? 除去された他惑星種が戻ります(その後また掃除されます)。")) Game.restoreV15Backup();
-      });
-      body.querySelector("#set-rollbackV14").addEventListener("click", () => {
-        if (confirm("惑星味方への移行前のバックアップへ巻き戻しますか? 旧味方(カメ/ヤモリ等)のLvデータが移送前の状態に戻ります。")) Game.restoreV14Backup();
       });
       body.querySelector("#set-rollbackV13").addEventListener("click", () => {
         if (confirm("餌場・繁殖施設 撤廃前のバックアップへ巻き戻しますか? 両施設と投資Lvが戻り、払い戻しGoldは無くなります。")) Game.restoreV13Backup();

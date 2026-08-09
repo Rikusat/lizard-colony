@@ -352,17 +352,7 @@ const CFG = {
   hawkTapToScare: 3,        // 急降下予告中にこの回数タップで追い払える
   webSlow: 0.45,            // ウェブ上の移動速度倍率
   webDpsPenalty: 0.1,       // 有効ウェブ1つごとの与ダメ低下
-  webHp: 3,                 // ウェブを除去するのに必要なタップ数
-  allyMaxLv: 5,
-  allyLvCostPerLv: 3,       // 味方Lvアップの素材コスト = 現Lv×これ
-  // Phase7: ボスLv(=Tier+elite)連動の味方自動強化(手動育成不要)。全てたたき台=Ric実機で bossHpMultByStage と一緒に調整。
-  //   効果: raidの実Tier(1-6)で raidDps を乗算(味方在住惑星のみ)。詰み回避=tier hpMult(1.5〜4.6)を"部分相殺"に留める(完全相殺=作業化/過少=詰み)。
-  allyScaleByTier: [1.05, 1.10, 1.14, 1.18, 1.22, 1.26], // index=tier-1(T1〜T6)。Tier無し(R30未満)は1.0
-  allyScaleElite: 1.1,      // 大ボス(elite)時の追加係数
-  // 視覚(惑星のTier上限に常時連動): 味方が巨大化/数増して"ボスに対応"して見える。
-  allyVisSizePerTier: 0.03, // 巨大化: _allyBoost の拡大率に tier×これ を加算(全boosted味方)
-  allyVisHeadsPerTier: 0.5, // 数増: floor(tier×これ)頭を部隊に追加(T2で+1…T6で+3)
-  allyVisHeadMax: 5,        // 味方の同時表示頭数の上限(spot拡張分)
+  webHp: 3,                 // ウェブを除去するのに必要なタップ数 // index=tier-1(T1〜T6)。Tier無し(R30未満)は1.0
   // 特性の遺伝(S4・trait_system §9/§16)。genesis限定=繁殖は両親の"組み替え"のみ(血統外の新特性は繁殖では出ない=賢者の石だけ)。
   //   各特性が独立確率p(内部tierに反比例)で発現→複数同時継承は各pの積で指数的に困難(=やり込み)。★緩めに開始=Ric実機調整。
   // ★遺伝=極小確率のガチャ(設計確定・§コンセプト): 単一特性の継承率を3〜5%帯へ。掛け合わせの射幸心/やり込み指標を核にする。
@@ -719,15 +709,8 @@ const CFG = {
   bioToScienceRate: 10,     // 生態データ10 → 研究力1
   convertBatch: 50,         // 変換ボタン1回の取得量
   mutateBioCost: 50,        // 突然変異に使う生態データ(旧: 変異素材3)
-  allyLvBioCost: 20,        // 味方Lvアップ = 現Lv×これ の生態データ(旧: ボス素材)
-  // Phase6 新arch味方(ID3/4/5/10)の効果=既存の数値枠に落とす(新勝敗ルールなし)。★全てたたき台=Ric実機調整前提。
-  dormouseDps: 0.05,        // ID3 ゼンマイ・ヤマネ部隊: 斉射=戦闘DPS +これ/Lv (火力型・惑星ゲート)
-  moleAtkBuff: 0.05,        // ID5 カジ・モグラ: 全軍バフ=戦闘DPS +これ/Lv (バフ型)
-  anoleDps: 0.05,           // ID10 記録係アノール: 情報バフ(弱点閲覧)=戦闘DPS +これ/Lv (与ダメ上昇型)
-  fireflyGrace: 0.08,       // ID4 トムライ・ホタルジャコ: 回復猶予=負傷時間を これ/Lv 短縮 (支援/回復型)
-  fireflyGraceFloor: 0.4,   // 負傷時間短縮の下限(下げ過ぎ防止)
   // Phase6 ボスHPの惑星別たたき台(味方が全惑星に入った分の調整枠)。★全てたたき台=Ric実機で最終調整。既定=1.0倍(未指定は1)。
-  bossHpMultByStage: { 1: 1.0, 2: 1.05, 3: 1.1, 4: 1.05, 5: 1.1, 6: 1.15, 7: 1.1, 8: 1.1, 9: 1.1, 10: 1.15 },
+  bossHpMultByStage: { 1: 1.0, 2: 1.05, 3: 1.0476, 4: 1.05, 5: 1.0476, 6: 1.15, 7: 1.1, 8: 1.1, 9: 1.1, 10: 1.0952 },
   // Phase6 署名ボス出現率: ボス選定時、この確率でその惑星の署名脅威型(=固有ボス)にする。残りは汎用脅威型で変化(毒/強奪/妨害等)。
   //   ★たたき台=Ric実機で最終調整(1.0=毎回署名 / 0=従来の重み抽選)。署名脅威型がrank未達の惑星は従来抽選へフォールバック。
   sigBossChance: 1.0,       // Phase6: 署名ボスが実質100%(汎用の姿はフィールドに出さない)。minRank縛りは撤廃=その惑星の主は常に主。★変化を戻すなら<1に
@@ -790,7 +773,7 @@ const TITLES = [
   { id: "rank50",   name: "コロニーの主",       hint: "ランク50到達",         cond: (s) => s.rank >= 50 },
   { id: "rank100",  name: "伝説のコロニー王",   hint: "ランク100到達",        cond: (s) => s.rank >= 100 },
   { id: "legend",   name: "始祖の血族",         hint: "伝説個体を図鑑に登録", cond: (s) => Object.keys(s.dex).some((k) => k.endsWith(":legendary")) },
-  { id: "allies6",  name: "百獣の盟主",         hint: "味方6体すべてと出会う", cond: (s) => ALLIES.every((a) => s.allies[a.id]) },
+  { id: "allies6",  name: "百獣の盟主",         hint: "10惑星すべての主を撃退", cond: (s) => STAGES.every((st) => (s.stats.bossPlanets || {})[st.id]) },
   { id: "rich",     name: "黄金コロニー",       hint: "所持金100M",           cond: (s) => s.coins >= 100e6 },
   { id: "breed100", name: "愛の伝道師",         hint: "繁殖100回",            cond: (s) => s.stats.bred >= 100 },
 ];
@@ -1071,7 +1054,7 @@ const MISSIONS = [
   { id: "sold50",  name: "トカゲを50匹売却する",     reward: { coins: 50000 },         check: (s) => s.stats.sold >= 50 },
   { id: "rank50",  name: "コロニーランク50に到達",   reward: { gems: 6 },              check: (s) => s.rank >= 50 },
   { id: "stage10", name: "古代遺跡に到達する",       reward: { gems: 10 },             check: (s) => s.rank >= 90 },
-  { id: "allies6", name: "味方6体すべてと出会う",    reward: { gems: 10 },             check: (s) => ALLIES.every((a) => s.allies[a.id]) },
+  { id: "allies6", name: "5つの惑星で主を撃退する",  reward: { gems: 10 },             check: (s) => Object.keys(s.stats.bossPlanets || {}).length >= 5 },
   { id: "legend1", name: "伝説個体を図鑑に登録する", reward: { gems: 20 },             check: (s) => Object.keys(s.dex).some((k) => k.endsWith(":legendary")) },
 ];
 
@@ -1079,12 +1062,12 @@ const MISSIONS = [
 // hpMult は「撃退所要時間の相対圧」として控えめに設定(§6 KPI: 所要時間は概ね一定)
 // V3 Phase8: 中盤=歯応え。対策(設備/味方/研究)を怠ると撃退が間に合わない水準
 const BOSS_TIERS = [
-  { tier: 1, minRank: 30, hpMult: 1.5, atkMult: 1.0, cutin: false },
-  { tier: 2, minRank: 40, hpMult: 3.0, atkMult: 1.6, cutin: true },
-  { tier: 3, minRank: 50, hpMult: 3.4, atkMult: 2.0, cutin: true, aura: "#9ad0ff" },
-  { tier: 4, minRank: 60, hpMult: 3.8, atkMult: 2.5, cutin: true, aura: "#ffb347" },
-  { tier: 5, minRank: 70, hpMult: 4.2, atkMult: 3.0, cutin: true, aura: "#ff5540", enrage: true },
-  { tier: 6, minRank: 80, hpMult: 4.6, atkMult: 3.5, cutin: true, aura: "#ffd700", enrage: true },
+  { tier: 1, minRank: 30, hpMult: 1.4286, atkMult: 1.0, cutin: false },
+  { tier: 2, minRank: 40, hpMult: 2.7273, atkMult: 1.6, cutin: true },
+  { tier: 3, minRank: 50, hpMult: 2.9825, atkMult: 2.0, cutin: true, aura: "#9ad0ff" },
+  { tier: 4, minRank: 60, hpMult: 3.2203, atkMult: 2.5, cutin: true, aura: "#ffb347" },
+  { tier: 5, minRank: 70, hpMult: 3.4426, atkMult: 3.0, cutin: true, aura: "#ff5540", enrage: true },
+  { tier: 6, minRank: 80, hpMult: 3.6508, atkMult: 3.5, cutin: true, aura: "#ffd700", enrage: true },
 ];
 const bossTierFor = (rank) => {
   if (rank < CFG.bossEveryRank) return null;
@@ -1269,60 +1252,11 @@ const SIG_PAL = {
   baggerParent: { crack: "220,228,240", crackAlpha: 0.34, sac: "#6a4a86", sacEgg: "#c9a8e6", sacGlow: "#b070e0" },
   // ID1 アリド ドロヌマ・ワーム: 桃色寄り→土気色へ濁す＋スケール増で"巨大な脅威"を立てる
   doronumaWorm: { skin: "#7a6647", skinDk: "#4e3d28", band: "#94805c", saddle: "#ad9c7e", sand: "#8f7850", maw: "#2e1d10", bossScale: 1.72, girth: 19 },
-  // 味方の底上げ(ID1/3/4/5/10=小型/背景同化): 倍率＋輪郭の影(縁)で存在感を上げる。良好な味方(ID6/7/8)は非対象
-  allyBoost: { edge: "rgba(0,0,0,.5)", edgeBlur: 2.6, armadillo: 1.24, dormouse: 1.44, firefly: 1.5, mole: 1.42, anole: 1.42, salamander: 1.28 },
   // ID3 シルヴァ クロノ・マンティス: 緑複眼が森林背景と同色域→琥珀へ(殺気=わずかに発光)
   chronoMantis: { eye: "#eca63a", eyeGlow: 5 },
   // ID9 ヴォルタ 廃炉山椒魚(ラクーンから差し替え): 被曝白化の再生両生類(ウーパールーパー系)。役割/引き継ぎ(gecko)は不変=姿のみ
   hairoSalamander: { body: "#e6e0d6", bodyL: "#f2eee6", belly: "#f0dcd8", gill: "#e2909a", gillL: "#f0b0b6", tape: "#d8c828", glow: "#8fe0c0", regen: "rgba(232,226,216,.5)" },
 };
-
-// 味方 (GameExpansion_v2 ⑩) — 繁殖不可・常駐・素材でLvアップ
-const ALLIES = [
-  { id: "turtle",  name: "カメ",           icon: "turtle", unlock: { rank: 45 }, unlockText: "ランク45到達",
-    desc: "高耐久の盾。噛みつきを確率で肩代わり(25%+5%/Lv)。ヌシの生産妨害を半減" },
-  { id: "gecko",   name: "ヤモリ",         icon: "gecko", unlock: { rank: 52 }, unlockText: "ランク52到達",
-    desc: "オオグモのウェブを自動切除(Lvで加速)。コオロギ拾い +0.1/秒/Lv" },
-  { id: "owl",     name: "フクロウ",       icon: "owl", unlock: { rank: 58 }, unlockText: "ランク58到達",
-    desc: "オオガラスの逃走を減速(-20%-5%/Lv)。夜目の早期警戒" },
-  { id: "meerkat", name: "ミーアキャット", icon: "meerkat", unlock: { wins: 60 }, unlockText: "撃退数60回",
-    desc: "見張りで先制時間 +1.5秒/Lv。ヌシの居座り時間 -5秒/Lv" },
-  { id: "ferret",  name: "フェレット",     icon: "ferret", unlock: { rank: 65 }, unlockText: "ランク65到達",
-    desc: "オオサソリへの与ダメ +16%+4%/Lv。回収屋: 撃退報酬 +5%+1%/Lv" },
-  { id: "eagle",   name: "ワシ",           icon: "eagle", unlock: { rank: 70 }, unlockText: "ランク70到達",
-    desc: "上空を制圧しオオタカの急降下を妨害(20%+5%/Lv)" },
-];
-const allyById = (id) => ALLIES.find((a) => a.id === id);
-
-// Phase6 惑星固有の味方(phase6_design.md v1.1)。arch=既存の効果アーキタイプ(meerkat/owl/turtle/ferret/eagle/gecko/新規)。
-//   state.allies は ally id 基準。allyLv(arch) は「現在の惑星の味方がそのarchなら発動」=惑星ゲート。1惑星ずつ有効化する。
-//   旧汎用味方のLvは migrateV13to14 で id を読み替えて移送(案A・損失ゼロ)。
-// arch が既存効果型(meerkat/owl/turtle/ferret/eagle/gecko)の味方は、その惑星でその効果を再有効化(データ駆動・新規ロジックなし)。
-// arch が新規(dormouse/firefly/mole/anole)の味方は「可視・育成可能だが戦闘効果は今後(新ロジック=Ric承認後)」= 効果サイト無し=0。
-const PLANET_ALLIES = [
-  { id: "armadillo", planet: 1, arch: "meerkat", name: "スナホリ・アルマジロ部隊", icon: "paw", draw: "drawArmadilloSquad",
-    desc: "掘削でベビーを地中退避＋先制時間を稼ぐ(先制+1.5秒/Lv・ヌシ居座り短縮)。転がるだけに見えて最速の土木工兵。" },
-  { id: "falcon", planet: 2, arch: "owl", name: "電脳ファルコン", icon: "owl", draw: "drawFalcon",
-    desc: "ネオンをハックして敵の照準をジャミング(妨害/カラス逃走減速)。みすぼらしい隼が電子戦の名手。" },
-  { id: "dormouse", planet: 3, arch: "dormouse", name: "ゼンマイ・ヤマネ部隊", icon: "paw", draw: "drawDormouse",
-    desc: "等時の拍で連射する木製ボウガン隊(火力)。寝ぼけヤマネが正確無比の斉射。※戦闘効果は今後(新ロジック=承認後)。" },
-  { id: "firefly", planet: 4, arch: "firefly", name: "トムライ・ホタルジャコ", icon: "paw", draw: "drawFireflyBird",
-    desc: "緑の鬼火で足止め＋負傷の魂を仮に繋ぐ(支援/回復猶予)。弔いの小鳥が戦場の生命線。※戦闘効果は今後(承認後)。" },
-  { id: "mole", planet: 5, arch: "mole", name: "カジ・モグラ", icon: "paw", draw: "drawAnvilMole",
-    desc: "味方の牙爪を打ち直し軍全体を強化(攻撃力バフ)。金床頭の不格好モグラ。※戦闘効果は今後(承認後)。" },
-  { id: "mangoose", planet: 6, arch: "ferret", name: "クロスボウ・マングース部隊", icon: "ferret", draw: "drawMangooseSquad",
-    desc: "弩の一斉射で大蛇を怯ませ群れで仕留める(対ボス火力+回収)。小マングースが大蛇を制する。" },
-  { id: "octopus", planet: 7, arch: "turtle", name: "碩学蛸", icon: "turtle", draw: "drawOctopus",
-    desc: "8本腕で耐圧ハッチを操り津波を防潮壁で受け流す(全体防御・ヌシ妨害半減)。理屈屋タコが都市防衛システム。" },
-  { id: "penguin", planet: 8, arch: "eagle", name: "ジャンク・ペンギン・サーボ隊", icon: "eagle", draw: "drawServoPenguin",
-    desc: "借り物の軍用サーボの自動照準で淡々と一掃(掃討火力・急降下妨害)。ずんぐりペンギンが最精密の掃討兵。" },
-  { id: "raccoon", planet: 9, arch: "gecko", name: "廃炉山椒魚", icon: "gecko", draw: "drawHairoSalamander",
-    desc: "廃炉の冷却管に棲む被曝白化の再生両生類。四肢を失っても即・再生して戦線復帰(自動処理/持続・ウェブ切除)。" },
-  { id: "anole", planet: 10, arch: "anole", name: "記録係アノール", icon: "paw", draw: "drawArchivistAnole",
-    desc: "過去全惑星の敵の弱点を閲覧し味方に伝える(情報バフ)。内気な記録係が全戦術情報の要。※戦闘効果は今後(承認後)。" },
-];
-const planetAllyById = (id) => PLANET_ALLIES.find((a) => a.id === id);
-const planetAllyOf = (stageId) => PLANET_ALLIES.find((a) => a.planet === stageId);
 
 // 蛇の階級(コロニーランクに同期して見た目と強さが変化)
 const SNAKE_TIERS = [

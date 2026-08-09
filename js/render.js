@@ -174,7 +174,6 @@ const Render = {
     this.drawNest(ctx);
     this.drawFacilities(ctx);
     this.drawSmallFacilities(ctx);
-    this.drawPlanetAllies(ctx); // Phase6: 現在の惑星の固有味方(コロニー側に常駐・観賞/戦力)
     this.drawBurrow(ctx);
     this.drawAutotomyTails(ctx); // §9.1 切り離された尾(地面・トカゲの下)
     // y座標順に描画(奥行き)。さらわれ中・休憩中の個体は描かない
@@ -3645,9 +3644,9 @@ const Render = {
     ctx.restore();
   },
 
-  // ---------------- 味方 (3.11.5で撤去) ----------------
+  // ---------------- 味方 (3.11.5で汎用を撤去 → V6-P1-1で惑星固有もろとも全廃) ----------------
   // 汎用味方(ヤモリ/カメ/ミーアキャット/フクロウ/フェレット/ワシ)の描画は撤去。
-  // Phase 6で惑星固有味方を新設予定。state.alliesのLvは休眠保持(Game.allyLvRawで参照可・資産振替用)。
+  // V6-P1-1で惑星固有味方も全廃。state.allies はセーブ互換のため残置するが**もう読まない**。
 
   // ---------------- Phase6 ID1 アリド: ドロヌマ・ワーム(泥沼蟲) ----------------
   // 敵ボス=砂まみれの巨大ミミズ。地中から突き上げて現れる(snake脅威を再利用・描画のみ差替)。
@@ -4081,199 +4080,6 @@ const Render = {
     ctx.restore();
   },
 
-  // Phase6 ID2 電脳ファルコン(owl型): 廃基板を纏う隼。上空を舞う(1-2羽)。※姿は後で個別修正可。
-  drawFalcon(ctx, lv) {
-    const n = Math.min(2, 1 + Math.floor((lv || 1) / 3));
-    const air = [[330, 250], [240, 300]];
-    for (let i = 0; i < n; i++) { const t = this.time * 1.4 + i * 2.2, bx = air[i][0], by = air[i][1]; this._falcon(ctx, bx + Math.sin(t) * 34, by + Math.sin(t * 1.3) * 12, Math.sin(t) >= 0 ? 1 : -1); }
-  },
-  _falcon(ctx, x, y, dir) {
-    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
-    const P = (typeof SIG_PAL !== "undefined" && SIG_PAL.falcon) || { body: "#5f7391", edge: "#a6f4ff", cyan: "#9df2fd", glow: 0.26, glowR: 27, eyeR: 1.5 };
-    const flap = Math.sin(this.time * 9) * 0.6;
-    // 夜空で沈まないよう視認グローを強める(半径/濃さCFG化)
-    const rgb = "157,242,253"; ctx.fillStyle = `rgba(${rgb},${P.glow})`; ctx.beginPath(); ctx.ellipse(0, 0, P.glowR, P.glowR * 0.35, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = P.body; ctx.strokeStyle = P.edge; ctx.lineWidth = 1; ctx.globalAlpha = 0.6;
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-16, -6 - flap * 12, -26, 0); ctx.quadraticCurveTo(-14, 3, 0, 3); ctx.fill(); ctx.stroke(); // 後翼(縁シアン)
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(12, -6 - flap * 12, 22, 0); ctx.quadraticCurveTo(12, 3, 0, 3); ctx.fill(); ctx.stroke(); // 前翼(縁シアン)
-    ctx.globalAlpha = 1;
-    ctx.beginPath(); ctx.ellipse(3, 1, 8, 4, 0, 0, 7); ctx.fill(); // 胴
-    ctx.beginPath(); ctx.moveTo(-6, 1); ctx.lineTo(-15, 4); ctx.lineTo(-6, 4); ctx.fill(); // 尾
-    ctx.beginPath(); ctx.arc(10, 0, 3.2, 0, 7); ctx.fill(); // 頭
-    ctx.beginPath(); ctx.moveTo(13, 0); ctx.lineTo(17, 1); ctx.lineTo(13, 2); ctx.fill(); // くちばし
-    ctx.save(); ctx.shadowColor = P.cyan; ctx.shadowBlur = 5; ctx.fillStyle = P.cyan; ctx.beginPath(); ctx.arc(11, -1, P.eyeR, 0, 7); ctx.fill(); ctx.fillRect(-1, 0, 5, 1.2); ctx.restore(); // サイバー目(発光)+基板
-    ctx.restore();
-  },
-
-  // Phase6 ID3 ゼンマイ・ヤマネ部隊(新arch・効果は今後): 眠そうなヤマネ+背にゼンマイの鍵。
-  drawDormouse(ctx, lv) { const k = this._allyK("dormouse", 1.44); this._allySquad(ctx, lv, (c, x, y, dir) => this._allyBoost(c, x, y, k, () => this._dormouse(c, 0, 0, dir))); },
-  _dormouse(ctx, x, y, dir) {
-    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
-    const fur = "#8a6a44", furL = "#a8865a", brass = "#b8955a";
-    ctx.fillStyle = "rgba(0,0,0,.2)"; ctx.beginPath(); ctx.ellipse(0, 9, 13, 4, 0, 0, 7); ctx.fill();
-    ctx.strokeStyle = fur; ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(-8, 4); ctx.quadraticCurveTo(-18, 0, -16, -8); ctx.stroke(); // 尾
-    ctx.fillStyle = fur; ctx.beginPath(); ctx.ellipse(0, 2, 11, 9, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = furL; ctx.beginPath(); ctx.ellipse(-1, 1, 8, 6, 0, 0, 7); ctx.fill();
-    ctx.strokeStyle = brass; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(2, -9, 3, 0, 7); ctx.moveTo(2, -9); ctx.lineTo(2, -3); ctx.stroke(); // ゼンマイの鍵
-    ctx.fillStyle = fur; ctx.beginPath(); ctx.arc(9, -1, 6, 0, 7); ctx.fill(); // 頭
-    ctx.beginPath(); ctx.arc(7, -7, 2.4, 0, 7); ctx.fill(); // 耳
-    ctx.strokeStyle = "#241a10"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(10, -2); ctx.lineTo(13, -2); ctx.stroke(); // 寝ぼけ半目
-    ctx.fillStyle = "#3a2418"; ctx.beginPath(); ctx.arc(14, 0, 1.2, 0, 7); ctx.fill(); // 鼻
-    ctx.restore();
-  },
-
-  // Phase6 ID4 トムライ・ホタルジャコ(新arch・効果は今後): 地味な小鳥+緑の鬼火(燐火)。
-  drawFireflyBird(ctx, lv) {
-    const spots = [[300, 455], [360, 478]], n = Math.min(2, 1 + Math.floor((lv || 1) / 3)), k = this._allyK("firefly", 1.5);
-    for (let i = 0; i < n; i++) this._allyBoost(ctx, spots[i][0], spots[i][1], k, () => this._fireflyBird(ctx, 0, 0, i % 2 ? 1 : -1));
-  },
-  _fireflyBird(ctx, x, y, dir) {
-    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
-    const drab = "#5a5348", drabL = "#726a5a";
-    const gp = 0.5 + Math.sin(this.time * 2.4) * 0.4, fx = -12, fy = -14 - Math.sin(this.time * 1.6) * 3;
-    const g = ctx.createRadialGradient(fx, fy, 0, fx, fy, 11); g.addColorStop(0, `rgba(143,224,160,${gp})`); g.addColorStop(1, "rgba(143,224,160,0)");
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(fx, fy, 11, 0, 7); ctx.fill(); // 鬼火
-    ctx.fillStyle = "#8fe0a0"; ctx.globalAlpha = gp; ctx.beginPath(); ctx.arc(fx, fy, 2.4, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
-    ctx.fillStyle = "rgba(0,0,0,.2)"; ctx.beginPath(); ctx.ellipse(0, 8, 10, 3, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = drab; ctx.beginPath(); ctx.ellipse(0, 0, 9, 7, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = drabL; ctx.beginPath(); ctx.ellipse(-1, 1, 6, 4, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = drab; ctx.beginPath(); ctx.moveTo(-2, -2); ctx.quadraticCurveTo(-12, 0, -8, 4); ctx.fill(); // 翼
-    ctx.beginPath(); ctx.arc(7, -3, 4, 0, 7); ctx.fill(); // 頭
-    ctx.fillStyle = "#c0a030"; ctx.beginPath(); ctx.moveTo(10, -3); ctx.lineTo(14, -2); ctx.lineTo(10, -1); ctx.fill(); // くちばし
-    ctx.fillStyle = "#1a140c"; ctx.beginPath(); ctx.arc(8, -4, 1, 0, 7); ctx.fill();
-    ctx.restore();
-  },
-
-  // Phase6 ID5 カジ・モグラ(新arch・効果は今後): 頭が金床の不格好なモグラ。
-  drawAnvilMole(ctx, lv) { const k = this._allyK("mole", 1.42); this._allySquad(ctx, lv, (c, x, y, dir) => this._allyBoost(c, x, y, k, () => this._anvilMole(c, 0, 0, dir))); },
-  _anvilMole(ctx, x, y, dir) {
-    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
-    const fur = "#4a4038", furL = "#5e5248", iron = "#6a6e74", ironD = "#3e4247";
-    ctx.fillStyle = "rgba(0,0,0,.24)"; ctx.beginPath(); ctx.ellipse(0, 10, 14, 4, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = fur; ctx.beginPath(); ctx.ellipse(-2, 2, 13, 9, 0, 0, 7); ctx.fill(); // 胴
-    ctx.fillStyle = furL; ctx.beginPath(); ctx.ellipse(-3, 1, 9, 6, 0, 0, 7); ctx.fill();
-    // 掘る前脚(大きな爪)
-    ctx.fillStyle = "#c9b088"; ctx.beginPath(); ctx.moveTo(6, 6); ctx.lineTo(14, 8); ctx.lineTo(12, 12); ctx.lineTo(6, 10); ctx.fill();
-    // 頭=金床(アンビル)
-    ctx.fillStyle = iron; ctx.beginPath(); ctx.moveTo(6, -6); ctx.lineTo(20, -8); ctx.lineTo(20, -2); ctx.lineTo(14, 0); ctx.lineTo(14, 4); ctx.lineTo(8, 4); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = ironD; ctx.fillRect(8, 3, 6, 3); // 金床の脚
-    ctx.fillStyle = "rgba(255,255,255,.18)"; ctx.beginPath(); ctx.moveTo(8, -6); ctx.lineTo(18, -7); ctx.lineTo(18, -5); ctx.lineTo(8, -4); ctx.fill(); // 金床のハイライト
-    ctx.fillStyle = "#1a140c"; ctx.beginPath(); ctx.arc(10, -1, 1, 0, 7); ctx.fill(); // 目(小)
-    ctx.restore();
-  },
-
-  // Phase6 ID6 クロスボウ・マングース部隊(ferret型): 弩を構える小柄な兵団。
-  drawMangooseSquad(ctx, lv) { this._allySquad(ctx, lv, (c, x, y, dir) => this._mangoose(c, x, y, dir)); },
-  _mangoose(ctx, x, y, dir) {
-    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
-    const fur = "#9a8258", furL = "#b09a70", wood = "#6e5230";
-    ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.beginPath(); ctx.ellipse(0, 12, 11, 3.5, 0, 0, 7); ctx.fill();
-    ctx.strokeStyle = fur; ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(-6, 6); ctx.quadraticCurveTo(-17, 4, -17, -6); ctx.stroke(); // 尾
-    ctx.fillStyle = fur; ctx.beginPath(); ctx.ellipse(-1, 3, 8, 10, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = furL; ctx.beginPath(); ctx.ellipse(-2, 4, 5, 7, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = fur; ctx.fillRect(-4, 11, 3, 4); ctx.fillRect(2, 11, 3, 4); // 後脚
-    ctx.beginPath(); ctx.arc(2, -8, 5, 0, 7); ctx.fill(); // 頭
-    ctx.beginPath(); ctx.moveTo(6, -8); ctx.lineTo(11, -7); ctx.lineTo(6, -6); ctx.fill(); // 鼻先
-    ctx.fillStyle = "#1a140c"; ctx.beginPath(); ctx.arc(4, -9, 1, 0, 7); ctx.fill();
-    ctx.strokeStyle = wood; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(4, 0); ctx.lineTo(15, -2); ctx.stroke(); // 弩の台
-    ctx.beginPath(); ctx.moveTo(15, -6); ctx.lineTo(15, 2); ctx.stroke(); // 弓
-    ctx.strokeStyle = "#d8cbb0"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(15, -6); ctx.lineTo(7, -2); ctx.lineTo(15, 2); ctx.stroke(); // 弦
-    ctx.restore();
-  },
-  // Phase6 ID7 碩学蛸(turtle型): 眼鏡+錨を巻いた理屈屋タコ。
-  drawOctopus(ctx, lv) { const n = Math.min(2, 1 + Math.floor((lv || 1) / 3)), sp = [[300, 468], [362, 452]]; for (let i = 0; i < n; i++) this._octopus(ctx, sp[i][0], sp[i][1], i % 2 ? 1 : -1); },
-  _octopus(ctx, x, y, dir) {
-    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
-    const skin = "#8a5a7a", skinL = "#a87696", glass = "#cfe6ee", anchor = "#8a8f96";
-    ctx.strokeStyle = skin; ctx.lineWidth = 3.5; ctx.lineCap = "round";
-    for (let i = 0; i < 5; i++) { const a = -1.2 + i * 0.6, w = Math.sin(this.time * 2 + i) * 4; ctx.beginPath(); ctx.moveTo(0, 4); ctx.quadraticCurveTo(Math.cos(a) * 14, 11 + w, Math.cos(a) * 20, 17); ctx.stroke(); } // 触腕
-    ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(0, -4, 14, 15, 0, 0, 7); ctx.fill(); // マント
-    ctx.fillStyle = skinL; ctx.beginPath(); ctx.ellipse(-2, -8, 8, 8, 0, 0, 7); ctx.fill();
-    ctx.strokeStyle = "#2a2e33"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(-4, -2, 3.4, 0, 7); ctx.arc(5, -2, 3.4, 0, 7); ctx.moveTo(-0.6, -2); ctx.lineTo(1.6, -2); ctx.stroke(); // 眼鏡
-    ctx.fillStyle = glass; ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(-4, -2, 3, 0, 7); ctx.arc(5, -2, 3, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
-    ctx.fillStyle = "#1a1418"; ctx.beginPath(); ctx.arc(-4, -2, 1.2, 0, 7); ctx.arc(5, -2, 1.2, 0, 7); ctx.fill();
-    ctx.strokeStyle = anchor; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-16, 2); ctx.lineTo(-16, 14); ctx.moveTo(-20, 10); ctx.quadraticCurveTo(-16, 18, -12, 10); ctx.moveTo(-20, 2); ctx.lineTo(-12, 2); ctx.stroke(); // 錨
-    ctx.restore();
-  },
-
-  // Phase6 ID8 ジャンク・ペンギン・サーボ隊(eagle型): 軍用サーボを背負ったペンギン。
-  drawServoPenguin(ctx, lv) { this._allySquad(ctx, lv, (c, x, y, dir) => this._penguin(c, x, y, dir)); },
-  _penguin(ctx, x, y, dir) {
-    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
-    const black = "#2a2e34", white = "#e8ecf0", beak = "#d8a030", steel = "#6a6e74", red = "#ff4030";
-    ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.beginPath(); ctx.ellipse(0, 13, 11, 3.5, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = black; ctx.beginPath(); ctx.ellipse(0, 2, 10, 13, 0, 0, 7); ctx.fill(); // 体
-    ctx.fillStyle = white; ctx.beginPath(); ctx.ellipse(-1, 4, 6, 9, 0, 0, 7); ctx.fill(); // 腹
-    ctx.fillStyle = beak; ctx.beginPath(); ctx.moveTo(-5, 14); ctx.lineTo(-1, 14); ctx.lineTo(-3, 10); ctx.fill(); ctx.beginPath(); ctx.moveTo(2, 14); ctx.lineTo(6, 14); ctx.lineTo(4, 10); ctx.fill(); // 足
-    ctx.fillStyle = black; ctx.beginPath(); ctx.arc(0, -10, 7, 0, 7); ctx.fill(); // 頭
-    ctx.fillStyle = beak; ctx.beginPath(); ctx.moveTo(6, -10); ctx.lineTo(11, -9); ctx.lineTo(6, -8); ctx.fill(); // くちばし
-    ctx.fillStyle = white; ctx.beginPath(); ctx.arc(3, -12, 1.6, 0, 7); ctx.fill(); ctx.fillStyle = "#1a1418"; ctx.beginPath(); ctx.arc(3.4, -12, 0.9, 0, 7); ctx.fill();
-    ctx.strokeStyle = steel; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-8, -2); ctx.lineTo(-16, -8); ctx.lineTo(-10, -14); ctx.stroke(); // サーボアーム
-    ctx.fillStyle = steel; ctx.fillRect(-14, -16, 8, 4);
-    ctx.fillStyle = red; ctx.beginPath(); ctx.arc(-6, -15, 1.4, 0, 7); ctx.fill(); // 赤単眼(照準)
-    ctx.restore();
-  },
-  // Phase6 ID9 ジャンク・ラクーン整備班(gecko型): 応急テープだらけのアライグマ。※代替=廃炉山椒魚(姿は後で個別修正可)。
-  // Phase6 ID9 ヴォルタ: 廃炉山椒魚(ラクーンから差し替え)。被曝白化の再生両生類(ウーパールーパー系)。
-  //   四肢を失っても即再生(=1本を半透明の再生肢で表現)。黄テープ意匠は尾に残す。役割/引き継ぎ(gecko)は不変=姿のみ。
-  drawHairoSalamander(ctx, lv) { const k = this._allyK("salamander", 1.28); this._allySquad(ctx, lv, (c, x, y, dir) => this._allyBoost(c, x, y, k, () => this._hairoSalamander(c, 0, 0, dir))); },
-  _hairoSalamander(ctx, x, y, dir) {
-    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
-    const S = (typeof SIG_PAL !== "undefined" && SIG_PAL.hairoSalamander) || { body: "#e6e0d6", bodyL: "#f2eee6", belly: "#f0dcd8", gill: "#e2909a", gillL: "#f0b0b6", tape: "#d8c828", glow: "#8fe0c0", regen: "rgba(232,226,216,.5)" };
-    ctx.fillStyle = "rgba(0,0,0,.2)"; ctx.beginPath(); ctx.ellipse(0, 10, 13, 3.5, 0, 0, 7); ctx.fill();
-    // 被曝適応の淡い冷光(わずか)
-    const gp = 0.14 + Math.sin(this.time * 1.8) * 0.06; const gg = ctx.createRadialGradient(0, 2, 2, 0, 2, 20); gg.addColorStop(0, `rgba(143,224,192,${gp})`); gg.addColorStop(1, "rgba(143,224,192,0)"); ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(0, 2, 20, 0, 7); ctx.fill();
-    // 尾(ひれ付き)＋黄テープの目印
-    ctx.fillStyle = S.body; ctx.beginPath(); ctx.moveTo(-6, 2); ctx.quadraticCurveTo(-22, -4, -24, 3); ctx.quadraticCurveTo(-18, 8, -6, 6); ctx.fill(); // 尾ひれ
-    ctx.strokeStyle = S.tape; ctx.lineWidth = 2.2; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(-16, 1); ctx.lineTo(-13, 5); ctx.stroke();
-    // 後脚(片方は半透明=再生中の四肢)
-    ctx.strokeStyle = S.body; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.moveTo(-3, 8); ctx.lineTo(-6, 13); ctx.stroke();
-    ctx.strokeStyle = S.regen; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.moveTo(3, 8); ctx.lineTo(5, 12); ctx.stroke(); // 再生肢(淡い)
-    // 胴(ずんぐり両生類)
-    ctx.fillStyle = S.body; ctx.beginPath(); ctx.ellipse(-1, 3, 11, 8, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = S.belly; ctx.beginPath(); ctx.ellipse(-1, 5, 8, 4.5, 0, 0, 7); ctx.fill(); // 腹
-    ctx.fillStyle = "rgba(255,255,255,.4)"; ctx.beginPath(); ctx.ellipse(-3, 0, 5, 2.4, 0, 0, 7); ctx.fill(); // 湿った照り
-    // 前脚
-    ctx.strokeStyle = S.body; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(6, 7); ctx.lineTo(9, 12); ctx.stroke();
-    // 幅広の頭
-    ctx.fillStyle = S.bodyL; ctx.beginPath(); ctx.ellipse(9, -1, 8, 6, 0, 0, 7); ctx.fill();
-    // 外鰓(ウーパールーパーの羽状の鰓=3本×上下)
-    ctx.lineCap = "round";
-    for (const sd of [-1, 1]) { for (let i = 0; i < 3; i++) { const gy = -1 + sd * (2 + i * 2.4); ctx.strokeStyle = i === 1 ? S.gillL : S.gill; ctx.lineWidth = 2.2 - i * 0.3; ctx.beginPath(); ctx.moveTo(6, -1); ctx.quadraticCurveTo(10, gy, 15 + i, gy + sd * 2); ctx.stroke(); } }
-    // 目(小・つぶら)＋のんびりした口
-    ctx.fillStyle = "#2a2620"; ctx.beginPath(); ctx.arc(11, -3, 1.2, 0, 7); ctx.arc(14, -2, 1.2, 0, 7); ctx.fill();
-    ctx.strokeStyle = "rgba(140,110,110,.6)"; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(12, 2); ctx.quadraticCurveTo(15, 3, 17, 1.5); ctx.stroke();
-    ctx.restore();
-  },
-
-  // Phase6 ID10 記録係アノール(新arch・効果は今後): 石板を抱えた学者肌の小トカゲ。
-  drawArchivistAnole(ctx, lv) { const n = Math.min(2, 1 + Math.floor((lv || 1) / 3)), sp = [[300, 466], [362, 452]], k = this._allyK("anole", 1.42); for (let i = 0; i < n; i++) this._allyBoost(ctx, sp[i][0], sp[i][1], k, () => this._anole(ctx, 0, 0, i % 2 ? 1 : -1)); },
-  _anole(ctx, x, y, dir) {
-    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
-    const skin = "#7a8a6a", skinL = "#9aac86", tablet = "#8a8072", gold = "#c9a84e";
-    ctx.fillStyle = "rgba(0,0,0,.2)"; ctx.beginPath(); ctx.ellipse(0, 10, 13, 3.5, 0, 0, 7); ctx.fill();
-    ctx.strokeStyle = skin; ctx.lineWidth = 3; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(-8, 6); ctx.quadraticCurveTo(-20, 6, -24, 0); ctx.stroke(); // 尾
-    ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(-2, 4, 10, 6, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = skinL; ctx.beginPath(); ctx.ellipse(-3, 3, 6, 4, 0, 0, 7); ctx.fill();
-    // 学者服(肩マント)=記録係の証(トカゲと差別化)
-    ctx.fillStyle = "#3f4e74"; ctx.beginPath(); ctx.moveTo(-8, -1); ctx.quadraticCurveTo(-10, 9, -2, 10); ctx.quadraticCurveTo(4, 9, 5, 1); ctx.quadraticCurveTo(-1, -3, -8, -1); ctx.fill();
-    ctx.fillStyle = "#2c3856"; ctx.fillRect(-1, -1, 2, 10); // 前立て
-    ctx.strokeStyle = skin; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-4, 9); ctx.lineTo(-7, 13); ctx.moveTo(2, 9); ctx.lineTo(4, 13); ctx.stroke(); // 後脚
-    ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(7, -1, 6, 4.5, 0, 0, 7); ctx.fill(); // 頭
-    ctx.fillStyle = "#1a140c"; ctx.beginPath(); ctx.arc(9, -2, 1.2, 0, 7); ctx.fill();
-    // 丸眼鏡(学者)=記録係の証
-    ctx.strokeStyle = "#241a12"; ctx.lineWidth = 0.9; ctx.beginPath(); ctx.arc(9, -2, 2.6, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.moveTo(11.5, -2); ctx.lineTo(13.5, -1); ctx.stroke();
-    ctx.fillStyle = "rgba(205,232,255,.45)"; ctx.beginPath(); ctx.arc(9, -2, 2.1, 0, 7); ctx.fill(); // レンズの光
-    ctx.fillStyle = tablet; ctx.fillRect(0, -2, 11, 12); ctx.strokeStyle = "#5f574c"; ctx.lineWidth = 1; ctx.strokeRect(0, -2, 11, 12); // 石板
-    const gp = 0.5 + Math.sin(this.time * 2) * 0.3; ctx.strokeStyle = gold; ctx.globalAlpha = gp; ctx.lineWidth = 1;
-    for (const ly of [1, 5, 8]) { ctx.beginPath(); ctx.moveTo(2, ly); ctx.lineTo(9, ly); ctx.stroke(); } // 金の刻印(閲覧)
-    ctx.globalAlpha = 1;
-    ctx.strokeStyle = skinL; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-1, 6); ctx.lineTo(1, 10); ctx.stroke(); // 抱える前足
-    ctx.restore();
-  },
-
-  // ---------------- Phase6 惑星固有の味方 ----------------
-  // 現在の惑星の味方をコロニー側(左)に描画。owned(state.allies)があるときのみ。惑星ごとに描画分岐を足す。
   // ---------------- 特性(Trait)の見た目 — trait_system.md S1(見た目試作・付与なし) ----------------
   // 通常個体は lz.traits を持たない(S1=付与なし)。プレビュー(test-traits.html)が traits 付き個体を描いて見た目を確認する。
   //   魂(骨格)は不変=顔/体に"上乗せ"で描くのみ。データ駆動: TRAITS[key].draw がメソッド名。g=頭部ジオメトリ(scale(face,1)後の局所空間)。
@@ -5216,78 +5022,6 @@ const Render = {
     ctx.stroke(body);
     ctx.globalAlpha = 0.35; ctx.lineWidth = Math.max(2.4, L * 0.028);
     ctx.stroke(body);
-    ctx.restore();
-  },
-
-  drawPlanetAllies(ctx) {
-    const st = Game.currentStage && Game.currentStage();
-    const a = st && planetAllyOf(st.id);
-    if (!a) return;
-    const owned = Game.state.allies[a.id];
-    if (!owned) return;
-    if (a.draw && typeof this[a.draw] === "function") this[a.draw](ctx, owned.lv); // データ駆動(PLANET_ALLIES.draw)
-  },
-  // Phase6 味方の底上げ(存在感): 個体を(x,y)でk倍に拡大し、輪郭に薄い影(縁/接地)を付けて背景から浮かせる。
-  //   fn(ctx)は原点(0,0)で1体を描く。★倍率/縁は SIG_PAL.allyBoost で調整可(Ric実機)。良好な味方(ID6/7/8)は通さない。
-  _allyK(name, def) { return (typeof SIG_PAL !== "undefined" && SIG_PAL.allyBoost && SIG_PAL.allyBoost[name]) || def; },
-  // Phase7: 視覚スケールの駆動=惑星のTier上限(bossTierFor(rank))に常時連動。襲撃中でなくても味方が育って見える。
-  _allyVisTier() {
-    const r = (typeof bossTierFor === "function") && bossTierFor(Game.state.rank);
-    return (r && r.tier) || 0;
-  },
-  _allyBoost(ctx, x, y, k, fn) {
-    const B = (typeof SIG_PAL !== "undefined" && SIG_PAL.allyBoost) || {};
-    const kk = k * (1 + this._allyVisTier() * (CFG.allyVisSizePerTier || 0)); // Phase7: 巨大化(惑星Tierに常時連動)
-    ctx.save();
-    ctx.translate(Math.round(x), Math.round(y)); ctx.scale(kk, kk);
-    ctx.shadowColor = B.edge || "rgba(0,0,0,.5)"; ctx.shadowBlur = B.edgeBlur || 2.6; ctx.shadowOffsetY = 1;
-    fn(ctx); // 原点で個体を描く(各_xxxは内部で translate(0,0)+scale(dir,1))
-    ctx.restore();
-  },
-  // 味方の共通配置: コロニー左手前のスポットに頭数を置く。基本=Lvで1-3。Phase7: 惑星Tierで数増(部隊が"ボスに対応"して見える・上限allyVisHeadMax)。
-  //   fn(ctx,x,y,dir,i) で1体描く。spotは最大5まで用意(Tier数増の受け皿)。
-  _allySquad(ctx, lv, fn) {
-    const base = Math.min(3, 1 + Math.floor((lv || 1) / 2));
-    const extra = Math.floor(this._allyVisTier() * (CFG.allyVisHeadsPerTier || 0)); // Phase7: 数増
-    const spot = [[300, 452], [232, 486], [368, 470], [352, 500], [264, 442]];
-    const n = Math.min(CFG.allyVisHeadMax || spot.length, base + extra);
-    for (let i = 0; i < n; i++) { const t = this.time * 0.8 + i * 2.1; fn(ctx, spot[i][0] + Math.sin(t) * 8, spot[i][1] - Math.abs(Math.sin(t * 2)) * 2, i % 2 === 0 ? 1 : -1, i); }
-  },
-  // スナホリ・アルマジロ部隊(ID1): Lv/惑星Tierで頭数が増える。コロニー左手前でのんびり掘る/歩く。
-  //   Phase7: 頭数・巨大化は共通ヘルパ(_allySquad/_allyBoost)経由=頭数の知識を一箇所に集約(重複排除)。
-  drawArmadilloSquad(ctx, lv) {
-    const k = this._allyK("armadillo", 1.24);
-    this._allySquad(ctx, lv, (c, x, y, dir) => this._allyBoost(c, x, y, k, () => this.drawArmadillo(c, 0, 0, dir)));
-  },
-  drawArmadillo(ctx, x, y, dir) {
-    ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(dir, 1);
-    const shell = "#a58a5f", shellDk = "#6f5a38", skin = "#8a7350";
-    // 影
-    ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.beginPath(); ctx.ellipse(0, 11, 21, 5.5, 0, 0, 7); ctx.fill();
-    // 脚(前後2対の短い脚)
-    ctx.fillStyle = skin;
-    for (const lx of [-11, -4, 6, 12]) { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx, 6, 3.4, 8, 1.5) : ctx.rect(lx, 6, 3.4, 8); ctx.fill(); }
-    // 尾(細く後ろへ)
-    ctx.strokeStyle = shellDk; ctx.lineWidth = 3; ctx.lineCap = "round";
-    ctx.beginPath(); ctx.moveTo(-16, 2); ctx.quadraticCurveTo(-26, 0, -30, -6); ctx.stroke();
-    // 甲羅(丸い背)
-    ctx.fillStyle = shell; ctx.beginPath(); ctx.ellipse(0, 0, 19, 13, 0, Math.PI, 0); ctx.fill();
-    ctx.fillStyle = "#b89a6a"; ctx.beginPath(); ctx.ellipse(-2, -2, 15, 10, 0, Math.PI, 0); ctx.fill(); // 上面ハイライト
-    // 甲羅のバンド(装甲の帯)
-    ctx.strokeStyle = shellDk; ctx.lineWidth = 1.6;
-    for (let i = -2; i <= 3; i++) { const bx = i * 5.5; ctx.beginPath(); ctx.moveTo(bx, 1); ctx.lineTo(bx + (i > 0 ? 2 : -2), -12 + Math.abs(i) * 0.6); ctx.stroke(); }
-    // 前縁と後縁の帯(頭側・尾側の板)
-    ctx.strokeStyle = shellDk; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.ellipse(0, 0, 19, 13, 0, Math.PI * 0.86, Math.PI * 1.14); ctx.stroke();
-    // 腹の縁
-    ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(0, 1, 19, 3, 0, 0, Math.PI); ctx.fill();
-    // 頭(前=右)+鼻先
-    ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(19, 1, 7, 6, 0, 0, 7); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(24, -1); ctx.lineTo(30, 1); ctx.lineTo(24, 4); ctx.closePath(); ctx.fill(); // 尖った鼻先
-    // 耳
-    ctx.fillStyle = shellDk; ctx.beginPath(); ctx.ellipse(17, -6, 2, 4, -0.3, 0, 7); ctx.fill();
-    // 目
-    ctx.fillStyle = "#241a10"; ctx.beginPath(); ctx.arc(20, 0, 1.3, 0, 7); ctx.fill();
     ctx.restore();
   },
 

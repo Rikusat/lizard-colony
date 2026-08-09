@@ -58,7 +58,7 @@ const Game = {
       eggs: [],
       facilities: Object.fromEntries(FACILITIES.map((f) => [f.id, 0])),
       dex: {},
-      stats: { fed: 0, hatched: 0, raidsWon: 0, bossWon: 0, bred: 0, sold: 0 },
+      stats: { fed: 0, hatched: 0, raidsWon: 0, bossWon: 0, bred: 0, sold: 0, bossPlanets: {} },
       missionsClaimed: {},
       raidTimer: CFG.raidInterval,
       autoSupply: false,
@@ -143,33 +143,6 @@ const Game = {
   nestLv() { return (this.state.nest && this.state.nest.lv) || 1; }, // §8.12: 巣Lv(繁殖/給餌効果の統合先。最低1)
   // §9-C4: 進行マイルストーンは飼育槽中央の軽い通知へ(トースト非使用)。1件・短時間・古いものは捨てる(Render側)
   notice(text, sub, accent) { if (typeof Render !== "undefined" && Render.showCenterNotice) Render.showCenterNotice(text, sub || "", accent || "info"); },
-  // Phase6: 味方効果はアーキタイプ(meerkat/owl/turtle/ferret/eagle/gecko)で呼ばれる。
-  //   現在の惑星の味方がそのarchなら、その味方Lvを返す=惑星ゲート(他惑星へ効果が漏れない)。未実装惑星は常に0。
-  allyLv(arch) {
-    const st = this.currentStage && this.currentStage();
-    const a = st && planetAllyOf(st.id);
-    return (a && a.arch === arch && this.state.allies[a.id] && this.state.allies[a.id].lv) || 0;
-  },
-  allyLvRaw(id) { return (this.state.allies[id] && this.state.allies[id].lv) || 0; }, // ally id 基準の生Lv(育成/移送用)
-  // Phase6: 現在の惑星の固有味方を自動加入(Lv1)。移送で高Lvを引き継いだ個体はそのまま。未実装惑星は何もしない。
-  checkAllies() {
-    const st = this.currentStage && this.currentStage();
-    const a = st && planetAllyOf(st.id);
-    if (a && !this.state.allies[a.id]) this.state.allies[a.id] = { lv: 1 };
-  },
-  // Phase7: ボスLv連動の味方自動強化(手動育成不要)。ボスの"規模"=raidの実Tier(+elite)で味方効果を底上げ。
-  //   味方が在住する惑星でのみ発火(present-gated=強化するのは"味方"の働き)。手動育成allyLvとは別係数で加算的に乗る(二重取りなし)。
-  //   Tier無し(R30未満)は1.0=強化なし。全てCFGたたき台=Ricが味方あり/なし勝率で bossHpMultByStage と一緒に最終調整。
-  raidAllyTierScale(r) {
-    const st = this.currentStage && this.currentStage();
-    const a = st && planetAllyOf(st.id);
-    if (!a || !this.state.allies[a.id]) return 1; // 味方不在=強化なし
-    const tier = (r && r.tier) || 0;
-    if (!tier) return 1;
-    let m = (CFG.allyScaleByTier && CFG.allyScaleByTier[tier - 1]) || 1;
-    if (r.elite) m *= CFG.allyScaleElite || 1;
-    return m;
-  },
   isHidden(lz) { return lz.hiddenT > 0; }, // 鷹にさらわれて一時不在
   isAway(lz) { return lz.hiddenT > 0; }, // フィールド外(鷹にさらわれ一時不在)。V5.2: 探索(exploring)はV4.1で撤去済のため参照しない(残留フラグで個体が永久away=給餌/emit不能になるバグ根治)
   isVisible(lz) { return !this.isAway(lz) && !lz.resting; }, // フィールドに描画される個体
@@ -803,7 +776,7 @@ const Game = {
     if (this.state.rocket && this.state.rocket.done) t *= 1.1; // ロケット完成の恒久ボーナス
     // ヌシオオトカゲの威嚇: 居座り中は生産低下(カメがいれば半減)
     if (this.raid && this.raid.typeId === "monitor" && this.raid.snake.arrived) {
-      t *= this.allyLv("turtle") ? 0.7 : 0.4;
+      t *= 0.4;
     }
     return t;
   },
@@ -1614,37 +1587,6 @@ const Game = {
   },
 
   // ---------------- 味方 (GameExpansion_v2 ⑩) ----------------
-  allyLvUpCost(id) { return this.allyLvRaw(id) * CFG.allyLvBioCost; }, // 生態データで育成(ally id 基準の現Lv×コスト)
-  allyLvUp(id) {
-    const a = this.state.allies[id];
-    if (!a || a.lv >= CFG.allyMaxLv) return false;
-    const cost = this.allyLvUpCost(id);
-    if (this.res("bio") < cost) {
-      UI.toast("生態データが足りない! 育成や探索で貯まる", true);
-      return false;
-    }
-    this.addRes("bio", -cost);
-    a.lv++;
-    const def = planetAllyById(id) || allyById(id);
-    UI.toast(`${def ? def.name : "味方"} が Lv${a.lv} に成長した!`);
-    return true;
-  },
-
-  // ---------------- 設備 ----------------
-  facilityCost(id) {
-    const f = facilityById(id);
-    return Math.floor(f.baseCost * Math.pow(f.costMult, this.facLv(id)));
-  },
-  buyFacility(id) {
-    const f = facilityById(id);
-    if (this.facLv(id) >= this.facMax(f)) return;
-    const cost = this.facilityCost(id);
-    if (this.state.coins < cost) return UI.denyFlash("coins");
-    this.state.coins -= cost;
-    this.state.facilities[id]++;
-    UI.toast(`${f.name} が Lv${this.facLv(id)} になった!`);
-  },
-
   // ---------------- 襲撃(防衛バトル / GameExpansion_v2 ①②) ----------------
   // 次の襲撃を事前決定(予告UI用)。R30未満=従来(5回に1回ボス蛇)、R30+=毎回ボス+5回に1回Elite
   rollNextRaid() {
@@ -1706,10 +1648,9 @@ const Game = {
         x: W + 80, y: type.flying ? 120 : SNAKE_HOME.y,
         arrived: false, phase: rnd(0, 6),
       },
-      timeLeft: type.dur + (tierDef ? tierDef.tier * 2 : (nr.boss ? 15 : 0))
-        - (nr.typeId === "monitor" ? this.allyLv("meerkat") * 5 : 0),
+      timeLeft: type.dur + (tierDef ? tierDef.tier * 2 : (nr.boss ? 15 : 0)),
       // フェンス先制+ミーアキャット+展望岩の早期警戒(飛行する鷹には効かない)
-      stunT: nr.typeId === "hawk" ? 0 : this.facLv("fence") * 2 + this.allyLv("meerkat") * 1.5 + this.facLv("observatory") * 0.8,
+      stunT: nr.typeId === "hawk" ? 0 : this.facLv("fence") * 2 + this.facLv("observatory") * 0.8,
       // 初回攻撃: 通常は猶予2倍、ティアボスは1.2倍(中盤=歯応え / Phase8)
       biteT: (CFG.biteIntervalBase + this.facLv("fence")) * (tierDef ? 1.2 : 2),
       shake: 0, cutinT: tierDef && tierDef.cutin ? 1.2 : 0,
@@ -1735,13 +1676,7 @@ const Game = {
     for (const lz of this.fighters()) dps += this.lizardAtk(lz);
     dps *= 1 + this.facLv("watchtower") * 0.04            // 監視塔
       + this.researchBonus("atk");                          // HQ研究
-    if (r.typeId === "scorpion" && this.allyLv("ferret")) dps *= 1.16 + this.allyLv("ferret") * 0.04;
     if (r.typeId === "spider") dps *= Math.max(0.5, 1 - r.webs.filter((w) => w.hp > 0).length * CFG.webDpsPenalty);
-    // Phase6 新arch味方の火力系(既存DPS枠に加算・惑星ゲートで各自の惑星のみ非0)。全てたたき台CFG。
-    if (this.allyLv("dormouse")) dps *= 1 + this.allyLv("dormouse") * CFG.dormouseDps; // ID3 斉射(火力)
-    if (this.allyLv("mole")) dps *= 1 + this.allyLv("mole") * CFG.moleAtkBuff;         // ID5 全軍バフ
-    if (this.allyLv("anole")) dps *= 1 + this.allyLv("anole") * CFG.anoleDps;          // ID10 情報バフ(弱点閲覧=与ダメ+)
-    dps *= this.raidAllyTierScale(r); // Phase7: ボスTier(+elite)連動の味方自動強化(味方在住惑星のみ・手動育成とは別枠)
     return dps;
   },
 
@@ -1843,8 +1778,7 @@ const Game = {
         e.y += ((r.dive.t < 0.7 ? tgt.y - 30 : 140) - e.y) * Math.min(1, dt * 4);
         if (r.dive.t <= 0) {
           // ワシの妨害 / 日光反射板 / 予告リング連打で阻止
-          const failP = (this.allyLv("eagle") ? 0.2 + this.allyLv("eagle") * 0.05 : 0)
-            + this.facLv("trap") * 0.035
+          const failP = this.facLv("trap") * 0.035
             + (r.dive.taps >= CFG.hawkTapToScare ? 1 : 0);
           if (Math.random() < failP) {
             this.popup(tgt.x, tgt.y - 30, "妨害成功!", "#8fd0ff");
@@ -1868,7 +1802,7 @@ const Game = {
     r.timeLeft -= dt;
     if (this.applyDps(r, dt, 1)) return this.endRaid(true);
     if (r.fleeing) {
-      const spd = 130 * (1 - (this.allyLv("owl") ? 0.15 + this.allyLv("owl") * 0.05 : 0));
+      const spd = 130;
       e.x += spd * dt;
       e.y = Math.max(90, e.y - 45 * dt);
       if (e.x > W + 70) return this.endRaid(false, r.stolenEgg ? "egg" : undefined);
@@ -1926,16 +1860,10 @@ const Game = {
     // §8.10: ベビーは常に安全(旧シェルターのベビー保護を「巣の基本仕様」として標準化=無条件)。負傷対象はアダルトのみ
     const targets = this.state.lizards.filter((lz) => lz.injuredT <= 0 && !this.isHidden(lz) && lz.stage === "adult");
     if (targets.length === 0) return;
-    const turtleLv = this.allyLv("turtle");
     for (let i = 0; i < Math.min(count, targets.length); i++) {
       const idx = Math.floor(Math.random() * targets.length);
       const v = targets.splice(idx, 1)[0];
-      if (turtleLv && Math.random() < 0.2 + turtleLv * 0.05) {
-        this.popup(v.x, v.y - 20, "ブロック!", "#8fd0ff");
-        continue;
-      }
-      // Phase6 ID4 ホタルジャコ回復猶予(支援): 負傷時間を短縮(既存の負傷時間枠・惑星ゲート・たたき台CFG)
-      v.injuredT = CFG.injuryTime * Math.max(CFG.fireflyGraceFloor, 1 - this.allyLv("firefly") * CFG.fireflyGrace);
+      v.injuredT = CFG.injuryTime;
       this.autotomize(v); // §9.1: テキスト通知でなく「尾を切って逃げる」で見せる(回復は尾の再生で伝わる)
     }
   },
@@ -1959,15 +1887,6 @@ const Game = {
   },
 
   updateWebs(r, dt) {
-    const geckoLv = this.allyLv("gecko");
-    if (geckoLv) {
-      r.geckoT = (r.geckoT === undefined ? 8 - geckoLv : r.geckoT) - dt;
-      if (r.geckoT <= 0) {
-        r.geckoT = 8 - geckoLv;
-        const w = r.webs.find((w2) => w2.hp > 0);
-        if (w) { w.hp = 0; this.popup(w.x, w.y, "カット!", "#9fe07a"); }
-      }
-    }
     for (const w of r.webs) {
       if (w.burnT > 0 && w.hp > 0) {
         w.burnT -= dt;
@@ -1981,7 +1900,6 @@ const Game = {
     const s = this.state;
     if (win) {
       let coins = Math.floor(r.snake.maxHp * 2) * (r.elite ? 2 : 1);
-      if (this.allyLv("ferret")) coins = Math.floor(coins * (1.04 + this.allyLv("ferret") * 0.01));
       if (this.isFrontier()) coins = Math.floor(coins * CFG.frontierRaidMult); // フロンティア報酬(§2.2)
       s.coins += coins;
       s.stats.raidsWon++;
@@ -1994,6 +1912,8 @@ const Game = {
       if (r.tier) {
         // R30+ ボスティア報酬(V4: 素材→研究力+生態データ)
         s.stats.bossWon++;
+        // V6-P1-1: 主を撃退した惑星を記録(称号「百獣の盟主」/ ミッションの条件。旧セーブは未定義=読み出し側でガード)
+        (s.stats.bossPlanets || (s.stats.bossPlanets = {}))[this.currentStage().id] = 1;
         const gems = (1 + r.tier) * (r.elite ? 2 : 1);
         const sci = Math.ceil(r.tier / 2) + (r.elite ? 2 : 0);
         const bio = r.tier * 3;
@@ -2121,11 +2041,10 @@ const Game = {
     const spawn = this.nestLv() * CFG.nestCricketPerLv + (env.crickets || 0);
     if (spawn > 0) s.crickets = (s.crickets || 0) + spawn * dt;
 
-    // 味方のパッシブ・自動給餌・解禁チェック(毎秒)
+    // 解禁チェック(毎秒)
     this._allyT = (this._allyT || 0) + dt;
     if (this._allyT >= 1) {
       this._allyT = 0;
-      if (this.allyLv("gecko")) s.crickets = (s.crickets || 0) + 0.1 * this.allyLv("gecko"); // V5.2: コオロギ拾いを復活
       // 【恒久設計方針・Ric裁定 2026-07-24(HANDOFF §5nnn)】給餌の自動化は「クランク経路(state.dial.auto→feedAll)」のみ。
       // 巣・施設・その他いかなる経路にも自動給餌を作らないこと。
       // ここには旧「§8.12 巣の自動給餌」があったが、523be66(餌場→巣統合)で駆動が nestLv()(最低1=常時ON)化し
@@ -2133,14 +2052,6 @@ const Game = {
       // 【恒久設計方針・Ric裁定 2026-07-29】繁殖の自動化も作らない。手動での掛け合わせがゲームUXの核であり、
       // 自動選出(クイック繁殖)と繁殖予約(autoBreed)はその体験を痩せさせるため機構ごと撤廃した。再実装禁止。
       // (旧「§8.12 繁殖予約(巣Lv5+)」がここにあった。state.autoBreed はセーブ互換のため残るが**もう読まない**)
-      for (const a of ALLIES) {
-        if (s.allies[a.id]) continue;
-        const u = a.unlock;
-        if ((u.rank && s.rank >= u.rank) || (u.wins && s.stats.raidsWon >= u.wins)) {
-          s.allies[a.id] = { lv: 1 };
-          UI.toast(`味方が仲間になった! ${Icon.svg(a.icon)} ${a.name} — ${a.desc}`);
-        }
-      }
       this.checkTitles();
       this.checkLore();
     }
@@ -2186,7 +2097,6 @@ const Game = {
     if (this._nestT >= 1) {
       this._nestT = 0;
       this.checkNestWeb(false);
-      this.checkAllies(); // Phase6: 現在の惑星の固有味方を自動加入(Lv1・未実装惑星は無操作)
     }
 
     this.updateResting(dt);
@@ -3453,15 +3363,6 @@ const Game = {
     let raw;
     try { raw = localStorage.getItem(CFG.saveBackupKeyV13); } catch (e) { raw = null; }
     if (!raw) { UI.toast("餌場/繁殖施設 撤廃前のバックアップが見つからない", true); return false; }
-    localStorage.setItem(CFG.saveKey, raw);
-    location.reload();
-    return true;
-  },
-
-  restoreV14Backup() {
-    let raw;
-    try { raw = localStorage.getItem(CFG.saveBackupKeyV14); } catch (e) { raw = null; }
-    if (!raw) { UI.toast("惑星味方 移行前のバックアップが見つからない", true); return false; }
     localStorage.setItem(CFG.saveKey, raw);
     location.reload();
     return true;
