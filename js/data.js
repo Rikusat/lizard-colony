@@ -1065,7 +1065,7 @@ const MISSIONS = [
   { id: "dex100",  name: "図鑑コンプリート!",        reward: { gems: 50, coins: 100000 }, check: (s) => Game.dexRate() >= 1.0 },
   // Phase4 追加実績 (⑨-2)
   { id: "win50",   name: "襲来を50回撃退する",         reward: { gems: 5 },              check: (s) => s.stats.raidsWon >= 50 },
-  { id: "win200",  name: "襲撃を200回撃退する",      reward: { gems: 12 },             check: (s) => s.stats.raidsWon >= 200 },
+  { id: "win200",  name: "襲来を200回撃退する",      reward: { gems: 12 },             check: (s) => s.stats.raidsWon >= 200 },
   { id: "boss30",  name: "ボスを30回撃破する",       reward: { gems: 8 },              check: (s) => s.stats.bossWon >= 30 },
   { id: "bred100", name: "繁殖100回",                reward: { gems: 6 },              check: (s) => s.stats.bred >= 100 },
   { id: "sold50",  name: "トカゲを50匹売却する",     reward: { coins: 50000 },         check: (s) => s.stats.sold >= 50 },
