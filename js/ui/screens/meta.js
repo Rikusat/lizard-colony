@@ -197,7 +197,7 @@ Object.assign(UI, {
           <b style="color:var(--gold)">${Icon.svg("lizard")} 遊び方</b><br>
           1. コオロギを買ってトカゲに餌やり → 成長・レベルアップ<br>
           2. アダルト2匹で繁殖 → 卵が孵化してコロニー拡大<br>
-          3. 定期的に蛇が襲来! トカゲたちが自動で戦う<br>
+          3. 定期的に外敵が襲来! トカゲたちが自動で戦う<br>
           4. 撃退報酬で設備を強化し、図鑑コンプリートを目指そう!
         </div>`;
       body.querySelector("#set-save").addEventListener("click", () => {

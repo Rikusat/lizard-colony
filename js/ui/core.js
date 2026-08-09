@@ -8,41 +8,15 @@ const UI = {
   els: {},
   acc: 0,
   breedPick: { a: null, b: null },
-  hints: [
-    "トカゲをクリックすると詳細が見られます。餌をあげて育てよう!",
-    "アダルト2匹で繁殖できる。色や模様は子に遺伝する!",
-    "低確率でモーフ(アルビノ等)や上位種族への突然変異が起きる!",
-    "フェンスを建てると蛇の襲撃に先制攻撃できる。",
-    "シェルターがあればベビーは蛇に狙われない。",
-    "5回撃退するごとにボス蛇が来る。報酬はジェム確定!",
-    "図鑑に新種を登録するとジェムがもらえる。コンプを目指せ!",
-    "ランクが上がるとステージが進み、新しい種族が解放される。",
-    "購入・餌やりボタンは長押しで加速連続実行できる!",
-    "繁殖ボタンを長押しすると最善ペアで連続クイック繁殖!",
-    "ランクが上がるとコオロギのまとめ買いロットが大きくなる!",
-    "ランク30からは毎回ボスが襲来。5回に1回は報酬2倍のElite!",
-    "オオタカの急降下予告リングはタップ連打で追い払える!",
-    "クモのウェブはタップ連打でほつれる。ヤモリがいれば自動切除!",
-    "サソリの毒は水場のLvが高いほど早く抜ける。",
-    "生態データで味方をLvアップできる(味方ボタン)。",
-    "巣ネットワークは繁殖するだけで勝手に育つ。フィールドの巣穴をタップ!",
-    "侵食率は毎日ログインすれば低く保てる。放置しすぎ注意!",
-    "隕石はHQの遺伝子ラボで割れる。中から希少個体が…",
-    "惑星欄をタップすると惑星マップが開く。移動は1タップ!",
-    "餌場を建てると食料供給が生まれ、自動給餌が回り出す。",
-    "最新の惑星(フロンティア)が最も稼げる。前へ進もう!",
-    "余ったGoldはHQで食料やエネルギーに変換できる。",
-    "惑星開発(HQ)はGoldの立派な使い道。生産が底上げされる。",
-    "ごく稀に虹色の伝説個体が生まれる。祭壇で確率が上がる!",
-    "統計から称号の掲示とコロニー全景の画像保存ができる。",
-    "毎日ログインするとデイリーボーナス! 連続でジェム増量。",
-  ],
-  hintIdx: 0,
+  // ★常設ヒントは撤去(2026-08-09 Ric裁定)。3.11.1e で表示枠 #ui-hint を撤去した際に文字列だけが残り、
+  //   index.html にも全QAページにも要素が無い=**一度も描画されない完全な死コード**だった。
+  //   しかも撤廃済み機能(シェルター v12 / 餌場 v13 / クイック繁殖 §5ddd)や汎用敵名を語り続けていた。
+  //   「直すより消す」= β公開前の掃除として配列ごと削除(hints / hintIdx / rotateHint / #ui-hint 参照)。
 
   init() {
     const ids = ["ui-coins", "ui-cps", "ui-gems", "ui-amethyst", "ui-stones", "ui-rank", "rank-bar",
       "raid-timer", "raid-banner",
-      "detail", "modal", "modal-title", "modal-body", "toasts", "mission-badge", "ui-hint"];
+      "detail", "modal", "modal-title", "modal-body", "toasts", "mission-badge"];
     for (const id of ids) this.els[id] = document.getElementById(id);
 
     // ボタン(購入・餌やりは長押しで加速連続実行 / GameExpansion_v2 ④)
@@ -132,7 +106,6 @@ const UI = {
     this.initRoulette(); // 遺伝子ルーレット(左メニュー下部・roulette.md §7)
     this.initSlit(); // 四重スリット実験装置(左メニュー下部・roulette.md §9)
     this.initBossHud(); // ボスHPバー(上部中央・Brushup V2 Phase3)
-    setInterval(() => this.rotateHint(), 12000);
     // #breed で繁殖画面を直接開く(動作確認・デバッグ用)
     if (location.hash === "#breed") setTimeout(() => this.openBreed(), 400);
 
@@ -168,13 +141,6 @@ const UI = {
       requestAnimationFrame(loop);
     };
     requestAnimationFrame(loop);
-  },
-
-  rotateHint() {
-    // 3.11.1e: 常設ヒント枠は撤去(ルーレット最大化)。要素があれば更新、無ければ何もしない
-    this.hintIdx = (this.hintIdx + 1) % this.hints.length;
-    const el = this.els["ui-hint"] || document.getElementById("ui-hint");
-    if (el) el.textContent = this.hints[this.hintIdx];
   },
 
   // 惑星アクセント(§1.5 / Phase 8): 縁・リング・ドットの差し色のみ。土壌と魂は不変

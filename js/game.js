@@ -2008,10 +2008,10 @@ const Game = {
         const gems = 3 + Math.floor(s.rank / 5);
         s.gems += gems;
         this.addRes("science", 1);
-        msg = ` 蛇を撃退! +${fmt(coins)}G +ジェム${gems} (ボス討伐!)`;
+        msg = ` 撃退! +${fmt(coins)}G +ジェム${gems} (ボス討伐!)`;
         this.addRankXp(100);
       } else {
-        msg = ` 蛇を撃退! +${fmt(coins)}G`;
+        msg = ` 撃退! +${fmt(coins)}G`;
         if (Math.random() < 0.2) { s.gems += 1; msg += " +ジェム1"; }
         this.addRankXp(30);
       }
@@ -2092,7 +2092,7 @@ const Game = {
     }
     bc.used++;
     this.state.raidTimer = Math.min(this.state.raidTimer, 2);
-    UI.toast(`蛇を挑発した! すぐに来るぞ… (本日あと${this.bossCallRemaining()}回)`);
+    UI.toast(`挑発した! すぐに来るぞ… (本日あと${this.bossCallRemaining()}回)`);
   },
 
   // ---------------- メインループ ----------------

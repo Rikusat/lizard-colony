@@ -1056,15 +1056,15 @@ const MISSIONS = [
   { id: "feed500", name: "餌やり500回",              reward: { gems: 4 },              check: (s) => s.stats.fed >= 500 },
   { id: "hatch5",  name: "卵を5個孵化させる",        reward: { gems: 2 },              check: (s) => s.stats.hatched >= 5 },
   { id: "hatch30", name: "卵を30個孵化させる",       reward: { gems: 6 },              check: (s) => s.stats.hatched >= 30 },
-  { id: "win5",    name: "蛇を5回撃退する",          reward: { gems: 3 },              check: (s) => s.stats.raidsWon >= 5 },
-  { id: "win20",   name: "蛇を20回撃退する",         reward: { gems: 8 },              check: (s) => s.stats.raidsWon >= 20 },
-  { id: "boss1",   name: "ボス蛇を撃退する",         reward: { gems: 5 },              check: (s) => s.stats.bossWon >= 1 },
+  { id: "win5",    name: "襲来を5回撃退する",          reward: { gems: 3 },              check: (s) => s.stats.raidsWon >= 5 },
+  { id: "win20",   name: "襲来を20回撃退する",         reward: { gems: 8 },              check: (s) => s.stats.raidsWon >= 20 },
+  { id: "boss1",   name: "惑星の主を撃退する",         reward: { gems: 5 },              check: (s) => s.stats.bossWon >= 1 },
   { id: "rank10",  name: "コロニーランク10に到達",   reward: { gems: 5 },              check: (s) => s.rank >= 10 },
   { id: "dex25",   name: "図鑑コンプ率25%",          reward: { gems: 3 },              check: (s) => Game.dexRate() >= 0.25 },
   { id: "dex50",   name: "図鑑コンプ率50%",          reward: { gems: 6 },              check: (s) => Game.dexRate() >= 0.50 },
   { id: "dex100",  name: "図鑑コンプリート!",        reward: { gems: 50, coins: 100000 }, check: (s) => Game.dexRate() >= 1.0 },
   // Phase4 追加実績 (⑨-2)
-  { id: "win50",   name: "蛇を50回撃退する",         reward: { gems: 5 },              check: (s) => s.stats.raidsWon >= 50 },
+  { id: "win50",   name: "襲来を50回撃退する",         reward: { gems: 5 },              check: (s) => s.stats.raidsWon >= 50 },
   { id: "win200",  name: "襲撃を200回撃退する",      reward: { gems: 12 },             check: (s) => s.stats.raidsWon >= 200 },
   { id: "boss30",  name: "ボスを30回撃破する",       reward: { gems: 8 },              check: (s) => s.stats.bossWon >= 30 },
   { id: "bred100", name: "繁殖100回",                reward: { gems: 6 },              check: (s) => s.stats.bred >= 100 },
@@ -1250,13 +1250,13 @@ const PLANET_BOSS = {
   1: { threat: "snake", draw: "drawDoronumaWorm", name: "ドロヌマ・ワーム", minion: "幼体ドロヌマ・ワーム" },       // アリド。異名=泥沼蟲
   2: { threat: "scorpion", draw: "drawCyberScorpio", name: "サイバー・スコルピオ", minion: "幼体サイバー・スコルピオ" }, // ネオヴェルデ。異名=電脳蠍
   3: { threat: "hawk", draw: "drawChronoMantis", name: "クロノ・マンティス", minion: "幼体クロノ・マンティス" },      // シルヴァ(飛翔し鎌で獲物をさらう=hawk)
-  4: { threat: "monitor", draw: "drawHaniwaGolem", name: "ハニワ・ゴーレム", minion: "幼体ハニワ・ゴーレム" },      // パルス。異名=墳王
+  4: { threat: "monitor", draw: "drawHaniwaGolem", name: "ハニワ・ゴーレム", minion: "小型ハニワ・ゴーレム" },      // パルス。異名=墳王
   5: { threat: "snake", draw: "drawSlagHydra", name: "スラグ・ヒドラ", minion: "幼体スラグ・ヒドラ" },            // イグニス。異名=鉱滓の多頭竜
   6: { threat: "spider", draw: "drawSkullAnaconda", name: "ドクロ・アナコンダ", minion: "幼体ドクロ・アナコンダ" },   // ユンガ。異名=贄蛇(締め付け=拘束=spider・webは蔓/翡翠紐へリスキン)
   7: { threat: "snake", draw: "drawMagmaShark", name: "マグマ・シャーク", minion: "幼体マグマ・シャーク" },         // メアリス。異名=熔鮫
   8: { threat: "bugger", draw: "drawBaggerParent", name: "ヌシ・バガー", minion: "幼体ヌシ・バガー" },          // グラキス。異名=親個体(既存bagger流用のelite変種)
-  9: { threat: "scorpion", draw: "drawMeltGolem", name: "メルト・ゴーレム", minion: "幼体メルト・ゴーレム" },       // ヴォルタ。異名=臨界獣
-  10: { threat: "crow", draw: "drawRelicSphinx", name: "レリック・スフィンクス", minion: "幼体レリック・スフィンクス" },  // オリジン。異名=守墓像(有翼が卵=系譜を博物館へ収蔵=crow)
+  9: { threat: "scorpion", draw: "drawMeltGolem", name: "メルト・ゴーレム", minion: "小型メルト・ゴーレム" },       // ヴォルタ。異名=臨界獣
+  10: { threat: "crow", draw: "drawRelicSphinx", name: "レリック・スフィンクス", minion: "小型レリック・スフィンクス" },  // オリジン。異名=守墓像(有翼が卵=系譜を博物館へ収蔵=crow)
 };
 
 // Phase6 署名生成物(敵ボス/惑星味方)の調整可パレット＝Ricが濃さ/視認性を実機で詰める単一の真実(描画専用・魂/確率/物理に無影響)。
