@@ -146,6 +146,45 @@ const Render = {
 
   init() {
     this.ctx = document.getElementById("game").getContext("2d");
+    this.guardCtx(this.ctx);
+  },
+
+  // ★非有限ガードの一括適用(2026-08-10 Ric裁定)。
+  //   Canvas2D の createRadialGradient / createLinearGradient / arc / ellipse は NaN/Infinity を渡すと
+  //   TypeError を投げ、**そのフレームの描画が丸ごと止まる**(画面停止=最悪の体験)。
+  //   計算値を渡す箇所はコード全体で71ヶ所あり、各所に検査を散らすと知識が分散し漏れる。
+  //   そこで**コンテキスト側で一度だけ包む**=知識は1箇所。非有限なら「その図形だけ」を捨てる。
+  //   ★エラーの握りつぶしではない: 論理バグは絵の欠けとして残り、?tune=1 では警告を1度だけ出す。
+  guardCtx(ctx) {
+    if (!ctx || ctx.__finGuard) return ctx;
+    ctx.__finGuard = true;
+    const tune = typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search);
+    let warned = false;
+    const warn = (name, args) => {
+      if (!tune || warned) return;
+      warned = true;
+      console.warn("[finGuard] 非有限値を描画APIへ渡した:", name, Array.prototype.slice.call(args));
+    };
+    // 戻り値が要るもの: 非有限なら「無害なグラデーション」を返す(呼び出し側は addColorStop できる)
+    for (const name of ["createRadialGradient", "createLinearGradient"]) {
+      const orig = ctx[name];
+      if (typeof orig !== "function") continue;
+      ctx[name] = function () {
+        if (Render.finite.apply(Render, arguments)) return orig.apply(ctx, arguments);
+        warn(name, arguments);
+        return { addColorStop() {} };            // 塗りは透明扱い=図形が消えるだけ
+      };
+    }
+    // 戻り値が要らないもの: 非有限なら何もしない
+    for (const name of ["arc", "ellipse", "arcTo", "rect", "roundRect", "fillRect", "strokeRect", "clearRect"]) {
+      const orig = ctx[name];
+      if (typeof orig !== "function") continue;
+      ctx[name] = function () {
+        if (Render.finite.apply(Render, arguments)) return orig.apply(ctx, arguments);
+        warn(name, arguments);
+      };
+    }
+    return ctx;
   },
 
   lizardColor(lz) {
@@ -5243,11 +5282,29 @@ const Render = {
   // S5 創世エフェクト(賢者の石の錬成)。虹の祝祭(drawSpawnFx)とは別種=深紅・静・重。
   //   深紅リングが外→中心へ収縮(光を吸う)→中心が暗転(--stone-deep)→定着の一閃。個体周囲のみ・全画面を奪わない(§9)。
   //   reduced-motion=描かない=即時定着(徴は genesisTrait で既に付与済=結果保証)。色は賢者の石トークン(tokens.css)と一致。
+  // 描画に渡す数値がすべて有限か。Canvas2D の createRadialGradient / arc / ellipse は
+  //   NaN/Infinity を渡すと TypeError を投げ、**そのフレームの描画が丸ごと止まる**(画面停止)。
+  //   計算値を渡す箇所はこの窓口で弾く=同じ知識を各所に散らさない。
+  //   ★数値の引数だけを見る(arc の anticlockwise=boolean や roundRect の radii=配列を誤って弾かないため)。
+  finite() {
+    for (let i = 0; i < arguments.length; i++) {
+      const v = arguments[i];
+      if (typeof v === "number" && !Number.isFinite(v)) return false;
+    }
+    return true;
+  },
+
   drawGenesisFx(ctx) {
     const fx = Game._genesisFx; if (!fx || !fx.length) return;
     if (typeof window !== "undefined" && typeof Motion !== "undefined" && Motion.reduced) return; // 即時定着
     const HI = "#8E1826", MID = "#380A12", DEEP = "#070103"; // 深紅 / 暗紅 / ほぼ黒(光を吸う)
     for (const F of fx) {
+      // ★非有限ガード(2026-08-10 Ric裁定): 座標や尺が NaN だとこの関数で例外が出て画面が止まる。
+      //   「実プレイでは起きない」は現在の実装への分析であって将来の変更への保証ではないため、描画側で必ず弾く。
+      //   落とさず、そのエフェクトだけを黙って飛ばす(気配だけ見せて説明しない=通知も出さない)。
+      //   ここは Number.isFinite で**厳格に**見る(finite() は ctx 包み用に数値以外を素通しするため、
+      //   undefined な座標を弾けない。用途が違うので判定を分ける)。
+      if (!Number.isFinite(F.x) || !Number.isFinite(F.y) || !Number.isFinite(F.t) || !(F.max > 0)) continue;
       const k = 1 - F.t / F.max; // 0→1
       ctx.save();
       // 深紅リングが外→中心へ収縮(吸い込む)。k~0.18で一度だけ脈動。
