@@ -45,7 +45,7 @@ for (const k of Object.keys(TRAITS)) {
   ok(`roster[${k}]: key一致・name/color/rim/icon/desc/tier/draw が揃う`,
     d.key === k && typeof d.name === "string" && typeof d.color === "string" && typeof d.rim === "string"
     && typeof d.icon === "string" && typeof d.desc === "string"
-    && typeof d.tier === "number" && (d.synth ? d.tier === 6 : (d.tier >= 1 && d.tier <= 5))
+    && typeof d.tier === "number" && d.tier >= 1 && d.tier <= 6
     && typeof Render[d.draw] === "function", JSON.stringify(d));
 }
 {

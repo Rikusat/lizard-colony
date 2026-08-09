@@ -176,15 +176,18 @@ console.log("== R5-a: genesis乱択の統計帯MC(恒久・N=24000・±5σ) ==")
     const key = Game.genesisTraitRand(lzR, true);
     if (!key) continue;
     counts[key] = (counts[key] || 0) + 1;
-    if (TRAITS[key].synth) synthLeak++;
+    if (TRAITS[key].tier >= 6) synthLeak++;
     if (Game.stones() !== 10 - (CFG.stoneGenesisRandCost || 4)) costNg++;
   }
-  const basicR = Object.keys(TRAITS).filter((k) => !TRAITS[k].synth); // 本番12+ハーネス注入のzt*も含む=プール実数で期待値を出す
+  const basicR = Object.keys(TRAITS).filter((k) => TRAITS[k].tier < 6); // 本番12+ハーネス注入のzt*も含む=プール実数で期待値を出す
   const pR = 1 / basicR.length;
   const expR = N * pR, bandR = Math.ceil(5 * Math.sqrt(N * pR * (1 - pR)));
   const offBand = basicR.filter((k) => Math.abs((counts[k] || 0) - expR) > bandR);
   ok("乱択: 12種全到達(N=" + N + ")", basicR.every((k) => (counts[k] || 0) > 0), basicR.filter((k) => !counts[k]).join(","));
-  ok("乱択: 合成専用6種の混入ゼロ", synthLeak === 0, "leak=" + synthLeak);
+  // ★V6-P1-2: tier6は創世プールに入る(到達不能を作らない)が、重みが極小なので**滅多に出ない**。
+  //   「ゼロ」ではなく「全体の数%未満」を監視する=規律(到達可能)と体感(希少)の両立を固定する。
+  const totalRolls = Object.values(counts).reduce((a, b) => a + b, 0);
+  ok("乱択: tier6(旧・合成専用)は出うるが極小(全体の5%未満)", synthLeak * 20 < totalRolls, `t6=${synthLeak}/${totalRolls}`);
   ok("乱択: 一様性=各" + expR + "±" + bandR + "(±5σ)", offBand.length === 0, offBand.map((k) => k + "=" + counts[k]).join(","));
   ok("乱択: 一律コスト" + (CFG.stoneGenesisRandCost || 4) + "石の消費", costNg === 0, "ng=" + costNg);
   Game.newGame(); Game.state.lizards = [];

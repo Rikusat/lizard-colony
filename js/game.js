@@ -418,11 +418,19 @@ const Game = {
   stoneGenesisCost(tier) { return CFG.stoneGenesisBase + (tier || 1); }, // レア特性(tier高)ほど多くの石
   hasTrait(lz, key) { return !!(lz.traits && lz.traits.some((t) => (t && t.key ? t.key : t) === key)); },
   // この個体に創世できる特性key(未所持・上限3未満・非レジェンダリー時)。石不足でも候補は返す(UIはグレー表示)。
-  //   合成専用特性(synth)は創世できない=合成(§8)でしか手に入らない「到達の証」。
+  //   ★V6-P1-2(Ric裁定 2026-08-09): 合成の撤廃にともない、旧・合成専用6種(tier6)も**創世で到達可能**にした。
+  //     除外していると「存在するのに獲得できない」が生まれる(Ricの規律に抵触)。規律が禁じたのは**到達不能**であって
+  //     低確率ではないため、プールには入れたうえで**重みを極小**にして希少性を保つ(traitGenesisWeight)。
   createableTraits(lz) {
     if (!lz || lz.morphId === "legendary" || typeof TRAITS === "undefined") return [];
     if ((lz.traits || []).length >= CFG.traitMaxPerLizard) return [];
-    return Object.keys(TRAITS).filter((k) => !TRAITS[k].synth && !this.hasTrait(lz, k));
+    return Object.keys(TRAITS).filter((k) => !this.hasTrait(lz, k));
+  },
+  // 乱択創世の重み。tier6(旧・合成専用)だけ極小=「極小確率を引き当てた証」。★CFGで[A]調整可。
+  traitGenesisWeight(key) {
+    const t = typeof TRAITS !== "undefined" && TRAITS[key];
+    if (!t) return 0;
+    return t.tier >= 6 ? (CFG.traitGenesisT6Weight != null ? CFG.traitGenesisT6Weight : 0.1) : 1;
   },
   // R5-a(2026-07-25承認): 創世のランダム化。プール=createableTraits(基本12の未所持・上限3・レジェ除外=血統重複なしの既存仕様継承)。
   // 一様抽選×正規乱数(遺伝と同じ窓口)。コスト=一律CFG.stoneGenesisRandCost(結果を知らずに払うため定額)。戻り値=宿ったkey(UIがFx完了時に開示)。
@@ -432,17 +440,21 @@ const Game = {
     const cost = CFG.stoneGenesisRandCost || 4;
     if (this.stones() < cost) { if (!silent) UI.denyFlash("stones"); return false; }
     this.addStone(-cost);
-    const key = pool[Math.floor(Math.random() * pool.length)]; // 一様抽選(正規乱数)
+    // ★重み付き抽選(V6-P1-2): tier6 は traitGenesisWeight で極小。それ以外は等価=従来の一様抽選と同じ体感。
+    let wsum = 0;
+    for (const k of pool) wsum += this.traitGenesisWeight(k);
+    let r = Math.random() * wsum, key = pool[pool.length - 1];
+    for (const k of pool) { r -= this.traitGenesisWeight(k); if (r <= 0) { key = k; break; } }
     lz.traits = lz.traits || [];
     lz.traits.push({ key });
-    this.genesisFx(lz.x, lz.y); // 深紅の錬成(開示はUIがFx完了時に)
+    // 深紅の錬成(開示はUIがFx完了時に)。tier6を引いた瞬間だけ強度を上げる=格を演出で立てる(演出は増やさない)
+    this.genesisFx(lz.x, lz.y, TRAITS[key] && TRAITS[key].tier >= 6 ? (CFG.genesisFxT6Mult || 1.6) : 1);
     return key;
   },
-  // 指名創世(R5-aで選択UIは撤去済=プレイヤー導線なし)。テスト/合成検証のフィクスチャ用の内部APIとして残置。
+  // 指名創世(R5-aで選択UIは撤去済=プレイヤー導線なし)。テスト/検証のフィクスチャ用の内部APIとして残置。
   genesisTrait(lz, key, silent) {
     if (!lz || lz.morphId === "legendary") { if (!silent) UI.toast("レジェンダリーには特性を宿せない", true); return false; }
     if (typeof TRAITS === "undefined" || !TRAITS[key]) return false;
-    if (TRAITS[key].synth) return false; // 合成専用は創世できない(§8=合成でしか手に入らない到達の証)
     lz.traits = lz.traits || [];
     if (lz.traits.length >= CFG.traitMaxPerLizard) { if (!silent) UI.toast("これ以上は特性を宿せない(上限)", true); return false; }
     if (this.hasTrait(lz, key)) return false;
@@ -454,9 +466,11 @@ const Game = {
     return true;
   },
   // 創世/固定化の局所演出データ(表現層がdrawGenesisFxで描く。reduced-motionは描画側で即時定着=非描画)。
-  genesisFx(x, y) {
+  //   mult=強度倍率(既定1)。tier6の創世だけ 1.6 倍(V6-P1-2)。演出の種類は増やさず既存の深紅の錬成の枠内で厚くする。
+  genesisFx(x, y, mult) {
     this._genesisFx = this._genesisFx || [];
-    if (this._genesisFx.length < 8) this._genesisFx.push({ x, y, t: CFG.genesisFxSec || 1.5, max: CFG.genesisFxSec || 1.5 });
+    const sec = (CFG.genesisFxSec || 1.5) * (mult || 1);
+    if (this._genesisFx.length < 8) this._genesisFx.push({ x, y, t: sec, max: sec, k: mult || 1 });
   },
   spendOre(id, n) {
     if (this.ore(id) < n) return false;
@@ -1412,33 +1426,6 @@ const Game = {
   },
 
   // ---------------- 合成=トランスミュート(§8・案B=昇華) ----------------
-  // 2特性を併せ持つ個体の traits:[A,B] を [C] へ昇華(個体は残る=資産原則)。100%確定(乱数なし=「錬金は裏切らない」)。
-  // 固定印付きは素材にできない(石投資の保護)・レジェンダリー除外・解読済みレシピのみ。触媒=賢者の石(order連動コスト)。
-  recipeByResult(key) { return (typeof RECIPES !== "undefined" && RECIPES.find((r) => r.result === key)) || null; },
-  recipeDecoded(r) { return !!(this.state.research && this.state.research["recipe" + r.order]); },
-  stoneSynthCost(r) { return CFG.stoneSynthBase + r.order * CFG.stoneSynthPerOrder; },
-  // この個体で素材が揃っているレシピ(解読状態は問わず返す=UIが未解読を「?」表示するため)
-  synthesizableRecipes(lz) {
-    if (!lz || lz.morphId === "legendary" || typeof RECIPES === "undefined") return [];
-    return RECIPES.filter((r) => this.hasTrait(lz, r.a) && this.hasTrait(lz, r.b)
-      && !this.isFixed(lz, r.a) && !this.isFixed(lz, r.b) && !this.hasTrait(lz, r.result));
-  },
-  synthesize(lz, resultKey, silent) {
-    const r = this.recipeByResult(resultKey);
-    if (!r || !lz || lz.morphId === "legendary") return false;
-    if (!this.recipeDecoded(r)) { if (!silent) UI.toast("レシピが未解読 — 本部の研究で解読できる", true); return false; }
-    if (!this.hasTrait(lz, r.a) || !this.hasTrait(lz, r.b) || this.hasTrait(lz, r.result)) return false;
-    if (this.isFixed(lz, r.a) || this.isFixed(lz, r.b)) { if (!silent) UI.toast("固定された特性は素材にできない", true); return false; }
-    const cost = this.stoneSynthCost(r);
-    if (this.stones() < cost) { if (!silent) UI.denyFlash("stones"); return false; }
-    this.addStone(-cost);
-    // 案B: 素材2特性が上位1つへ"昇華"(traitsから除去→結果を追加。個体・レベル・体色は不変)
-    lz.traits = (lz.traits || []).filter((t) => { const k = t && t.key ? t.key : t; return k !== r.a && k !== r.b; });
-    lz.traits.push({ key: r.result });
-    this.genesisFx(lz.x, lz.y); // 錬成の深紅(創世/固定と同じ演出=石の系譜)
-    return true;
-  },
-
   // 未所持の図鑑エントリ(種×モーフ)を1つ返す。ステージ種優先(§7.5)。全所持ならnull
   pickUnownedDexEntry(preferStageId) {
     const cands = [];
@@ -2796,6 +2783,33 @@ const Game = {
     return w;
   },
 
+  // V6-P1-2: 合成の撤廃で「レシピ解読I〜VI」が無くなるため、購入済みの資源を**全額**払い戻す。
+  //   置き場所=headquarters の中(dial と同じく toWorld/applyWorld を丸ごと往復する器)。
+  //   フラグが 0→1 の単調ゲートなので「一度きり」が構造的に保証される(§5z-3 と同じ方式・SAVE_VERSIONは上げない)。
+  //   撤廃済みの RESEARCH 定義はもう存在しないため、返す額は**ここに表として持つ**(唯一の真実)。
+  RECIPE_REFUND: [
+    { id: "recipe1", science: 10, coins: 200000, stones: 0 },
+    { id: "recipe2", science: 15, coins: 350000, stones: 0 },
+    { id: "recipe3", science: 20, coins: 500000, stones: 0 },
+    { id: "recipe4", science: 30, coins: 800000, stones: 0 },
+    { id: "recipe5", science: 45, coins: 1200000, stones: 2 },
+    { id: "recipe6", science: 60, coins: 2000000, stones: 4 },
+  ],
+  migrateRecipeRefund(w) {
+    w.headquarters = w.headquarters || {};
+    if (w.headquarters.recipeRefundV1) return w;      // 既に適用済み=二度と返さない
+    w.headquarters.recipeRefundV1 = 1;
+    const rs = (w.headquarters && w.headquarters.research) || {};
+    let sci = 0, coins = 0, stones = 0, n = 0;
+    for (const r of this.RECIPE_REFUND) {
+      if (!rs[r.id]) continue;
+      n++; sci += r.science; coins += r.coins; stones += r.stones;
+      delete rs[r.id];                                 // 撤廃済みの解読フラグを掃除
+    }
+    if (n > 0) w._refundRecipe = { n, sci, coins, stones };
+    return w;
+  },
+
   // オープニングの本編組み込み(2026-08-01 Ric指示)。**既存プレイヤーには流さない**。
   //   セーブが実在する=すでに遊んでいる人なので「見た」ことにして初回起動の自動再生から外す。
   //   ★load() の既存セーブ経路からのみ呼ぶ(newGame は通らない)=新規コロニーだけがフラグ未設定で始まる。
@@ -3250,7 +3264,12 @@ const Game = {
       if ((data.version || 0) < 15) { try { localStorage.setItem(CFG.saveBackupKeyV15, raw); } catch (e) { /* noop */ } }
       world = this.migrateV14to15(this.migrateV13to14(this.migrateV12to13(this.migrateV11to12(this.migrateV10to11(this.migrateV9to10(this.migrateV8to9(this.migrateV7to8(this.migrateV6to7(this.migrateV5to6(this.migrateV4to5(world)))))))))));
       world = this.migrateStopOnEmpty(world);   // 版に依らない一度きりの移行(専用フラグでゲート)
-      world = this.migrateOpeningSeen(world);   // 既存プレイヤーにはオープニングを流さない(=見たことにする)
+      world = this.migrateOpeningSeen(world);
+      world = this.migrateRecipeRefund(world);   // V6-P1-2: レシピ解読の撤廃にともなう全額払い戻し(一度きり)
+      if (world._refundRecipe && world._refundRecipe.n > 0) {
+        const rr = world._refundRecipe;
+        setTimeout(() => UI.toast(`レシピ解読は撤廃されました。投じた資源を全額払い戻しました(研究力+${rr.sci} / ${fmt(rr.coins)}G${rr.stones ? " / 賢者の石+" + rr.stones : ""})`), 960);
+      }   // 既存プレイヤーにはオープニングを流さない(=見たことにする)
       if (world._purifyV9 && (world._purifyV9.lizards > 0 || world._purifyV9.eggs > 0)) {
         const p9 = world._purifyV9;
         setTimeout(() => UI.toast(`${Icon.svg("planet")} 純血化: 各惑星は固有種のみになりました(他惑星種 ${p9.lizards}匹${p9.eggs > 0 ? "・卵" + p9.eggs : ""}が去った。設定からロールバック可)`, true), 900);

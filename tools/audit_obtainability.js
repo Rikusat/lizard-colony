@@ -6,9 +6,7 @@
 // 目的: 「図鑑・特性のすべてが正規手順で獲得可能」をコード実測で証明する。
 //  A) 種×モーフ(非レジェ): 全10惑星で 固有2種×4モーフ=8エントリが虹景品(未所持抽選)の候補に全数出る
 //  B) レジェンダリーモーフ: 3経路(虹コンプ後フォールバック/隕石/アメジスト)それぞれで実測到達
-//  C) 特性12基本: 賢者の石の創世(genesisTrait)で全数獲得可能 / 6合成専用: 創世では全数不可(=設計どおり)
-//  D) レシピ解読I〜VI: 正規API(buyResearch)で資源を満たせば順に解読可能(前提チェーン込み)
-//  E) 6合成: 正規手順(創世A→創世B→解読済みレシピ→synthesize)で全数到達・昇華後は成果のみ残る
+//  C) 特性18種すべて: 賢者の石の乱択創世で全数到達可能(V6-P1-2で旧・合成専用6種もプール入り。重みは極小)
 //  F) ガード(負系): 未解読は不可/固定素材は不可/上限3で創世不可/レジェンダリーに創世不可
 //  G) 石の獲得経路: Slit.onSuccess→addStone(1) の配線がboot.jsに存在する(静的)。
 //     ※聖域: スリット/ルーレットの確率・幾何には一切触れない(読み取りのみ。MCも景品「解決」層のみ)
@@ -46,12 +44,12 @@ function loadGame() {
   vm.createContext(sandbox);
   let code = "";
   for (const f of ["js/data.js", "js/game.js"]) code += fs.readFileSync(path.join(ROOT, f), "utf8") + "\n;\n";
-  code += "globalThis.__exp = { Game, CFG, SPECIES, MORPHS, STAGES, TRAITS, RECIPES, RESEARCH };";
+  code += "globalThis.__exp = { Game, CFG, SPECIES, MORPHS, STAGES, TRAITS, RESEARCH };";
   vm.runInContext(code, sandbox, { filename: "concat.js" });
   return sandbox.__exp;
 }
 
-const { Game, CFG, SPECIES, MORPHS, STAGES, TRAITS, RECIPES, RESEARCH } = loadGame();
+const { Game, CFG, SPECIES, MORPHS, STAGES, TRAITS, RESEARCH } = loadGame();
 
 let pass = 0, fail = 0;
 function check(name, cond, detail) {
@@ -118,10 +116,10 @@ console.log("== B) レジェンダリーモーフ: 非ルーレット経路の�
   check("アメジスト(amethystEgg): レジェンダリー卵(確定)", okAm === true && !!eAm && eAm.morphId === "legendary", `ret=${okAm} morph=${eAm && eAm.morphId}`);
 }
 
-console.log("== C) 創世(R5-a乱択): 12基本=乱択で全到達 / 6合成専用=プール外(混入0) ==");
+console.log("== C) 創世(R5-a乱択): 18種すべてが乱択で到達可能 / tier6は極小(V6-P1-2) ==");
 {
   // R5-a改定: プレイヤー正規手順=genesisTraitRand(一様抽選×正規乱数・一律コスト)。指名APIはテストフィクスチャのみ。
-  const basic = Object.keys(TRAITS).filter((k) => !TRAITS[k].synth);
+  const basic = Object.keys(TRAITS); // V6-P1-2: 18種すべてが乱択プール(tier6は重み極小)
   const seen = new Set();
   let synthLeak = 0, rolls = 0;
   while (seen.size < basic.length && rolls < 5000) {
@@ -130,76 +128,19 @@ console.log("== C) 創世(R5-a乱択): 12基本=乱択で全到達 / 6合成専�
     Game.addStone(999);
     const key = Game.genesisTraitRand(lz, true);
     rolls++;
-    if (key) { seen.add(key); if (TRAITS[key].synth) synthLeak++; }
+    if (key) { seen.add(key); if (TRAITS[key].tier >= 6) synthLeak++; }
   }
-  check(`12基本: 乱択MCで全到達(${rolls}ロール)`, seen.size === basic.length && basic.length === 12, `到達${seen.size}/12`);
-  check("6合成専用: 乱択プールに混入ゼロ", synthLeak === 0, "leak=" + synthLeak);
-  // 指名APIの現況: UI導線なし(フィクスチャ専用)・synthガード健在
+  check(`特性18種: 乱択MCで全到達(${rolls}ロール)`, seen.size === basic.length, `到達${seen.size}/${basic.length}`);
+  check("tier6(旧・合成専用)も乱択で到達できる(到達不能を作らない)", synthLeak > 0, "t6=" + synthLeak + "/" + rolls);
+  check("tier6は極小(全体の10%未満=希少性を保つ。理論値≒4.8%)", synthLeak * 10 < rolls, "t6=" + synthLeak + "/" + rolls);
+  // 指名APIの現況: UI導線なし(フィクスチャ専用)
   setupPlanet(STAGES[0].id);
   const lzg = freshLizard(); Game.addStone(999);
-  check("指名API(フィクスチャ): synthガード健在", Game.genesisTrait(lzg, "hagane", true) === false);
-}
-
-console.log("== D) レシピ解読I〜VI: 正規API(buyResearch)で順に解読可能 ==");
-{
-  setupPlanet(STAGES[0].id);
-  Game.state.coins = 99999999;
-  Game.addRes("science", 9999);
-  Game.addStone(99);
-  const ng = [];
-  for (let o = 1; o <= 6; o++) if (!Game.buyResearch("recipe" + o)) ng.push("recipe" + o);
-  check("recipe1→6 順に解読成功(前提チェーン・石コスト込み)", ng.length === 0, ng.join(","));
-  // 前提スキップの負系: recipe3をいきなり(未解読状態で)
-  setupPlanet(STAGES[0].id);
-  Game.state.coins = 99999999; Game.addRes("science", 9999); Game.addStone(99);
-  check("前提スキップ(いきなりrecipe3)は不可", !Game.buyResearch("recipe3"));
-}
-
-console.log("== E) 6合成: 正規手順(乱択創世で素材2枚→解読→synthesize)で全数到達 ==");
-{
-  // R5-a改定: 素材調達も乱択(プレイヤー正規手順)。フレッシュ個体に最大2ロールで{a,b}成立を試行(不成立=次の個体・売却相当)。
-  const ng = [];
-  for (const rec of RECIPES) {
-    setupPlanet(STAGES[0].id);
-    Game.state.coins = 99999999;
-    Game.addRes("science", 9999);
-    Game.addStone(999999);
-    for (let o = 1; o <= rec.order; o++) Game.buyResearch("recipe" + o);
-    let holder = null, tries = 0;
-    while (!holder && tries < 3000) {
-      const lz = freshLizard();
-      tries++;
-      const k1 = Game.genesisTraitRand(lz, true);
-      if (k1 !== rec.a && k1 !== rec.b) { Game.state.lizards.pop(); continue; }
-      const k2 = Game.genesisTraitRand(lz, true);
-      if ((k1 === rec.a && k2 === rec.b) || (k1 === rec.b && k2 === rec.a)) holder = lz;
-      else Game.state.lizards.pop();
-    }
-    const okS = holder && Game.synthesize(holder, rec.result, true);
-    const traits = holder ? (holder.traits || []).map((t) => t.key) : [];
-    if (!(okS && traits.length === 1 && traits[0] === rec.result)) ng.push(`${rec.result}(tries=${tries})`);
-  }
-  check("6レシピ: 乱択素材→解読→synthesize全数到達・昇華後は成果のみ", ng.length === 0, ng.join(" / "));
+  check("指名API(フィクスチャ): tier6も宿せる(合成撤廃後の到達経路)", Game.genesisTrait(lzg, "hagane", true) === true);
 }
 
 console.log("== F) ガード(負系): 設計制約が破れていない ==");
 {
-  const rec = RECIPES[0];
-  // F1: 未解読は不可
-  setupPlanet(STAGES[0].id);
-  Game.addStone(999);
-  const lz1 = freshLizard();
-  Game.genesisTrait(lz1, rec.a, true); Game.genesisTrait(lz1, rec.b, true);
-  check("未解読レシピでは合成不可", !Game.synthesize(lz1, rec.result, true));
-  // F2: 固定素材は不可(固定化=クリア後解禁→rocket.doneを正規フラグとして立てる)
-  setupPlanet(STAGES[0].id);
-  Game.state.coins = 99999999; Game.addRes("science", 9999); Game.addStone(999);
-  Game.buyResearch("recipe1");
-  Game.state.rocket = Game.state.rocket || {}; Game.state.rocket.done = true;
-  const lz2 = freshLizard();
-  Game.genesisTrait(lz2, rec.a, true); Game.genesisTrait(lz2, rec.b, true);
-  const fx = Game.fixTrait(lz2, rec.a, true);
-  check("固定印つき素材では合成不可(石投資の保護)", fx === true && !Game.synthesize(lz2, rec.result, true), `fix=${fx}`);
   // F3: 上限(traitMaxPerLizard)で創世不可
   setupPlanet(STAGES[0].id);
   Game.addStone(999);
@@ -262,11 +203,10 @@ console.log("\n== 獲得可能性マトリクス ==");
   const rows = [];
   for (const key of Object.keys(TRAITS)) {
     const d = TRAITS[key];
-    const inRecipe = RECIPES.find((r) => r.a === key || r.b === key);
-    const asResult = RECIPES.find((r) => r.result === key);
-    rows.push(`  ${d.name.padEnd(8, "　")} | ${d.synth ? "—" : "創世"} | ${asResult ? "レシピ" + asResult.order + "の成果" : inRecipe ? "素材(レシピ" + inRecipe.order + ")" : "—"}`);
+
+    rows.push(`  ${d.name.padEnd(8, "　")} | 創世 | tier${d.tier}`);
   }
-  console.log("  特性        | 創世 | 合成での位置");
+  console.log("  特性        | 創世 | tier");
   console.log(rows.join("\n"));
 }
 

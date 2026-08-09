@@ -108,43 +108,10 @@ Object.assign(UI, {
     });
   },
 
-  // ---------------- 実験用水槽(合成・遺伝子ラボ・鍛造) ----------------
+  // ---------------- 実験用水槽(遺伝子ラボ・鍛造) ---------------- ※合成はV6-P1-2で撤廃
   openLabTank() {
     this.openModal(`${Icon.svg("bio")} 実験用水槽`, (body) => {
-      body.innerHTML = `<div id="synth-list"></div><div id="gene-list"></div><div class="breed-filters" style="flex-wrap:wrap" id="hq-forge"></div>`;
-      // 合成(§8): [素材ロゴ2]→[結果ロゴ]+[石n]。未解読=[?]+シルエット
-      const list = body.querySelector("#synth-list");
-      for (const r of RECIPES.slice().sort((a, b) => a.order - b.order)) {
-        const decoded = Game.recipeDecoded(r);
-        const A = TRAITS[r.a], B = TRAITS[r.b], C = TRAITS[r.result];
-        const cost = Game.stoneSynthCost(r);
-        const cands = Game.state.lizards.filter((lz) => Game.synthesizableRecipes(lz).some((x) => x.result === r.result));
-        const row = document.createElement("div");
-        row.className = "list-row" + (decoded ? "" : " done");
-        if (decoded) {
-          row.innerHTML =
-            `<span class="fic" style="color:${A.rim}">${Icon.svg(A.icon)}</span><span class="fic" style="color:${B.rim}">${Icon.svg(B.icon)}</span>` +
-            `<span style="color:var(--sub)">→</span><span class="fic" style="color:${C.rim}">${Icon.svg(C.icon)}</span>` +
-            `<div class="grow"><b>${C.name}</b></div>` +
-            `<span>${this._costHtml([{ icon: "stone", n: cost, have: Game.stones() }])}</span><span id="synth-slot-${r.order}"></span>`;
-          const slot = row.querySelector(`#synth-slot-${r.order}`);
-          for (const lz of cands.slice(0, 3)) {
-            const b = document.createElement("button");
-            b.innerHTML = `${Game.lizardName(lz)}`;
-            b.disabled = Game.stones() < cost;
-            b.addEventListener("click", () => {
-              if (Game.synthesize(lz, r.result)) { UI.toast(`${C.name} が生まれた`); this._labRefresh("tank"); }
-            });
-            slot.appendChild(b);
-          }
-          if (!cands.length) row.innerHTML += `<span style="color:var(--sub)">${Icon.svg("lock")}</span>`;
-        } else {
-          row.innerHTML =
-            `<span class="fic" style="opacity:.35">${Icon.svg(A.icon)}${Icon.svg(B.icon)}</span>` +
-            `<div class="grow"><b>? ? ?</b></div><span style="color:var(--sub)">${Icon.svg("science")} 解読 ${["I", "II", "III", "IV", "V", "VI"][r.order - 1]}</span>`;
-        }
-        list.appendChild(row);
-      }
+      body.innerHTML = `<div id="gene-list"></div><div class="breed-filters" style="flex-wrap:wrap" id="hq-forge"></div>`;
       // 遺伝子ラボ(8): [鉱石n]→[結果アイコン] の3行
       const gl = body.querySelector("#gene-list");
       const geneRow = (id, icon, n, have, resIcon, name, fn) => {

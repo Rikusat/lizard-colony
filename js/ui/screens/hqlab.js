@@ -104,11 +104,10 @@ Object.assign(UI, {
   labTiers() { // 既存互換(update()の変化検知)
     if (this._labTierOverride) return this._labTierOverride;
     const tierOf = (v, th) => (v >= th[2] ? 4 : v >= th[1] ? 3 : v >= th[0] ? 2 : 1);
-    const decoded = (typeof RECIPES !== "undefined") ? RECIPES.filter((r) => Game.recipeDecoded(r)).length : 0;
     const rk = Game.ensureRocket();
     return {
       desks: Math.min(4, 1 + Game.labInvestLv("desks")),
-      tank: tierOf(decoded, CFG.labTankTiers),
+      tank: tierOf(Game.hqRank ? Game.hqRank() : ((Game.state.headquarters || {}).rank || 1), CFG.labTankTiers), // V6-P1-2: 駆動源=HQ Lv(研究デスクはP3-3でβ非公開になり不可視のため)
       rocket: rk.done ? 4 : rk.stage >= 2 ? 3 : (rk.stage >= 1 || rk.invested > 0) ? 2 : 1,
       shelf: tierOf(Object.keys(Game.state.dex || {}).length, CFG.labShelfTiers),
       room: this.labRoomTier(),
@@ -355,10 +354,8 @@ Object.assign(UI, {
         ctx.beginPath(); ctx.arc(cx0 + 8 + hash(i, 7) * 28, cy0 + ch - bp * ch * 0.76, 2.2, 0, 6.29); ctx.fill();
       }
       // 配線: SYNTH QUEUE=解読済みで素材が揃う個体数/解読済みレシピ数・STONE RESERVE=実残数
-      const decoded = RECIPES.filter((r) => Game.recipeDecoded(r)).length;
-      const ready = Game.state.lizards.filter((lz) => Game.synthesizableRecipes(lz).some((r) => Game.recipeDecoded(r))).length;
       ctx.font = "10" + FONT_T; ctx.textAlign = "left";
-      const rd = [["SYNTH QUEUE", `${ready} / ${decoded}`], ["STONE RESERVE", String(Game.stones())], ["STABILITY", "98.2%"], ["CORE TEMP", "341K"]];
+      const rd = [["STONE RESERVE", String(Game.stones())], ["STABILITY", "98.2%"], ["CORE TEMP", "341K"]];
       rd.forEach(([k2, v], i) => {
         const yy = y + 72 + i * 34;
         ctx.fillStyle = AMd + "0.45)"; ctx.fillText(k2, x + 128, yy);
@@ -382,7 +379,7 @@ Object.assign(UI, {
         ctx.strokeRect(gx, gy, 26, 32);
         if (on) {
           ctx.fillStyle = AMd + "0.14)"; ctx.fillRect(gx, gy, 26, 32);
-          ctx.fillStyle = TRAITS[keys[i]].synth ? CRd + "0.9)" : AMd + "0.8)";
+          ctx.fillStyle = TRAITS[keys[i]].tier >= 6 ? CRd + "0.9)" : AMd + "0.8)";
           ctx.beginPath(); ctx.ellipse(gx + 13, gy + 18, 6, 9, 0, 0, 6.29); ctx.fill();
         }
       }

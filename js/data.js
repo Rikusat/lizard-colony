@@ -366,8 +366,6 @@ const CFG = {
   stoneGenesisRandCost: 4,  // R5-a: ランダム創世の一律コスト(結果を知らずに払う=定額・現行期待値近似)★[A]調整
   stoneFixBase: 4,          // S5-b 固定化コスト = これ + tier×stoneFixPerTier(tier1=6…tier5=14個)。両親固定で2枚持ち確定=601回の錬金ショートカット
   stoneFixPerTier: 2,
-  stoneSynthBase: 6,        // 合成(§8)の石触媒 = これ + order×stoneSynthPerOrder(order1=8…order6=18個)。★石の経済(§8.6)提示後にRic最終調整
-  stoneSynthPerOrder: 2,
   // 本部=研究施設(hq_lab)の設備tier閾値(全て既存stateからの派生=セーブ非接触・★たたき台=Ric調整)
   labTankTiers: [1, 3, 5],    // 実験用水槽: 解読済みレシピ数でT2/T3/T4
   labShelfTiers: [8, 18, 28], // 標本棚: 図鑑登録数でT2/T3/T4(ロケットはrocket状態から直接導出)
@@ -412,6 +410,8 @@ const CFG = {
   planDimOpacity: 0.62,       // 不足行・沈みボタンの明度
   labTileScale: 2.0,          // 本部のタイル+設備の一体倍率(大きさ)。★Ric実機調整
   labFacScale: 1.0,           // 設備のみの追加倍率(比較用・既定1=一体拡大方式)
+  traitGenesisT6Weight: 0.1,  // ★V6-P1-2: 乱択創世での tier6(旧・合成専用6種)の重み。他は1。小さいほど希少。★[A]調整
+  genesisFxT6Mult: 1.6,       // ★tier6を引いた瞬間だけ錬成Fxを厚くする(演出の種類は増やさない)
   genesisFxSec: 1.5,        // 創世エフェクトの尺(深紅の錬成)
   // R5-b シズミマチ基準(方向(i)沈んだ都市の窓灯り・★全てRic実機判定)
   shizuWinRows: 3,          // 窓灯りの段数
@@ -1018,13 +1018,6 @@ const RESEARCH = [
   { id: "offline1", name: "留守番体制 I",  cost: { science: 10, coins: 250000 },  eff: { offlineH: 12 },  desc: "オフライン進行上限+12時間" },
   { id: "offline2", name: "留守番体制 II", cost: { science: 25, coins: 800000 },  eff: { offlineH: 12 },  req: "offline1", desc: "さらに+12時間(計48h)" },
   { id: "legend1",  name: "始祖の知恵",    cost: { science: 60, coins: 5000000 }, eff: { legend: 0.004 }, desc: "伝説変異率+0.4%" },
-  // 合成レシピ解読(§8.5・前提チェーン=浅→深)。後半は賢者の石を少量(錬金の知識は石が教える)。効果なし=解読フラグのみ。
-  { id: "recipe1", name: "レシピ解読 I",   cost: { science: 10, coins: 200000 },              desc: "実験用水槽の錬成式をひとつ解読する" },
-  { id: "recipe2", name: "レシピ解読 II",  cost: { science: 15, coins: 350000 },  req: "recipe1", desc: "さらに深い錬成式を解読する" },
-  { id: "recipe3", name: "レシピ解読 III", cost: { science: 20, coins: 500000 },  req: "recipe2", desc: "さらに深い錬成式を解読する" },
-  { id: "recipe4", name: "レシピ解読 IV",  cost: { science: 30, coins: 800000 },  req: "recipe3", desc: "さらに深い錬成式を解読する" },
-  { id: "recipe5", name: "レシピ解読 V",   cost: { science: 45, coins: 1200000, stones: 2 }, req: "recipe4", desc: "石が囁く、深い錬成式" },
-  { id: "recipe6", name: "レシピ解読 VI",  cost: { science: 60, coins: 2000000, stones: 4 }, req: "recipe5", desc: "最深の錬成式。黒と青のさかい" },
   // V4.1 §6.2: 侵食抑制技術(オリハルコンを要求する上位研究)
   { id: "erosion1", name: "侵食抑制 I",    cost: { science: 20, coins: 500000, orichalcum: 3 },  eff: { erosionSlow: 0.25, erosionDown: 10 }, desc: "侵食の自然上昇-25%・ログイン低下+10" },
   { id: "erosion2", name: "侵食抑制 II",   cost: { science: 50, coins: 2000000, orichalcum: 8 }, eff: { erosionSlow: 0.25, erosionDown: 15 }, req: "erosion1", desc: "さらに上昇-25%・低下+15" },
@@ -1162,53 +1155,43 @@ const TRAITS = {
   hagane: {
     key: "hagane", name: "ハガネ", // ★仮称・レシピ=ヨウガン+ヒョウガ
     color: "#3c4a54", rim: "#9FB2C0", // 鋼青灰
-    icon: "trait-hagane", tier: 6, synth: true, draw: "traitHagane",
+    icon: "trait-hagane", tier: 6, draw: "traitHagane",
     desc: "熱と急冷が鍛えた鋼の帯。裂け目は継がれ、霜は刃文になった。",
   },
   kontengi: {
     key: "kontengi", name: "コンテンギ", // ★仮称・レシピ=クロノ+アミダグラ
     color: "#463317", rim: "#D4AF5E", // 明るい真鍮(クロノより一段明るい=格)
-    icon: "trait-kontengi", tier: 6, synth: true, draw: "traitKontengi",
+    icon: "trait-kontengi", tier: 6, draw: "traitKontengi",
     desc: "体を巡る渾天の環。節輪は軌道になり、網目の灯は星になった。",
   },
   mumei: {
     key: "mumei", name: "ムメイ", // ★仮称・レシピ=ミミカクシ+ハクシ
     color: "#4a4a48", rim: "#F3EFE6", // 無垢の白(ハクシより純度が高い=格)
-    icon: "trait-mumei", tier: 6, synth: true, draw: "traitMumei",
+    icon: "trait-mumei", tier: 6, draw: "traitMumei",
     desc: "白い仮面と薄れる輪郭。藍は白へ反転し、白斑は存在の際まで広がった。",
   },
   houkan: {
     key: "houkan", name: "ホウカン", // ★仮称・レシピ=オウゴンヅカ+トライアド
     color: "#5a4514", rim: "#E4BC3A", // 明るい金(オウゴンヅカより一段明るい=格)
-    icon: "trait-houkan", tier: 6, synth: true, draw: "traitHoukan",
+    icon: "trait-houkan", tier: 6, draw: "traitHoukan",
     desc: "頭に三尖の宝冠。眼の金は冠へ昇り、三つの紋は頂の宝石になった。",
   },
   shizumimachi: {
     key: "shizumimachi", name: "シズミマチ", // ★仮称・レシピ=シンカイ+ネオン(旧リンコウ=音の衝突で改名)
     color: "#23384a", rim: "#79C3E0", // 水面ごしの街灯り
-    icon: "trait-shizumimachi", tier: 6, synth: true, draw: "traitShizumimachi",
+    icon: "trait-shizumimachi", tier: 6, draw: "traitShizumimachi",
     desc: "体側に窓灯の格子。深海の点は街の窓になり、蛍光は灯に混ざった。",
   },
   rinkai: {
     key: "rinkai", name: "リンカイ", // ★仮称・レシピ=ヴォイド+チェレンコ(最上位=最深)
     color: "#0d1f1c", rim: "#8FE8CC", // 強いチェレンコフ光(チェレンコより一段強い=格)
-    icon: "trait-rinkai", tier: 6, synth: true, draw: "traitRinkai",
+    icon: "trait-rinkai", tier: 6, draw: "traitRinkai",
     desc: "光を吸う黒に、輪郭だけが臨界の青で燃える。体の奥に一点、静かな芯。",
   },
 };
 
 // 合成レシピ(§8.2・データ駆動・レシピ追加=データ追加のみ)。
 // 【恒久制約§8.1】完全マッチング=基本12特性が各ちょうど1回。ロスター増は「2種+レシピ1本」の規律。
-// order=解読順(素材tier合計の浅→深)。解読状態は state.research["recipe"+order](既存枠=additive・bump不要)。
-const RECIPES = [
-  { a: "shinkai",     b: "neon",      result: "shizumimachi", order: 1 },
-  { a: "ougon",       b: "triad",     result: "houkan",       order: 2 },
-  { a: "mimikakushi", b: "hakushi",   result: "mumei",        order: 3 },
-  { a: "yougan",      b: "hyoga",     result: "hagane",       order: 4 },
-  { a: "chrono",      b: "amidagura", result: "kontengi",     order: 5 },
-  { a: "void",        b: "cherenko",  result: "rinkai",       order: 6 },
-];
-
 // ボス種 (GameExpansion_v2 ②)。minRank 到達で抽選プールに加入
 const BOSS_TYPES = [
   { id: "snake",    name: "ダイジャ",       icon: "snake", minRank: 0,  weight: 3, flying: false, dur: 45, threat: "噛みつきで負傷" },
