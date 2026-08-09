@@ -52,4 +52,26 @@ console.log(`  据置: ${same} 件 / 上がった: ${up} 件`);
 console.log(`  払い戻しが解読数どおり: ${refundOk}/${n}`);
 console.log(`  移行の冪等性: 全ケースでOK`);
 console.log(down === 0 && refundOk === n ? "\n★証明: どのプレイヤーの水槽tierも下がらない / 払い戻しは floor 移行の後でも正しい" : "\n!! 反例あり");
+
+// ★実付与の検査。本番実証で「トーストは出るのに資源が返らない」欠陥を検出したため恒久化する。
+//   集計(_refundRecipe)が出来ているだけでは不十分で、load() を通した後に**実際に増えている**ことを見る。
+console.log("\n## 払い戻しの実付与(load経路)");
+let grantNg = 0;
+for (const decoded of [0, 3, 6]) {
+  Game.newGame();
+  const w = Game.toWorld();
+  w.headquarters = w.headquarters || {};
+  w.headquarters.research = {};
+  for (let o = 1; o <= decoded; o++) w.headquarters.research["recipe" + o] = true;
+  delete w.headquarters.recipeRefundV1; delete w.headquarters.labTankFloorV1;
+  sb.localStorage.setItem(CFG.saveKey, JSON.stringify(w));
+  Game.state = null;
+  Game.load();
+  const want = Game.RECIPE_REFUND.slice(0, decoded).reduce((a, r) => ({ sci: a.sci + r.science, coins: a.coins + r.coins, stones: a.stones + r.stones }), { sci: 0, coins: 0, stones: 0 });
+  const ok = Game.res("science") >= want.sci && Game.stones() >= want.stones && Game.state.coins >= want.coins;
+  if (!ok) { grantNg++; console.log(`  ✘ decoded=${decoded}: 期待 sci>=${want.sci}/石>=${want.stones}/G>=${want.coins} / 実際 sci=${Game.res("science")}/石=${Game.stones()}/G=${Math.floor(Game.state.coins)}`); }
+  else console.log(`  ✔ decoded=${decoded}: 研究力+${want.sci} / ${want.coins.toLocaleString()}G / 石+${want.stones} が実際に増えた`);
+}
+console.log(grantNg === 0 ? "★払い戻しは実際に資源へ反映される(集計だけで終わらない)" : "!! 付与されていない");
+if (grantNg) process.exit(1);
 process.exit(down === 0 && refundOk === n ? 0 : 1);

@@ -3331,6 +3331,16 @@ const Game = {
         setTimeout(() => UI.toast(`コオロギ在庫${fmt(Math.floor(r6.crickets))}匹を払い戻し: +${fmt(r6.gold)}G`), 900);
       }
       this.applyWorld(world);
+      // ★V6-P1-2: レシピ解読の払い戻しを**実際に付与**する。migrateRecipeRefund は集計と解読フラグの
+      //   掃除までしか行わない(worldの資源の置き場所を直接いじらない)。付与は applyWorld の後に
+      //   **正規の加算関数**を通す=整合性・下限・表示更新を既存ロジックに委ねる(§5www と同じ作法)。
+      //   ※この付与が無いと「トーストは出るのに資源が返らない」= 本番実証で実際に検出した欠陥。
+      if (world._refundRecipe && world._refundRecipe.n > 0) {
+        const rr = world._refundRecipe;
+        if (rr.coins) this.state.coins += rr.coins;
+        if (rr.sci) this.addRes("science", rr.sci);
+        if (rr.stones) this.addStone(rr.stones);
+      }
       // V4.1: 留守中の侵食上昇(全体で1回だけ)と巣の一括解放
       const awaySec = Math.min(Math.max(0, (Date.now() - (world.savedAt || Date.now())) / 1000), this.offlineCapSec());
       if (awaySec > 60) this.erosionRise(awaySec);
