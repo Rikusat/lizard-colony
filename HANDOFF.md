@@ -1754,6 +1754,50 @@ Claude Code が2回連続でクラッシュした(JavaScriptCore のメモリ枯
 - **★併発して見つけた既存欠陥**: 称号 `allies6`「百獣の盟主」とミッション `allies6`「味方6体すべてと出会う」は **`ALLIES.every(...)`=旧汎用味方6種の所持**が条件。旧汎用味方は3.11.5で撤去済で付与経路が無く、**現時点で既に達成不能**(=「存在するのに獲得できない」)。P1-2の合成特性と同種の問題として一緒に処理すべき。
 - **★descの記述ずれ**: ID3/4/5/10 の説明文は「※戦闘効果は今後(承認後)」だが、`dormouseDps`/`moleAtkBuff`/`anoleDps`/`fireflyGrace` は**実装済みで実際に効いている**。味方モーダルが到達不能なため露出はしていないが記述は誤り。
 
+### 5s-V6-P1-1. ★P1-1 味方廃止 — Ric裁定と実装手順(2026-08-09・**実装は次セッション**)
+**このセクションだけを読めば再導出なしで実装できる**ように書いてある(コンテキスト枯渇による引き継ぎ)。裁定は §5s-V6 の調査結果に対する回答。
+
+#### 現在地
+- ブランチ `worktree-v6-p1`(main から分岐)。main = `4e0224f`(本番と同一)。
+- 済: ミッション名 `win200`「襲撃を」→「襲来を」/ HANDOFF §5s-V6 の調査記録。**撤去本体は未着手**。
+
+#### Ric裁定(3点)
+1. **再調整 = 承認**: `BOSS_TIERS[].hpMult` を `allyScaleByTier` で割って tier 相殺 + arch別残差を ID3/5/10 の `bossHpMultByStage` で吸収。**実装後に同一手法で再実測し「廃止前後で差ゼロ」を証明する**こと(「味方を消したが体感は何も変わらない」が正解)。
+2. **払い戻し = 不要**(UI到達不能＝意図的な投資が存在しない)。ただし **`state.allies` は削除せず残置**(読まないだけ)。設定の「惑星味方 移行前のバックアップから復元」は**導線ごと撤去**。
+3. **`allies6` = 条件差し替え**(削除しない)。称号名「百獣の盟主」は据置。
+
+#### ★確定した数値(そのまま入れてよい)
+- **`BOSS_TIERS[].hpMult`**: `1.5, 3.0, 3.4, 3.8, 4.2, 4.6` → **`1.4286, 2.7273, 2.9825, 3.2203, 3.4426, 3.6508`**(各 `allyScaleByTier`[1.05,1.10,1.14,1.18,1.22,1.26] で除算)。
+- **`bossHpMultByStage`**: arch別DPSを持つ **ID3/ID5/ID10 のみ** を Lv1相当(1.05)で除算 → **ID3 `1.1→1.0476` / ID5 `1.1→1.0476` / ID10 `1.15→1.0952`**。他7惑星は据置。
+  - 補正の基準を **Lv1** にする理由: 味方UIが到達不能で `checkAllies` が Lv1 で自動加入させるだけのため、**実プレイでのarch効果はほぼ常に Lv1**(Lv2以上は Phase6以前からの移送セーブのみ)。
+  - `raidAllyTierScale` は **Lvに依らず在住だけで効く**ので、tier相殺は全惑星に等しく効く。
+- 非DPS系(meerkat先制/turtle肩代わり/firefly負傷短縮/gecko web切除/owl逃走減速/eagle急降下妨害)はHP補正で厳密相殺できない。**再実測で残差を見て `bossHpMultByStage` を微調整して閉じる**(経験的ループ)。
+
+#### ★allies6 の差し替え(確定案)
+- 新スタッツ **`s.stats.bossPlanets = {stageId: 1}`** を追加(署名ボス撃破時に `endRaid(win)` で記録)。`stats` は既に永続化されており**単調追加=移行関数不要**。読み出しは必ず `(s.stats.bossPlanets || {})` でガードし旧セーブでも落ちないこと。
+- **称号 `allies6`「百獣の盟主」**: hint=「10惑星すべての主を撃退」/ cond=`STAGES.every(st => (s.stats.bossPlanets||{})[st.id])`。名前据置(百獣=各惑星の主たち / 盟主=それらを従えた者)。
+- **ミッション `allies6`**(報酬 gems10・据置): 名前=「**5つの惑星で主を撃退する**」/ check=`Object.keys(s.stats.bossPlanets||{}).length >= 5`。
+  - 選定理由: 既存ミッションに**惑星を巡る軸が無い**(`stage10` は rank 条件のみ)。称号の10に対する踏み台になり、C2の「十の星を巡る」物語とも噛み合う。`boss1`(1体)→本ミッション(5惑星)→称号(10惑星)と段階が通る。
+- **既達成者の扱い = 追加実装なしで損失感ゼロ**: `state.titles[id]` と `state.missionsClaimed[id]` は**獲得/受取済みの永続フラグ**で、一度立てば再判定されない。よって旧条件で取得済みの人はそのまま保持され、未取得の人だけが新条件で取れる。**移行関数は不要**。
+
+#### ★migrateV13to14 = 残置(削除不可)と判断
+- 理由: **セーブの版チェーンの一部**(v13→v14)であり、削除すると **v13以前のセーブが v14 へ上がれず壊れる**。味方を読まなくなるだけで害はない。Ricの「経緯を辿れる方が安全」とも整合。
+- 実装上も安全: 同関数は `ALLIES` を参照せず**文字列MAPのみ**を使う(実測)。よって `ALLIES` 削除後も動作する。
+
+#### ★「存在するのに獲得できない」全数点検の結果
+- **称号12件・ミッション21件を全数確認** → **該当は `allies6` の2件のみ**。他はすべて `stats`(fed/hatched/raidsWon/bossWon/bred/sold)・`rank`・`coins`・`dexRate` 由来で到達可能。撤廃済み機能(探索/シェルター/餌場/繁殖施設/クイック繁殖)に依存する項目は**0件**。
+- **図鑑は別途**: `tools/audit_obtainability.js` が獲得可能性監査の既存ツール。**P1-2(合成撤廃)で同じ問題を扱うため、図鑑・特性カタログの監査はP1-2でまとめて実施する**。
+
+#### 実装手順(次セッション)
+1. `js/data.js`: 上記の数値2件を反映 → `ALLIES`/`PLANET_ALLIES`/`allyById`/`planetAllyById`/`planetAllyOf` 削除 → CFG13キー(`allyMaxLv` `allyLvCostPerLv` `allyLvBioCost` `allyScaleByTier` `allyScaleElite` `allyVisSizePerTier` `allyVisHeadsPerTier` `allyVisHeadMax` `dormouseDps` `moleAtkBuff` `anoleDps` `fireflyGrace` `fireflyGraceFloor`)と `SIG_PAL.allyBoost` 削除 → `allies6` 2件を差し替え。
+2. `js/game.js`: `allyLv`/`allyLvRaw`/`checkAllies`/`raidAllyTierScale`/`allyLvUp`/`allyLvUpCost` 削除。呼び出し側(806, 1710, 1712, 1738, 1741-1744, 1846, 1871, 1929, 1938, 1962, 1984, 2128, 2136-2141, 2189)を**式ごと簡約**(味方項を0として畳む)。`state.allies`(65) と `toWorld`(2806)/`applyWorld`(3102, 3159)/`migrateV13to14`(3002-3015)は**残置**。`endRaid` に `bossPlanets` 記録を追加。
+3. `js/render.js`: `drawPlanetAllies`(5222)と呼出(177)、味方10体の描画、`_allySquad`/`_allyBoost`/`_allyK`/`_allyVisTier` 削除。
+4. `js/ui/screens/meta.js`: `openAllies` 削除 + 「惑星味方 移行前のバックアップから復元」の行とハンドラを撤去(`Game.restoreV14Backup` の要否も判断)。
+5. `tests/phase7_regression.js`: 味方の節を「味方は存在しない」の監視へ**反転**。併せて「削除しすぎていない」(戦闘が成立・報酬・図鑑・称号が壊れていない)を検査。
+6. 参照0件の証明(`ally`/`ALLIES`/`味方` の全数grep)。
+7. 再実測(`$CLAUDE_JOB_DIR/tmp/ally-impact.mjs` を流用・**感度カナリア内蔵のまま**)で廃止前後の差がゼロに収まることを証明 → 残差があれば `bossHpMultByStage` を微調整して再実測。
+8. QA3層 + boot console 0(カナリア先行)。**デプロイはRic判定後**。
+
 ### 5x-MINION-3. ★案C 完了・本番デプロイ(2026-08-09・成功/本番実証済)[e0e2fa5]
 §5x-MINION-2 の手順1〜7を完走。**汎用敵はフィールドからも表示文字列からも消えた。**
 
