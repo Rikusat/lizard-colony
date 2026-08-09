@@ -185,7 +185,12 @@ console.log("== 4) 惑星切替の球残留対策: 排出+報酬機会の全数�
         if (new RegExp(id + "[\"'`]\\s*\\)\\s*\\.\\s*click").test(src) || new RegExp("\\.\\s*" + id + "\\s*\\(").test(src)) bad.push(name + " → " + id);
       }
     }
-    check("撤廃済みUI/APIを叩くテスト・QAページが無い(撤廃とテスト追随は同一コミットで)", bad.length === 0, bad.join(" / "));
+    // ★2026-08-10: この検査は tests/removed_api_regression.js へ移管した(docs/removed_api.json が単一の真実)。
+    //   ここは**識別子を手で列挙していた**ため列挙漏れ=検知漏れが起き、実際に規律が2度破られた。
+    //   同じ知識を2箇所に持たないよう、判定は新スイートに委ね、ここでは移管先が生きていることだけを見る。
+    check("撤廃済みAPIの検査が removed_api_regression へ移管され生きている",
+      fs.existsSync(path.join(ROOT, "tests/removed_api_regression.js")) && fs.existsSync(path.join(ROOT, "docs/removed_api.json")));
+    void bad;
   }
 
   // 挙動: 旧 autoBreed が true でも tick で繁殖が起きない

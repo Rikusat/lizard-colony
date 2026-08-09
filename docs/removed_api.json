@@ -1,0 +1,62 @@
+{
+  "_readme": [
+    "撤廃済みAPI/UI識別子の単一の真実(2026-08-10 Ric裁定・§5x-OPS ⑫の再発防止)。",
+    "【規律】機能を撤廃したら、同一コミットでこのファイルへ追記すること。追記はコミットの一部であり後回しにしない。",
+    "【検査】tests/removed_api_regression.js が test-*.html / tests/ / tools/ を全数走査し、",
+    "  ここに載る識別子を『叩いている』箇所のみを違反とする。『無いことの検査』(=!== / undefined 等)は通す。",
+    "  この規律は2度破られている(繁殖UI撤廃 2026-07-30 / 合成撤廃 2026-08-10)。人手の列挙に頼らずリストで機械検知する。",
+    "【運用】alt に代替があれば書く。無ければ null。since は撤廃日、ref は HANDOFF の節。"
+  ],
+  "removed": [
+    { "id": "bm-quick", "kind": "dom", "since": "2026-07-29", "ref": "§5ddd", "alt": "手動のA/B選択", "note": "クイック繁殖ボタン" },
+    { "id": "bm-reserve", "kind": "dom", "since": "2026-07-29", "ref": "§5ddd", "alt": null, "note": "繁殖予約トグル" },
+    { "id": "quickBreed", "kind": "api", "since": "2026-07-29", "ref": "§5ddd", "alt": "Game.breed", "note": "自動選出。再実装禁止" },
+    { "id": "quickBreedScore", "kind": "api", "since": "2026-07-29", "ref": "§5ddd", "alt": null, "note": null },
+    { "id": "quickBreedPick", "kind": "api", "since": "2026-07-29", "ref": "§5ddd", "alt": null, "note": null },
+    { "id": "breedPairScore", "kind": "api", "since": "2026-07-29", "ref": "§5ddd", "alt": null, "note": null },
+    { "id": "breedLizardScore", "kind": "api", "since": "2026-07-29", "ref": "§5ddd", "alt": null, "note": null },
+    { "id": "breedScoreW", "kind": "cfg", "since": "2026-07-29", "ref": "§5ddd", "alt": null, "note": null },
+    { "id": "breedScoreUpMut", "kind": "cfg", "since": "2026-07-29", "ref": "§5ddd", "alt": null, "note": null },
+
+    { "id": "ALLIES", "kind": "data", "since": "2026-08-09", "ref": "§5s-V6-P1-1", "alt": null, "note": "旧汎用味方6種" },
+    { "id": "PLANET_ALLIES", "kind": "data", "since": "2026-08-09", "ref": "§5s-V6-P1-1", "alt": null, "note": "惑星固有味方10種" },
+    { "id": "allyById", "kind": "api", "since": "2026-08-09", "ref": "§5s-V6-P1-1", "alt": null, "note": null },
+    { "id": "planetAllyById", "kind": "api", "since": "2026-08-09", "ref": "§5s-V6-P1-1", "alt": null, "note": null },
+    { "id": "planetAllyOf", "kind": "api", "since": "2026-08-09", "ref": "§5s-V6-P1-1", "alt": null, "note": null },
+    { "id": "allyLv", "kind": "api", "since": "2026-08-09", "ref": "§5s-V6-P1-1", "alt": null, "note": "戦闘の味方効果" },
+    { "id": "allyLvRaw", "kind": "api", "since": "2026-08-09", "ref": "§5s-V6-P1-1", "alt": null, "note": null },
+    { "id": "checkAllies", "kind": "api", "since": "2026-08-09", "ref": "§5s-V6-P1-1", "alt": null, "note": null },
+    { "id": "raidAllyTierScale", "kind": "api", "since": "2026-08-09", "ref": "§5s-V6-P1-1", "alt": null, "note": "Phase7の自動強化" },
+    { "id": "allyLvUp", "kind": "api", "since": "2026-08-09", "ref": "§5s-V6-P1-1", "alt": null, "note": null },
+    { "id": "allyLvUpCost", "kind": "api", "since": "2026-08-09", "ref": "§5s-V6-P1-1", "alt": null, "note": null },
+    { "id": "drawPlanetAllies", "kind": "api", "since": "2026-08-09", "ref": "§5s-V6-P1-1", "alt": null, "note": null },
+    { "id": "openAllies", "kind": "api", "since": "2026-08-09", "ref": "§5s-V6-P1-1", "alt": null, "note": "到達不能だった味方モーダル" },
+    { "id": "restoreV14Backup", "kind": "api", "since": "2026-08-09", "ref": "§5s-V6-P1-1", "alt": null, "note": "惑星味方の復元導線" },
+    { "id": "set-rollbackV14", "kind": "dom", "since": "2026-08-09", "ref": "§5s-V6-P1-1", "alt": null, "note": null },
+    { "id": "allyScaleByTier", "kind": "cfg", "since": "2026-08-09", "ref": "§5s-V6-P1-1", "alt": "BOSS_TIERS.hpMultへtier相殺済", "note": null },
+    { "id": "allyMaxLv", "kind": "cfg", "since": "2026-08-09", "ref": "§5s-V6-P1-1", "alt": null, "note": null },
+    { "id": "dormouseDps", "kind": "cfg", "since": "2026-08-09", "ref": "§5s-V6-P1-1", "alt": null, "note": null },
+    { "id": "fireflyGrace", "kind": "cfg", "since": "2026-08-09", "ref": "§5s-V6-P1-1", "alt": null, "note": null },
+
+    { "id": "RECIPES", "kind": "data", "since": "2026-08-10", "ref": "§5s-V6-P1-2", "alt": null, "note": "合成レシピ6件" },
+    { "id": "synthesize", "kind": "api", "since": "2026-08-10", "ref": "§5s-V6-P1-2", "alt": "genesisTraitRand(tier6も乱択プール)", "note": null },
+    { "id": "synthesizableRecipes", "kind": "api", "since": "2026-08-10", "ref": "§5s-V6-P1-2", "alt": null, "note": null },
+    { "id": "stoneSynthCost", "kind": "api", "since": "2026-08-10", "ref": "§5s-V6-P1-2", "alt": null, "note": null },
+    { "id": "recipeByResult", "kind": "api", "since": "2026-08-10", "ref": "§5s-V6-P1-2", "alt": null, "note": null },
+    { "id": "recipeDecoded", "kind": "api", "since": "2026-08-10", "ref": "§5s-V6-P1-2", "alt": null, "note": null },
+    { "id": "stoneSynthBase", "kind": "cfg", "since": "2026-08-10", "ref": "§5s-V6-P1-2", "alt": null, "note": null },
+    { "id": "stoneSynthPerOrder", "kind": "cfg", "since": "2026-08-10", "ref": "§5s-V6-P1-2", "alt": null, "note": null },
+    { "id": "synth-list", "kind": "dom", "since": "2026-08-10", "ref": "§5s-V6-P1-2", "alt": null, "note": "錬成槽の合成リスト" },
+
+    { "id": "nestAutoFeed", "kind": "api", "since": "2026-07-24", "ref": "§5nnn", "alt": "クランク経路(dial.auto→feedAll)", "note": "巣の自動給餌。再実装禁止" },
+    { "id": "shelter", "kind": "facility", "since": "v12", "ref": "§5(migrateV11to12)", "alt": "ベビー保護は巣の基本仕様", "note": null },
+    { "id": "feeder", "kind": "facility", "since": "v13", "ref": "§5(migrateV12to13)", "alt": "すみか(巣)へ統合", "note": "餌場" },
+    { "id": "breedfac", "kind": "facility", "since": "v13", "ref": "§5(migrateV12to13)", "alt": "すみか(巣)へ統合", "note": "繁殖施設" },
+    { "id": "exploration", "kind": "data", "since": "V4.1", "ref": "§V4.1", "alt": null, "note": "探索。残留フラグ事故の根治で撤去" },
+    { "id": "rotateHint", "kind": "api", "since": "2026-08-09", "ref": "§5x-MINION-3", "alt": null, "note": "常設ヒント(表示枠ごと死んでいた)" },
+    { "id": "ui-hint", "kind": "dom", "since": "3.11.1e", "ref": "§5x-MINION-3", "alt": null, "note": null }
+  ],
+  "_deferred": {
+    "proposal2": "実コードに存在しない識別子を機械検出する案は見送り(2026-08-10 Ric裁定)。QA資産はスタブ・モックで存在しない識別子を意図的に叩く正当なケースがあり、誤検知の切り分けコストがβ公開前の局面に見合わないため。将来の選択肢として記録に残す。"
+  }
+}

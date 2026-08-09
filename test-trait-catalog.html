@@ -17,7 +17,8 @@
   const shim = { getItem: (k) => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: (k) => { delete mem[k]; }, clear: () => { for (const k in mem) delete mem[k]; } };
   Object.defineProperty(window, "localStorage", { value: shim, configurable: false });
 })();
-</script>
+// V6-P1-2: 血統6レシピの描画は合成撤廃により撤去(意匠の由来は docs/trait_system.md §8.4 に存置)
+  </script>
 <style>
   body { background: #4a352f; margin: 0; color: #e8dccb; font-family: system-ui, sans-serif; }
   h1 { font-size: 15px; padding: 10px 16px 0; margin: 0; font-weight: 600; }
@@ -48,14 +49,9 @@ const draw1 = (species, c, x, y, traits) => {
   lz.x = x; lz.y = y; lz.tx = x; lz.ty = y; lz.angle = 0.12; lz.moving = false;
   Render.drawLizard(c, lz, true);
 };
-// レシピ位置の索引: key → "レシピn 素材A/素材B" or "レシピn 成果(合成専用)"
-const rolePos = {};
-RECIPES.forEach((r) => {
-  rolePos[r.a] = (rolePos[r.a] ? rolePos[r.a] + " / " : "") + `レシピ${r.order} 素材A`;
-  rolePos[r.b] = (rolePos[r.b] ? rolePos[r.b] + " / " : "") + `レシピ${r.order} 素材B`;
-  rolePos[r.result] = `レシピ${r.order} 成果`;
-});
-const badge = (c, x, y, text, bg, fg) => {
+// V6-P1-2: 合成撤廃によりレシピ位置の索引は無くなった(RECIPESは存在しない)
+    const rolePos = {};
+    const badge = (c, x, y, text, bg, fg) => {
   c.font = "11px system-ui";
   const w = c.measureText(text).width + 12;
   c.fillStyle = bg; c.beginPath(); c.roundRect(x, y - 11, w, 16, 8); c.fill();
@@ -81,20 +77,7 @@ Object.keys(TRAITS).forEach((key, r) => {
 // ---- 血統6レシピ(素材A+素材B→成果C) ----
 const cv2 = document.getElementById("recipes"), c2 = cv2.getContext("2d");
 c2.fillStyle = "#5c4238"; c2.fillRect(0, 0, 900, 820);
-RECIPES.forEach((rec, i) => {
-  const y = 110 + i * 130;
-  draw1(spA, c2, 210, y, [{ key: rec.a }]);
-  draw1(spA, c2, 470, y, [{ key: rec.b }]);
-  draw1(spA, c2, 760, y, [{ key: rec.result }]);
-  c2.fillStyle = "#f0d9a8"; c2.font = "16px system-ui";
-  c2.fillText("+", 330, y); c2.fillText("→", 590, y);
-  c2.font = "12px system-ui";
-  c2.fillText(`レシピ${rec.order}`, 16, y - 40);
-  c2.fillStyle = "#c9b8a2"; c2.font = "11px system-ui";
-  c2.fillText(TRAITS[rec.a].name, 160, y + 44);
-  c2.fillText(TRAITS[rec.b].name, 420, y + 44);
-  c2.fillStyle = "#e8a0c8"; c2.fillText(TRAITS[rec.result].name, 700, y + 44);
-});
+// V6-P1-2: 血統6レシピの描画は合成撤廃により撤去(意匠の由来は docs/trait_system.md §8.4 に存置)
 </script>
 </body>
 </html>

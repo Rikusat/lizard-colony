@@ -120,7 +120,7 @@ window.addEventListener("load", () => setTimeout(() => {
     }
     const un = new Set([...(a.traits || []), ...(b.traits || [])].map((t) => t.key || t));
     let rec = 0;
-    for (const r of RECIPES) if (un.has(r.a) && un.has(r.b)) rec++;
+    var rec = 0; // V6-P1-2: 合成撤廃によりレシピ達成数の概念は無くなった(RECIPESは存在しない)
     let rare = 0;
     for (const k of un) {
       const cnt = colony.filter((lz) => (lz.traits || []).some((t) => (t.key || t) === k)).length;
