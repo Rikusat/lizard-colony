@@ -108,15 +108,13 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       var rows = body.querySelectorAll("#research-list .list-row"), bought = false;
       for (var ri = 0; ri < rows.length; ri++) { if (/レシピ解読 I</.test(rows[ri].innerHTML.replace("解読 I", "解読 I<"))) {} }
       Game.addRes("science", 500); UI.closeModal(); UI.openLabPanel("desks"); body = document.getElementById("modal-body");
-      rows = body.querySelectorAll("#research-list .list-row");
-      for (var rj = 0; rj < rows.length; rj++) {
-        if (rows[rj].textContent.indexOf("レシピ解読 I") >= 0 && rows[rj].querySelector("button")) { rows[rj].querySelector("button").click(); bought = true; break; }
-      }
-      ok("機能: 研究購入(レシピ解読I・実クリック)", bought && Game.state.research.recipe1 === true);
+      // V6-P1-2: レシピ解読は撤廃。研究一覧に残っていないことを検査する(叩かない)
+      ok("撤廃: 研究一覧にレシピ解読が無い", body.textContent.indexOf("レシピ解読") < 0);
+      ok("撤廃: RESEARCH定義にrecipeが無い", !RESEARCH.some(function (r) { return /^recipe[1-6]$/.test(r.id); }));
       UI.closeModal();
       UI.openLabPanel("tank"); body = document.getElementById("modal-body");
-      ok("機能: 水槽パネル(合成6行/遺伝子ラボ3/鍛造)", body.querySelectorAll("#synth-list .list-row").length === 6 && body.querySelector("#hq-gene") && body.querySelector("#hq-forge").children.length > 3);
-      ok("機能: 解読済レシピが実名表示・未解読は?", body.textContent.indexOf("シズミマチ") >= 0 && body.textContent.indexOf("? ? ?") >= 0);
+      ok("機能: 水槽パネル(遺伝子ラボ3/鍛造・合成は撤廃)", !body.querySelector("#synth-list") && body.querySelector("#hq-gene") && body.querySelector("#hq-forge").children.length > 3);
+      ok("撤廃: 水槽に合成の痕跡が無い(レシピ名/未解読の?)", body.textContent.indexOf("シズミマチ") < 0 && body.textContent.indexOf("? ? ?") < 0);
       UI.closeModal();
       UI.openLabPanel("rocket"); body = document.getElementById("modal-body");
       ok("機能: 宇宙港パネル(建造)", /段階|完成/.test(body.textContent) && (body.querySelector("#hq-rocket") || /完成/.test(body.textContent)));
@@ -204,15 +202,9 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       ok("R3: CDリセット実クリック=breedCd0+⬡消費" + (CFG.amethystCdResetCost || 2), !!cdBtn && cdlz.breedCd === 0 && Game.ore("amethyst") === am0 - (CFG.amethystCdResetCost || 2), "btn=" + !!cdBtn + " cd=" + cdlz.breedCd + " am=" + Game.ore("amethyst"));
       ok("R3: トップバーにアメジスト残数(#ui-amethyst)", !!document.getElementById("ui-amethyst"));
 
-      // ===== 合成UIの実行(実クリック) =====
-      var mz = Game.state.lizards[0];
-      mz.traits = [{ key: "shinkai" }, { key: "neon" }]; Game.state.stones = 50;
-      UI.openLabPanel("tank"); body = document.getElementById("modal-body");
-      var sbtn = null, srows = body.querySelectorAll("#synth-list .list-row");
-      for (var si = 0; si < srows.length; si++) if (srows[si].textContent.indexOf("シズミマチ") >= 0) sbtn = srows[si].querySelector("button");
-      var st0 = Game.stones();
-      if (sbtn) sbtn.click();
-      ok("合成: 水槽UIから実行=シズミマチ誕生・素材2つ昇華・石消費", !!sbtn && Game.hasTrait(mz, "shizumimachi") && !Game.hasTrait(mz, "shinkai") && !Game.hasTrait(mz, "neon") && Game.stones() === st0 - Game.stoneSynthCost(Game.recipeByResult("shizumimachi")), "stones " + st0 + "→" + Game.stones());
+      // V6-P1-2: 合成は撤廃。UIからもAPIからも実行できないことを検査する
+      ok("撤廃: 合成APIが存在しない", typeof Game.synthesize !== "function" && typeof Game.synthesizableRecipes !== "function");
+      ok("撤廃: tier6も乱択創世で到達できる(獲得不能を作らない)", Object.keys(TRAITS).filter(function (k) { return TRAITS[k].tier >= 6; }).length === 6 && CFG.traitGenesisT6Weight > 0);
       UI.closeModal(); UI.closeHqLab();
 
       // ===== 当たり判定の整合(v5 HOLO COMMAND・設計座標1600×900。各モジュールの代表点がそのzoneを返す) =====
@@ -232,7 +224,7 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       ok("判定: 投資リング実クリックで研究デスクパネルが開く", !!document.getElementById("modal-body").querySelector("#lab-invest"));
       UI.closeModal();
       holoClick(190, 243);
-      ok("判定: 錬成槽実クリックで錬成パネルが開く", document.querySelectorAll("#modal-body #synth-list .list-row").length === 6);
+      ok("判定: 錬成槽実クリックでパネルが開く(遺伝子ラボ)", !!document.querySelector("#modal-body #hq-gene"));
       UI.closeModal();
       holoClick(800, 418);
       ok("判定: 中央フィードクリックで飼育槽へ戻る", !UI.hqLabOpen());
@@ -245,7 +237,7 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       UI.closeModal();
       // ===== §14: 右メニュー(常設導線)全項目の実クリック =====
       var menuChecks = [["desks", function(b){ return !!b.querySelector("#lab-invest"); }],
-                        ["tank", function(b){ return b.querySelectorAll("#synth-list .list-row").length === 6; }],
+                        ["tank", function(b){ return !!b.querySelector("#hq-gene"); }], // V6-P1-2: 合成撤廃後の中身は遺伝子ラボ
                         ["shelf", function(b){ return !!b.querySelector("#hq-lore"); }],
                         ["rocket", function(b){ return /段階|完成/.test(b.textContent); }]];
       for (var mi = 0; mi < menuChecks.length; mi++) {
