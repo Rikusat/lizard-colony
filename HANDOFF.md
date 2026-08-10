@@ -1726,7 +1726,14 @@ Claude Code が2回連続でクラッシュした(JavaScriptCore のメモリ枯
 - tier6重み `traitGenesisT6Weight: 0.3` は**据置**(Ric裁定・希少化は設計意図と同方向)。
 
 #### 次: 承認ゲート
-`test-doku-cut.html` / `test-p2batch-cut.html` / `test-trait-catalog.html` をブラウザで閲覧→**Ric許可→デプロイ(V6-P1完了)**。デプロイ内容=js/data.js+js/render.js+js/ui/icons.js(test-*/docs/HANDOFFは.vercelignore除外)。
+`test-doku-cut.html` / `test-p2batch-cut.html` / `test-trait-catalog.html` をブラウザで閲覧→**Ric許可→デプロイ(V6-P1完了)**。デプロイ内容=js/data.js+js/render.js+js/ui/icons.js(test-*/docs/HANDOFFは.vercelignore除外)。→**§5s-V6-P2-3で実施済**。
+
+### 5s-V6-P2-3. ★V6-P1 完了 — 22種を本番デプロイ(2026-08-10・Ric許可・本番実証済)[113e8c3]
+- **申告どおりの内容**: 新規特性4種+カタログ改訂(dev限定)+走査③裸参照+audit文言是正。**本番に載った変更=data/render/icons の3ファイルのみ**(bump-cache実測で変化ハッシュ3件のみ=同乗ゼロ。data `a64d913f` / render `4705767d` / icons `f2f8b382`)。
+- **QAゲート**: node 19スイート / 装置QA **52/0** / 姿形QA **176/176**(console 1件=QAページ自身の `willReadFrequently` 性能警告・既知無害・本番コード非関係) / 統合QA **12/12** / **boot console 0**(カナリア先行=error/warnの捕捉を実証してから計測)。
+- **デプロイ**: `vercel deploy --prod`(初回 `--prod` は Not authorized 表示だが、`whoami`=satmemoria-8755 で認証健在・`deploy --prod --yes` で成功)。live index.html=HEAD**完全一致**・3アセット**バイト一致**。**三者同期 clean(local=origin=`113e8c3`=本番)**。
+- **本番実証(CDP・https://lizardcolony.vercel.app)**: ①乱択創世**20ロールで新規4種すべて出現**(doku1/hoshi1/koke2/suami3・12種類到達・別プロファイル=実セーブ非接触) ②詳細パネルで**4種すべてチップ+SVGアイコンをDOM実証** ③boot・実証中とも **console 0 / exceptions 0**。実機スクショ取得(詳細パネルにドクシルシ表示)。
+- **V6-P1(P1-1 味方廃止+P1-2 合成撤廃・特性22種化)完了。次フェーズ=P2 巣ネットワーク(指示書順)。**
 
 ### 5x-GUARD. ★描画の非有限ガード(2026-08-10・Ric裁定・本番デプロイ済)[7e3d369, bac5fbc, c46d7ba, a231f1e]
 前セッションの報告テキストがクラッシュで失われ**HANDOFF記録も欠落していた**ため、コミットメッセージ・テスト実体・本番実測から復元して記録(2026-08-10 再開セッション)。
