@@ -1684,6 +1684,23 @@ Claude Code が2回連続でクラッシュした(JavaScriptCore のメモリ枯
 - **⑫機能撤廃は、その機能を叩くテスト・QAページの追随を同一コミットで行う**。今回は実コードと node テストは更新されたが**QAページだけが漏れ**、QAが途中で例外中断して**半分が未実行のまま「FAIL 1」にしか見えなかった**。撤廃済みのUI/APIは**叩くのでなく「無いこと」を検査**する(検知は `feed_discipline_regression` の「撤廃済みUI/APIを叩くテスト・QAページが無い」が担う)。
 - **⑬QAは「FAIL数」だけでなく「実行本数」を必ず突き合わせる**。例外中断は FAIL 1件にしか見えず、未実行の残りを隠す。記録された本数(例: 装置QA 48)と実測本数が違ったら、それ自体を欠陥として扱う。
 
+**追補(2026-08-10・撤廃APIの単一の真実・Ric指示=⑫の再発防止 提案1)**
+- **⑭機能撤廃時は `docs/removed_api.json` への追記を同一コミットに含める**(識別子・撤廃日・撤廃した節・代替を記録=単一の真実)。恒久走査は `tests/removed_api_regression.js` が担う(`test-*.html` / `tests/` / `tools/` を全数走査。リスト上の識別子を**叩いている**(clickする・メソッドとして呼ぶ)箇所のみ違反とし、「無いことの検査」は正しい書き方として通す)。詳細=§5x-RMAPI。
+
+### 5x-GUARD. ★描画の非有限ガード(2026-08-10・Ric裁定・本番デプロイ済)[7e3d369, bac5fbc, c46d7ba, a231f1e]
+前セッションの報告テキストがクラッシュで失われ**HANDOFF記録も欠落していた**ため、コミットメッセージ・テスト実体・本番実測から復元して記録(2026-08-10 再開セッション)。
+- **7e3d369**: Canvas2D の createRadialGradient/arc/ellipse 等は NaN/Infinity で TypeError を投げ、**そのフレームの描画が丸ごと止まる**(画面停止)。計算値を渡す71ヶ所に検査を散らすと漏れるため、**`Render.guardCtx` で ctx を一度だけ包む**方式(知識は1箇所)。非有限は「その図形だけ」捨てる=握りつぶしではない(絵の欠けとして残る・`?tune=1` で警告1回・`__finGuard` で冪等)。`finite()` は数値のみ検査(arc の anticlockwise=boolean 等を誤って弾かない)。`drawGenesisFx` は undefined 座標も弾く必要があるため `Number.isFinite` の厳格判定で分離。
+- **★c46d7ba の検出経緯(本番実証)**: 7e3d369 の init は **#game の ctx しか包んでおらず**、本番実証で hqlab-canvas の `__finGuard=false` を実測=**本部HOLO/オープニング/ルーレット/四重スリットの canvas が無防備のまま**だった。テストのカナリアは「guardCtx は正しいが配線が狭い」を素通ししたため、**配線そのもの**の検査を追加して再実証。是正=`Render.guardAllCanvases()` が `HTMLCanvasElement.prototype.getContext` を一度だけ包み、**以後どこで取得された2Dコンテキストも自動で守られる**(パッチ済みフラグ `__finGuardPatched` で冪等)。
+- 恒久テスト `tests/draw_guard_regression.js`(**19 PASS / 0 FAIL**): 素ctxが本当に投げるカナリア/ガード後は不落/有効値は素通し/drawGenesisFx実経路/**配線検査**(init→guardAllCanvases→guardCtx・getContextを包む実装)。
+- **本番状態(2026-08-10 実測)**: local=origin=`a231f1e`・live(lizardcolony.vercel.app) の index.html が HEAD と**完全一致**・live render.js(`?v=ce02f2db`)がローカルと**バイト一致**=**三者同期 clean・デプロイ済**。
+
+### 5x-RMAPI. ★removed_api.json — 撤廃APIの単一の真実(2026-08-10・Ric指示・§5x-OPS ⑫の再発防止 提案1)
+- **`docs/removed_api.json` 新設**: 8機能・**走査対象37識別子**+記録のみ2件(`feeder`=現行の給餌クランク画面と識別子衝突 / `invasion`=現行の侵食システムと衝突。走査除外は reason 必須)。登録済み=探索(V4.1)/シェルター(v12・§5c)/餌場・繁殖施設(v13・§5d)/クイック繁殖・繁殖予約・自動繁殖(§5ddd)/ヒント配列(§5x-MINION-3)/味方(§5s-V6-P1-1)/合成(§5s-V6-P1-2①)/レシピ解読(§5s-V6-P1-2③)。
+- **恒久テスト `tests/removed_api_regression.js`(20 PASS / 0 FAIL)**: JSON形式検査(壊れたJSONが静かに0件走査にならない)+パターンカナリア(click形/呼び出し形を検知・無いことの検査は通す)+全数走査(`test-*.html` 25 / `tests/*.js` 18 / `tools/` 3=計46ファイル)。**実ファイルカナリア実証済**=違反1行を注入→FAIL・戻す→PASS。現状違反0。
+- **feed_discipline_regression の旧ハードコード走査(7識別子・tools/未走査)は配線検査へ置換**(29→**30 PASS**)。同じ知識の2箇所重複を排除(fable0 揺らぎ検知)。走査の実体は removed_api_regression に一本化。
+- §5x-OPS へ **⑭**(撤廃時は removed_api.json 追記を同一コミットに含める)を明記。
+- 検証: node **19スイート全PASS**(実測 `ls tests/*.js | wc -l`=19)。実コード(js/)は非接触。
+
 ### 5x-MINION. ★通常襲来を惑星固有の「幼体」へ(案C・2026-08-01・Ric裁定・実装完了/未デプロイ)[69f99fd, f8fa7b3]
 **発端**: Ricが本番を新規から開始し**アオダイショウ**が出現。Phase6「汎用ボスをフィールドに出さない」の意図に反する。
 

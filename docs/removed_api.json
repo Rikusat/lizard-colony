@@ -1,0 +1,67 @@
+{
+  "$comment": "撤廃API・撤廃UIの単一の真実(§5x-OPS ⑫/⑭・2026-08-10 Ric指示)。機能を撤廃したら、同一コミットで本ファイルへ追記する。tests/removed_api_regression.js が test-*.html / tests/ / tools/ を全数走査し、ids に載る識別子を『叩いている』(click する・メソッドとして呼ぶ)箇所のみを違反とする。『無いことの検査』(typeof X === 'undefined' / !getElementById(...) 等)は撤廃後の正しい書き方なので通す。idsRecordedOnly は撤廃記録としては残すが、現行の別機能と識別子が衝突するため走査しない(reason 必須)。",
+  "features": [
+    {
+      "feature": "探索ツリー(旧StageData.exploration)",
+      "removedOn": "2026-07-16",
+      "section": "GameExpansion_V4.1(Idle Nest & HQ Rework)/ HANDOFF「本番デプロイ(2026-07-16)」",
+      "replacement": "V4.1のHQ研究・巣システムへ再編。migrateV3to4 が delete p.exploration(セーブ互換の削除処理のみ js/ に残置)",
+      "ids": ["exploration"],
+      "idsRecordedOnly": [
+        { "id": "invasion", "reason": "旧Stage別invasionはV4.1で撤去(migrateV3to4がdelete)だが、現行の侵食システム(CFG invasionRise* / #hq-invasion)と識別子が衝突するため走査対象外" }
+      ]
+    },
+    {
+      "feature": "シェルター設備",
+      "removedOn": "2026-07-20",
+      "section": "HANDOFF §5c(Phase 8.10)・SAVE_VERSION v12",
+      "replacement": "ベビー保護は巣の基本仕様へ標準化(injureLizardsで無条件にベビー非対象)。投資Lvは migrateV11to12 でGold全額払戻。Icon.shelter は通常設備タブで流用のため残置(走査パターンは叩く形のみ検知するため衝突しない)",
+      "ids": ["shelter"]
+    },
+    {
+      "feature": "餌場・繁殖施設",
+      "removedOn": "2026-07-20",
+      "section": "HANDOFF §5d(Phase 8.12)[523be66]・SAVE_VERSION v13",
+      "replacement": "効果は nestLv() 駆動へ統合(nestBreedCdPerLv / nestCricketPerLv 等のCFG)。投資は migrateV12to13 で全額払戻",
+      "ids": ["breedfac"],
+      "idsRecordedOnly": [
+        { "id": "feeder", "reason": "現行の給餌クランク画面(js/ui/screens/feeder.js)・餌やり装置スキンと識別子が衝突するため走査対象外" }
+      ]
+    },
+    {
+      "feature": "クイック繁殖・繁殖予約・自動繁殖",
+      "removedOn": "2026-07-30",
+      "section": "HANDOFF §5ddd [70210c0]",
+      "replacement": "手動選出のみ(給餌規律 §5nnn)。旧セーブの autoBreed フラグは読み捨て(tickで繁殖しないことを feed_discipline_regression が恒久検証)",
+      "ids": ["bm-quick", "bm-reserve", "quickBreed", "quickBreedPick", "breedQuickPick", "breedPairScore", "breedLizardScore", "breedScoreW", "breedScoreUpMut", "nestReserveLv", "autoBreedInterval", "autoBreed"]
+    },
+    {
+      "feature": "ヒント配列(UI.hints)",
+      "removedOn": "2026-08-09",
+      "section": "HANDOFF §5x-MINION-3 [f690e37]",
+      "replacement": "なし。表示枠 #ui-hint は 3.11.1e で撤去済みの死コードだったため本体ごと削除(撤廃済み機能を語り続けていた)",
+      "ids": ["rotateHint", "hintIdx", "ui-hint"]
+    },
+    {
+      "feature": "味方システム",
+      "removedOn": "2026-08-09",
+      "section": "HANDOFF §5s-V6-P1-1 [2796d81]",
+      "replacement": "なし(廃止)。難度は bossHpMultByStage の tier相殺で据置(実測パリティ証明済)。state.allies / migrateV13to14 はセーブ互換のため残置。旧汎用味方 ALLIES は 3.11.5 で先行撤去",
+      "ids": ["ALLIES", "PLANET_ALLIES", "checkAllies", "allyLv", "allyLvRaw", "allyLvUp", "allyLvUpCost", "raidAllyTierScale", "drawPlanetAllies"]
+    },
+    {
+      "feature": "特性合成",
+      "removedOn": "2026-08-09",
+      "section": "HANDOFF §5s-V6-P1-2 ① [ac1814a]",
+      "replacement": "tier6特性は乱択創世プールへ付け替え(CFG traitGenesisT6Weight・コスト据置)。TRAITS[].synth フラグと synth除外ゲートも撤去",
+      "ids": ["RECIPES", "synthesize", "synthesizableRecipes", "stoneSynthCost"]
+    },
+    {
+      "feature": "レシピ解読(RESEARCH recipe1〜6)",
+      "removedOn": "2026-08-09",
+      "section": "HANDOFF §5s-V6-P1-2 ③ [ac1814a, 1344d9e]",
+      "replacement": "headquarters.recipeRefundV1 で購入済み全額払戻(一度きり)。cost表は払戻計算用に js/game.js へ残置",
+      "ids": ["recipe1", "recipe2", "recipe3", "recipe4", "recipe5", "recipe6"]
+    }
+  ]
+}
