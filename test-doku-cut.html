@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>V6-P2基準カット — ドクシルシ「毒の警告斑」(開発用・Ric判定前)</title>
+<!-- V6-P2(新規特性4種・基準1種先行): 無徴と付与後の並置比較(R5-b検分セットの型)。
+     近目=拡大レンダ×⑥密林の両固有種(エメラルドモニター/ジェイドゲッコー=両方とも緑系
+     =翡翠斑が体色に埋もれないかが焦点。墨色の喉下地+暗環がその答えであること)。
+     遠目=明るい砂地の実寸群れ(R5-b前例=最も厳しい地色で判読性を見る)。
+     localStorageサンドボックス=本セーブ非接触。test-*.htmlは.vercelignoreでdev限定。 -->
+<script>
+(function () {
+  const mem = {};
+  const shim = { getItem: (k) => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: (k) => { delete mem[k]; }, clear: () => { for (const k in mem) delete mem[k]; } };
+  Object.defineProperty(window, "localStorage", { value: shim, configurable: false });
+})();
+</script>
+<style>
+  body { background: #221a12; margin: 0; color: #e8dccb; font-family: system-ui, sans-serif; }
+  h1 { font-size: 15px; padding: 10px 16px 0; margin: 0; font-weight: 600; }
+  p.note { font-size: 12px; padding: 2px 16px 8px; margin: 0; color: #c9b8a2; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<h1>ドクシルシ基準カット — 無徴(上段) vs 付与後「毒の警告斑」(下段)・左=エメラルドモニター/右=ジェイドゲッコー</h1>
+<p class="note">3基準: (a)徴の判読=緑の体色でも斑が読めるか(墨色の喉下地+暗環が本体) (b)文法=素材の物語的昇華(毒蛙=暗い地にこそ警告色は載る) (c)魂非接触=体クリップ内の上乗せのみ・完全静的。</p>
+<canvas id="game" width="10" height="10" style="display:none"></canvas>
+<canvas id="cmp" width="900" height="560"></canvas>
+<h1>遠目 — 実寸(明るい砂地・通常個体の群れの中の1匹=琥珀枠)</h1>
+<canvas id="far" width="900" height="300"></canvas>
+<script src="js/data.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script>
+globalThis.UI = { toast: () => {} };
+Game.newGame(); Game.state.lizards = [];
+Render.init(); Render.time = 1.3;
+
+const spA = SPECIES.find((s) => s.id === "emerald"), spB = SPECIES.find((s) => s.id === "jade");
+function mk(sp, withTrait) {
+  return Game.makeLizard(sp.id, "normal", { hue: sp.hue, sat: sp.sat, light: sp.light, pattern: "stripe", traits: withTrait ? [{ key: "dokushirushi" }] : [] }, "adult");
+}
+function drawAt(ctx, lz, x, y, scale) {
+  lz.x = x / scale; lz.y = y / scale; lz.tx = lz.x; lz.ty = lz.y; lz.angle = 0.12; lz.moving = false;
+  ctx.save(); ctx.scale(scale, scale);
+  Render.drawLizard(ctx, lz, true);
+  ctx.restore();
+}
+// ---- 近目比較(2.0倍・無徴vs付与×両固有種) ----
+const c1 = document.getElementById("cmp").getContext("2d");
+c1.fillStyle = "#2c2118"; c1.fillRect(0, 0, 900, 560);
+c1.font = "13px system-ui"; c1.fillStyle = "#c9b8a2";
+c1.fillText("無徴(現状)", 20, 24); c1.fillText("付与後: 毒の警告斑(毒腺の沈み+暗環付き翡翠斑+喉元の眼状主斑)", 20, 300);
+drawAt(c1, mk(spA, false), 240, 160, 2.0); drawAt(c1, mk(spB, false), 660, 160, 2.0);
+drawAt(c1, mk(spA, true), 240, 440, 2.0); drawAt(c1, mk(spB, true), 660, 440, 2.0);
+// ---- 遠目(実寸1.0×・通常個体の群れ+ドクシルシ1匹) ----
+const c2 = document.getElementById("far").getContext("2d");
+c2.fillStyle = "#b39869"; c2.fillRect(0, 0, 900, 300);
+const spots = [[110, 90], [260, 200], [420, 110], [700, 90], [820, 210], [180, 250], [560, 250], [760, 160], [340, 60]];
+spots.forEach(([x, y], i) => {
+  const sp = i % 2 ? spA : spB;
+  const lz = Game.makeLizard(sp.id, "normal", { hue: sp.hue, sat: sp.sat, light: sp.light, pattern: ["stripe", "spot", "none"][i % 3], traits: [] }, "adult");
+  drawAt(c2, lz, x, y, 1.0);
+});
+drawAt(c2, mk(spA, true), 480, 180, 1.0); // 群れの中の1匹(徴の判読の判定用)
+c2.strokeStyle = "#e4bc3a"; c2.globalAlpha = .5; c2.strokeRect(420, 145, 120, 70); c2.globalAlpha = 1;
+document.title = "doku-cut done";
+</script>
+</body>
+</html>
