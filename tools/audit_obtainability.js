@@ -6,7 +6,9 @@
 // 目的: 「図鑑・特性のすべてが正規手順で獲得可能」をコード実測で証明する。
 //  A) 種×モーフ(非レジェ): 全10惑星で 固有2種×4モーフ=8エントリが虹景品(未所持抽選)の候補に全数出る
 //  B) レジェンダリーモーフ: 3経路(虹コンプ後フォールバック/隕石/アメジスト)それぞれで実測到達
-//  C) 特性18種すべて: 賢者の石の乱択創世で全数到達可能(V6-P1-2で旧・合成専用6種もプール入り。重みは極小)
+//  C) 特性すべて(TRAITS全数・データ駆動): 賢者の石の乱択創世で全数到達可能(V6-P1-2で旧・合成専用6種もプール入り)。
+//     tier6率はCFG.traitGenesisT6Weightから理論値を導出して照合(V6-P2で較正是正: 旧検査は重み0.1時代の
+//     「10%未満・理論値4.8%」のままで、重み0.3(理論13%)への追随が漏れており、サンプル運で時々落ちるフレークだった)
 //  F) ガード(負系): 未解読は不可/固定素材は不可/上限3で創世不可/レジェンダリーに創世不可
 //  G) 石の獲得経路: Slit.onSuccess→addStone(1) の配線がboot.jsに存在する(静的)。
 //     ※聖域: スリット/ルーレットの確率・幾何には一切触れない(読み取りのみ。MCも景品「解決」層のみ)
@@ -116,13 +118,17 @@ console.log("== B) レジェンダリーモーフ: 非ルーレット経路の�
   check("アメジスト(amethystEgg): レジェンダリー卵(確定)", okAm === true && !!eAm && eAm.morphId === "legendary", `ret=${okAm} morph=${eAm && eAm.morphId}`);
 }
 
-console.log("== C) 創世(R5-a乱択): 18種すべてが乱択で到達可能 / tier6は極小(V6-P1-2) ==");
+console.log("== C) 創世(R5-a乱択): TRAITS全数が乱択で到達可能 / tier6率は理論値と整合(V6-P1-2/P2) ==");
 {
   // R5-a改定: プレイヤー正規手順=genesisTraitRand(一様抽選×正規乱数・一律コスト)。指名APIはテストフィクスチャのみ。
-  const basic = Object.keys(TRAITS); // V6-P1-2: 18種すべてが乱択プール(tier6は重み極小)
+  const basic = Object.keys(TRAITS); // データ駆動: 全種が乱択プール(tier6はCFG重みで希少)
+  const t6n = basic.filter((k) => TRAITS[k].tier >= 6).length;
+  const w6 = CFG.traitGenesisT6Weight != null ? CFG.traitGenesisT6Weight : 0.1;
+  const theo = (t6n * w6) / ((basic.length - t6n) + t6n * w6); // tier6合計の理論出現率(現CFGから導出=較正が古びない)
   const seen = new Set();
   let synthLeak = 0, rolls = 0;
-  while (seen.size < basic.length && rolls < 5000) {
+  // 全数到達の収集後も、率の照合が安定するまで固定サンプルを追加で回す(早期打切りの小サンプルはフレークの温床)
+  while ((seen.size < basic.length || rolls < 3000) && rolls < 20000) {
     setupPlanet(STAGES[0].id);
     const lz = freshLizard();
     Game.addStone(999);
@@ -130,9 +136,13 @@ console.log("== C) 創世(R5-a乱択): 18種すべてが乱択で到達可能 / 
     rolls++;
     if (key) { seen.add(key); if (TRAITS[key].tier >= 6) synthLeak++; }
   }
-  check(`特性18種: 乱択MCで全到達(${rolls}ロール)`, seen.size === basic.length, `到達${seen.size}/${basic.length}`);
+  const rate = synthLeak / rolls;
+  check(`特性${basic.length}種: 乱択MCで全到達(${rolls}ロール)`, seen.size === basic.length, `到達${seen.size}/${basic.length}`);
   check("tier6(旧・合成専用)も乱択で到達できる(到達不能を作らない)", synthLeak > 0, "t6=" + synthLeak + "/" + rolls);
-  check("tier6は極小(全体の10%未満=希少性を保つ。理論値≒4.8%)", synthLeak * 10 < rolls, "t6=" + synthLeak + "/" + rolls);
+  check(`tier6率が理論値と整合(理論${(theo * 100).toFixed(1)}%・許容±40%相対)`, rate > theo * 0.6 && rate < theo * 1.4,
+    `実測${(rate * 100).toFixed(1)}% vs 理論${(theo * 100).toFixed(1)}%`);
+  check("tier6は基本特性より希少(1種あたりの率で比較)", synthLeak / t6n < (rolls - synthLeak) / (basic.length - t6n),
+    `t6/種=${(rate / t6n * 100).toFixed(2)}%`);
   // 指名APIの現況: UI導線なし(フィクスチャ専用)
   setupPlanet(STAGES[0].id);
   const lzg = freshLizard(); Game.addStone(999);

@@ -464,6 +464,12 @@ const CFG = {
   rinkaiGlow: 0.07,         // 輪郭の臨界光の滲み(体長比)
   rinkaiRays: 4,            // 臨界点へ収束する光条の本数
   rinkaiPulseOn: true,      // 臨界点の呼吸(false=完全静止でも成立)
+  // V6-P2 新規特性 基準=ドクシルシ(⑥密林・毒蛙の文法・★全てRic実機判定)
+  dokuThroat: 0.42,         // 喉〜胸の毒腺の沈み(墨色の濃さ)
+  dokuSpots: 7,             // 警告斑の数(主斑を除く)
+  dokuSpotR: 0.030,         // 警告斑の大きさ(体長比・主斑は1.6倍)
+  dokuRing: 0.55,           // 斑を締める暗環の濃さ(明るい地でも潰れない・0=無効)
+  dokuSheen: 0.18,          // 主斑の湿った照り(毒の鮮度・0=無効)
   // V5M モーション語彙 第1バッチ(⑦①②⑧⑫・★全てRic実機判定=[A]②へ登録予定)
   // ★M2-EX再調律(2026-07-26): 目標を「5分で6〜10回の『お、』」へ引き上げ。尾・身震いは振幅up/キョロは間を長く頻度↓。
   motDashOn: true,          // ⑦静→動ダッシュ
@@ -1120,6 +1126,12 @@ const TRAITS = {
     color: "#2e4a56", rim: "#7FC7DE", // rim=UISkills 氷水
     icon: "trait-hyoga", tier: 2, draw: "traitHyoga",
     desc: "鱗の縁が霜のように白む。前線を越えて生き延びた証。",
+  },
+  dokushirushi: {
+    key: "dokushirushi", name: "ドクシルシ", // ★仮称・主題=⑥密林(V6-P2 基準カット・空白惑星を埋める)
+    color: "#1f4034", rim: "#2FA98A", // rim=UISkills §1.5 密林のアクセント(翡翠)
+    icon: "trait-doku", tier: 2, draw: "traitDokushirushi",
+    desc: "喉に毒々しい警告の斑。触れるなと、身体が先に言っている。",
   },
   yougan: {
     key: "yougan", name: "ヨウガン", // ★仮称・主題=⑤高炉の火

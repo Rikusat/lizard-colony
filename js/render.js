@@ -4464,6 +4464,61 @@ const Render = {
     ctx.restore();
   },
 
+  // ドクシルシ(tier2): ⑥密林ユンガ。毒蛙の文法=暗い喉にこそ警告色は鮮やかに載る。静=毒は誇示しない、在るだけで語る。
+  // V6-P2 基準カット: ①毒腺の沈み=喉〜胸の墨色面(暗さが先・ヨウガンと同じ「地の暗さが徴を読ませる」構造)
+  //   ②警告斑=翡翠の不揃い斑(決定論jitter・各斑を暗環で締める=明るい砂地でも潰れない)
+  //   ③主斑=喉元の眼状斑(読解点・湿った照り=毒の鮮度)。時間不使用=完全静的(reduced-motionでも同一の姿)。
+  traitDokushirushi(ctx, g, def) {
+    const { S, body, L } = g; if (!S || !body) return;
+    const c = def.rim || "#2FA98A";
+    const throat = CFG.dokuThroat != null ? CFG.dokuThroat : 0.42;
+    const spots = CFG.dokuSpots != null ? CFG.dokuSpots : 7;
+    const spotR = CFG.dokuSpotR != null ? CFG.dokuSpotR : 0.030;
+    const ring = CFG.dokuRing != null ? CFG.dokuRing : 0.55;
+    const sheen = CFG.dokuSheen != null ? CFG.dokuSheen : 0.18;
+    const h2 = (a, b) => { let h = (a * 374761393 + b * 668265263) ^ (a << 7); h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967295; };
+    ctx.save(); ctx.clip(body);
+    // ①毒腺の沈み: 喉〜胸へ、腹側から墨色が満ちる(徴の下地=暗さが先)
+    const s0 = S(0.62), s1 = S(0.84);
+    const top = Math.min(s0.p.y, s1.p.y) - s0.w * 0.2, bot = s0.p.y + s0.w;
+    const grad = ctx.createLinearGradient(0, top, 0, bot);
+    grad.addColorStop(0, "rgba(14,24,20,0)");
+    grad.addColorStop(1, "rgba(14,24,20," + throat.toFixed(3) + ")");
+    ctx.fillStyle = grad;
+    ctx.fillRect(Math.min(s0.p.x, s1.p.x) - L * 0.06, top, Math.abs(s1.p.x - s0.p.x) + L * 0.12, s0.w * 2.4);
+    // ②警告斑: 翡翠の不揃い斑(決定論)。二段の翡翠でベタ化を防ぎ、暗環が斑を締める(毒蛙の文法)
+    for (let i = 0; i < spots; i++) {
+      const u = 0.64 + h2(i, 1) * 0.20;
+      const s = S(u);
+      const x = s.p.x + (h2(i, 2) - 0.5) * L * 0.02;
+      const y = s.p.y + s.w * (0.14 + h2(i, 3) * 0.50);
+      const r = Math.max(1, L * spotR * (0.6 + h2(i, 4) * 0.7));
+      if (ring > 0) {
+        ctx.globalAlpha = ring; ctx.fillStyle = "#0e1a15";
+        ctx.beginPath(); ctx.arc(x, y, r * 1.45, 0, 7); ctx.fill();
+      }
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = i % 3 === 2 ? "#42D9B0" : c;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+    }
+    // ③主斑: 喉元の眼状斑(読解点)。芯の暗点=「見られている」感、照り=毒の鮮度
+    const sm = S(0.80);
+    const mx = sm.p.x, my = sm.p.y + sm.w * 0.30, mr = Math.max(1.6, L * spotR * 1.6);
+    if (ring > 0) {
+      ctx.globalAlpha = Math.min(1, ring + 0.2); ctx.fillStyle = "#0e1a15";
+      ctx.beginPath(); ctx.arc(mx, my, mr * 1.5, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 0.95; ctx.fillStyle = c;
+    ctx.beginPath(); ctx.arc(mx, my, mr, 0, 7); ctx.fill();
+    ctx.fillStyle = "#0e1f1a";
+    ctx.beginPath(); ctx.arc(mx, my, mr * 0.42, 0, 7); ctx.fill();
+    if (sheen > 0) {
+      ctx.globalAlpha = sheen; ctx.fillStyle = "#EAFBF4";
+      ctx.beginPath(); ctx.arc(mx - mr * 0.3, my - mr * 0.35, mr * 0.28, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  },
+
   // ヨウガン(tier3): 背に走る亀裂から熱色が覗く(暗い裂け目+中に熔岩色+微グロー)。手法=裂け目の質感。
   // R5-b B1: ヨウガン=「冷え固まった黒殻の下で脈打つ橙の亀裂」。殻の暗さがあるから熱が読める。
   //   亀裂網=決定論の分岐・胸元に熱だまり・熱はゆっくり脈動(0.5s粒度・CFGでOFF可)。
