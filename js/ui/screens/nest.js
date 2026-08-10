@@ -54,12 +54,66 @@ Object.assign(UI, {
     if (el && el.parentNode) el.parentNode.removeChild(el);
   },
 
+  // V6-P2-1(2026-08-10 Ric指示): 巣=モーダル→独立ページへ(本部#hqlabの様式を踏襲)。
+  //   機能(閲覧専用・進捗・ツールチップ・パン)は buildNest のまま非接触=表示層と導線のみの変更。
+  //   openNest は従来名の入口として維持(呼び出し側=飼育槽の巣穴クリックは無変更)。
   openNest() {
     Game.ensureNestWeb();
-    const st = Game.currentStage();
-    this.openModal(`${Icon.svg("nestweb")} 巣ネットワーク — 全惑星共通(閲覧専用)`, (body) => this.buildNest(body));
-    // 既読化(バッジ解除)
-    Game.state.nestWeb.seen = Game.nestWebCounts().open;
+    const main = document.querySelector("main"), pg = document.getElementById("nestpage");
+    if (!main || !pg) { // ページ骨格が無い環境(旧テストページ等)はモーダルへフォールバック(退路)
+      this.openModal(`${Icon.svg("nestweb")} 巣ネットワーク — 全惑星共通(閲覧専用)`, (body) => this.buildNest(body));
+      Game.state.nestWeb.seen = Game.nestWebCounts().open;
+      return;
+    }
+    if (this.hqLabOpen && this.hqLabOpen()) this.closeHqLab(); // 場所の切替=二重表示しない
+    main.classList.add("hidden");
+    pg.classList.remove("hidden");
+    this._nestPageBind();
+    const body = document.getElementById("nestpage-body");
+    if (body) this.buildNest(body); // 開くたび再構築=モーダル時代と同じ鮮度
+    Game.state.nestWeb.seen = Game.nestWebCounts().open; // 既読化(バッジ解除)=従来どおり
+  },
+  closeNestPage() {
+    const main = document.querySelector("main"), pg = document.getElementById("nestpage");
+    if (!main || !pg) return;
+    pg.classList.add("hidden");
+    main.classList.remove("hidden");
+  },
+  nestPageOpen() { const pg = document.getElementById("nestpage"); return !!(pg && !pg.classList.contains("hidden")); },
+  _nestPageBind() {
+    if (this._nestPageBound) return; this._nestPageBound = true;
+    const h2 = document.querySelector("#nestpage-head h2");
+    if (h2) h2.innerHTML = `${Icon.svg("nestweb")} 巣ネットワーク — 全惑星共通`;
+    const back = document.getElementById("nestpage-back");
+    if (back) back.addEventListener("click", () => this.closeNestPage());
+    this._buildNestMenu();
+  },
+  // 右メニュー(本部§14 _buildHqMenuと同様式・CFG外部化)。巣に内部パネルは無いため中身は他所への常設導線。
+  _buildNestMenu() {
+    if (document.getElementById("nestpage-menu")) return;
+    const row = document.getElementById("nestpage-row");
+    if (!row) return;
+    const nav = document.createElement("nav");
+    nav.id = "nestpage-menu";
+    nav.style.setProperty("--hqmenu-w", (CFG.hqMenuWidth || 200) + "px");
+    nav.style.setProperty("--hqmenu-w-narrow", (CFG.hqMenuWidthNarrow || 52) + "px");
+    nav.style.setProperty("--hqmenu-fs", CFG.hqMenuFontScale != null ? CFG.hqMenuFontScale : 1);
+    nav.style.setProperty("--hqmenu-gap", (CFG.hqMenuGap != null ? CFG.hqMenuGap : 12) + "px");
+    nav.style.setProperty("--hqmenu-pady", (CFG.hqMenuPadY != null ? CFG.hqMenuPadY : 96) + "px");
+    nav.classList.add((CFG.hqMenuLayout || "spread") === "spread" ? "hm-spread" : "hm-stack");
+    for (const it of (CFG.nestMenuItems || [])) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.title = it.jp;
+      b.innerHTML = `${Icon.svg(it.icon)}<span class="hm-tx"><span class="hm-jp">${it.jp}</span><span class="hm-en">${it.en}</span></span>`;
+      b.addEventListener("click", () => {
+        if (it.key === "hq") { this.closeNestPage(); this.openHqLab(); }
+        else if (it.key === "dex") this.openDex();
+        else if (it.key === "feed") this.closeNestPage();
+      });
+      nav.appendChild(b);
+    }
+    row.appendChild(nav);
   },
 
   buildNest(body) {

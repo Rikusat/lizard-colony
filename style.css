@@ -2345,26 +2345,38 @@ button.holding::after {
 /* ==== 本部右メニュー(UISkills §14・v5 HUD言語=琥珀/ブラケット/等幅サブ) ==== */
 #hqlab-row { flex: 1; min-height: 0; display: flex; }
 #hqlab-row #hqlab-wrap { flex: 1; min-width: 0; }
-#hqlab-menu { width: var(--hqmenu-w, 200px); display: flex; flex-direction: column; gap: var(--hqmenu-gap, 12px);
+/* V6-P2-1: 右メニューの様式は本部と巣で共通(セレクタ併記=同じ知識を1箇所に) */
+#hqlab-menu, #nestpage-menu { width: var(--hqmenu-w, 200px); display: flex; flex-direction: column; gap: var(--hqmenu-gap, 12px);
   padding: var(--hqmenu-pady, 96px) 14px var(--hqmenu-pady, 96px) 4px; }
-#hqlab-menu.hm-spread { justify-content: space-between; } /* 裁定①: ヘッダ罫線下〜ティッカー上へ均等分布 */
-#hqlab-menu.hm-stack { justify-content: center; }
-#hqlab-menu button { display: flex; align-items: center; gap: 11px; text-align: left;
+#hqlab-menu.hm-spread, #nestpage-menu.hm-spread { justify-content: space-between; } /* 裁定①: ヘッダ罫線下〜ティッカー上へ均等分布 */
+#hqlab-menu.hm-stack, #nestpage-menu.hm-stack { justify-content: center; }
+#hqlab-menu button, #nestpage-menu button { display: flex; align-items: center; gap: 11px; text-align: left;
   background: rgba(255,181,71,.035); border: 1px solid rgba(255,181,71,.18); border-radius: 3px;
   color: rgba(255,181,71,.85); padding: 14px 13px; cursor: pointer; position: relative;
   font-size: calc(16px * var(--hqmenu-fs, 1) * var(--fs-scale, 1)); transition: background .12s, border-color .12s, color .12s; }
-#hqlab-menu button::before, #hqlab-menu button::after { content: ""; position: absolute; width: 7px; height: 7px; pointer-events: none; }
-#hqlab-menu button::before { left: -3px; top: -3px; border-left: 1.4px solid rgba(255,181,71,.65); border-top: 1.4px solid rgba(255,181,71,.65); }
-#hqlab-menu button::after { right: -3px; bottom: -3px; border-right: 1.4px solid rgba(255,181,71,.65); border-bottom: 1.4px solid rgba(255,181,71,.65); }
-#hqlab-menu button:hover { background: rgba(255,181,71,.10); border-color: rgba(255,181,71,.75); color: rgba(255,181,71,1); }
-#hqlab-menu button svg.icon { width: calc(22px * var(--hqmenu-fs, 1)); height: calc(22px * var(--hqmenu-fs, 1)); flex: none; }
-#hqlab-menu .hm-tx { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
-#hqlab-menu .hm-en { font-family: ui-monospace, "Consolas", monospace; font-size: calc(10.5px * var(--hqmenu-fs, 1)); color: rgba(255,181,71,.42); letter-spacing: .05em; }
+#hqlab-menu button::before, #hqlab-menu button::after, #nestpage-menu button::before, #nestpage-menu button::after { content: ""; position: absolute; width: 7px; height: 7px; pointer-events: none; }
+#hqlab-menu button::before, #nestpage-menu button::before { left: -3px; top: -3px; border-left: 1.4px solid rgba(255,181,71,.65); border-top: 1.4px solid rgba(255,181,71,.65); }
+#hqlab-menu button::after, #nestpage-menu button::after { right: -3px; bottom: -3px; border-right: 1.4px solid rgba(255,181,71,.65); border-bottom: 1.4px solid rgba(255,181,71,.65); }
+#hqlab-menu button:hover, #nestpage-menu button:hover { background: rgba(255,181,71,.10); border-color: rgba(255,181,71,.75); color: rgba(255,181,71,1); }
+#hqlab-menu button svg.icon, #nestpage-menu button svg.icon { width: calc(22px * var(--hqmenu-fs, 1)); height: calc(22px * var(--hqmenu-fs, 1)); flex: none; }
+#hqlab-menu .hm-tx, #nestpage-menu .hm-tx { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+#hqlab-menu .hm-en, #nestpage-menu .hm-en { font-family: ui-monospace, "Consolas", monospace; font-size: calc(10.5px * var(--hqmenu-fs, 1)); color: rgba(255,181,71,.42); letter-spacing: .05em; }
 @media (max-width: 900px) { /* 縮退: アイコンのみ(同比率拡大+均等分布は維持) */
-  #hqlab-menu { width: var(--hqmenu-w-narrow, 52px); padding-left: 0; padding-right: 8px; }
-  #hqlab-menu .hm-tx { display: none; }
-  #hqlab-menu button { justify-content: center; padding: 13px 6px; }
+  #hqlab-menu, #nestpage-menu { width: var(--hqmenu-w-narrow, 52px); padding-left: 0; padding-right: 8px; }
+  #hqlab-menu .hm-tx, #nestpage-menu .hm-tx { display: none; }
+  #hqlab-menu button, #nestpage-menu button { justify-content: center; padding: 13px 6px; }
 }
+
+/* V6-P2-1: 巣ネットワーク独立ページ(本部#hqlabの様式を踏襲・トークンはUISkills準拠) */
+#nestpage { flex: 1; min-height: 0; display: flex; flex-direction: column; background: linear-gradient(#191d20, #0e0c0b); }
+#nestpage.hidden { display: none; }
+#nestpage-head { display: flex; align-items: center; gap: 16px; padding: 8px 20px 4px; }
+#nestpage-head h2 { font-size: calc(17px * var(--fs-scale, 1)); color: var(--paper-100, #F3E9D8); display: flex; align-items: center; gap: 8px; margin: 0; }
+#nestpage-sub { font-size: calc(12px * var(--fs-scale, 1)); color: var(--sub); }
+#nestpage-back { font-size: calc(13px * var(--fs-scale, 1)); padding: 6px 14px; }
+#nestpage-row { flex: 1; min-height: 0; display: flex; gap: 12px; padding: 0 12px 10px; }
+#nestpage-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+#nestpage-body #nest-scroll { flex: 1; height: auto; min-height: 0; } /* モーダル時代の固定高(56vh)をページでは全量へ */
 
 /* ==== 繁殖ピッカーv2(UISkills §15・R1) ==== */
 .sp-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--sp-tile-w, 150px), 1fr)); gap: 10px; margin-bottom: 12px; }

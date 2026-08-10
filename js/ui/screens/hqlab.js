@@ -24,6 +24,7 @@ Object.assign(UI, {
     Game._badgeHq = false;
     const main = document.querySelector("main"), lab = document.getElementById("hqlab");
     if (!main || !lab) return;
+    if (this.nestPageOpen && this.nestPageOpen()) this.closeNestPage(); // V6-P2-1: 場所の切替=巣ページと排他(対称)
     main.classList.add("hidden");
     lab.classList.remove("hidden");
     const btn = document.getElementById("btn-hq"); if (btn) btn.classList.add("at-lab");

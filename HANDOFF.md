@@ -1735,6 +1735,25 @@ Claude Code が2回連続でクラッシュした(JavaScriptCore のメモリ枯
 - **本番実証(CDP・https://lizardcolony.vercel.app)**: ①乱択創世**20ロールで新規4種すべて出現**(doku1/hoshi1/koke2/suami3・12種類到達・別プロファイル=実セーブ非接触) ②詳細パネルで**4種すべてチップ+SVGアイコンをDOM実証** ③boot・実証中とも **console 0 / exceptions 0**。実機スクショ取得(詳細パネルにドクシルシ表示)。
 - **V6-P1(P1-1 味方廃止+P1-2 合成撤廃・特性22種化)完了。次フェーズ=P2 巣ネットワーク(指示書順)。**
 
+### 5s-V6-P2-4. ★P2-1 巣の別ページ化 完了(2026-08-10・ローカルのみ=未デプロイ)
+**P2開始(Ric指示)**。P2-2は方針変更あり=`docs/director_requests_v6.md` P2-2へ**改訂節を追記済**(nest_image2=参照画像として扱いCanvas 2Dで再現・外部アセット禁止の憲法維持・image/の.vercelignore現状維持・再現度は数値計測+恒久テスト+並置ビューア)。
+
+#### 実装(表示層と導線のみ・巣の機能=buildNest 非接触)
+- `index.html`: `#nestpage` セクション新設(本部 `#hqlab` の様式=header/back/subtitle+`#nestpage-row`)。
+- `style.css`: 右メニュー様式を `#hqlab-menu, #nestpage-menu` の**セレクタ併記で共通化**(同じ知識を1箇所に・900px縮退も共通)+`#nestpage` 一式。**モーダル時代の固定高 `min(56vh,520px)` はページでは `flex:1` 全量**へ。
+- `js/data.js`: `CFG.nestMenuItems`(飼育槽/本部/図鑑・★調整枠)。
+- `js/ui/screens/nest.js`: `openNest()` は従来名の入口のままページ表示へ(呼び出し側=巣穴クリック無変更)。**ページ骨格が無い環境はモーダルへフォールバック(退路)**。`closeNestPage`/`nestPageOpen`/`_nestPageBind`/`_buildNestMenu`(本部§14と同形)。
+- `js/ui/screens/hqlab.js`: `openHqLab` に巣ページとの**相互排他**(対称・1行)。
+
+#### 検証(証拠)
+- CDP機能実測: ページ開閉/webノード81描画/**排他両方向**(巣→本部・本部→巣)/右メニュー配線(本部へ遷移)——全PASS・console 0。
+- **3解像度**(1440x900 / 1024x768 / 800x600)崩れなし。800pxで右メニューがアイコン縮退=既存規則が巣にも共通適用。
+- QA3層: 装置 **52/0** / 統合 **12/12** / 姿形 **176/176** / **boot console 0**(カナリア先行)/ node **19スイート全PASS**。
+- **デプロイなし**(指示書「フェーズを跨いだ中途半端な状態を本番に置かない」=P2完了時にRic判定→デプロイ)。
+
+#### 次
+P2-2準備: nest_image2 解析→再現計画(構成要素分解・描画方式・困難箇所・工数)+数値比較の仕組み設計(平均輝度/輝度分布/主要色占有率/要素位置サイズ差分px・閾値提案)+`?tune=1#nest` 並置ビューア計画。**この段階では実装しない**(Ric指示)。
+
 ### 5x-GUARD. ★描画の非有限ガード(2026-08-10・Ric裁定・本番デプロイ済)[7e3d369, bac5fbc, c46d7ba, a231f1e]
 前セッションの報告テキストがクラッシュで失われ**HANDOFF記録も欠落していた**ため、コミットメッセージ・テスト実体・本番実測から復元して記録(2026-08-10 再開セッション)。
 - **7e3d369**: Canvas2D の createRadialGradient/arc/ellipse 等は NaN/Infinity で TypeError を投げ、**そのフレームの描画が丸ごと止まる**(画面停止)。計算値を渡す71ヶ所に検査を散らすと漏れるため、**`Render.guardCtx` で ctx を一度だけ包む**方式(知識は1箇所)。非有限は「その図形だけ」捨てる=握りつぶしではない(絵の欠けとして残る・`?tune=1` で警告1回・`__finGuard` で冪等)。`finite()` は数値のみ検査(arc の anticlockwise=boolean 等を誤って弾かない)。`drawGenesisFx` は undefined 座標も弾く必要があるため `Number.isFinite` の厳格判定で分離。

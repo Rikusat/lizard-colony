@@ -403,6 +403,11 @@ const CFG = {
     { key: "rocket", jp: "宇宙港", en: "SPACEPORT", icon: "rocket" },
     { key: "dex", jp: "図鑑", en: "SPECIMEN DEX", icon: "dex" },
   ],
+  nestMenuItems: [            // V6-P2-1: 巣ページ右メニュー(本部§14と同様式。巣は閲覧専用=中身は常設導線)
+    { key: "feed", jp: "飼育槽", en: "TERRARIUM", icon: "lizard" },
+    { key: "hq", jp: "本部", en: "HOLO COMMAND", icon: "hq" },
+    { key: "dex", jp: "図鑑", en: "SPECIMEN DEX", icon: "dex" },
+  ],
   // 研究デスクパネル(UISkills §13 R4改訂・統一書式の色/文言・★Ric調整)
   planCurColor: "#ecc35a",    // 充足の琥珀
   planLackColor: "#d8404e",   // 不足「あと◯」の深紅
