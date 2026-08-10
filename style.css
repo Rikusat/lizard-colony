@@ -1784,10 +1784,11 @@ button.holding::after {
 
 /* V4.1: 巣ネットワーク(蜘蛛の巣・閲覧専用) → V6-P2-2 B0: パン廃止・canvas背景のステージへ再構成 */
 #nest-main { flex: 1; min-height: 0; display: flex; gap: 12px; }
-#nest-stage { flex: 1; min-width: 0; position: relative; overflow: hidden; min-height: 380px;
+#nest-stage { flex: 1; min-width: 0; position: relative; overflow: hidden; min-height: 320px;
   border-radius: 10px; border: 1px solid var(--border); background: #0e0906; }
 #nest-canvas { position: absolute; inset: 0; }
 #nest-stage #nest-web { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+#nest-stage .wnode.core { display: none; } /* V6-P2-2 B1: 中心=canvasの巣+卵が正(DOM円との二重表現を避ける) */
 #nest-openrate { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
   color: var(--sub); font-size: calc(12px * var(--fs-scale, 1)); text-align: center; }
 #nest-openrate b { color: var(--amber-400); font-size: calc(19px * var(--fs-scale, 1)); display: block; }

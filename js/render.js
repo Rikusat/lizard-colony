@@ -4499,15 +4499,15 @@ const Render = {
     const spots = CFG.nestVisEggSpots != null ? CFG.nestVisEggSpots : 12;
     const glow = CFG.nestVisGlow != null ? CFG.nestVisGlow : 0.5;
     const h2 = (a, b) => { let x = (a * 374761393 + b * 668265263) ^ (a << 7); x = (x ^ (x >> 13)) * 1274126177; return ((x ^ (x >> 16)) >>> 0) / 4294967295; };
-    const rx = R * 1.32, ry = R * 0.86;            // 鉢の楕円
+    const rx = R * 1.0, ry = R * 0.64;             // 鉢の楕円(参照実測: 幅≈2R・高さ≈1.3R)
     ctx.save();
-    // 光暈(暖)
+    // 光暈(暖・淡く=高輝度はガード値170未満に収める。参照の高輝度は卵の照りだけ)
     if (glow > 0) {
-      const gg = ctx.createRadialGradient(cx, cy - R * 0.15, R * 0.2, cx, cy, R * 2.3);
-      gg.addColorStop(0, "rgba(255,190,90," + (0.32 * glow).toFixed(3) + ")");
-      gg.addColorStop(0.55, "rgba(210,140,50," + (0.10 * glow).toFixed(3) + ")");
+      const gg = ctx.createRadialGradient(cx, cy, R * 0.2, cx, cy, R * 1.9);
+      gg.addColorStop(0, "rgba(255,190,90," + (0.08 * glow).toFixed(3) + ")");
+      gg.addColorStop(0.55, "rgba(210,140,50," + (0.03 * glow).toFixed(3) + ")");
       gg.addColorStop(1, "rgba(210,140,50,0)");
-      ctx.fillStyle = gg; ctx.fillRect(cx - R * 2.4, cy - R * 2.4, R * 4.8, R * 4.8);
+      ctx.fillStyle = gg; ctx.fillRect(cx - R * 2, cy - R * 2, R * 4, R * 4);
     }
     // 接地影
     ctx.fillStyle = "rgba(0,0,0,.45)";
@@ -4536,10 +4536,10 @@ const Render = {
       for (let i = 0; i < (twigs * 0.6 | 0); i++) twig(i + 100, 2, P.twig2, R * 0.026, 0.75, half);
     };
     weave(-1); // 奥リム(卵の後ろ)
-    // 卵(鉢の中・やや上)
-    const ex = cx, ey = cy - R * 0.18, erx = R * 0.66, ery = R * 0.80;
-    const eg = ctx.createRadialGradient(ex - erx * 0.35, ey - ery * 0.45, erx * 0.1, ex, ey, erx * 1.35);
-    eg.addColorStop(0, P.egg0); eg.addColorStop(0.55, P.egg1); eg.addColorStop(1, P.egg2);
+    // 卵(鉢の中心・照りは中面=参照の高輝度重心(834,450)は鉢中心のやや下)
+    const ex = cx, ey = cy + R * 0.02, erx = R * 0.55, ery = R * 0.60;
+    const eg = ctx.createRadialGradient(ex, ey + ery * 0.30, erx * 0.10, ex, ey + ery * 0.1, erx * 1.5);
+    eg.addColorStop(0, P.egg0); eg.addColorStop(0.30, P.egg1); eg.addColorStop(1, P.egg2);
     ctx.globalAlpha = 1; ctx.fillStyle = eg;
     ctx.beginPath(); ctx.ellipse(ex, ey, erx, ery, 0, 0, 7); ctx.fill();
     // 斑点(決定論・下半分に多め)
@@ -4550,9 +4550,11 @@ const Render = {
       ctx.globalAlpha = 0.28 + h2(i, 63) * 0.25;
       ctx.beginPath(); ctx.ellipse(x, y, erx * (0.05 + h2(i, 64) * 0.06), ery * (0.04 + h2(i, 65) * 0.05), h2(i, 66) * 3, 0, 7); ctx.fill();
     }
-    // 上部ハイライト(照りの一点)
-    ctx.globalAlpha = 0.22; ctx.fillStyle = "#fff6dd";
-    ctx.beginPath(); ctx.ellipse(ex - erx * 0.3, ey - ery * 0.5, erx * 0.22, ery * 0.12, -0.5, 0, 7); ctx.fill();
+    // 照り(参照の高輝度域=卵中面のやや下・小さく)+上縁の細い反射
+    ctx.globalAlpha = 0.45; ctx.fillStyle = "#f4dca0";
+    ctx.beginPath(); ctx.ellipse(ex + erx * 0.02, ey + ery * 0.30, erx * 0.26, ery * 0.18, -0.1, 0, 7); ctx.fill();
+    ctx.globalAlpha = 0.12; ctx.fillStyle = "#fff6dd";
+    ctx.beginPath(); ctx.ellipse(ex - erx * 0.25, ey - ery * 0.55, erx * 0.24, ery * 0.10, -0.5, 0, 7); ctx.fill();
     weave(1); // 手前リム(卵の裾に被る)
     // 葉(縁に疎らに差す)
     ctx.fillStyle = P.leaf;
