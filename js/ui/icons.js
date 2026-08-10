@@ -30,6 +30,12 @@ const ICONS = {
   "trait-hyoga": '<path d="M12 3v18M5 7.5l14 9M19 7.5l-14 9M12 6.4l-2-2M12 6.4l2-2M12 17.6l-2 2M12 17.6l2 2" fill="none"/>',
   // ドクシルシ: 暗環で締めた警告斑(主斑=眼状+従斑)=毒蛙の文法。
   "trait-doku": '<circle cx="10" cy="10" r="4.6" fill="none"/><circle cx="10" cy="10" r="1.7"/><circle cx="17" cy="14.5" r="2.2" fill="none" stroke-opacity=".7"/><circle cx="13" cy="18.2" r="1.2"/><circle cx="16.8" cy="7" r="1"/>',
+  // ホシワタリ: 大小の星屑と、それを渡る航路線。
+  "trait-hoshi": '<circle cx="6.5" cy="8" r="1.7"/><circle cx="17.5" cy="16.5" r="1.9"/><circle cx="12.5" cy="12.5" r="1.1"/><circle cx="16.5" cy="6" r=".8"/><circle cx="6" cy="17" r=".8"/><path d="M6.5 8l6 4.5 5 4" fill="none" stroke-opacity=".5"/>',
+  // コケムシロ: もこもこと重なる苔の丘と胞子の点。
+  "trait-koke": '<path d="M4 16.5c1.2-3 3.8-4.4 6-3.4 1-2.6 4.2-3.6 6.2-2 2 .8 3.2 3 2.6 5.4H4z" fill="none"/><circle cx="8.5" cy="9.5" r=".9"/><circle cx="13.5" cy="7.5" r=".9"/><circle cx="17.5" cy="10.5" r=".9"/>',
+  // スアミ: 結節(巣の灯)を糸が渡る網。
+  "trait-suami": '<circle cx="5.5" cy="12" r="1.5"/><circle cx="12" cy="7" r="1.5"/><circle cx="18.5" cy="12" r="1.5"/><circle cx="12" cy="17" r="1.5"/><path d="M5.5 12 12 7l6.5 5M5.5 12 12 17l6.5-5M12 7v10" fill="none" stroke-opacity=".55"/>',
   // ヨウガン: 岩塊に走る亀裂(稲妻状の裂け目)。
   "trait-yougan": '<path d="M5 18 4 10l4-5.5L15 4l5 4.5.8 7L17 20l-8 .8z" fill="none"/><path d="M8 6.5l2.6 4-1.8 3 2.8 4.4M14.6 5l-1 4.2 3 2.6-1.2 4.6" fill="none"/>',
   // アミダグラ: 縦線を桟が渡る籤(あみだ)の網目=回路ともつかぬ幾何学。

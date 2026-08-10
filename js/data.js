@@ -470,6 +470,17 @@ const CFG = {
   dokuSpotR: 0.030,         // 警告斑の大きさ(体長比・主斑は1.6倍)
   dokuRing: 0.55,           // 斑を締める暗環の濃さ(明るい地でも潰れない・0=無効)
   dokuSheen: 0.18,          // 主斑の湿った照り(毒の鮮度・0=無効)
+  // V6-P2 バッチ(ホシワタリ/コケムシロ/スアミ・★全てRic実機判定)
+  hoshiStars: 8,            // 星屑の点数(等星2つを含む)
+  hoshiNight: 0.30,         // 腹側の夜藍の沈み(星の下地=暗さが先・基準の同系色文法)
+  hoshiLine: 0.35,          // 等星を結ぶ航路線の濃さ(0=無効)
+  kokePatches: 3,           // 苔斑の枚数
+  kokeSize: 0.05,           // 苔斑の大きさ(体長比)
+  kokeFuzz: 9,              // 絨毛の照り点の数(全斑の合計)
+  suamiRings: 3,            // 尾の結節環の本数
+  suamiNodeR: 0.011,        // 結節点(巣の灯)の大きさ(体長比)
+  suamiThread: 0.50,        // 結節を渡る網糸の濃さ(0=無効)
+  suamiGlow: 3,             // 結節の灯の滲み(shadowBlur px)
   // V5M モーション語彙 第1バッチ(⑦①②⑧⑫・★全てRic実機判定=[A]②へ登録予定)
   // ★M2-EX再調律(2026-07-26): 目標を「5分で6〜10回の『お、』」へ引き上げ。尾・身震いは振幅up/キョロは間を長く頻度↓。
   motDashOn: true,          // ⑦静→動ダッシュ
@@ -1103,6 +1114,18 @@ const TRAITS = {
     icon: "trait-hakushi", tier: 1, draw: "traitHakushi",
     desc: "体色が一部だけ抜け落ちた、無垢の白斑。まだ何も書かれていない。",
   },
+  hoshiwatari: {
+    key: "hoshiwatari", name: "ホシワタリ", // ★仮称・主題=空/宇宙港(C2の物語・惑星に紐づかない・V6-P2)
+    color: "#232b42", rim: "#E3E9F7", // rim=星明かりの白(惑星アクセント外・夜藍の地に星白)
+    icon: "trait-hoshi", tier: 1, draw: "traitHoshiwatari",
+    desc: "腹に星屑がまばらに散る。渡ってきた空を覚えている。",
+  },
+  kokemushiro: {
+    key: "kokemushiro", name: "コケムシロ", // ★仮称・主題=③森林(V6-P2)
+    color: "#2c3a22", rim: "#7FB856", // rim=UISkills §1.5 若草(絨毛の照り。斑の地は苔緑#6E8C4A)
+    icon: "trait-koke", tier: 1, draw: "traitKokemushiro",
+    desc: "背に森が住み着いた。急がない生き方の色。",
+  },
   triad: {
     key: "triad", name: "トライアド", // ★仮称・主題=①原初の紋
     color: "#59421f", rim: "#D9A441", // rim=UISkills §1.5 砂漠のアクセント(砂金)
@@ -1144,6 +1167,12 @@ const TRAITS = {
     color: "#43305e", rim: "#9B6BD6", // rim=UISkills アメジスト(最上位鉱石=上位存在の色)
     icon: "trait-amidagura", tier: 3, draw: "traitAmidagura",
     desc: "体表に幾何学の網目。回路とも、籤(くじ)ともつかない。",
+  },
+  suami: {
+    key: "suami", name: "スアミ", // ★仮称・主題=巣ネットワーク(nestWeb・惑星に紐づかない新層の第1号・V6-P2)
+    color: "#3d3322", rim: "#D8B36A", // rim=巣網の灯(惑星アクセント外。nestWebの視覚言語=結節・網を先行定義、P2完成後に追随可)
+    icon: "trait-suami", tier: 3, draw: "traitSuami",
+    desc: "尾に網の結び目。どの巣とも繋がっている印。",
   },
   chrono: {
     key: "chrono", name: "クロノ", // ★仮称・主題=③からくり時計

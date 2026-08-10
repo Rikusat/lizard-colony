@@ -4519,6 +4519,149 @@ const Render = {
     ctx.restore();
   },
 
+  // ホシワタリ(tier1): 空/宇宙港。C2の物語=渡ってきた空を腹に宿す。惑星に紐づかない特性。
+  // V6-P2: ①夜の沈み=腹側の淡い夜藍(星の下地=暗さが先・基準ドクシルシと同じ同系色文法)
+  //   ②星屑=大小の白点(等星2つ=微光・残りは微星) ③航路線=等星を結ぶ極細の折れ線(星図の気配)。完全静的=決定論。
+  traitHoshiwatari(ctx, g, def) {
+    const { S, body, L } = g; if (!S || !body) return;
+    const c = def.rim || "#E3E9F7";
+    const stars = CFG.hoshiStars != null ? CFG.hoshiStars : 8;
+    const night = CFG.hoshiNight != null ? CFG.hoshiNight : 0.30;
+    const line = CFG.hoshiLine != null ? CFG.hoshiLine : 0.35;
+    const h2 = (a, b) => { let h = (a * 374761393 + b * 668265263) ^ (a << 7); h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967295; };
+    ctx.save(); ctx.clip(body);
+    // ①夜の沈み: 腹側に夜藍の帯(下ほど深い)
+    const s0 = S(0.32), s1 = S(0.80);
+    const top = Math.min(s0.p.y, s1.p.y), bot = s0.p.y + s0.w;
+    const grad = ctx.createLinearGradient(0, top + s0.w * 0.1, 0, bot);
+    grad.addColorStop(0, "rgba(18,26,48,0)");
+    grad.addColorStop(1, "rgba(18,26,48," + night.toFixed(3) + ")");
+    ctx.fillStyle = grad;
+    ctx.fillRect(Math.min(s0.p.x, s1.p.x) - L * 0.06, top, Math.abs(s1.p.x - s0.p.x) + L * 0.12, s0.w * 2.2);
+    // ②星屑: 等星(i<2)は大きく微光、残りは微星。位置は決定論
+    const pts = [];
+    for (let i = 0; i < stars; i++) {
+      const u = 0.34 + h2(i, 1) * 0.42;
+      const s = S(u);
+      const x = s.p.x + (h2(i, 2) - 0.5) * L * 0.02;
+      const y = s.p.y + s.w * (0.22 + h2(i, 3) * 0.58);
+      pts.push([x, y]);
+      const major = i < 2;
+      const r = Math.max(0.6, L * (major ? 0.008 : 0.004) * (0.8 + h2(i, 4) * 0.5));
+      ctx.globalAlpha = major ? 0.92 : 0.45 + h2(i, 5) * 0.35;
+      ctx.fillStyle = major ? "#F4F7FF" : c;
+      ctx.shadowColor = c; ctx.shadowBlur = major ? 4 : 0;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    // ③航路線: 等星0→微星2→等星1 の折れ線(渡ってきた道筋)
+    if (line > 0 && pts.length >= 3) {
+      ctx.strokeStyle = c; ctx.globalAlpha = line;
+      ctx.lineWidth = Math.max(0.4, L * 0.003); ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], pts[0][1]); ctx.lineTo(pts[2][0], pts[2][1]); ctx.lineTo(pts[1][0], pts[1][1]);
+      ctx.stroke();
+    }
+    ctx.restore();
+  },
+
+  // コケムシロ(tier1): ③森林。苔=生き物が住み着いた時間の色。急がない生き方。
+  // V6-P2: ①苔斑=背の不定形パッチ(苔緑#6E8C4A=UISkillsの地) ②絨毛の照り=斑の上縁に若草の点(光は上から)
+  //   ③胞子の微点=斑のまわりに散る気配。完全静的=決定論。
+  traitKokemushiro(ctx, g, def) {
+    const { S, body, L } = g; if (!S || !body) return;
+    const c = def.rim || "#7FB856";
+    const patches = CFG.kokePatches != null ? CFG.kokePatches : 3;
+    const size = CFG.kokeSize != null ? CFG.kokeSize : 0.05;
+    const fuzz = CFG.kokeFuzz != null ? CFG.kokeFuzz : 9;
+    const h2 = (a, b) => { let h = (a * 374761393 + b * 668265263) ^ (a << 7); h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967295; };
+    ctx.save(); ctx.clip(body);
+    const centers = [];
+    for (let k = 0; k < patches; k++) {
+      const u = 0.42 + (k + h2(k, 1) * 0.6) * (0.34 / Math.max(1, patches));
+      const s = S(u);
+      const cx = s.p.x, cy = s.p.y - s.w * (0.28 + h2(k, 2) * 0.30);
+      const r = Math.max(2, L * size * (0.7 + h2(k, 3) * 0.6));
+      centers.push([cx, cy, r]);
+      // ①苔斑: 3つの重ね楕円で不定形に(輪郭のもこもこ=絨毛の塊)
+      ctx.fillStyle = "#6E8C4A";
+      for (let j = 0; j < 3; j++) {
+        const ox = (h2(k, 10 + j) - 0.5) * r * 1.1, oy = (h2(k, 20 + j) - 0.5) * r * 0.6;
+        ctx.globalAlpha = 0.42 + h2(k, 30 + j) * 0.2;
+        ctx.beginPath(); ctx.ellipse(cx + ox, cy + oy, r * (0.7 + h2(k, 40 + j) * 0.4), r * 0.55, 0, 0, 7); ctx.fill();
+      }
+    }
+    // ②絨毛の照り: 各斑の上縁に若草の点(光は上から=生きている苔)
+    for (let i = 0; i < fuzz; i++) {
+      const [cx, cy, r] = centers[i % centers.length];
+      const a = -Math.PI * (0.25 + h2(i, 50) * 0.5); // 上縁の弧に沿う
+      const x = cx + Math.cos(a) * r * (0.8 + h2(i, 51) * 0.35);
+      const y = cy + Math.sin(a) * r * 0.55;
+      ctx.globalAlpha = 0.5 + h2(i, 52) * 0.35;
+      ctx.fillStyle = i % 3 ? c : "#B9DA8C";
+      ctx.beginPath(); ctx.arc(x, y, Math.max(0.5, L * 0.004), 0, 7); ctx.fill();
+    }
+    // ③胞子の微点: 斑のまわりへ静かに散る
+    ctx.fillStyle = c;
+    for (let i = 0; i < patches * 2; i++) {
+      const [cx, cy, r] = centers[i % centers.length];
+      const x = cx + (h2(i, 60) - 0.5) * r * 3.2, y = cy + (h2(i, 61) - 0.3) * r * 1.6;
+      ctx.globalAlpha = 0.18 + h2(i, 62) * 0.2;
+      ctx.beginPath(); ctx.arc(x, y, Math.max(0.4, L * 0.0028), 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  },
+
+  // スアミ(tier3): 巣ネットワーク(nestWeb)。惑星に紐づかない特性の新層・第1号。
+  // V6-P2: 視覚言語=「結節と網」を先行定義(P2の巣ネットワーク実装と呼応・完成後に齟齬が出たら意匠側が追随)。
+  //   ①結節環=尾の等間隔の環(帰る場所の数・クロノの節輪と同じ環の文法だが「編んだ紐」=二重線)
+  //   ②結節点=環の背側に灯る結び目(巣の灯・微光) ③網糸=結節を渡り腰へ届く一本の糸(たわみ=張られた糸)。完全静的。
+  traitSuami(ctx, g, def) {
+    const { S, body, L } = g; if (!S) return;
+    const c = def.rim || "#D8B36A";
+    const rings = CFG.suamiRings != null ? CFG.suamiRings : 3;
+    const nodeR = CFG.suamiNodeR != null ? CFG.suamiNodeR : 0.011;
+    const thread = CFG.suamiThread != null ? CFG.suamiThread : 0.5;
+    const glow = CFG.suamiGlow != null ? CFG.suamiGlow : 3;
+    ctx.save();
+    if (body) ctx.clip(body);
+    ctx.lineCap = "round";
+    const nodes = [];
+    // ①結節環: 尾を渡る二重の環(編んだ紐)
+    for (let k = 0; k < rings; k++) {
+      const t = 0.11 + k * 0.09;
+      const s = S(t);
+      const ax = s.p.x + s.n.x * s.w * 1.0 * s.u, ay = s.p.y + s.n.y * s.w * 1.0 * s.u;
+      const bx = s.p.x - s.n.x * s.w * 1.0 * s.u, by = s.p.y - s.n.y * s.w * 1.0 * s.u;
+      ctx.strokeStyle = c; ctx.globalAlpha = 0.80;
+      ctx.lineWidth = Math.max(0.8, L * 0.006);
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+      ctx.globalAlpha = 0.38; ctx.lineWidth = Math.max(0.5, L * 0.003);
+      ctx.beginPath(); ctx.moveTo(ax + L * 0.006, ay); ctx.lineTo(bx + L * 0.006, by); ctx.stroke();
+      // ②結節点: 背側の端に結び目の灯
+      const ny = Math.min(ay, by), nx = ay < by ? ax : bx;
+      nodes.push([nx, ny]);
+      ctx.globalAlpha = 0.95; ctx.fillStyle = "#F0D9A8";
+      ctx.shadowColor = c; ctx.shadowBlur = glow;
+      ctx.beginPath(); ctx.arc(nx, ny, Math.max(1, L * nodeR), 0, 7); ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+    // ③網糸: 結節を渡って腰へ届く一本の糸(セグメントごとに小さくたわむ=張られた糸の重さ)
+    if (thread > 0 && nodes.length) {
+      const hip = S(0.44);
+      nodes.push([hip.p.x, hip.p.y - hip.w * 0.55]);
+      ctx.strokeStyle = "#E8D5A8"; ctx.globalAlpha = thread;
+      ctx.lineWidth = Math.max(0.5, L * 0.0032);
+      ctx.beginPath(); ctx.moveTo(nodes[0][0], nodes[0][1]);
+      for (let i = 1; i < nodes.length; i++) {
+        const [px, py] = nodes[i - 1], [qx, qy] = nodes[i];
+        ctx.quadraticCurveTo((px + qx) / 2, Math.max(py, qy) + L * 0.012, qx, qy);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  },
+
   // ヨウガン(tier3): 背に走る亀裂から熱色が覗く(暗い裂け目+中に熔岩色+微グロー)。手法=裂け目の質感。
   // R5-b B1: ヨウガン=「冷え固まった黒殻の下で脈打つ橙の亀裂」。殻の暗さがあるから熱が読める。
   //   亀裂網=決定論の分岐・胸元に熱だまり・熱はゆっくり脈動(0.5s粒度・CFGでOFF可)。
