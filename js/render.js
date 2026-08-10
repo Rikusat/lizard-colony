@@ -4547,11 +4547,18 @@ const Render = {
       const y = s.p.y + s.w * (0.22 + h2(i, 3) * 0.58);
       pts.push([x, y]);
       const major = i < 2;
-      const r = Math.max(0.6, L * (major ? 0.008 : 0.004) * (0.8 + h2(i, 4) * 0.5));
-      ctx.globalAlpha = major ? 0.92 : 0.45 + h2(i, 5) * 0.35;
+      const r = Math.max(0.7, L * (major ? 0.010 : 0.005) * (0.8 + h2(i, 4) * 0.5));
+      ctx.globalAlpha = major ? 0.95 : 0.50 + h2(i, 5) * 0.35;
       ctx.fillStyle = major ? "#F4F7FF" : c;
-      ctx.shadowColor = c; ctx.shadowBlur = major ? 4 : 0;
+      ctx.shadowColor = c; ctx.shadowBlur = major ? 5 : 0;
       ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+      if (major) { // 等星の十字の煌めき(同系色の体でも「星」と読める徴・青系種への§8.0.2補強)
+        ctx.strokeStyle = "#F4F7FF"; ctx.globalAlpha = 0.55; ctx.lineWidth = Math.max(0.4, L * 0.0025);
+        ctx.beginPath();
+        ctx.moveTo(x - r * 2.6, y); ctx.lineTo(x + r * 2.6, y);
+        ctx.moveTo(x, y - r * 2.6); ctx.lineTo(x, y + r * 2.6);
+        ctx.stroke();
+      }
     }
     ctx.shadowBlur = 0;
     // ③航路線: 等星0→微星2→等星1 の折れ線(渡ってきた道筋)

@@ -223,4 +223,4 @@ console.log("\n== 獲得可能性マトリクス ==");
 console.log("\n============================================");
 console.log(`結果: ${pass} PASS / ${fail} FAIL`);
 if (fail > 0) { process.exitCode = 1; console.log("→ 到達不能な図鑑/特性、または設計制約の破れがある。"); }
-else console.log("→ 全図鑑エントリ・全18特性が正規手順で獲得可能(6合成専用は合成のみ=設計どおり)。");
+else console.log("→ 全図鑑エントリ・全特性(TRAITS全数)が正規手順で獲得可能(tier6は乱択プールの希少枠=V6-P1-2)。");

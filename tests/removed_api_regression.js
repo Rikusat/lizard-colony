@@ -29,21 +29,28 @@ if (db) {
   }
 }
 
-// ---- 違反パターン(feed_discipline_regression から移設・同一定義) ----
-// 「取得して叩く」形と「メソッドとして呼ぶ」形だけを違反とする。
+// ---- 違反パターン(feed_discipline_regression から移設+V6-P2で③を追加) ----
+// 「取得して叩く」形・「メソッドとして呼ぶ」形・「撤廃グローバルのメンバーを触る」形を違反とする。
+// ③の由来: test-trait-catalog.html が `RECIPES.forEach(...)` の裸参照で ReferenceError となり
+//   **全行が描画されない状態**を①②が素通しした(2026-08-10検出)。typeof 検査(無いことの検査)は
+//   直後にドットが来ないため③に掛からない=正しい書き方は引き続き通る。
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&");
 const patternsFor = (id) => [
-  new RegExp(esc(id) + "[\"'`]\\s*\\)\\s*\\.\\s*click"),   // getElementById("id").click()
-  new RegExp("\\.\\s*" + esc(id) + "\\s*\\("),              // Game.id(...) / UI.id(...)
+  new RegExp(esc(id) + "[\"'`]\\s*\\)\\s*\\.\\s*click"),   // ① getElementById("id").click()
+  new RegExp("\\.\\s*" + esc(id) + "\\s*\\("),              // ② Game.id(...) / UI.id(...)
+  new RegExp("\\b" + esc(id) + "\\s*\\.\\s*\\w"),           // ③ ID.forEach(...) 等=撤廃グローバルの実参照
 ];
 
 // ---- ★カナリア: パターンが違反サンプルを本当に検知するか(検知できない走査は0件を偽造する) ----
 {
   const clickSample = 'document.getElementById("bm-' + 'quick").click()';   // 連結で自己検知を回避
   const callSample = "Game.check" + "Allies()";
+  const bareSample = "RECI" + "PES.forEach((r) => {})";
   ok("★カナリア: click形を検知する", patternsFor("bm-quick")[0].test(clickSample));
   ok("★カナリア: メソッド呼び出し形を検知する", patternsFor("checkAllies")[1].test(callSample));
+  ok("★カナリア: 裸のグローバル参照を検知する(実際に見逃した形)", patternsFor("RECIPES")[2].test(bareSample));
   ok("★カナリア: 無いことの検査は通す(typeof)", !patternsFor("synthesize").some((p) => p.test('typeof Game.synthesize !== "function"')));
+  ok("★カナリア: 無いことの検査は通す(typeof裸)", !patternsFor("RECIPES").some((p) => p.test('typeof RECIPES === "undefined"')));
   ok("★カナリア: 無いことの検査は通す(!getElementById)", !patternsFor("bm-quick").some((p) => p.test('!document.getElementById("bm-quick")')));
 }
 

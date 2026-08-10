@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>V6-P2バッチ — ホシワタリ/コケムシロ/スアミ(開発用・Ric判定前)</title>
+<!-- V6-P2 バッチ展開(基準=ドクシルシ承認済): 残り3種の並置比較(R5-b検分セットの型)。
+     各特性: 近目2.0×=無徴(左)vs付与(右)×主題に応じた2種。
+       ホシワタリ=惑星に紐づかない→①のカナヘビ/ニホントカゲ(最初に見る空)
+       コケムシロ=③森林→アオジタ/エリマキ(茶系の体色に苔緑が載る)
+       スアミ=惑星に紐づかない→⑥エメラルド(緑)/①カナヘビ(茶)=体色の両極で判読を見る
+     遠目=明るい砂地の実寸群れ+新3種(琥珀枠)。localStorageサンドボックス=本セーブ非接触。 -->
+<script>
+(function () {
+  const mem = {};
+  const shim = { getItem: (k) => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: (k) => { delete mem[k]; }, clear: () => { for (const k in mem) delete mem[k]; } };
+  Object.defineProperty(window, "localStorage", { value: shim, configurable: false });
+})();
+</script>
+<style>
+  body { background: #221a12; margin: 0; color: #e8dccb; font-family: system-ui, sans-serif; }
+  h1 { font-size: 15px; padding: 10px 16px 0; margin: 0; font-weight: 600; }
+  p.note { font-size: 12px; padding: 2px 16px 8px; margin: 0; color: #c9b8a2; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<h1>V6-P2 バッチ — 各行: 無徴(左2) vs 付与後(右2)</h1>
+<p class="note">1段目=ホシワタリ(夜藍の下地+星屑+航路線・§8.0.2同系色文法) / 2段目=コケムシロ(苔斑+絨毛の照り+胞子) / 3段目=スアミ(結節環+巣の灯+網糸=nestWebの視覚言語)。全て完全静的・体クリップ内=魂非接触。</p>
+<canvas id="game" width="10" height="10" style="display:none"></canvas>
+<canvas id="cmp" width="1100" height="840"></canvas>
+<h1>遠目 — 実寸(明るい砂地・通常の群れ+新3種=琥珀枠)</h1>
+<canvas id="far" width="1100" height="300"></canvas>
+<script src="js/data.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script>
+globalThis.UI = { toast: () => {} };
+Game.newGame(); Game.state.lizards = [];
+Render.init(); Render.time = 1.3;
+
+const sp = (id) => SPECIES.find((s) => s.id === id);
+function mk(spec, traitKey) {
+  return Game.makeLizard(spec.id, "normal", { hue: spec.hue, sat: spec.sat, light: spec.light, pattern: "stripe", traits: traitKey ? [{ key: traitKey }] : [] }, "adult");
+}
+function drawAt(ctx, lz, x, y, scale) {
+  lz.x = x / scale; lz.y = y / scale; lz.tx = lz.x; lz.ty = lz.y; lz.angle = 0.12; lz.moving = false;
+  ctx.save(); ctx.scale(scale, scale);
+  Render.drawLizard(ctx, lz, true);
+  ctx.restore();
+}
+const ROWS = [
+  { key: "hoshiwatari", label: "ホシワタリ(tier1・空/宇宙港)", a: sp("kanahebi"), b: sp("nihontokage") },
+  { key: "kokemushiro", label: "コケムシロ(tier1・③森林)", a: sp("aojita"), b: sp("erimaki") },
+  { key: "suami", label: "スアミ(tier3・巣ネットワーク)", a: sp("emerald"), b: sp("kanahebi") },
+];
+const c1 = document.getElementById("cmp").getContext("2d");
+c1.fillStyle = "#2c2118"; c1.fillRect(0, 0, 1100, 840);
+c1.font = "13px system-ui";
+ROWS.forEach((row, r) => {
+  const cy = 40 + r * 280;
+  c1.fillStyle = "#c9b8a2"; c1.fillText(row.label + " — 無徴 | 無徴 | 付与 | 付与", 20, cy - 16);
+  drawAt(c1, mk(row.a, null), 150, cy + 110, 2.0);
+  drawAt(c1, mk(row.b, null), 420, cy + 110, 2.0);
+  drawAt(c1, mk(row.a, row.key), 690, cy + 110, 2.0);
+  drawAt(c1, mk(row.b, row.key), 960, cy + 110, 2.0);
+});
+// ---- 遠目(実寸1.0×・通常の群れ+新3種) ----
+const c2 = document.getElementById("far").getContext("2d");
+c2.fillStyle = "#b39869"; c2.fillRect(0, 0, 1100, 300);
+const spA = sp("kanahebi"), spB = sp("nihontokage");
+const spots = [[110, 90], [260, 200], [420, 110], [700, 90], [980, 90], [180, 250], [560, 250], [1010, 230], [340, 60], [860, 250]];
+spots.forEach(([x, y], i) => {
+  const s = i % 2 ? spA : spB;
+  drawAt(c2, Game.makeLizard(s.id, "normal", { hue: s.hue, sat: s.sat, light: s.light, pattern: ["stripe", "spot", "none"][i % 3], traits: [] }, "adult"), x, y, 1.0);
+});
+[["hoshiwatari", 480, 180], ["kokemushiro", 720, 190], ["suami", 880, 130]].forEach(([k, x, y]) => {
+  drawAt(c2, mk(spA, k), x, y, 1.0);
+  c2.strokeStyle = "#e4bc3a"; c2.globalAlpha = .5; c2.strokeRect(x - 60, y - 35, 120, 70); c2.globalAlpha = 1;
+});
+document.title = "p2batch-cut done";
+</script>
+</body>
+</html>
