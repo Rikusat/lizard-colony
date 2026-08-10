@@ -4464,6 +4464,108 @@ const Render = {
     ctx.restore();
   },
 
+  // ================= V6-P2-2 B0/B1: 巣ビジュアル(nest_image2 再現) =================
+  // 座標は NEST_VIS(データ)から導出=検分ゲートと同じ単一の真実。完全静的=決定論(時間不使用)。
+  // 背景: 暗褐色ビネット+決定論の斑状テクスチャ(参照実測: 背景サンプル avgL≈25)。
+  nestBg(ctx, w, h) {
+    const P = NEST_VIS.palette;
+    const cells = CFG.nestVisTexCells != null ? CFG.nestVisTexCells : 90;
+    const vin = CFG.nestVisVin != null ? CFG.nestVisVin : 0.85;
+    const h2 = (a, b) => { let x = (a * 374761393 + b * 668265263) ^ (a << 7); x = (x ^ (x >> 13)) * 1274126177; return ((x ^ (x >> 16)) >>> 0) / 4294967295; };
+    ctx.fillStyle = P.bg1; ctx.fillRect(0, 0, w, h);
+    // 中央の暖み(コア位置基準)→外周へ沈む
+    const cx = w * NEST_VIS.core.x, cy = h * NEST_VIS.core.y;
+    const g = ctx.createRadialGradient(cx, cy, 10, cx, cy, Math.max(w, h) * 0.75);
+    g.addColorStop(0, P.bg0); g.addColorStop(1, P.bg1);
+    ctx.globalAlpha = vin; ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    // 斑状テクスチャ(樹皮/土のセル・明暗2種を低alphaで散らす)
+    for (let i = 0; i < cells; i++) {
+      const x = h2(i, 1) * w, y = h2(i, 2) * h, r = (8 + h2(i, 3) * 34) * (Math.min(w, h) / NEST_VIS.refH);
+      const light = i % 3 === 0;
+      const cg = ctx.createRadialGradient(x, y, 1, x, y, r);
+      cg.addColorStop(0, light ? "rgba(90,64,30,0.10)" : "rgba(0,0,0,0.14)");
+      cg.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.globalAlpha = 1; ctx.fillStyle = cg;
+      ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    ctx.globalAlpha = 1;
+  },
+  // コア: 編み枝の鉢(3層ストローク束の位相交差=疑似織り)+斑点の大卵+暖色光暈。
+  //   奥リム→卵→手前リムの順で重ね「卵が巣に収まる」を作る(参照実測: コア矩形 avgL≈43・warm≈14%)。
+  nestCore(ctx, cx, cy, R) {
+    const P = NEST_VIS.palette;
+    const twigs = CFG.nestVisTwigs != null ? CFG.nestVisTwigs : 26;
+    const leaves = CFG.nestVisLeaves != null ? CFG.nestVisLeaves : 7;
+    const spots = CFG.nestVisEggSpots != null ? CFG.nestVisEggSpots : 12;
+    const glow = CFG.nestVisGlow != null ? CFG.nestVisGlow : 0.5;
+    const h2 = (a, b) => { let x = (a * 374761393 + b * 668265263) ^ (a << 7); x = (x ^ (x >> 13)) * 1274126177; return ((x ^ (x >> 16)) >>> 0) / 4294967295; };
+    const rx = R * 1.32, ry = R * 0.86;            // 鉢の楕円
+    ctx.save();
+    // 光暈(暖)
+    if (glow > 0) {
+      const gg = ctx.createRadialGradient(cx, cy - R * 0.15, R * 0.2, cx, cy, R * 2.3);
+      gg.addColorStop(0, "rgba(255,190,90," + (0.32 * glow).toFixed(3) + ")");
+      gg.addColorStop(0.55, "rgba(210,140,50," + (0.10 * glow).toFixed(3) + ")");
+      gg.addColorStop(1, "rgba(210,140,50,0)");
+      ctx.fillStyle = gg; ctx.fillRect(cx - R * 2.4, cy - R * 2.4, R * 4.8, R * 4.8);
+    }
+    // 接地影
+    ctx.fillStyle = "rgba(0,0,0,.45)";
+    ctx.beginPath(); ctx.ellipse(cx, cy + ry * 0.92, rx * 1.05, ry * 0.30, 0, 0, 7); ctx.fill();
+    ctx.lineCap = "round";
+    // 枝1本: 鉢の縁に沿う弧(角度a0..a1)を、半径ゆらぎ+膨らみ付きの2次ベジェで描く
+    const twig = (i, layer, col, lw, alpha, half) => {
+      const a0 = h2(i, 10 + layer) * Math.PI * 2;
+      const span = 0.7 + h2(i, 20 + layer) * 0.9;
+      const rr = 1 + (h2(i, 30 + layer) - 0.5) * 0.16 + layer * 0.015; // 層ごとに僅かに外へ=重なり
+      const ph = (i % 2 ? 1 : -1) * 0.05;                             // 偶奇で内外の位相=交差(疑似織り)
+      const px = (a) => cx + Math.cos(a) * rx * (rr + Math.sin(a * 3 + i) * ph);
+      const py = (a) => cy + Math.sin(a) * ry * (rr + Math.cos(a * 2 + i) * ph);
+      const am = a0 + span / 2, a1 = a0 + span;
+      // half: -1=奥(上)側のみ / 1=手前(下)側のみ / 0=全周対象
+      if (half === -1 && Math.sin(am) > 0) return;
+      if (half === 1 && Math.sin(am) <= 0) return;
+      ctx.strokeStyle = col; ctx.globalAlpha = alpha; ctx.lineWidth = lw;
+      ctx.beginPath(); ctx.moveTo(px(a0), py(a0));
+      ctx.quadraticCurveTo(px(am) + (h2(i, 40) - 0.5) * R * 0.1, py(am) + (h2(i, 41) - 0.5) * R * 0.08, px(a1), py(a1));
+      ctx.stroke();
+    };
+    const weave = (half) => {
+      for (let i = 0; i < twigs; i++) twig(i, 0, P.twig0, R * 0.095, 0.9, half);
+      for (let i = 0; i < twigs; i++) twig(i + 50, 1, P.twig1, R * 0.055, 0.85, half);
+      for (let i = 0; i < (twigs * 0.6 | 0); i++) twig(i + 100, 2, P.twig2, R * 0.026, 0.75, half);
+    };
+    weave(-1); // 奥リム(卵の後ろ)
+    // 卵(鉢の中・やや上)
+    const ex = cx, ey = cy - R * 0.18, erx = R * 0.66, ery = R * 0.80;
+    const eg = ctx.createRadialGradient(ex - erx * 0.35, ey - ery * 0.45, erx * 0.1, ex, ey, erx * 1.35);
+    eg.addColorStop(0, P.egg0); eg.addColorStop(0.55, P.egg1); eg.addColorStop(1, P.egg2);
+    ctx.globalAlpha = 1; ctx.fillStyle = eg;
+    ctx.beginPath(); ctx.ellipse(ex, ey, erx, ery, 0, 0, 7); ctx.fill();
+    // 斑点(決定論・下半分に多め)
+    ctx.fillStyle = P.egg2;
+    for (let i = 0; i < spots; i++) {
+      const a = h2(i, 60) * Math.PI * 2, d = 0.25 + h2(i, 61) * 0.6;
+      const x = ex + Math.cos(a) * erx * d, y = ey + Math.sin(a) * ery * d * (0.7 + 0.3 * h2(i, 62));
+      ctx.globalAlpha = 0.28 + h2(i, 63) * 0.25;
+      ctx.beginPath(); ctx.ellipse(x, y, erx * (0.05 + h2(i, 64) * 0.06), ery * (0.04 + h2(i, 65) * 0.05), h2(i, 66) * 3, 0, 7); ctx.fill();
+    }
+    // 上部ハイライト(照りの一点)
+    ctx.globalAlpha = 0.22; ctx.fillStyle = "#fff6dd";
+    ctx.beginPath(); ctx.ellipse(ex - erx * 0.3, ey - ery * 0.5, erx * 0.22, ery * 0.12, -0.5, 0, 7); ctx.fill();
+    weave(1); // 手前リム(卵の裾に被る)
+    // 葉(縁に疎らに差す)
+    ctx.fillStyle = P.leaf;
+    for (let i = 0; i < leaves; i++) {
+      const a = h2(i, 70) * Math.PI * 2;
+      const x = cx + Math.cos(a) * rx * 1.02, y = cy + Math.sin(a) * ry * 1.02;
+      ctx.globalAlpha = 0.65 + h2(i, 71) * 0.25;
+      ctx.beginPath(); ctx.ellipse(x, y, R * 0.11, R * 0.045, a + 0.6, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  },
+
   // ドクシルシ(tier2): ⑥密林ユンガ。毒蛙の文法=暗い喉にこそ警告色は鮮やかに載る。静=毒は誇示しない、在るだけで語る。
   // V6-P2 基準カット: ①毒腺の沈み=喉〜胸の墨色面(暗さが先・ヨウガンと同じ「地の暗さが徴を読ませる」構造)
   //   ②警告斑=翡翠の不揃い斑(決定論jitter・各斑を暗環で締める=明るい砂地でも潰れない)

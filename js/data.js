@@ -403,6 +403,13 @@ const CFG = {
     { key: "rocket", jp: "宇宙港", en: "SPACEPORT", icon: "rocket" },
     { key: "dex", jp: "図鑑", en: "SPECIMEN DEX", icon: "dex" },
   ],
+  // V6-P2-2 B0/B1: 巣ビジュアル(nest_image2 再現・★全てRic実機判定)
+  nestVisTexCells: 90,        // 背景の斑状テクスチャの数
+  nestVisVin: 0.85,           // 背景ビネットの強さ(0-1)
+  nestVisTwigs: 26,           // 編み枝の本数(1層あたり)
+  nestVisLeaves: 7,           // 巣に差す葉の枚数
+  nestVisEggSpots: 12,        // 卵の斑点数
+  nestVisGlow: 0.5,           // コア光暈の強さ(0=無効)
   nestMenuItems: [            // V6-P2-1: 巣ページ右メニュー(本部§14と同様式。巣は閲覧専用=中身は常設導線)
     { key: "feed", jp: "飼育槽", en: "TERRARIUM", icon: "lizard" },
     { key: "hq", jp: "本部", en: "HOLO COMMAND", icon: "hq" },
@@ -961,6 +968,21 @@ const ORES = [
   { id: "titaniumOre", name: "チタン鉱",     icon: "titanium", hint: "設備を\"化けさせる\"特殊鉱石(上限突破)" },
 ];
 const oreById = (id) => ORES.find((o) => o.id === id);
+
+// ================= V6-P2-2: 巣ビジュアル レイアウトの単一の真実 =================
+// 参照画像 nest_image2.png(1672×941)のコンテンツ領域 (212,57,1460×884) からの導出値。
+// ページ描画(Render.nestBg/nestCore)と検分ゲート(test-nest-cut.html)の両方がここから座標を取る
+// =「絵とテストがズレない」。比率は領域寸法比(x,y)・r は領域短辺(884)比。
+const NEST_VIS = {
+  refW: 1460, refH: 884,                    // 数値ゲートの座標系
+  core: { x: 0.423, y: 0.410, r: 0.153 },   // 巣コア(編み枝の鉢)の中心と半径(実測: 鉢≈(830,420) 半幅≈135px)
+  palette: {                                // 参照実測の基調色(背景sample avgL≈25 / コアavgL≈43 に合わせる)
+    bg0: "#2a1c0c", bg1: "#0e0906",         // 背景ビネット(中心の暖み→外周)
+    twig0: "#4a3115", twig1: "#7a5628", twig2: "#b8904e", // 枝3層(暗→中間→ハイライト)
+    leaf: "#4a6b2a",
+    egg0: "#e8c47c", egg1: "#a87840", egg2: "#664518",    // 卵(光→中間→陰)
+  },
+};
 
 // ============================================================
 // V4.1: 巣ネットワーク(§3 蜘蛛の巣状・完全放置・閲覧専用)

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>NESTVIS 実行中…</title>
+<!-- V6-P2-2 並置ビューア+部分ゲート(B0背景/B1コア・2026-08-11)。
+     左=参照(nest_image2 のコンテンツ領域 212,57,1460×884) / 右=再現(Render.nestBg+nestCore を同座標系で描画)。
+     指標は docs/nest_visual_thresholds.js(単一の真実)。判定は title=NESTVIS PASS n/FAIL m(qa-cdp で恒久実行)。
+     オーバーレイ透明度スライダー+|ΔL|差分ヒートマップ+指標テーブル。参照画像は本番非配信=本ページはローカル専用。
+     ノード/パネル(DOM部)はこのゲートの対象外(B5の全画面ゲートで扱う)。 -->
+<script>
+(function () {
+  const mem = {};
+  const shim = { getItem: (k) => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: (k) => { delete mem[k]; }, clear: () => { for (const k in mem) delete mem[k]; } };
+  Object.defineProperty(window, "localStorage", { value: shim, configurable: false });
+})();
+</script>
+<style>
+  body { background: #221a12; margin: 0; color: #e8dccb; font-family: system-ui, sans-serif; }
+  h1 { font-size: 15px; padding: 10px 16px 0; margin: 0; font-weight: 600; }
+  p.note { font-size: 12px; padding: 2px 16px 8px; margin: 0; color: #c9b8a2; }
+  .row { display: flex; gap: 10px; padding: 0 16px; align-items: flex-start; flex-wrap: wrap; }
+  .col { position: relative; }
+  .col h2 { font-size: 12px; margin: 4px 0; color: #c9b8a2; font-weight: 600; }
+  canvas { display: block; border: 1px solid #57452c; }
+  #ovl { position: absolute; left: 0; top: 22px; opacity: 0; pointer-events: none; }
+  table { margin: 10px 16px; border-collapse: collapse; font-size: 12px; }
+  td, th { border: 1px solid #57452c; padding: 4px 10px; text-align: left; }
+  .ok { color: #7bd986; } .ng { color: #e08a8a; }
+  label { font-size: 12px; padding: 0 16px; }
+</style>
+</head>
+<body>
+<h1>巣ビジュアル 並置検分 — 参照(左) vs 再現(右・B0背景+B1コア)</h1>
+<p class="note">指標=docs/nest_visual_thresholds.js(参照実測由来・緩和には理由記録+Ric承認)。DOM部(ノード/パネル)はB5の全画面ゲートで扱う。</p>
+<label>オーバーレイ(参照の上に再現を重ねる): <input id="sl" type="range" min="0" max="100" value="0"></label>
+<div class="row">
+  <div class="col"><h2>参照 nest_image2(コンテンツ領域)</h2><canvas id="ref" width="730" height="442"></canvas><canvas id="ovl" width="730" height="442"></canvas></div>
+  <div class="col"><h2>再現(Canvas 2D・決定論)</h2><canvas id="rep" width="730" height="442"></canvas></div>
+  <div class="col"><h2>|ΔL| 差分ヒートマップ(明=乖離大)</h2><canvas id="diff" width="365" height="221"></canvas></div>
+</div>
+<table id="tbl"><tr><th>指標</th><th>参照</th><th>再現</th><th>閾値</th><th>判定</th></tr></table>
+<canvas id="game" width="10" height="10" style="display:none"></canvas>
+<script src="js/data.js"></script>
+<script src="js/render.js"></script>
+<script src="docs/nest_visual_thresholds.js"></script>
+<script>
+const W = NEST_VIS.refW, H = NEST_VIS.refH;
+const T = NEST_VIS_THRESHOLDS;
+let pass = 0, fail = 0;
+const row = (name, refV, repV, thr, ok) => {
+  if (ok) pass++; else fail++;
+  document.getElementById("tbl").insertAdjacentHTML("beforeend",
+    `<tr><td>${name}</td><td>${refV}</td><td>${repV}</td><td>${thr}</td><td class="${ok ? "ok" : "ng"}">${ok ? "PASS" : "FAIL"}</td></tr>`);
+};
+const stat = (cx, x, y, w, h) => {
+  const d = cx.getImageData(x, y, w, h).data;
+  let s = 0, warm = 0, bx = 0, by = 0, bc = 0; const n = d.length / 4;
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+    const r = d[i], g = d[i + 1], b = d[i + 2];
+    const L = .2126 * r + .7152 * g + .0722 * b;
+    s += L;
+    if (r > g && g > b && L > 60) warm++;
+    if (L > 170) { bx += p % w; by += (p / w | 0); bc++; }
+  }
+  return { avgL: s / n, warm: warm / n * 100, cen: bc ? [bx / bc, by / bc] : null, bright: bc / n * 100 };
+};
+(async () => {
+  // 参照(フル解像でオフスクリーンに展開=閾値の座標系)
+  const img = new Image(); img.src = "image/nest_image2.png";
+  let refOk = true;
+  try { await img.decode(); } catch (e) { refOk = false; }
+  const refCv = document.createElement("canvas"); refCv.width = W; refCv.height = H;
+  const refCx = refCv.getContext("2d", { willReadFrequently: true });
+  if (refOk) refCx.drawImage(img, 212, 57, W, H, 0, 0, W, H);
+  // 再現(同座標系・ページと同じ NEST_VIS から導出=単一の真実)
+  const repCv = document.createElement("canvas"); repCv.width = W; repCv.height = H;
+  const repCx = repCv.getContext("2d", { willReadFrequently: true });
+  Render.nestBg(repCx, W, H);
+  Render.nestCore(repCx, W * NEST_VIS.core.x, H * NEST_VIS.core.y, Math.min(W, H) * NEST_VIS.core.r);
+  // 表示(縮小)
+  document.getElementById("ref").getContext("2d").drawImage(refCv, 0, 0, 730, 442);
+  document.getElementById("rep").getContext("2d").drawImage(repCv, 0, 0, 730, 442);
+  const ovl = document.getElementById("ovl");
+  ovl.getContext("2d").drawImage(repCv, 0, 0, 730, 442);
+  document.getElementById("sl").addEventListener("input", (e) => { ovl.style.opacity = e.target.value / 100; });
+  // 差分ヒートマップ(|ΔL|・1/4解像)
+  {
+    const dw = 365, dh = 221, dcv = document.getElementById("diff"), dcx = dcv.getContext("2d");
+    const a = document.createElement("canvas"); a.width = dw; a.height = dh;
+    const b = document.createElement("canvas"); b.width = dw; b.height = dh;
+    a.getContext("2d").drawImage(refCv, 0, 0, dw, dh); b.getContext("2d").drawImage(repCv, 0, 0, dw, dh);
+    const da = a.getContext("2d").getImageData(0, 0, dw, dh).data, db = b.getContext("2d").getImageData(0, 0, dw, dh).data;
+    const out = dcx.createImageData(dw, dh);
+    for (let i = 0; i < da.length; i += 4) {
+      const La = .2126 * da[i] + .7152 * da[i + 1] + .0722 * da[i + 2];
+      const Lb = .2126 * db[i] + .7152 * db[i + 1] + .0722 * db[i + 2];
+      const d = Math.min(255, Math.abs(La - Lb) * 2.5);
+      out.data[i] = d; out.data[i + 1] = d * 0.55; out.data[i + 2] = d * 0.2; out.data[i + 3] = 255;
+    }
+    dcx.putImageData(out, 0, 0);
+  }
+  if (!refOk) { document.title = "NESTVIS NOREF"; document.querySelector("p.note").textContent = "参照画像なし(本番/配布環境)。ゲートはローカルでのみ実行できます。"; return; }
+  // ---- 部分ゲート(B0: 背景 / B1: コア) ----
+  const f1 = (v) => (typeof v === "number" ? v.toFixed(1) : v);
+  { // B0 背景
+    const [x, y, w, h] = T.bg.rect;
+    const R = stat(refCx, x, y, w, h), P = stat(repCx, x, y, w, h);
+    row("B0 背景 平均輝度", f1(R.avgL), f1(P.avgL), `±${T.bg.avgLTol}L`, Math.abs(P.avgL - R.avgL) <= T.bg.avgLTol);
+    row("B0 背景 暖色画素率%", f1(R.warm), f1(P.warm), `< ${T.bg.warmMax}%`, P.warm < T.bg.warmMax);
+  }
+  { // B1 コア
+    const [x, y, w, h] = T.core.rect;
+    const R = stat(refCx, x, y, w, h), P = stat(repCx, x, y, w, h);
+    const lo = T.core.ref.avgL * (1 - T.core.avgLRel), hi = T.core.ref.avgL * (1 + T.core.avgLRel);
+    row("B1 コア 平均輝度", f1(R.avgL), f1(P.avgL), `${f1(lo)}〜${f1(hi)}`, P.avgL >= lo && P.avgL <= hi);
+    row("B1 コア 暖色画素率%", f1(R.warm), f1(P.warm), `${T.core.warmMin}〜${T.core.warmMax}%`, P.warm >= T.core.warmMin && P.warm <= T.core.warmMax);
+    const dist = P.cen && R.cen ? Math.hypot(P.cen[0] - R.cen[0], P.cen[1] - R.cen[1]) : 1e9;
+    row("B1 コア 高輝度重心距離px", R.cen ? R.cen.map(Math.round) : "-", P.cen ? P.cen.map(Math.round) : "なし", `≦ ${T.core.cenDist}px`, dist <= T.core.cenDist);
+    const br = R.bright > 0 ? P.bright / R.bright : 0;
+    row("B1 コア 高輝度画素率(参照比)", f1(R.bright) + "%", f1(P.bright) + "% (×" + f1(br) + ")", `×${T.core.brightMin}〜${T.core.brightMax}`, br >= T.core.brightMin && br <= T.core.brightMax);
+  }
+  document.title = (fail ? "NESTVIS FAIL " : "NESTVIS PASS ") + pass + "/" + (pass + fail);
+})();
+</script>
+</body>
+</html>

@@ -86,6 +86,7 @@ Object.assign(UI, {
     if (h2) h2.innerHTML = `${Icon.svg("nestweb")} 巣ネットワーク — 全惑星共通`;
     const back = document.getElementById("nestpage-back");
     if (back) back.addEventListener("click", () => this.closeNestPage());
+    window.addEventListener("resize", () => { if (this.nestPageOpen() && this._nestLayout) this._nestLayout(); }); // V6-P2-2: 背景canvas再描画
     this._buildNestMenu();
   },
   // 右メニュー(本部§14 _buildHqMenuと同様式・CFG外部化)。巣に内部パネルは無いため中身は他所への常設導線。
@@ -127,17 +128,35 @@ Object.assign(UI, {
       const p = Game.nestProgress(n);
       if (p > nextP) { nextP = p; next = n; }
     }
+    // V6-P2-2 B0: レイアウト=中央ステージ(canvas背景+コア+web)+右パネル+ヒント帯(nest_image2 準拠)。
+    //   右パネルの数値は実データのみ(モックの見本値は使わない・Ric裁定 2026-08-11)。
+    const rate = counts.total ? Math.floor(counts.open / counts.total * 100) : 0;
     body.innerHTML = `
       <div class="nest-head">
         <span>解放済み <b>${counts.open}/${counts.total}</b>
-          ${next ? ` / 次に開きそう: <b>${next.name}</b>(${Math.floor(nextP * 100)}%)` : ""}
-          ${web.surprises ? ` / ${Icon.svg("spark")}先行解放 ${web.surprises}回` : ""}</span>
+          ${next ? ` / 次に開きそう: <b>${next.name}</b>(${Math.floor(nextP * 100)}%)` : ""}</span>
         <span class="nest-legend">
           <i class="lg on"></i>解放済み <i class="lg near"></i>もうすぐ <i class="lg off"></i>未解放
         </span>
-        <span style="font-size:calc(11px * var(--fs-scale, 1));color:var(--sub)">操作は不要。繁殖を続ければ勝手に育つ</span>
       </div>
-      <div id="nest-scroll"><div id="nest-web"></div></div>
+      <div id="nest-main">
+        <div id="nest-stage">
+          <canvas id="nest-canvas"></canvas>
+          <div id="nest-web"></div>
+          <div id="nest-openrate">総解放率 <b>${rate}%</b></div>
+        </div>
+        <aside id="nest-side">
+          <div class="nest-panel"><h3>${Icon.svg("nestweb")} 巣のステータス</h3>
+            <div class="np-row"><span>解放済みノード</span><b>${counts.open}/${counts.total}</b></div>
+            <div class="np-row"><span>総解放率</span><b>${rate}%</b></div>
+            <div class="np-row"><span>先行解放</span><b>${web.surprises || 0}回</b></div>
+          </div>
+          <div class="nest-panel"><h3>${Icon.svg("stone")} レア資源</h3>
+            ${ORES.map((o) => `<div class="np-row"><span>${Icon.svg(o.icon)}${o.name}</span><b>${(Game.state.rare && Game.state.rare[o.id]) || 0}</b></div>`).join("")}
+          </div>
+        </aside>
+      </div>
+      <div id="nest-hint">ヒント: 各ノードは繁殖や日々の営みで自然に解放される。巣のネットワークが広がるほど、コロニーは豊かになる。</div>
       <div id="nest-tip" class="hidden"></div>`;
     const wrap = body.querySelector("#nest-web");
     const SIZE = 1100, C = SIZE / 2;
@@ -197,20 +216,22 @@ Object.assign(UI, {
           ${open ? "" : `<br><span style="color:var(--sub)">いつもの繁殖を続ければ自然に開く</span>`}`;
       });
     }
-    // 初期表示は中央へスクロール
-    const sc = body.querySelector("#nest-scroll");
-    requestAnimationFrame(() => {
-      sc.scrollLeft = C - sc.clientWidth / 2;
-      sc.scrollTop = C - sc.clientHeight / 2;
-    });
-    // ドラッグでパン
-    let drag = null;
-    sc.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, l: sc.scrollLeft, t: sc.scrollTop }; });
-    sc.addEventListener("pointermove", (e) => {
-      if (!drag) return;
-      sc.scrollLeft = drag.l - (e.clientX - drag.x);
-      sc.scrollTop = drag.t - (e.clientY - drag.y);
-    });
-    for (const ev of ["pointerup", "pointerleave"]) sc.addEventListener(ev, () => { drag = null; });
+    // V6-P2-2 B0/B1: ステージ実寸に合わせて背景+コアを描き、web(1100座標)をコア位置へスケール配置。
+    //   パンは廃止(参照画像=全体が一望の構図)。座標は NEST_VIS=検分ゲートと同じ単一の真実。
+    const stage = body.querySelector("#nest-stage");
+    const layoutStage = () => {
+      const cv = body.querySelector("#nest-canvas");
+      if (!cv || !stage) return;
+      const sw = stage.clientWidth, sh = stage.clientHeight;
+      if (!sw || !sh) return;
+      cv.width = sw; cv.height = sh;
+      const nctx = cv.getContext("2d");
+      Render.nestBg(nctx, sw, sh);
+      Render.nestCore(nctx, sw * NEST_VIS.core.x, sh * NEST_VIS.core.y, Math.min(sw, sh) * NEST_VIS.core.r);
+      const k = (Math.min(sw, sh) / SIZE) * 0.98;
+      wrap.style.transform = `translate(${sw * NEST_VIS.core.x - C * k}px, ${sh * NEST_VIS.core.y - C * k}px) scale(${k})`;
+    };
+    this._nestLayout = layoutStage;
+    requestAnimationFrame(layoutStage);
   },
 });

@@ -1782,16 +1782,25 @@ button.holding::after {
   transform: translateY(-1px);
 }
 
-/* V4.1: 巣ネットワーク(蜘蛛の巣・閲覧専用) */
-#nest-scroll {
-  overflow: auto; height: min(56vh, 520px); border-radius: 10px;
-  border: 1px solid var(--border); cursor: grab; touch-action: none;
-  background:
-    radial-gradient(1.5px 1.5px at 18% 30%, #fff4, transparent),
-    radial-gradient(2px 2px at 72% 60%, #fff5, transparent),
-    radial-gradient(1100px 1100px at 50% 50%, #14100a 0%, #0b0906 75%);
-}
-#nest-scroll:active { cursor: grabbing; }
+/* V4.1: 巣ネットワーク(蜘蛛の巣・閲覧専用) → V6-P2-2 B0: パン廃止・canvas背景のステージへ再構成 */
+#nest-main { flex: 1; min-height: 0; display: flex; gap: 12px; }
+#nest-stage { flex: 1; min-width: 0; position: relative; overflow: hidden; min-height: 380px;
+  border-radius: 10px; border: 1px solid var(--border); background: #0e0906; }
+#nest-canvas { position: absolute; inset: 0; }
+#nest-stage #nest-web { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+#nest-openrate { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+  color: var(--sub); font-size: calc(12px * var(--fs-scale, 1)); text-align: center; }
+#nest-openrate b { color: var(--amber-400); font-size: calc(19px * var(--fs-scale, 1)); display: block; }
+#nest-side { width: 250px; flex: none; display: flex; flex-direction: column; gap: 10px; overflow: auto; }
+.nest-panel { background: var(--ink-700, #241c14); border: 1px solid var(--ink-600, #37301f); border-radius: 10px; padding: 10px 12px; }
+.nest-panel h3 { margin: 0 0 8px; font-size: calc(13px * var(--fs-scale, 1)); color: var(--amber-400); display: flex; align-items: center; gap: 6px; }
+.np-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 3px 0;
+  font-size: calc(12px * var(--fs-scale, 1)); color: var(--sub); }
+.np-row span { display: flex; align-items: center; gap: 6px; }
+.np-row b { color: var(--paper-100, #F3E9D8); }
+#nest-hint { margin-top: 8px; padding: 7px 12px; background: var(--lcd-bg, #14100a); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--sub); font-size: calc(11px * var(--fs-scale, 1)); }
+@media (max-width: 900px) { #nest-side { width: 170px; } }
 /* 糸の3状態(Phase 4): 結線=琥珀の光 / 片側のみ=淡い琥珀 / 未解放=気配 */
 #nest-web line.lit { stroke: var(--amber-400); stroke-opacity: .60; stroke-width: 2; }
 #nest-web line.half { stroke: var(--amber-500); stroke-opacity: .28; stroke-width: 1.5; }
