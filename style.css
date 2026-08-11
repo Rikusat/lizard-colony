@@ -1825,6 +1825,15 @@ button.holding::after {
   aspect-ratio: 318 / 102; color: transparent; } /* 文言は素材の焼き込みが一致・SR向けにDOMテキストは保持(透明) */
 #nest-side.assets .np-cta svg.icon { display: none; }
 #nest-side.assets .np-cta:hover { filter: brightness(1.15); }
+/* v2-V3+: 解放の瞬間の一回性スパーク(残らない・reducedでは非表示) */
+.wn-spark { position: absolute; left: 50%; top: 50%; width: 160%; height: auto; transform: translate(-50%, -50%);
+  pointer-events: none; animation: wn-spark .9s var(--ease-out, ease-out) 1 forwards; }
+@keyframes wn-spark {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.4); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.3); }
+}
+@media (prefers-reduced-motion: reduce) { .wn-spark { display: none; } }
 #nest-hint { margin-top: 8px; padding: 7px 12px; background: var(--lcd-bg, #14100a); border: 1px solid var(--border);
   border-radius: 8px; color: var(--sub); font-size: calc(11px * var(--fs-scale, 1)); }
 @media (max-width: 900px) { #nest-side { width: 170px; } }

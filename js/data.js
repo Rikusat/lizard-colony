@@ -411,6 +411,7 @@ const CFG = {
   nestVisEggSpots: 12,        // 卵の斑点数
   nestVisGlow: 0.5,           // コア光暈の強さ(0=無効)
   // V6-P2-2 v2(素材化・★ゲート較正値)
+  nestSparkOn: true,          // ノード解放の瞬間の一回性スパーク(Ric裁定①・②常設は不採用)
   nestCoreScale: 2.35,        // 素材巣の幅(コア半径R比)
   nestCoreAnchorX: 0.485,     // 素材内の鉢中心アンカー(横)
   nestCoreAnchorY: 0.60,      // 素材内の鉢中心アンカー(縦)

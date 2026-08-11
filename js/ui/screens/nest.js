@@ -269,6 +269,7 @@ Object.assign(UI, {
       if (orate) orate.classList.toggle("assets", all);
     };
     ringKeys.forEach((k2) => this._nestAsset(k2));
+    this._nestAsset("spark-big-b"); // スパークFx用の先読み(.assets条件には含めない=無くてもFxを黙って省くだけ)
     this._nestRingApply = applyRingAssets;
     applyRingAssets();
     this._nestLayout = layoutStage;
@@ -276,6 +277,27 @@ Object.assign(UI, {
     // B4: 効果一覧(閲覧専用・実データ=解放済みノードの獲得報酬)
     const fxBtn = body.querySelector("#nest-fx-btn");
     if (fxBtn) fxBtn.addEventListener("click", () => this.openNestEffects());
+  },
+  // v2-V3+(Ric裁定: スパークは「①解放の瞬間の一回性」のみ採用・②常設微飾は不採用)。
+  //   一回性=animationendで自壊(残らない) / reduced-motionでは出さない(解放状態の表示自体が変化を伝える) /
+  //   決定論(乱数なし・1解放=1つ) / CFG.nestSparkOn でOFF可 / 素材が無ければ出さない(退化=状態表示のみ)。
+  nestSparkFx(nodes) {
+    if (!this.nestPageOpen || !this.nestPageOpen()) return;
+    const body = document.getElementById("nestpage-body");
+    if (body) this.buildNest(body); // 解放後の状態を即反映(スパークは変化の瞬間の徴)
+    if (CFG.nestSparkOn === false) return;
+    if (typeof Motion !== "undefined" && Motion.reduced) return;
+    if (!this._nestAsset("spark-big-b")) return;
+    for (const n of (nodes || []).slice(0, 3)) { // 同時多発は3つまで(過剰にしない・通常プレイは1〜2解放/回)
+      const el = body && body.querySelector(`.wnode[data-node="${n.id}"]`);
+      if (!el) continue;
+      const img = document.createElement("img");
+      img.className = "wn-spark";
+      img.src = "image/nest/spark-big-b.png";
+      img.alt = "";
+      img.addEventListener("animationend", () => img.remove());
+      el.appendChild(img);
+    }
   },
   // B4: 巣の効果一覧(モーダル・閲覧専用)。解放済みノードと獲得済み報酬の一覧=実データのみ
   openNestEffects() {

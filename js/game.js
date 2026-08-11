@@ -366,6 +366,7 @@ const Game = {
       }
     }
     if (!silent && opened.length) {
+      if (UI.nestSparkFx) UI.nestSparkFx(opened); // v2(Ric裁定): 巣ページを開いている時だけ解放の瞬間の一回性スパーク
       if (UI.heroNestReveal) {
         UI.heroNestReveal(opened); // ヒーロー演出(§6: 中庸・複数は1回に合算)
       } else {
