@@ -1060,18 +1060,23 @@ function nestWebLaterals(nodes) {
   return out;
 }
 
-function buildNestWeb() {
+// P2-3: 条件needの式(旧ロスターとV2で共有=進行曲線の単一の真実)
+function nestCondNeed(c, r, jitter) {
+  if (c.type === "species") return Math.min(20, Math.round((c.base + r * 3) * jitter));
+  if (c.type === "morphs") return Math.round((c.base + r * 5) * jitter);
+  if (c.type === "dexRate") return Math.min(95, Math.round((c.base + r * 17) * jitter));
+  return Math.round(c.base * Math.pow(NEST_GROWTH[c.type], r) * jitter);
+}
+// P2-3(2026-08-11 Ric承認・案A): 旧80ノードのロスター。**移行の写像元・報酬合算の原資**として恒久保持
+// (buildNestWebLegacyへ改名。表示・進行はV2=buildNestWebが担う)。
+function buildNestWebLegacy() {
   const nodes = [{ id: "core", ring: -1, angle: 0, conds: [], reward: null, name: "巣の中心" }];
   for (let r = 0; r < NESTWEB_RINGS.length; r++) {
     const n = NESTWEB_RINGS[r];
     for (let i = 0; i < n; i++) {
       const c = NEST_CONDS[(i + r) % NEST_CONDS.length];
       const jitter = 0.8 + 0.4 * ((i % 3) / 2);
-      let need;
-      if (c.type === "species") need = Math.min(20, Math.round((c.base + r * 3) * jitter));
-      else if (c.type === "morphs") need = Math.round((c.base + r * 5) * jitter);
-      else if (c.type === "dexRate") need = Math.min(95, Math.round((c.base + r * 17) * jitter));
-      else need = Math.round(c.base * Math.pow(NEST_GROWTH[c.type], r) * jitter);
+      const need = nestCondNeed(c, r, jitter);
       const conds = [{ type: c.type, need }];
       // 深部(リング4=index3以降)は複合条件 (§3.2)
       if (r >= 3) {
@@ -1096,6 +1101,46 @@ function buildNestWeb() {
     }
   }
   return nodes;
+}
+
+// ================= P2-3(2026-08-11 Ric承認・案A): V2ロスター=20ノード(4:1統合) =================
+// 報酬=写像元4旧ノードの合算を**ビルド時に導出**(手書き転記なし=総量保存が構造的に成立)。
+// 条件=単一condへ簡素化(旧深部の複合condは廃止=解放は僅かに早まる方向・損失なし・文字最小化とも整合)。
+// 難度アンカー=グループ最奥の旧ring(進行ペースを旧曲線に係留・実測は migration テストのペース掃引で確認)。
+const NESTWEB_RINGS_V2 = [8, 12];
+const NEST_SHORT = { bred: "繁殖", fed: "給餌", hatched: "孵化", raidsWon: "撃退", species: "種数", morphs: "変異", dexRate: "図鑑" };
+function buildNestWeb() {
+  const legacy = buildNestWebLegacy().filter((n) => n.id !== "core");
+  const nodes = [{ id: "core", ring: -1, angle: 0, conds: [], reward: null, name: "巣の中心" }];
+  let j = 0;
+  for (let r = 0; r < NESTWEB_RINGS_V2.length; r++) {
+    const n = NESTWEB_RINGS_V2[r];
+    for (let i = 0; i < n; i++, j++) {
+      const group = legacy.slice(j * 4, j * 4 + 4);
+      const sums = {};
+      for (const g of group) sums[g.reward.ore] = (sums[g.reward.ore] || 0) + g.reward.n;
+      const ores = Object.entries(sums).map(([ore, nn]) => ({ ore, n: nn }))
+        .sort((a, b) => b.n - a.n || a.ore.localeCompare(b.ore)); // 先頭=主要鉱石(メダリオン色の基準)
+      const c = NEST_CONDS[(i + r) % NEST_CONDS.length];
+      const rEff = group[group.length - 1].ring;
+      const need = nestCondNeed(c, rEff, 0.8 + 0.4 * ((i % 3) / 2));
+      nodes.push({
+        id: `m${r}-${i}`, ring: r,
+        angle: (i / n) * Math.PI * 2 + r * 0.35,
+        conds: [{ type: c.type, need }],
+        reward: { ores },
+        name: `${NEST_SHORT[c.type]}${["Ⅰ", "Ⅱ"][r]}`, // 短名≤5文字(P2-3-4・語感はRic確認)
+        icon: c.icon,
+        legacyIds: group.map((g) => g.id),  // 4:1静的写像(移行の単一の真実)
+      });
+    }
+  }
+  return nodes;
+}
+// 報酬の単一アクセサ(V2={ores:[…]} / 旧={ore,n} の両形を吸収=消費者はこれだけを見る)
+function nestRewardList(node) {
+  if (!node || !node.reward) return [];
+  return node.reward.ores || [node.reward];
 }
 
 // ============================================================

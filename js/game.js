@@ -361,7 +361,7 @@ const Game = {
       if (node.id === "core" || web.nodes[node.id]) continue;
       if (this.nestProgress(node) >= 1) {
         web.nodes[node.id] = true;
-        if (node.reward) this.addOre(node.reward.ore, node.reward.n);
+        for (const o of nestRewardList(node)) this.addOre(o.ore, o.n); // P2-3: 報酬は配列(単一アクセサ)
         opened.push(node);
       }
     }
@@ -371,8 +371,8 @@ const Game = {
         UI.heroNestReveal(opened); // ヒーロー演出(§6: 中庸・複数は1回に合算)
       } else {
         for (const node of opened) {
-          const o = oreById(node.reward.ore);
-          UI.toast(`巣ノード解放!「${node.name}」 → ${Icon.svg(o.icon)}${o.name}+${node.reward.n}`);
+          const txt = nestRewardList(node).map((x) => { const o = oreById(x.ore); return `${Icon.svg(o.icon)}${o.name}+${x.n}`; }).join(" ");
+          UI.toast(`巣ノード解放!「${node.name}」 → ${txt}`);
         }
       }
     }
@@ -388,11 +388,13 @@ const Game = {
     const node = locked[Math.floor(Math.random() * locked.length)];
     web.nodes[node.id] = true;
     web.surprises = (web.surprises || 0) + 1;
-    if (node.reward) this.addOre(node.reward.ore, node.reward.n);
-    const o = oreById(node.reward.ore);
+    for (const o2 of nestRewardList(node)) this.addOre(o2.ore, o2.n); // P2-3: 配列
     this.flashT = 0.3;
     if (UI.heroNestReveal) UI.heroNestReveal([node], true); // サプライズ版(少し特別)
-    else UI.toast(`予想外のノードが解放された!!「${node.name}」 → ${Icon.svg(o.icon)}${o.name}+${node.reward.n}`);
+    else {
+      const txt = nestRewardList(node).map((x) => { const o = oreById(x.ore); return `${Icon.svg(o.icon)}${o.name}+${x.n}`; }).join(" ");
+      UI.toast(`予想外のノードが解放された!!「${node.name}」 → ${txt}`);
+    }
     return node;
   },
 
@@ -3011,8 +3013,34 @@ const Game = {
     if (this._sanitized > 0) console.warn(`[sanitize] 通貨系の破損値 ${this._sanitized} 件を0へ修復(非破壊)`);
     return w;
   },
+  // P2-3(2026-08-11 Ric承認・案A): 巣ロスター80→20の4:1統合移行。
+  //   一度きり=nestWeb.rosterV2(単調・冪等)。器=nestWebはtoWorld/applyWorldを丸ごと往復(前例=recipeRefundV1)。
+  //   解放写像=写像元4旧の1つ以上解放→新解放(鳩の巣で総解放率は非減少)。
+  //   未受領分=グループ内の未解放旧ノード報酬を一括付与(解放済み分は付与済み=二重付与なし)→Σ付与≡Σ旧80(厳密保存)。
+  //   旧nodesはlegacyへ監査退避。SAVE_VERSION bump不要(構造同形)。
+  migrateNestRosterV2(w) {
+    if (!w || !w.nestWeb || w.nestWeb.rosterV2) return;
+    const legacyMap = w.nestWeb.nodes || {};
+    const legacyNodes = buildNestWebLegacy();
+    const grant = {};
+    const nodes = {};
+    for (const nn of buildNestWeb()) {
+      if (nn.id === "core") continue;
+      if (!nn.legacyIds.some((id) => legacyMap[id])) continue;
+      nodes[nn.id] = true;
+      for (const oldNode of legacyNodes) {
+        if (oldNode.id === "core" || !nn.legacyIds.includes(oldNode.id) || legacyMap[oldNode.id]) continue;
+        grant[oldNode.reward.ore] = (grant[oldNode.reward.ore] || 0) + oldNode.reward.n;
+      }
+    }
+    w.rareWallet = w.rareWallet || {};
+    for (const k of Object.keys(grant)) w.rareWallet[k] = (w.rareWallet[k] || 0) + grant[k];
+    w.nestWeb = { nodes, surprises: w.nestWeb.surprises || 0, legacy: legacyMap, rosterV2: 1 };
+    if (Object.keys(grant).length) w._nestRosterGrant = grant; // 通知用(保存されない・前例=_refundV12)
+  },
   applyWorld(w) {
     this.sanitizeWallet(w); // セーブ・サニタイズ(読込境界で一度・冪等)
+    this.migrateNestRosterV2(w); // P2-3: 巣ロスター統合(一度きり・冪等)
     if (w.planets && !w.stages) w.stages = w.planets; // V4改名の互換
     if (w.stages && !w.planets) w.planets = w.stages;
     for (const st of (w.stages || [])) { if (st.nest) delete st.nest.pins; } // ①ピン機能撤廃: 旧セーブの残骸を掃除(非破壊・inert field削除)
@@ -3315,6 +3343,11 @@ const Game = {
           for (const d of (p15.detail || [])) { const st = stageById(d.stageId) || {}; console.log(`${st.pname || ""} ${st.name || ("stage" + d.stageId)}: 除去 個体${d.removedLiz}・卵${d.removedEgg}`); }
         } catch (e) { /* noop */ }
         setTimeout(() => UI.toast(`${Icon.svg("planet")} 惑星の完全独立: 自動移行で混入した他惑星種 ${p15.lizards}匹${p15.eggs > 0 ? "・卵" + p15.eggs : ""}を掃除${p15.reseeded > 0 ? `・空いた惑星に固有種の純血ペアを${p15.reseeded}匹配置` : ""}(自動移行は根治済み・設定からロールバック可)`, true), 1000);
+      }
+      if (world._nestRosterGrant) {
+        const g = world._nestRosterGrant;
+        const txt = Object.keys(g).map((k) => { const o = oreById(k); return `${Icon.svg(o.icon)}${o.name}+${g[k]}`; }).join(" ");
+        setTimeout(() => UI.toast(`巣のネットワークが編み直されました(80→20の統合)。未受領の報酬を受け取った: ${txt}`), 900);
       }
       if (world._refundV12 && world._refundV12.gold > 0) {
         const r12 = world._refundV12;

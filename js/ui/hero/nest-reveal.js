@@ -8,10 +8,10 @@ Object.assign(UI, {
   heroNestReveal(nodes, surprise) {
     if (!nodes || !nodes.length) return;
     const first = nodes[0];
-    const o = oreById(first.reward.ore);
+    const o = oreById(nestRewardList(first)[0].ore); // P2-3: 主要鉱石
     // 報酬の合算(複数ノード同時解放をまとめる)
     const sum = {};
-    for (const n of nodes) sum[n.reward.ore] = (sum[n.reward.ore] || 0) + n.reward.n;
+    for (const n of nodes) for (const x of nestRewardList(n)) sum[x.ore] = (sum[x.ore] || 0) + x.n; // P2-3: 配列
     const rewardText = Object.entries(sum)
       .map(([ore, n]) => { const d = oreById(ore); return `${Icon.svg(d.icon)}${d.name}+${n}`; })
       .join(" ");

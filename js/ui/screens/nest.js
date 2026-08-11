@@ -206,7 +206,7 @@ Object.assign(UI, {
       // V6-P2-2 B3: メダリオン意匠(参照準拠)。未解放=錠前 / 解放=報酬鉱石のグリフ(ORES.colorで彩色=データ駆動)。
       //   ラベルピルは on/near のみ(実UIは81ノード=モックの約14より密なため、全数表示は判読不能。数の差はRic裁定で再現対象外)。
       //   条件などの副記はタップのツールチップが引き続き担う。
-      const ore = n.id === "core" ? null : oreById(n.reward.ore);
+      const ore = n.id === "core" ? null : oreById(nestRewardList(n)[0].ore); // P2-3: 主要鉱石=配列先頭(メダリオン色/グリフの基準)
       const glyph = n.id === "core" ? Icon.svg("nestweb") : open ? `<b style="color:${ore.color}">${Icon.svg(ore.icon)}</b>` : Icon.svg("lock");
       const pill = n.id === "core" ? "" : open ? `<i class="wn-pill">${n.name}</i>` : near ? `<i class="wn-pill">${n.name}<em>${Math.floor(p * 100)}%</em></i>` : "";
       const ring = n.id === "core" ? "" : ` data-ring="${open ? ore.ring : "lock"}"`; // v2-V2: 素材リング(未解放=錠前素材)
@@ -221,7 +221,7 @@ Object.assign(UI, {
         const n = nodes.find((x) => x.id === el.dataset.node);
         if (!n || n.id === "core") { tip.classList.add("hidden"); return; }
         const open = web.nodes[n.id];
-        const o = oreById(n.reward.ore);
+        const rw = nestRewardList(n).map((x) => { const o = oreById(x.ore); return Icon.svg(o.icon) + o.name + '×' + x.n; }).join(' ');
         const condTxt = n.conds.map((c) => {
           const def = NEST_CONDS.find((d) => d.type === c.type);
           const cur = Math.floor(Game.nestMetric(c.type));
@@ -229,7 +229,7 @@ Object.assign(UI, {
         }).join(" + ");
         tip.classList.remove("hidden");
         tip.innerHTML = `<b>${n.name}</b> ${open ? Icon.svg("check") + "解放済み" : ""}<br>
-          条件: ${condTxt}<br>報酬: ${Icon.svg(o.icon)}${o.name}×${n.reward.n}
+          条件: ${condTxt}<br>報酬: ${rw}
           ${open ? "" : `<br><span style="color:var(--sub)">いつもの繁殖を続ければ自然に開く</span>`}`;
       });
     }
@@ -306,8 +306,9 @@ Object.assign(UI, {
     this.openModal(`${Icon.svg("spark")} 巣の効果一覧`, (body) => {
       body.innerHTML = opened.length
         ? `<div class="nest-fx-list">${opened.map((n) => {
-            const o = oreById(n.reward.ore);
-            return `<div class="np-row np-ore"><span><i class="np-medal" style="color:${o.color}">${Icon.svg(o.icon)}</i>${n.name}</span><b>${o.name}×${n.reward.n}</b></div>`;
+            const first = oreById(nestRewardList(n)[0].ore);
+            const rw = nestRewardList(n).map((x) => { const o = oreById(x.ore); return o.name + '×' + x.n; }).join(' / ');
+            return `<div class="np-row np-ore"><span><i class="np-medal" style="color:${first.color}">${Icon.svg(first.icon)}</i>${n.name}</span><b>${rw}</b></div>`;
           }).join("")}</div>
           <p class="nest-fx-note">解放時に受け取り済み。巣は増えるほど豊かになる。</p>`
         : `<p class="nest-fx-note">まだ解放された巣がない。いつもの繁殖を続ければ自然に開く。</p>`;
