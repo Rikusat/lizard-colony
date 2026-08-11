@@ -512,6 +512,92 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
         if (location.hash === "#travel") setTimeout(tGate, 400);
       }
 
+      // dev支援(P4-2・2026-08-11): Lore ホログラムムービーの検分ビューア(?tune=1#lore・読み取り専用)。
+      //   #opening と同思想(再生/最初から/速度/章頭ジャンプ/スクラブ=流し見では判定できない)。
+      //   #opening は C2 の判断の記録として凍結し触れない=本ブロックは ARCHIVE 制作中の検分専用。
+      //   ボタン意匠(BOFF/BON)は同スコープで共有(同じ知識を2箇所に持たない)。
+      {
+        let lPanel = null, lRaf = 0;
+        const stopL = () => { if (lRaf) cancelAnimationFrame(lRaf); lRaf = 0; if (lPanel) lPanel.remove(); lPanel = null; };
+        const buildL = () => {
+          stopL();
+          if (typeof Holo === "undefined" || typeof Holo.drawLore !== "function") { console.warn("[lore] Holo.drawLore 未読込"); return; }
+          const T = Holo.loreDur();
+          const G = (typeof CFG !== "undefined" && CFG.holoGridSec) || 0.4;
+          const SPD = (typeof CFG !== "undefined" && CFG.holoViewSpeeds) || [1, 0.5, 0.25];
+          const LBL = { net: "1 NETWORK(星系図)", purity: "2 PURITY(純血)", bugger: "3 BUGGER(由来)", archive: "結び ARCHIVE", end: "終端" };
+          const S = { t: 0, playing: true, speed: SPD[0], loop: true };
+
+          const panel = document.createElement("div"); panel.id = "lore-view";
+          panel.style.cssText = "position:fixed;inset:0;z-index:9999;background:#05060a;color:#e8dccb;font:13px/1.6 system-ui;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px;overflow:auto;";
+          const ttl = document.createElement("div"); ttl.style.cssText = "font-size:15px;font-weight:600;";
+          ttl.textContent = "P4-2 Lore ARCHIVE 検分 (?tune=1#lore) — NETWORK→PURITY→BUGGER→結び / " + T.toFixed(1) + "秒(0.4秒グリッド)。#で閉じる";
+          panel.appendChild(ttl);
+
+          const mk = (parent, txt, fn, css) => { const b = document.createElement("button"); b.style.cssText = css || BOFF; b.textContent = txt; b.onclick = fn; parent.appendChild(b); return b; };
+          const ctl = document.createElement("div"); ctl.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;"; panel.appendChild(ctl);
+          const bPlay = mk(ctl, "⏸ 一時停止", () => { S.playing = !S.playing; sync(); });
+          mk(ctl, "↻ 最初から", () => { S.t = 0; S.playing = true; sync(); });
+          const bSpd = SPD.map((v) => mk(ctl, "×" + v, () => { S.speed = v; sync(); }));
+          const bLoop = mk(ctl, "ループ ON", () => { S.loop = !S.loop; sync(); });
+
+          const jump = document.createElement("div");
+          jump.style.cssText = "display:flex;flex-wrap:wrap;gap:5px;align-items:center;justify-content:center;font-size:11px;";
+          panel.appendChild(jump);
+          const jl = document.createElement("span"); jl.style.cssText = "opacity:.55;"; jl.textContent = "章頭へ:"; jump.appendChild(jl);
+          Holo.loreNodes().forEach((nd) => mk(jump, (nd.grid * G).toFixed(1) + " " + (LBL[nd.id] || nd.id), () => { S.t = nd.grid * G; S.playing = false; sync(); }, BOFF + "font-size:11px;padding:3px 8px;"));
+
+          const sw = document.createElement("div");
+          sw.style.cssText = "display:flex;gap:10px;align-items:center;width:min(1000px,92vw);";
+          const scrub = document.createElement("input");
+          scrub.type = "range"; scrub.min = "0"; scrub.max = String(T); scrub.step = "0.01"; scrub.value = "0";
+          scrub.style.cssText = "flex:1;";
+          scrub.oninput = () => { S.t = parseFloat(scrub.value); S.playing = false; sync(); };
+          const readout = document.createElement("div");
+          readout.style.cssText = "font:12px ui-monospace,Consolas,monospace;opacity:.85;min-width:250px;text-align:right;";
+          sw.appendChild(scrub); sw.appendChild(readout); panel.appendChild(sw);
+
+          const cv = document.createElement("canvas"); cv.width = 1000; cv.height = 562;
+          cv.style.cssText = "width:min(1000px,92vw);height:auto;background:#04060a;border-radius:3px;";
+          panel.appendChild(cv);
+          const bar = document.createElement("div"); bar.style.cssText = "font-size:11px;opacity:.55;text-align:center;";
+          bar.textContent = "0.4秒グリッド上の章割り: " + Holo.loreNodes().map((nd) => (nd.grid * G).toFixed(1) + " " + (LBL[nd.id] || nd.id)).join(" / ")
+            + " — 章2以降は章1のRic検分後に制作(ノード表は確定済み)";
+          panel.appendChild(bar);
+          document.body.appendChild(panel); lPanel = panel;
+
+          let lastRead = "";
+          const sync = () => {
+            bPlay.textContent = S.playing ? "⏸ 一時停止" : "▶ 再生";
+            bPlay.style.cssText = S.playing ? BOFF : BON;
+            bSpd.forEach((b, i) => { b.style.cssText = (SPD[i] === S.speed) ? BON : BOFF; });
+            bLoop.textContent = "ループ " + (S.loop ? "ON" : "OFF");
+            bLoop.style.cssText = S.loop ? BON : BOFF;
+            scrub.value = String(S.t);
+            const txt = "t=" + S.t.toFixed(2) + "s / " + T.toFixed(1) + "s  グリッド" + Math.floor(S.t / G + 1e-6) + "  速度×" + S.speed;
+            if (txt !== lastRead) { readout.textContent = txt; lastRead = txt; }
+          };
+          // reduced-motion: 動かさず「最終画」を静止表示。位相の定義は Holo 側の1箇所だけが持つ
+          if (typeof Motion !== "undefined" && Motion.reduced) { S.playing = false; S.t = Holo.loreStaticT(); }
+          let last = performance.now();
+          const loop = () => {
+            if (!lPanel) return;
+            const now = performance.now(), dt = Math.min(0.25, (now - last) / 1000); last = now;
+            if (S.playing) {
+              S.t += dt * S.speed;
+              if (S.t >= T) { if (S.loop) S.t %= T; else { S.t = T - 0.001; S.playing = false; } }
+            }
+            Holo.drawLore(cv.getContext("2d"), cv.width, cv.height, S.t);
+            sync();
+            lRaf = requestAnimationFrame(loop);
+          };
+          sync(); loop();
+        };
+        const lGate = () => { if (location.hash === "#lore") { buildL(); console.log("[lore] Lore ARCHIVE 検分ビューア表示(再生/速度/章頭ジャンプ/スクラブ)"); } else stopL(); };
+        window.addEventListener("hashchange", lGate);
+        if (location.hash === "#lore") setTimeout(lGate, 400);
+      }
+
       // dev支援(V6-P1-2・2026-08-10): 合成撤廃と特性拡張の**承認ゲート用**検分(?tune=1#p12・読み取り専用)。
       //   ★起動は他の検分ページと同一経路(hashchange + 初回 setTimeout 400ms)。個別の特例は設けない。
       //     ※一度「初回ロードで出ない」と報告したが誤診で、計測が 400ms ゲート+起動完了より早かっただけ

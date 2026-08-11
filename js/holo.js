@@ -790,6 +790,106 @@ const Holo = {
   },
 
   // =============================================================
+  // P4-2 Lore ホログラムムービー「ARCHIVE — 世界の記録」(2026-08-11 Ric承認)
+  //   役割分担: オープニング=物語の始まり(時間軸) / Lore=世界の設定(空間と理)。C2の場面を再演しない
+  //   (7 航路=一筆の線に対し、本章1は**ハブ+環の網**=構図から変える)。
+  //   尺の唯一の真実=CFG.holoLoreNodes(グリッド表)。何度でも再生可(一度きりフラグなし)。
+  //   表示は全て実データ由来(PLANET_NAMES/LORE実文/state.lore)。伏せは REDACTED/UNRESOLVED のみ・捏造しない。
+  //   章の深い1行は対応Lore解放時のみ実文(holoLoreChapterGate)=未解放はREDACTEDへ落とす(解読が進むと行が開く)。
+  // =============================================================
+  loreNodes() {
+    return (typeof CFG !== "undefined" && CFG.holoLoreNodes) || [{ id: "net", grid: 0 }, { id: "end", grid: 36 }];
+  },
+  loreAt(id) { const n = this.loreNodes().find((x) => x.id === id); return n ? n.grid * this.grid() : 0; },
+  loreDur() {
+    const max = (typeof CFG !== "undefined" && CFG.holoLoreMaxSec) || 15;
+    return Math.min(max, this.loreAt("end"));
+  },
+  loreAfter(id) {
+    const ns = this.loreNodes(), i = ns.findIndex((x) => x.id === id);
+    return (i >= 0 && ns[i + 1]) ? ns[i + 1].grid * this.grid() : this.loreDur();
+  },
+  loreStaticT() {                    // reduced-motion の「最終画」=結び(解読数+UNRESOLVED)が読める位相
+    const a = this.loreAt("archive"), b = this.loreAfter("archive");
+    return b > a ? a + (b - a) * 0.7 : this.loreDur() * 0.9;
+  },
+  loreGateOpen(ch) {                 // 章の深い1行の解放判定。ゲート未定義の章は常に開く
+    const g = (typeof CFG !== "undefined" && CFG.holoLoreChapterGate) || {};
+    const id = g[ch];
+    return !id || !!(typeof Game !== "undefined" && Game.state && Game.state.lore && Game.state.lore[id]);
+  },
+  loreTag(ctx, W, H, S, a) { this.mono(ctx, "LIZARD COLONY / ARCHIVE", W * 0.06, H * 0.085, 10 * S, this.C().amber, a); },
+  loreText(id) {                     // Lore実文の第1文(単一の真実=LORE定義から導出。捏造しない)
+    const L = (typeof LORE !== "undefined") && LORE.find((x) => x.id === id);
+    return L ? L.text.split("。")[0] : null;
+  },
+
+  drawLore(ctx, W, H, t) {
+    const C = this.C(), G = this.grid();
+    const A = (id) => this.loreAt(id);
+    const seg = (a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+    const S = Math.max(0.75, Math.min(2, H / 675));
+    ctx.fillStyle = C.void; ctx.fillRect(0, 0, W, H);
+    const inNode = (id) => t >= A(id) && t < this.loreAfter(id);
+
+    // ---- 1 NETWORK: 星系図。中心=HQ結節・十球が環に並び、回線が1本ずつ結ばれる ----
+    //   密度の規律(Ric注意 2026-08-11): 読ませる行は章末2グリッド以上残して全灯させる=速すぎて残らないを避ける。
+    if (inNode("net")) {
+      const p = seg(A("net"), this.loreAfter("net"));
+      const io = Math.min(1, p * 6) * (1 - Math.max(0, (p - 0.95) / 0.05));
+      const cx = W * 0.5, cy = H * 0.46, R = Math.min(W, H) * 0.315;
+      const ids = (typeof STAGES !== "undefined") ? STAGES.map((s) => s.id) : [];
+      const n = Math.max(1, ids.length);
+      const pos = (i) => { const a = -Math.PI / 2 + i * 6.28318 / n; return { x: cx + Math.cos(a) * R, y: cy + Math.sin(a) * R * 0.74 }; };
+      // 中心=HQ結節(惑星ではない=回線の心臓。tickRingとラベルのみ・球は置かない)
+      const hubA = Math.min(1, p * 4);
+      this.tickRing(ctx, cx, cy, R * 0.15, 24, 0, 6.28318, C.amber, 0.55 * hubA * io, 1, 4);
+      this.mono(ctx, "HQ NETWORK", cx, cy + 3.5 * S, 10 * S, C.amber, 0.85 * hubA * io, "center");
+      // 回線(放射)と十球が1つずつ灯る: grid1〜6に収める=章末は読む時間(密度の規律)
+      const lit = seg(A("net") + G * 1, A("net") + G * 6);
+      const pr = Math.min(W, H) * 0.042;
+      for (let i = 0; i < n; i++) {
+        const a = Math.max(0, Math.min(1, lit * (n + 2) - i));
+        if (a <= 0) break;
+        const q = pos(i), inf = this.travelInfo(ids[i]), tint = (inf && inf.tint) || C.amber;
+        ctx.strokeStyle = C.amber; ctx.globalAlpha = 0.26 * a * io; ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx + (q.x - cx) * 0.17, cy + (q.y - cy) * 0.17);
+        ctx.lineTo(cx + (q.x - cx) * (0.17 + 0.66 * a), cy + (q.y - cy) * (0.17 + 0.66 * a));
+        ctx.stroke(); ctx.globalAlpha = 1;
+        this.glow(ctx, tint, 8);
+        this.sphere(ctx, q.x, q.y, pr, 0.35, t * 0.8 + i, tint, 0.80 * a * io, 10);
+        this.noGlow(ctx);
+        this.jp(ctx, (inf && inf.short) || "REDACTED", q.x, q.y + pr * 1.95, 11 * S, C.pale, 0.85 * a * io, "center");
+      }
+      // 環(隣接回線): 全球が灯ってから一周つながる=網の完成
+      const ringK = seg(A("net") + G * 6, A("net") + G * 8);
+      if (ringK > 0) {
+        ctx.strokeStyle = C.amber; ctx.globalAlpha = 0.22 * io; ctx.lineWidth = 1;
+        ctx.beginPath();
+        const steps = Math.floor(n * ringK + 1e-6);
+        for (let i = 0; i <= steps && i <= n; i++) { const q = pos(i % n); i === 0 ? ctx.moveTo(q.x, q.y) : ctx.lineTo(q.x, q.y); }
+        ctx.stroke(); ctx.globalAlpha = 1;
+      }
+      // 読み(章末grid6〜: 実文が2グリッド以上読める)。LORE.hq第1文=単一の真実から導出・未解放はREDACTED
+      const readK = seg(A("net") + G * 6, A("net") + G * 8);
+      const line = this.loreGateOpen("net") ? this.loreText("hq") : null;
+      if (line) this.jp(ctx, line, W * 0.5, H * 0.875, 13 * S, C.pale, 0.9 * readK * io, "center");
+      else this.mono(ctx, "RECORD / REDACTED", W * 0.5, H * 0.875, 12 * S, C.crim, 0.7 * readK * io, "center");
+      // 伏線の再提示(左上・沈めた深紅): 故郷は網のどこにもいない=名は伏せたまま
+      this.mono(ctx, "HOMEWORLD / REDACTED", W * 0.06, H * 0.16, 10 * S, C.crim, 0.42 * io);
+      this.mono(ctx, "ARCHIVE 01 / NETWORK", W * 0.5, H * 0.94, 11 * S, C.amber, 0.75 * io, "center");
+      this.loreTag(ctx, W, H, S, 0.45 * io);
+    }
+
+    // (章2 PURITY・章3 BUGGER・結び ARCHIVE は次スプリント=章1のRic検分後。ノード表は確定済み)
+
+    this.glitch(ctx, W, H, t, (typeof CFG !== "undefined" && CFG.holoGlitchRate != null) ? CFG.holoGlitchRate : 0.10);
+    this.scan(ctx, W, H, t, 1);
+    this.letterbox(ctx, W, H, 1);
+  },
+
+  // =============================================================
   // 惑星移動トランジション(C2改訂 フェーズ1) — 共通様式=beam を使う差込先の第1号
   //   頻度への配慮: 尺は CFG.holoTravelMaxSec 以下 / スキップ即時 / 初訪と既訪で尺と情報量を変える。
   //   表示は全て実データ由来(travelInfo)。惑星ごとに色調(tint)が変わる。

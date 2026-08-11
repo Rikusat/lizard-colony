@@ -195,6 +195,20 @@ const CFG = {
   //   reduced-motion: 動かさず「最終画」(題+SYSTEM ONLINE)だけを静止表示する秒数。
   //   0だと1フレームで消えて何も伝わらないため、読める長さだけ保持する(スキップは即時のまま)。
   holoOpenReducedHoldSec: 3.0,
+  // ---- P4-2(2026-08-11 Ric承認): Lore ホログラムムービー「ARCHIVE — 世界の記録」 ----
+  //   役割分担: オープニング=物語の始まり(時間軸) / Lore=世界の設定(空間と理)。C2の場面は再演しない。
+  //   伏線: 明かす1(バガーの由来=既存Lore実文の映像化)・伏せる3(故郷/3種目/1個体=再提示のみ・正体は渡さない)。
+  holoLoreOn: true,             // false=導線ボタン非表示(完全可逆)
+  holoLoreNodes: [              // ★尺の唯一の真実(グリッド番号×holoGridSec)。C2オープニングと同形式
+    { id: "net", grid: 0 },       // 1 NETWORK: 十球が実名で並びHQ回線が結ばれる。HOMEWORLD/REDACTED再提示
+    { id: "purity", grid: 11 },   // 2 PURITY: 固有2種が根付く図。ENDEMIC 3RD/REDACTED再提示
+    { id: "bugger", grid: 21 },   // 3 BUGGER: 唯一「明かす」章=虫養殖実験の暴走(既存Lore文の映像化)
+    { id: "archive", grid: 31 },  // 結び: 解読済みn/11+SPECIMEN/UNRESOLVED(manifest末尾行と同一の行)
+    { id: "end", grid: 36 },      // 終端=14.4秒(≦holoLoreMaxSec)
+  ],
+  holoLoreMaxSec: 15,           // ★尺の上限(恒久テストのガード)。超える表を書いてもクランプ
+  holoLoreReducedHoldSec: 3.0,  // reduced-motion: 最終画の静止表示秒(スキップは即時のまま)
+  holoLoreChapterGate: { net: "hq", purity: "native", bugger: "cricket" }, // 章の深い1行⇔Lore id。未解放=REDACTEDへ落とす(嘘をつかない・解読が進むと行が開く=リプレイ価値)
   // ---- C2改訂 フェーズ1: 惑星移動トランジション(頻発する導線=摩擦にしない) ----
   //   OFF(false)にすると従来の宇宙船トランジション(planetTravelSec)へ完全復帰する=可逆。
   holoTravelOn: true,
