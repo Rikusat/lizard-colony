@@ -1031,6 +1031,17 @@ function nestWebLinks(nodes) {
   }
   return links;
 }
+// B2: 横糸(同リングの隣接ノードを結ぶ=参照の「織られた網」)。ring0は鉢の内側のため対象外。
+function nestWebLaterals(nodes) {
+  const out = [];
+  const byRing = {};
+  for (const n of nodes) { if (n.id === "core" || n.ring < 1) continue; (byRing[n.ring] = byRing[n.ring] || []).push(n); }
+  for (const r of Object.keys(byRing)) {
+    const ring = byRing[r].slice().sort((a, b) => a.angle - b.angle);
+    for (let i = 0; i < ring.length; i++) out.push({ from: ring[i], to: ring[(i + 1) % ring.length] });
+  }
+  return out;
+}
 
 function buildNestWeb() {
   const nodes = [{ id: "core", ring: -1, angle: 0, conds: [], reward: null, name: "巣の中心" }];

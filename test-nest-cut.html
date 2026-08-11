@@ -88,16 +88,9 @@ const stat = (cx, x, y, w, h) => {
     const { SIZE, C } = NESTWEB_GEO;
     const k = (Math.min(W, H) / SIZE) * 0.98;
     const tf = ([x, y]) => [ccx + (x - C) * k, ccy + (y - C) * k];
-    const segs = nestWebLinks(nodes).map((l, i) => {
-      let [x1, y1] = tf(nestWebPos(l.from));
-      const [x2, y2] = tf(nestWebPos(l.to));
-      if (l.from.id === "core") {
-        const d = Math.hypot(x2 - x1, y2 - y1) || 1;
-        x1 += (x2 - x1) / d * R * 1.12; y1 += (y2 - y1) / d * R * 0.78;
-      }
-      return { x1, y1, x2, y2, state: "lit", i };
-    });
-    Render.nestThreads(repCx, segs);
+    const list = nestWebLinks(nodes).map((l) => ({ from: l.from, to: l.to, state: "lit" }))
+      .concat(nestWebLaterals(nodes).map((l) => ({ from: l.from, to: l.to, state: "half" })));
+    Render.nestThreads(repCx, Render.nestThreadSegs(list, tf, ccx, ccy, R));
   }
   // 表示(縮小)
   document.getElementById("ref").getContext("2d").drawImage(refCv, 0, 0, 730, 442);
@@ -141,13 +134,26 @@ const stat = (cx, x, y, w, h) => {
     const br = R.bright > 0 ? P.bright / R.bright : 0;
     row("B1 コア 高輝度画素率(参照比)", f1(R.bright) + "%", f1(P.bright) + "% (×" + f1(br) + ")", `×${T.core.brightMin}〜${T.core.brightMax}`, br >= T.core.brightMin && br <= T.core.brightMax);
   }
-  { // B2 糸+輝点
-    T.threads.samples.forEach((sm, si) => {
-      const [x, y, w, h] = sm.rect;
-      const Rr = stat(refCx, x, y, w, h), P = stat(repCx, x, y, w, h);
-      row(`B2 糸帯${si + 1} 平均輝度`, f1(Rr.avgL), f1(P.avgL), `±${T.threads.sampleAvgLTol}L`, Math.abs(P.avgL - Rr.avgL) <= T.threads.sampleAvgLTol);
-      row(`B2 糸帯${si + 1} amber率%`, f1(Rr.amber), f1(P.amber), `${T.threads.sampleAmberMin}〜${T.threads.sampleAmberMax}%`, P.amber >= T.threads.sampleAmberMin && P.amber <= T.threads.sampleAmberMax);
-    });
+  { // B2 糸+輝点(環状帯=角度非依存・トポロジ差に頑健。閾値ファイルの再設計注記を参照)
+    const B = T.threads.band;
+    const annStat = (cx2) => {
+      const d = cx2.getImageData(0, 0, W, H).data;
+      let s = 0, am = 0, warm = 0, n = 0;
+      for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) {
+        const dd = Math.hypot(x - B.cx, y - B.cy);
+        if (dd < B.r0 || dd > B.r1) continue;
+        const i = (y * W + x) * 4, r = d[i], g = d[i + 1], b = d[i + 2];
+        const L = .2126 * r + .7152 * g + .0722 * b;
+        s += L; n++;
+        if (isAmber(r, g, b, L)) am++;
+        if (r > g && g > b && L > 60) warm++;
+      }
+      return { avgL: s / n, amber: am / n * 100, warm: warm / n * 100 };
+    };
+    const Rr = annStat(refCx), P = annStat(repCx);
+    row("B2 糸帯(環状110-200) 平均輝度", f1(Rr.avgL), f1(P.avgL), `±${T.threads.bandAvgLTol}L`, Math.abs(P.avgL - Rr.avgL) <= T.threads.bandAvgLTol);
+    row("B2 糸帯(環状) amber率%", f1(Rr.amber), f1(P.amber), `${T.threads.bandAmberMin}〜${T.threads.bandAmberMax}%`, P.amber >= T.threads.bandAmberMin && P.amber <= T.threads.bandAmberMax);
+    row("B2 糸帯(環状) 暖色率%", f1(Rr.warm), f1(P.warm), `< ${T.threads.bandWarmMax}%`, P.warm < T.threads.bandWarmMax);
     const Rc = stat(refCx, 0, 0, W, H), Pc = stat(repCx, 0, 0, W, H);
     row("B2 全域 琥珀占有%(糸の予算)", f1(Rc.amber) + "(ノード込)", f1(Pc.amber) + "(糸のみ)", `${T.threads.contentAmberMin}〜${T.threads.contentAmberMax}%`,
       Pc.amber >= T.threads.contentAmberMin && Pc.amber <= T.threads.contentAmberMax);

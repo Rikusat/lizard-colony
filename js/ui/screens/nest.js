@@ -213,18 +213,13 @@ Object.assign(UI, {
       Render.nestBg(nctx, sw, sh);
       Render.nestCore(nctx, ccx, ccy, R);
       const k = (Math.min(sw, sh) / SIZE) * 0.98;
-      // B2: 糸(コア起点は鉢の縁から=卵に糸を刺さない)
+      // B2: 糸(放射=結線規則+状態 / 横糸=網の織り・両端が解放済みのときだけ淡く灯る)
       const tf = ([x, y]) => [ccx + (x - C) * k, ccy + (y - C) * k];
-      const segs = links.map((l) => {
-        let [x1, y1] = tf(posOf(l.from));
-        const [x2, y2] = tf(posOf(l.to));
-        if (l.from.id === "core") {
-          const d = Math.hypot(x2 - x1, y2 - y1) || 1;
-          x1 += (x2 - x1) / d * R * 1.12; y1 += (y2 - y1) / d * R * 0.78;
-        }
-        return { x1, y1, x2, y2, state: l.state, i: l.i };
-      });
-      Render.nestThreads(nctx, segs);
+      const laterals = nestWebLaterals(nodes).map((l) => ({
+        from: l.from, to: l.to,
+        state: web.nodes[l.from.id] && web.nodes[l.to.id] ? "half" : "off",
+      }));
+      Render.nestThreads(nctx, Render.nestThreadSegs(links.concat(laterals), tf, ccx, ccy, R));
       wrap.style.transform = `translate(${ccx - C * k}px, ${ccy - C * k}px) scale(${k})`;
     };
     this._nestLayout = layoutStage;

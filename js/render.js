@@ -4504,8 +4504,8 @@ const Render = {
     // 光暈(暖・淡く=高輝度はガード値170未満に収める。参照の高輝度は卵の照りだけ)
     if (glow > 0) {
       const gg = ctx.createRadialGradient(cx, cy, R * 0.2, cx, cy, R * 1.9);
-      gg.addColorStop(0, "rgba(255,190,90," + (0.08 * glow).toFixed(3) + ")");
-      gg.addColorStop(0.55, "rgba(210,140,50," + (0.03 * glow).toFixed(3) + ")");
+      gg.addColorStop(0, "rgba(255,190,90," + (0.07 * glow).toFixed(3) + ")");
+      gg.addColorStop(0.55, "rgba(210,140,50," + (0.026 * glow).toFixed(3) + ")");
       gg.addColorStop(1, "rgba(210,140,50,0)");
       ctx.fillStyle = gg; ctx.fillRect(cx - R * 2, cy - R * 2, R * 4, R * 4);
     }
@@ -4537,7 +4537,7 @@ const Render = {
     };
     weave(-1); // 奥リム(卵の後ろ)
     // 卵(鉢の中心・照りは中面=参照の高輝度重心(834,450)は鉢中心のやや下)
-    const ex = cx, ey = cy + R * 0.02, erx = R * 0.55, ery = R * 0.60;
+    const ex = cx, ey = cy + R * 0.02, erx = R * 0.50, ery = R * 0.53;
     const eg = ctx.createRadialGradient(ex, ey + ery * 0.30, erx * 0.10, ex, ey + ery * 0.1, erx * 1.5);
     eg.addColorStop(0, P.egg0); eg.addColorStop(0.30, P.egg1); eg.addColorStop(1, P.egg2);
     ctx.globalAlpha = 1; ctx.fillStyle = eg;
@@ -4572,6 +4572,31 @@ const Render = {
   //   特性側とページ側で「同じ世界の同じもの」として読めること(Ric指示 2026-08-11)。完全静的=決定論。
   //   琥珀の占有はゲート管理(参照の琥珀予算 2.55% を糸だけで超えない=閾値ファイル参照)。
   //   segs = [{x1,y1,x2,y2,state:'lit'|'half'|'off',i}](座標は呼び出し側がキャンバス系へ変換済み)。
+  // 結線→描画セグメント(単一の真実: 実ページと検分ゲートが共用)。鉢の内側に端点を置かない
+  // (ring0=1100空間半径95は鉢の内側にあるため、端点を相手方向へ鉢縁まで押し出す=卵に糸を刺さない)。
+  nestThreadSegs(list, tf, ccx, ccy, R) {
+    const inBowl = (x, y) => Math.hypot((x - ccx) / (R * 1.12), (y - ccy) / (R * 0.78)) < 1.02;
+    const push = (x, y, tx, ty) => {
+      if (!inBowl(x, y)) return [x, y];
+      const vx = tx - x, vy = ty - y, vl = Math.hypot(vx, vy) || 1;
+      let px = x, py = y;
+      for (let s = 0; s < 24; s++) {
+        px += vx / vl * R * 0.08; py += vy / vl * R * 0.08;
+        if (!inBowl(px, py)) break;
+      }
+      return [px, py];
+    };
+    const segs = [];
+    let i = 0;
+    for (const l of list) {
+      let [ax, ay] = tf(nestWebPos(l.from)), [bx, by] = tf(nestWebPos(l.to));
+      const [ax2, ay2] = push(ax, ay, bx, by), [bx2, by2] = push(bx, by, ax, ay);
+      i++;
+      if (Math.hypot(bx2 - ax2, by2 - ay2) < 8) continue; // 両端が鉢縁に潰れた糸は描かない
+      segs.push({ x1: ax2, y1: ay2, x2: bx2, y2: by2, state: l.state, i });
+    }
+    return segs;
+  },
   nestThreads(ctx, segs) {
     const P = NEST_VIS.palette;
     const h2 = (a, b) => { let x = (a * 374761393 + b * 668265263) ^ (a << 7); x = (x ^ (x >> 13)) * 1274126177; return ((x ^ (x >> 16)) >>> 0) / 4294967295; };
@@ -4592,8 +4617,9 @@ const Render = {
         continue;
       }
       const k = s.state === "lit" ? 1 : 0.45;                    // half=淡い琥珀
-      curve(0, P.thread, 0.30 * k, 1.4);                         // 主糸
-      curve(1.6, P.thread, 0.14 * k, 0.8);                       // 添い糸(撚りの気配)
+      curve(0, P.thread, 0.38 * k, 1.3);                         // 主糸(α=琥珀判定に届く濃度・太さで占有を制御=ゲート実測)
+      curve(1.7, P.thread, 0.17 * k, 0.9);                       // 添い糸(撚りの気配)
+      curve(-1.7, P.thread, 0.10 * k, 0.7);                      // 逆側の添い糸(毛羽)
       // 輝点(糸を渡る灯=スアミの結節の灯と同語彙)。litのみ1〜2粒・決定論
       if (s.state === "lit") {
         const dots = 1 + (h2(s.i, 3) > 0.55 ? 1 : 0);
