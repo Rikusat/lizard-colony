@@ -17,7 +17,7 @@ Object.assign(UI, {
     else if (key === "roster") this.openLabRoster();
     else if (key === "shelf") this.openLabShelf();
   },
-  _labRefresh(key) { this.closeModal(); this.openLabPanel(key); if (this.renderHqLab) this.renderHqLab(); },
+  _labRefresh(key) { this.closeModal(); this.openLabPanel(key); if (this.renderHqLab) this.renderHqLab(); if (this.renderHqDirective) this.renderHqDirective(); }, // P3-2: 投入後に指令帯も更新
 
   // ================= P3-1裁定①(2026-08-11): 個体分析 =================
   // 本部パネル(本番)と devビューア(?tune=1#roster)が**同じ収集/整列/表生成**を使う=単一の真実・二重実装なし。
@@ -82,6 +82,26 @@ Object.assign(UI, {
       rebuild();
     });
   },
+  // P3-2(2026-08-11 Ric承認): 本部指令帯。実データのみ(捏造しない)・2行上限・詳細は宇宙港タップに委ねる。
+  renderHqDirective() {
+    const el = document.getElementById("hq-directive");
+    if (!el) return;
+    const r = Game.state.rocket || { stage: 0, invested: 0, done: false };
+    const stages = CFG.rocketStages, N = stages.length;
+    const total = stages.reduce((a, b) => a + b, 0);
+    const doneAmt = stages.slice(0, r.stage).reduce((a, b) => a + b, 0) + (r.invested || 0);
+    const pct = r.done ? 100 : Math.floor(doneAmt / total * 100);
+    const rows = this.rosterCollect ? this.rosterCollect() : [];
+    const pl = new Set(rows.map((r2) => r2.planet)).size || 1; // 惑星数=個体分析と同じ算出(単一の見方)
+    const fill = (t) => t.replace("{k}", r.stage).replace("{N}", N).replace("{pct}", pct)
+      .replace("{need}", Math.max(0, (Game.rocketStageNeed() || 0) - (r.invested || 0) - Game.ore("iridium") > 0 ? (Game.rocketStageNeed() || 0) - (r.invested || 0) - Game.ore("iridium") : 0))
+      .replace("{liz}", rows.length).replace("{pl}", pl);
+    const main = r.done ? CFG.hqDirectiveDone : (r.stage === 0 && !r.invested ? CFG.hqDirectiveStart : CFG.hqDirectiveMain);
+    const lack = r.done ? -1 : Math.max(0, (Game.rocketStageNeed() || 0) - (r.invested || 0) - Game.ore("iridium"));
+    const sub = r.done ? CFG.hqDirectiveSubDone : (lack > 0 ? CFG.hqDirectiveSub : CFG.hqDirectiveSubOk);
+    el.innerHTML = `<span class="hqd-en">DIRECTIVE</span><div class="hqd-tx"><div class="hqd-main">${fill(main)}</div><div class="hqd-sub">${fill(sub)}</div></div>`;
+  },
+
   openLabRoster() {
     this.openModal(`${Icon.svg("lizard")} 個体分析 <small class="rst-en">SPECIMEN ANALYSIS</small>`, (body) => {
       const rows = this.rosterCollect();

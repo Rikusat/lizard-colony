@@ -258,6 +258,17 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       ok("fps: フル再描画 " + ms.toFixed(2) + "ms(" + (1000 / ms).toFixed(0) + "fps) 予算内<8ms", ms < 8); console.log("[LABFPS] " + ms.toFixed(2) + "ms = " + (1000 / ms).toFixed(0) + "fps");
       document.title = "LABFPS " + (1000 / ms).toFixed(0);
 
+      // ===== P3-2: 指令帯(実データ%・2行・クリック=宇宙港) =====
+      var hd = document.getElementById("hq-directive");
+      ok("指令帯: 表示され指令文言を含む", !!hd && /指令/.test(hd.textContent));
+      var rr = Game.state.rocket || {stage:0,invested:0,done:false};
+      var tot = CFG.rocketStages.reduce(function(a,b){return a+b;},0);
+      var expPct = rr.done ? 100 : Math.floor((CFG.rocketStages.slice(0,rr.stage).reduce(function(a,b){return a+b;},0)+(rr.invested||0))/tot*100);
+      ok("指令帯: 建造%が実データと一致", rr.done || rr.stage===0&&!rr.invested ? true : hd.textContent.indexOf("("+expPct+"%")>=0, hd.textContent.slice(0,60));
+      hd.click();
+      ok("指令帯: クリックで宇宙港パネルが開く", /宇宙港|ロケット/.test(document.getElementById("modal-title").textContent));
+      UI.closeModal();
+
       // ===== P3-1裁定①: 個体分析パネル(本番)。行数=実個体数・dev情報の非露出・読み取り専用 =====
       var rosterExpected = UI.rosterCollect().length;
       var rsbtn = document.querySelector(String.fromCharCode(35)+"hqlab-menu [data-panel=\"roster\"]");

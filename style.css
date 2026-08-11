@@ -1823,6 +1823,14 @@ button.holding::after {
 .nq-rw { margin-top: 7px; font-size: calc(12px * var(--fs-scale, 1)); color: var(--paper-100, #F3E9D8); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .nq-note { margin-top: 5px; font-size: calc(10px * var(--fs-scale, 1)); color: var(--sub); }
 /* P3-1: 個体分析(本部・HOLO書式=琥珀罫/mono数値)。列優先: 狭幅で CD残→状態/モーフ の順に隠す */
+/* P3-2: 本部指令帯(LCD・2行上限・折返し禁止=ellipsis) */
+#hq-directive { display: flex; align-items: center; gap: 12px; margin: 0 20px 6px; padding: 7px 14px; cursor: pointer;
+  background: var(--lcd-bg, #14100a); border: 1px solid rgba(255, 181, 71, .28); border-radius: 6px; }
+#hq-directive:hover { border-color: rgba(255, 181, 71, .6); }
+.hqd-en { font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: .14em; color: rgba(255, 181, 71, .55); flex: none; }
+.hqd-tx { min-width: 0; flex: 1; }
+.hqd-main { color: #ffb547; font-size: calc(13.5px * var(--fs-scale, 1)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hqd-sub { color: var(--sub); font-size: calc(11px * var(--fs-scale, 1)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: ui-monospace, monospace; }
 .rst-en { font-family: ui-monospace, monospace; font-size: 11px; color: rgba(255, 181, 71, .5); letter-spacing: .08em; margin-left: 8px; }
 .rst-sum { display: flex; gap: 16px; flex-wrap: wrap; padding: 8px 10px; margin-bottom: 8px; background: var(--lcd-bg, #14100a); border: 1px solid var(--lcd-border, #3a2f1e); border-radius: 6px; font-size: calc(12px * var(--fs-scale, 1)); color: var(--sub); }
 .rst-sum span { display: inline-flex; align-items: center; gap: 4px; }

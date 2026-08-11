@@ -396,6 +396,13 @@ const CFG = {
   hqMenuGap: 12,              // タブ間隔(stack時・px)
   hqMenuPadY: 96,             // spread時の上下マージン(ヘッダ罫線/ティッカーとの呼吸・px)
   hqMenuWidthNarrow: 52,      // 縮退時(<900px)=アイコンのみ
+  // P3-2 指令帯の文言テンプレ(★Ric調整)。{k}{N}{pct}{need}{liz}{pl}を実データで置換
+  hqDirectiveStart: "▶ 指令: ロケットを建造し、この星系を脱出せよ — 計画は始動を待っている(全{N}段階)",
+  hqDirectiveMain: "▶ 指令: ロケットを完成させ、この星系を脱出せよ — 建造 {k}/{N}段階({pct}%)",
+  hqDirectiveDone: "▶ 指令完遂: ロケットは完成した — 新天地への航路は開かれている",
+  hqDirectiveSub: "次の建造材: イリジウム あと{need} / コロニー: 個体{liz}・惑星{pl}",
+  hqDirectiveSubOk: "建造材は充足 — 宇宙港で投入せよ / コロニー: 個体{liz}・惑星{pl}",
+  hqDirectiveSubDone: "コロニー: 個体{liz}・惑星{pl}",
   hqMenuItems: [              // 項目順・ラベル(action: panel=openLabPanel / dex=openDex)
     { key: "desks", jp: "研究デスク", en: "RESEARCH DESK", icon: "hq" },
     { key: "tank", jp: "錬成", en: "ALCHEMY", icon: "bio" },

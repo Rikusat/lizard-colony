@@ -30,6 +30,7 @@ Object.assign(UI, {
     const btn = document.getElementById("btn-hq"); if (btn) btn.classList.add("at-lab");
     this._hqlabBind();
     this._holoT0 = null; // 起動シーケンスは開くたび再生(CFG.holoBootOn=falseでスキップ/holoBootSpeedで短縮)
+    if (this.renderHqDirective) this.renderHqDirective(); // P3-2: 指令帯(開くたび実データで更新)
     this.renderHqLab();
     this._startLabVideo();
   },
@@ -45,6 +46,8 @@ Object.assign(UI, {
     if (this._hqlabBound) return; this._hqlabBound = true;
     const back = document.getElementById("hqlab-back");
     if (back) back.addEventListener("click", () => this.closeHqLab());
+    const dir = document.getElementById("hq-directive");
+    if (dir) dir.addEventListener("click", () => this.openLabPanel("rocket")); // P3-2: 詳細は宇宙港へ
     this._buildHqMenu(); // §14: 本部右メニュー(常設導線・動注入=飼育槽レイアウト非接触)
     const cv = document.getElementById("hqlab-canvas");
     if (cv) {
