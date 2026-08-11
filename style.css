@@ -1792,7 +1792,7 @@ button.holding::after {
 #nest-openrate { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
   color: var(--sub); font-size: calc(12px * var(--fs-scale, 1)); text-align: center; }
 #nest-openrate b { color: var(--amber-400); font-size: calc(19px * var(--fs-scale, 1)); display: block; }
-#nest-side { width: 250px; flex: none; display: flex; flex-direction: column; gap: 10px; overflow: auto; }
+#nest-side { width: 300px; flex: none; display: flex; flex-direction: column; gap: 10px; overflow: auto; } /* B4: 参照のパネル比率(26%)へ近づける */
 .nest-panel { background: var(--ink-700, #241c14); border: 1px solid var(--ink-600, #37301f); border-radius: 10px; padding: 10px 12px; }
 .nest-panel h3 { margin: 0 0 8px; font-size: calc(13px * var(--fs-scale, 1)); color: var(--amber-400); display: flex; align-items: center; gap: 6px; }
 .np-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 3px 0;
@@ -1809,7 +1809,7 @@ button.holding::after {
 .np-medal { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%;
   background: radial-gradient(#3a2c18, #1c1409); border: 1px solid rgba(201, 162, 39, .5); font-style: normal; }
 .np-medal svg.icon { width: 14px; height: 14px; }
-.np-ore b { color: var(--amber-400); }
+.np-ore b { color: var(--paper-100, #F3E9D8); } /* 参照実測: 鉱石数値は白系(琥珀ではない) */
 .np-cta { width: 100%; padding: 9px; font-size: calc(12px * var(--fs-scale, 1)); display: flex; align-items: center; justify-content: center; gap: 6px; border-color: var(--amber-500, #C9A227); }
 .nest-fx-note { font-size: calc(11px * var(--fs-scale, 1)); color: var(--sub); margin: 8px 0 0; }
 #nest-hint { margin-top: 8px; padding: 7px 12px; background: var(--lcd-bg, #14100a); border: 1px solid var(--border);

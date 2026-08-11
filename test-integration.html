@@ -109,6 +109,17 @@ window.__err=null; window.addEventListener("error",e=>{window.__err=(window.__er
     var stEl=document.getElementById("nest-stage"), stR=stEl&&stEl.getBoundingClientRect(), outside=-1;
     if(stR){ outside=wns.filter(function(e){var r=e.getBoundingClientRect();return r.top>stR.bottom+2||r.left>stR.right+2||r.bottom<stR.top-2||r.right<stR.left-2;}).length; }
     ok("巣: ステージ外に飛散したノードがない", outside===0, "outside="+outside);
+
+    // (5) V6-P2-2 B4: 右パネルは実データ駆動(モック見本値の混入=捏造を検知)
+    var bigEl=document.querySelector("#nest-side .np-big"), cnt=Game.nestWebCounts();
+    ok("巣B4: 大表示=解放ノード数(実データ)", !!bigEl&&parseInt(bigEl.textContent,10)===cnt.open, bigEl?bigEl.textContent:"-");
+    var oreRows=document.querySelectorAll("#nest-side .np-ore");
+    ok("巣B4: レア資源6行(裁定の写像=6鉱石全表示)", oreRows.length===6, "rows="+oreRows.length);
+    var oreOk=oreRows.length===6;
+    ORES.forEach(function(o,idx){ var b=oreRows[idx]&&oreRows[idx].querySelector("b"); var v=(Game.state.rare&&Game.state.rare[o.id])||0; if(!b||parseInt(b.textContent,10)!==v)oreOk=false; });
+    ok("巣B4: 鉱石数値=rareWallet実値と一致", oreOk);
+    var fxb=document.getElementById("nest-fx-btn"); if(fxb)fxb.click();
+    ok("巣B4: 効果一覧→モーダルが開く", !!fxb&&document.getElementById("modal-title").textContent.indexOf("巣の効果一覧")>=0);
     if(UI.closeModal)UI.closeModal();
 
     document.getElementById("itest").innerHTML="<b>統合テスト: "+pass+" PASS / "+fail+" FAIL</b><br>"+R.join("");
