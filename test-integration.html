@@ -92,6 +92,25 @@ window.__err=null; window.addEventListener("error",e=>{window.__err=(window.__er
     ok("症状2: 開拓UIに個体選択グリッドなし(founder-list)", html.indexOf("founder-list")<0);
     ok("症状2: 開拓ボタンは存在(開拓する)", html.indexOf("開拓する")>=0);
 
+    // (4) V6-P2-2 B3で検出した実在バグの再発防止(本番hotfix 3263d3f・§5x-OPS ⑮実績):
+    //   汎用 [data-tip]{position:relative} が同特異度の後勝ちで .wnode の absolute を奪い、
+    //   81ノード中79が画面外へ飛散していた(dim表示で潜伏)。position と実座標の両方を固定する。
+    //   ※このページに #nestpage は無いため、openNest はモーダルフォールバック(退路)経路を通る=退路の生存検査も兼ねる。
+    UI.openNest();
+    if(UI._nestLayout)UI._nestLayout();
+    var wnsAll=[].slice.call(document.querySelectorAll(".wnode"));
+    // 中心ノードはB1で意図的に display:none(canvasの巣が正)=検査対象は可視ノードのみ
+    var wns=wnsAll.filter(function(e){return e.offsetParent!==null;});
+    ok("巣: ノード81個が生成される(可視80+中心=canvas)", wnsAll.length===81&&wns.length===80, "all="+wnsAll.length+" vis="+wns.length);
+    ok("巣: computed positionがabsolute(汎用セレクタに奪われていない)",
+      wns.length>30&&getComputedStyle(wns[30]).position==="absolute", wns.length>30?getComputedStyle(wns[30]).position:"-");
+    var mis=wns.filter(function(e){return Math.abs(e.offsetLeft-parseFloat(e.style.left))>2||Math.abs(e.offsetTop-parseFloat(e.style.top))>2;}).length;
+    ok("巣: 全可視ノードが指定座標に配置(乖離>2pxゼロ)", mis===0, "misplaced="+mis);
+    var stEl=document.getElementById("nest-stage"), stR=stEl&&stEl.getBoundingClientRect(), outside=-1;
+    if(stR){ outside=wns.filter(function(e){var r=e.getBoundingClientRect();return r.top>stR.bottom+2||r.left>stR.right+2||r.bottom<stR.top-2||r.right<stR.left-2;}).length; }
+    ok("巣: ステージ外に飛散したノードがない", outside===0, "outside="+outside);
+    if(UI.closeModal)UI.closeModal();
+
     document.getElementById("itest").innerHTML="<b>統合テスト: "+pass+" PASS / "+fail+" FAIL</b><br>"+R.join("");
     document.title=(fail?"FAIL":"PASS")+" "+pass+"/"+(pass+fail);
    },2600);
