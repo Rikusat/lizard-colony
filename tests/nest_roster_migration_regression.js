@@ -18,7 +18,7 @@ const sb = { console: { log() {}, warn() {}, error() {} }, localStorage: { getIt
   UI: np(), Icon: np(), Roulette: np(), CrankSkins: np(), Slit: np(), Motion: { reduced: false } };
 sb.window = sb; sb.globalThis = sb; vm.createContext(sb);
 let code = ""; for (const f of ["js/data.js", "js/render.js", "js/game.js"]) code += fs.readFileSync(path.join(ROOT, f), "utf8") + "\n;\n";
-code += "globalThis.__t = { Game, buildNestWeb, buildNestWebLegacy, nestRewardList };\n";
+code += "globalThis.__t = { Game, buildNestWeb, buildNestWebLegacy, nestRewardList, NEST_CONDS };\n";
 vm.runInContext(code, sb, { filename: "combined.js" });
 const { Game, buildNestWeb, buildNestWebLegacy, nestRewardList, NEST_CONDS } = sb.__t;
 let pass = 0, fail = 0; const fails = [];

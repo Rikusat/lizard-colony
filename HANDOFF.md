@@ -1925,6 +1925,12 @@ V3=パネル枠/効果一覧ボタン/スパーク素材化→配信・本番実
 - 検証: 機能CDP(ピル20/カード内容実データ/tip撤去/0.0%表示/選択)・shot素材**10/10×2**・cut6/6・統合20/20・boot console 0・node20スイート全PASS。**デプロイなし**。
 - 次: ステップ3=ゲート再較正(pendingRecalP2_3の解消=参照側同帯re実測→モック統計帯の復帰)。短名の実機語感=Ric確認(このセッションのスクショ参照)。
 
+### 5s-V6-P2-17. ★P2-3追補=undefined根治+チラ見せ(2026-08-11・ローカルのみ・文言3案=Ric選定待ち)
+- **①undefinedバグ根治**: 原因=`NEST_SHORT` 対応表が**私の思い込みの型名**(fed/raidsWon)で実在型 `wins` を欠いていた。是正=対応表を廃止し **`NEST_CONDS.short` へ単一の真実化**(型と短名が同じ行=乖離が構造的に不可能)。恒久テスト追加=「全ノードの短名定義済み・≤5文字・undefined無し・型が実在」(増減しても検知・migration套件9 PASS)。実測=undefined 0/20。
+- **②チラ見せ**: off/near=**リング色+グリフを薄く敷き**(暗ベール=1-tease)、**錠前素材を最前面に縮小重ね**(無改変)。序列=off(★nestTeaseOff=0.4)<near(★nestTeaseNear=0.65)<open(素通し)。V2ゲートはoff/onとも色相検査へ統一(**offのPASS=チラ見せが機能している実証**を兼ねる)。
+- **③文言3案**(Ric選定待ち・実装は選定後): 報告参照。
+- 検証: shot素材10/10・cut6/6・統合20/20・boot0・node20全PASS(migration 9)。**デプロイなし**。
+
 ### 5x-GUARD. ★描画の非有限ガード(2026-08-10・Ric裁定・本番デプロイ済)[7e3d369, bac5fbc, c46d7ba, a231f1e]
 前セッションの報告テキストがクラッシュで失われ**HANDOFF記録も欠落していた**ため、コミットメッセージ・テスト実体・本番実測から復元して記録(2026-08-10 再開セッション)。
 - **7e3d369**: Canvas2D の createRadialGradient/arc/ellipse 等は NaN/Infinity で TypeError を投げ、**そのフレームの描画が丸ごと止まる**(画面停止)。計算値を渡す71ヶ所に検査を散らすと漏れるため、**`Render.guardCtx` で ctx を一度だけ包む**方式(知識は1箇所)。非有限は「その図形だけ」捨てる=握りつぶしではない(絵の欠けとして残る・`?tune=1` で警告1回・`__finGuard` で冪等)。`finite()` は数値のみ検査(arc の anticlockwise=boolean 等を誤って弾かない)。`drawGenesisFx` は undefined 座標も弾く必要があるため `Number.isFinite` の厳格判定で分離。
