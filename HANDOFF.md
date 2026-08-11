@@ -1890,6 +1890,18 @@ V3=パネル枠/効果一覧ボタン/スパーク素材化→配信・本番実
 #### 次
 配信の本番実証(!image/nest/ の効き・退化)→**P2-2完了判定(Ric目視)→P2デプロイ**。
 
+### 5s-V6-P2-14. ★スパーク①実装+配信の本番実証 完了(2026-08-11・本番=素材のみ配信済/コード未デプロイ)
+#### スパーク(Ric裁定=①のみ)
+- `checkNestWeb`→`UI.nestSparkFx`(heroNestRevealと同じ窓口様式)。**一回性**=animationendで自壊 / **reduced停止**(CSS media+Motion.reduced) / **決定論**(乱数なし) / **CFG.nestSparkOn★でOFF** / 素材未着なら黙って省く(退化=状態表示のみ) / **同時多発は3つまで**。実測=解放25件で3表示→1.2s後0(自壊)。
+#### 配信の本番実証(deliver/nest-assetsブランチ・本番=9459330=hotfix+素材+ignore設定のみ・コード無変更)
+- **★2つの罠を実測で検出**: ①`.vercelignore` は **`image/`(親dir除外)だと`!`で再包含できない**(gitignore規則)→さらに **`!image/nest`と`!image/nest/**`の両否定が必要**(image/*+片方では不成立を実測)。②**デプロイ固有URLの200はDeployment Protectionの中間ページ(text/html)**であり配信検証には使えない=**検証はエイリアス(本番URL)で行う**。
+- **結果**: 本番URLで**83/83素材=200・バイト一致**。除外3点(source-sheet/企画画像/参照nest_image2)=**404 ✓**。
+- **本番回線実測**: P2使用11素材=**784KB・並列ロード1.05秒**(キャッシュ無効時)。実運用は遅延ロード+コード描画退化=体感非ブロック・2回目以降はキャッシュ。
+- 退化の本番確認: 現本番コードは素材未参照(挙動ゼロ差)。**P2デプロイ時に ?noassets=1 で本番退化を再実証する**(ローカルでは7/7実証済)。
+- mainの.vercelignoreも有効パターンへ同期済み。
+#### 次
+**P2-2完了判定(Ric目視: http://localhost:3000/test-nest-b3.html / 実ページ)→P2デプロイ**(P2-1別ページ化+P2-2素材化+スパーク。同乗全申告)。
+
 ### 5x-GUARD. ★描画の非有限ガード(2026-08-10・Ric裁定・本番デプロイ済)[7e3d369, bac5fbc, c46d7ba, a231f1e]
 前セッションの報告テキストがクラッシュで失われ**HANDOFF記録も欠落していた**ため、コミットメッセージ・テスト実体・本番実測から復元して記録(2026-08-10 再開セッション)。
 - **7e3d369**: Canvas2D の createRadialGradient/arc/ellipse 等は NaN/Infinity で TypeError を投げ、**そのフレームの描画が丸ごと止まる**(画面停止)。計算値を渡す71ヶ所に検査を散らすと漏れるため、**`Render.guardCtx` で ctx を一度だけ包む**方式(知識は1箇所)。非有限は「その図形だけ」捨てる=握りつぶしではない(絵の欠けとして残る・`?tune=1` で警告1回・`__finGuard` で冪等)。`finite()` は数値のみ検査(arc の anticlockwise=boolean 等を誤って弾かない)。`drawGenesisFx` は undefined 座標も弾く必要があるため `Number.isFinite` の厳格判定で分離。
