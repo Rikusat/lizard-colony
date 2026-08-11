@@ -428,7 +428,30 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
             JSON.stringify({ feed: +pk.feed.toFixed(3), hatch: +pk.hatch.toFixed(3), defeat: +pk.defeat.toFixed(3) }));
           ok("§15 音予算(§2-7): 尺 撃破>孵化>給餌", ln.defeat > ln.hatch && ln.hatch > ln.feed,
             JSON.stringify({ feed: ln.feed, hatch: ln.hatch, defeat: ln.defeat }));
+          // ---- 配線の実測: 実プレイの場面で間引きが効くか(憲章§2-4「同時多発の濁りは仕組みで防ぐ」) ----
+          //   購読はboot.jsが張った本番の配線をそのまま使う(QA専用の別配線を作らない=経路統一)。
+          var idsIn = function (id) { return Sound.log.filter(function (e) { return e.id === id; }).length; };
+          Game.newGame(); Game.state.crickets = 9999; Game.state.dial.auto = false;
+          Sound.log.length = 0; Sound._last = {};
+          for (var fi2 = 0; fi2 < 20; fi2++) { Game.feed(Game.state.lizards[0]); }
+          ok("§15実測: 給餌20連打でも音は間引かれる(≦3)", idsIn("feed") <= 3 && idsIn("feed") >= 1, "feed音=" + idsIn("feed") + "/20回");
+          Sound.log.length = 0; Sound._last = {};
+          for (var hi = 0; hi < 20; hi++) {
+            Game._hatchEggObject({ speciesId: "kanahebi", morphId: "normal", hue: 100, sat: 50, light: 50, pattern: "stripe" });
+          }
+          ok("§15実測: 大量孵化20件でも音は間引かれる(≦3)", idsIn("hatch") <= 3 && idsIn("hatch") >= 1, "hatch音=" + idsIn("hatch") + "/20件");
+          Sound.log.length = 0; Sound._last = {};
+          for (var di = 0; di < 20; di++) { Game.emit("defeat", { x: 0, y: 0 }); }
+          ok("§15実測: 撃破イベント20連続でも音は間引かれる(≦3)", idsIn("defeat") <= 3 && idsIn("defeat") >= 1, "defeat音=" + idsIn("defeat") + "/20回");
+
+          // ---- 初回無音の維持: 配線したあとでもOFFなら1つも鳴らない ----
           Game.setSoundEnabled(false);
+          Sound.log.length = 0; Sound._last = {};
+          Game.state.crickets = 9999;
+          for (var oi = 0; oi < 10; oi++) { Game.feed(Game.state.lizards[0]); }
+          Game._hatchEggObject({ speciesId: "kanahebi", morphId: "normal", hue: 100, sat: 50, light: 50, pattern: "stripe" });
+          Game.emit("defeat", { x: 0, y: 0 });
+          ok("★§15初回無音: OFFなら配線済みでも1つも鳴らない(不可逆④の実測)", Sound.log.length === 0, "log=" + Sound.log.length);
           ok("§15保存: OFFへ戻せる(両方向トグル=単調フラグではない)", Game.soundEnabled() === false && Sound.on() === false);
         });
       });

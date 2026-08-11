@@ -134,6 +134,8 @@ Object.assign(UI, {
   openSettings() {
     this.openModal(`${Icon.svg("settings")} 設定`, (body) => {
       body.innerHTML = `
+        <div class="list-row"><div class="grow"><b>音</b><div class="desc">効果音のON/OFF(初期状態はOFF)。音を切っても、起きたことは画面表示だけで分かるように作られています</div></div>
+          <button id="set-sound" role="switch" aria-checked="false" aria-label="効果音のON/OFF"></button></div>
         <div class="list-row"><div class="grow"><b>セーブ</b><div class="desc">10秒ごとに自動保存されます</div></div>
           <button id="set-save">今すぐ保存</button></div>
         <div class="list-row"><div class="grow"><b>惑星の混入チェック（純血化プレビュー・非破壊）</b><div class="desc">Phase10: 各惑星に他惑星種が混入していないか診断（消えない・数を見るだけ）。自動移行バグで焼き付いた汚染の消失予定数を確認できる</div></div>
@@ -163,6 +165,20 @@ Object.assign(UI, {
           3. 定期的に外敵が襲来! トカゲたちが自動で戦う<br>
           4. 撃退報酬で設備を強化し、図鑑コンプリートを目指そう!
         </div>`;
+      // V6-P5 S1: 音のON/OFF。真実はセーブ(dial)側=ここは切り替えて表示を同期するだけ。
+      //   実クリック=user gesture なので、ONにした瞬間に AudioContext が正しく起動する。
+      const sndBtn = body.querySelector("#set-sound");
+      const syncSnd = () => {
+        const on = Game.soundEnabled();
+        sndBtn.setAttribute("aria-checked", on ? "true" : "false");
+        sndBtn.innerHTML = `${Icon.svg(on ? "sound" : "soundOff")} ${on ? "ON" : "OFF"}`; // 形+文字で示す(色のみに依存しない)
+      };
+      sndBtn.addEventListener("click", () => {
+        Game.setSoundEnabled(!Game.soundEnabled());
+        syncSnd();
+        this.toast(Game.soundEnabled() ? `${Icon.svg("sound")} 効果音: ON` : `${Icon.svg("soundOff")} 効果音: OFF`);
+      });
+      syncSnd();
       body.querySelector("#set-save").addEventListener("click", () => {
         Game.save(); this.toast(`${Icon.svg("save")} セーブしました`);
       });

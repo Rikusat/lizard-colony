@@ -802,6 +802,13 @@ if (!(typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.searc
 // autoplay policy: 初回のユーザー操作(pointerdown/keydown)で一度だけ unlock する。
 if (typeof Sound !== "undefined" && typeof Game !== "undefined") {
   Sound.setEnabled(Game.soundEnabled());
+  // 演出層の購読口: ルール層のイベントを CFG.soundCues で音idへ変換して鳴らすだけ。
+  //   ここが「何が起きたか」→「どう聞かせるか」の唯一の変換点(ルール層に音コードは無い=憲章§2-3)。
+  //   OFF時・未定義id・連打の間引きは全て Sound.play() 側の窓口が判断する(判定を2箇所に置かない)。
+  Game.onEvent(function (name) {
+    const id = CFG.soundCues && CFG.soundCues[name];
+    if (id) Sound.play(id);
+  });
   const soundUnlock = () => {
     Sound.unlock();
     window.removeEventListener("pointerdown", soundUnlock);

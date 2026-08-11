@@ -136,6 +136,9 @@ const ICONS = {
   breed: '<path d="M12 20S4 15 4 9.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 8 2.5C20 15 12 20 12 20z" fill="none"/>',
   auto: '<path d="M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2" fill="none"/><path d="M20 4v5h-5M4 20v-5h5" fill="none"/>',
   hint: '<path d="M8 15a6 6 0 1 1 8 0c-1 1-1.5 2-1.5 3h-5C9.5 17 9 16 8 15z" fill="none"/><path d="M10 21h4" fill="none"/>',
+  // V6-P5 S1: 音の設定トグル用。ON=音波あり / OFF=×付き(状態を形で示す=色のみに依存しない・UISkills §1.6/§7)
+  sound: '<path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z" fill="none"/><path d="M15.4 9.2a4.2 4.2 0 0 1 0 5.6M18.1 6.7a7.8 7.8 0 0 1 0 10.6" fill="none"/>',
+  soundOff: '<path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z" fill="none"/><path d="M15.8 9.6l5 4.8M20.8 9.6l-5 4.8" fill="none"/>',
   lock: '<rect x="6" y="11" width="12" height="9" rx="2" fill="none"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" fill="none"/>',
   check: '<path d="M4 13l5 5L20 7" fill="none"/>',
   star: '<path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6L12 16.7 6.7 19.6l1.1-6L3.4 9.4l6-.8z"/>',

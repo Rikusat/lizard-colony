@@ -143,6 +143,21 @@ const Game = {
   nestLv() { return (this.state.nest && this.state.nest.lv) || 1; }, // §8.12: 巣Lv(繁殖/給餌効果の統合先。最低1)
   // §9-C4: 進行マイルストーンは飼育槽中央の軽い通知へ(トースト非使用)。1件・短時間・古いものは捨てる(Render側)
   notice(text, sub, accent) { if (typeof Render !== "undefined" && Render.showCenterNotice) Render.showCenterNotice(text, sub || "", accent || "info"); },
+
+  // ---- 演出への通知口(V6-P5 S1新設・fable1「イベントは"何が起きたか"を運ぶ。"どう見せるか"は運ばない」) ----
+  //   音の配線に必要だが、ルール層に音コードを置くことは憲章(SoundSkills §2-3)が禁じている。
+  //   そこでルール層は**事実だけ**を流し、何を鳴らす/見せるかの判断は購読側(演出層)が持つ。
+  //   ★既存の popup/notice/spawnFx を横取りしなかった理由: どれも無関係な複数イベントで共用されており
+  //     (popupは戦闘ダメージ・罠・毒など11箇所、noticeは敗北や惑星解放でも accent="boss")、
+  //     横取りすると関係ない場面で鳴る。だから専用の通知口を置く。
+  //   購読側の例外でルール層を止めない(warnで可視化=握りつぶしではない)。
+  _subs: [],
+  onEvent(fn) { if (typeof fn === "function") this._subs.push(fn); },
+  emit(name, data) {
+    for (const fn of this._subs) {
+      try { fn(name, data || {}); } catch (e) { console.warn("[emit] 購読側で例外:", name, e); }
+    }
+  },
   isHidden(lz) { return lz.hiddenT > 0; }, // 鷹にさらわれて一時不在
   isAway(lz) { return lz.hiddenT > 0; }, // フィールド外(鷹にさらわれ一時不在)。V5.2: 探索(exploring)はV4.1で撤去済のため参照しない(残留フラグで個体が永久away=給餌/emit不能になるバグ根治)
   isVisible(lz) { return !this.isAway(lz) && !lz.resting; }, // フィールドに描画される個体
@@ -1147,6 +1162,7 @@ const Game = {
     const auto = !!(this.state.dial && this.state.dial.auto);
     if (!auto || CFG.autoFeedXpPopup) {
       this.popup(lz.x, lz.y - 20, "+" + Math.round(xp) + "xp", "#9fe07a");
+      this.emit("feed", { x: lz.x, y: lz.y }); // 音は視覚と対(§2-2): +xpポップが出る時だけ流す=同じ条件の中に置く
     }
     // 成長処理
     if (lz.stage === "baby" && lz.xp >= CFG.babyXpToAdult) {
@@ -1522,6 +1538,7 @@ const Game = {
     } else {
       this.spawnFx(lz.x, lz.y, lz.hue, !!egg.lucky); // 通常/ラッキー孵化=位置に登場エフェクト
     }
+    this.emit("hatch", { x: lz.x, y: lz.y }); // 音は視覚と対(§2-2): 全分岐が必ず spawnFx を出した直後に流す
   },
 
   // ---------------- ランク ----------------
@@ -1953,6 +1970,7 @@ const Game = {
         msg += " / 卵を取り返した!";
       }
       this.notice(`${this.bossDisplayName(r)} 撃破`, msg, "boss"); // §9: 全画面撃破演出→中央の軽い通知(戦利品は報酬盤が見せる)
+      this.emit("defeat", { x: r.snake.x, y: r.snake.y }); // 音は視覚と対(§2-2): 撃破通知と同じ勝利分岐の中に置く
       this.popupBurst(r.snake.x, r.snake.y);
       this.motVictoryGather(r.snake.x, r.snake.y); // V5M-EX⑭: 撃破地点へ近くの数匹が寄る(数秒で散る)
       this.slowmo = 0.6; // 撃破スローモーション

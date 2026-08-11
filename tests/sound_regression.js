@@ -242,6 +242,66 @@ function loadSound(extraCfg) {
   check("applyWorld 後もONのまま", G.Game.soundEnabled() === true);
   G.Game.setSoundEnabled(false);
   check("OFFへ戻せる(両方向トグル=単調フラグではない)", G.Game.soundEnabled() === false && calls[calls.length - 1] === false);
+
+  // ---- 7b) ★配線の実測: 音は視覚と対(§2-2)。視覚が出ない時は音のイベントも出ない ----
+  //   これがS1配線の核心。emit を視覚呼び出しと同じ条件の中に置いたことを**実行して**確かめる。
+  const Game = G.Game, CFG2 = G.CFG;
+  const evs = [];
+  Game.onEvent((n) => evs.push(n));
+  check("★カナリア: 購読口が実際にイベントを受け取れる", (Game.emit("__canary", {}), evs.length === 1 && evs[0] === "__canary"));
+  // 給餌: 手動=+xpポップが出る → feedイベントも出る
+  Game.newGame();
+  Game.state.crickets = 500; Game.state.dial.auto = false;
+  const xpPops = () => Game.popups.filter((p) => /xp/.test(p.txt)).length;
+  evs.length = 0; Game.popups.length = 0;
+  Game.feed(Game.state.lizards[0]);
+  check("★給餌(手動): +xpポップが出て feed イベントも出る", xpPops() === 1 && evs.filter((n) => n === "feed").length === 1,
+    "pops=" + xpPops() + " evs=" + JSON.stringify(evs));
+  // 給餌: オートでポップ抑制中 → 音のイベントも出ない(音だけが鳴る=情報の非対称を作らない)
+  Game.state.dial.auto = true; CFG2.autoFeedXpPopup = false;
+  evs.length = 0; Game.popups.length = 0;
+  Game.feed(Game.state.lizards[0]);
+  check("★給餌(オート・ポップ抑制中): 視覚が出ないので feed イベントも出ない",
+    xpPops() === 0 && evs.filter((n) => n === "feed").length === 0, "pops=" + xpPops() + " evs=" + JSON.stringify(evs));
+  Game.state.dial.auto = false;
+  // 孵化: 登場エフェクト(spawnFx)と対
+  evs.length = 0;
+  const fx0 = (Game._spawnFx || []).length;
+  Game._hatchEggObject({ speciesId: "kanahebi", morphId: "normal", hue: 100, sat: 50, light: 50, pattern: "stripe" });
+  check("★孵化: 登場エフェクトが出て hatch イベントも出る",
+    (Game._spawnFx || []).length > fx0 && evs.filter((n) => n === "hatch").length === 1,
+    "fx+" + ((Game._spawnFx || []).length - fx0) + " evs=" + JSON.stringify(evs));
+}
+
+// ---- 7c) 配線の構造検査: emit は必ず視覚呼び出しの隣に置く(§2-2を構造で守る) ----
+//   撃破は実行での再現が重い(raidの組み立てが要る)ため、3種を同じ物差しで見るこの走査が受け皿。
+{
+  const lines = read("js/game.js").split("\n");
+  const VISUAL = /this\.(popup|popupBurst|notice|spawnFx)\s*\(/;
+  const near = (i) => lines.slice(Math.max(0, i - 3), i + 4).some((l) => VISUAL.test(l));
+  const emits = [];
+  lines.forEach((l, i) => { const m = l.match(/this\.emit\("([a-z]+)"/); if (m) emits.push({ name: m[1], i: i }); });
+  check("ルール層が3種のイベントを流している(feed/hatch/defeat)",
+    ["feed", "hatch", "defeat"].every((n) => emits.some((e) => e.name === n)), JSON.stringify(emits.map((e) => e.name)));
+  check("★カナリア: 視覚検知が本物の呼び出しを捕まえる", VISUAL.test('      this.notice("x", "y", "boss");'));
+  check("★カナリア: 無関係な行は視覚と見なさない", !VISUAL.test("      const auto = !!(this.state.dial && this.state.dial.auto);"));
+  const lonely = emits.filter((e) => !near(e.i)).map((e) => e.name + "@" + (e.i + 1));
+  check("★全てのemitが視覚呼び出しの近傍にある(音だけが鳴る箇所を作らない)", lonely.length === 0, lonely.join(","));
+}
+
+// ---- 7d) 対応表と配線口(CFG.soundCues=「何が起きたか」→「どう聞かせるか」の唯一の変換点) ----
+{
+  const { CFG } = loadSound();
+  const cues = CFG.soundCues || {};
+  check("CFG.soundCues が3種を対応づける", Object.keys(cues).length === 3 && cues.feed === "feed" && cues.hatch === "hatch" && cues.defeat === "defeat");
+  check("対応先の音idが全て soundDefs にある(鳴らない配線を作らない)", Object.values(cues).every((id) => !!CFG.soundDefs[id]));
+  const gameSrc = codeOf(read("js/game.js"));
+  check("対応表のイベントは全てルール層が実際に流している", Object.keys(cues).every((n) => gameSrc.includes('this.emit("' + n + '"')));
+  const boot = codeOf(read("js/ui/boot.js"));
+  check("★演出層が購読して CFG.soundCues 経由で鳴らす(変換点は1箇所)", /Game\.onEvent\(/.test(boot) && /CFG\.soundCues/.test(boot) && /Sound\.play\(/.test(boot));
+  const meta = codeOf(read("js/ui/screens/meta.js"));
+  check("★設定に音のON/OFF導線がある(初回無音からONにできる)", /set-sound/.test(meta) && /Game\.setSoundEnabled/.test(meta));
+  check("設定トグルは形と文字で状態を示す(色のみに依存しない・UISkills §7)", /soundOff/.test(meta) && /aria-checked/.test(meta));
 }
 
 // ---- 8) boot配線(ソース検査) ----
