@@ -20,7 +20,7 @@ sb.window = sb; sb.globalThis = sb; vm.createContext(sb);
 let code = ""; for (const f of ["js/data.js", "js/render.js", "js/game.js"]) code += fs.readFileSync(path.join(ROOT, f), "utf8") + "\n;\n";
 code += "globalThis.__t = { Game, buildNestWeb, buildNestWebLegacy, nestRewardList };\n";
 vm.runInContext(code, sb, { filename: "combined.js" });
-const { Game, buildNestWeb, buildNestWebLegacy, nestRewardList } = sb.__t;
+const { Game, buildNestWeb, buildNestWebLegacy, nestRewardList, NEST_CONDS } = sb.__t;
 let pass = 0, fail = 0; const fails = [];
 const ok = (n, c, e) => { if (c) pass++; else { fail++; fails.push(n + (e ? " :: " + e : "")); } };
 const canon = (o) => JSON.stringify(Object.keys(o).sort().map((k) => [k, o[k]])); // キー順非依存の正規化比較
@@ -28,6 +28,8 @@ const canon = (o) => JSON.stringify(Object.keys(o).sort().map((k) => [k, o[k]]))
 const LEG = buildNestWebLegacy().filter((n) => n.id !== "core");
 const V2 = buildNestWeb().filter((n) => n.id !== "core");
 ok("ロスター: 旧80 / 新20", LEG.length === 80 && V2.length === 20, `${LEG.length}/${V2.length}`);
+// P2-3追補1(undefined再発防止): 全ノードの短名が定義済み・≤5文字・条件型がNEST_CONDSに存在(増減しても検知)
+ok("短名: 全ノード定義済み・≤5文字・undefined無し・型が実在", V2.every((n) => n.name && !/undefined/.test(n.name) && n.name.length <= 5 && n.conds.every((c) => NEST_CONDS.some((d) => d.type === c.type))), V2.map((n) => n.name).join(","));
 ok("写像: 新20が旧80を重複なく被覆", (() => {
   const all = V2.flatMap((n) => n.legacyIds);
   return all.length === 80 && new Set(all).size === 80;

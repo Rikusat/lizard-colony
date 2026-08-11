@@ -411,6 +411,8 @@ const CFG = {
   nestVisEggSpots: 12,        // 卵の斑点数
   nestVisGlow: 0.5,           // コア光暈の強さ(0=無効)
   // V6-P2-2 v2(素材化・★ゲート較正値)
+  nestTeaseOff: 0.4,          // ロック中のチラ見せ濃度(0=完全に隠す〜1=素通し・序列: off<near<open)
+  nestTeaseNear: 0.65,        // もうすぐ解放のチラ見せ濃度
   nestSparkOn: true,          // ノード解放の瞬間の一回性スパーク(Ric裁定①・②常設は不採用)
   nestCoreScale: 2.35,        // 素材巣の幅(コア半径R比)
   nestCoreAnchorX: 0.485,     // 素材内の鉢中心アンカー(横)
@@ -1004,12 +1006,12 @@ const NEST_VIS = {
 // ============================================================
 const NESTWEB_RINGS = [8, 12, 16, 20, 24];
 const NEST_CONDS = [
-  { type: "bred",    name: "繁殖",        base: 15,  icon: "breed" },
-  { type: "hatched", name: "孵化",        base: 12,  icon: "egg" },
-  { type: "species", name: "発見種族",    base: 4,   icon: "lizard" },
-  { type: "morphs",  name: "レアモーフ",  base: 3,   icon: "spark" },
-  { type: "dexRate", name: "図鑑率",      base: 10,  icon: "dex" },
-  { type: "wins",    name: "撃退",        base: 20,  icon: "shield" },
+  { type: "bred",    name: "繁殖",        short: "繁殖",   base: 15,  icon: "breed" },
+  { type: "hatched", name: "孵化",        short: "孵化",   base: 12,  icon: "egg" },
+  { type: "species", name: "発見種族",    short: "種族",   base: 4,   icon: "lizard" },
+  { type: "morphs",  name: "レアモーフ",  short: "モーフ", base: 3,   icon: "spark" },
+  { type: "dexRate", name: "図鑑率",      short: "図鑑",   base: 10,  icon: "dex" },
+  { type: "wins",    name: "撃退",        short: "撃退",   base: 20,  icon: "shield" },
 ];
 const NEST_ORES_BY_RING = [
   ["amber", "titaniumOre"],
@@ -1110,7 +1112,6 @@ function buildNestWebLegacy() {
 // 条件=単一condへ簡素化(旧深部の複合condは廃止=解放は僅かに早まる方向・損失なし・文字最小化とも整合)。
 // 難度アンカー=グループ最奥の旧ring(進行ペースを旧曲線に係留・実測は migration テストのペース掃引で確認)。
 const NESTWEB_RINGS_V2 = [8, 12];
-const NEST_SHORT = { bred: "繁殖", fed: "給餌", hatched: "孵化", raidsWon: "撃退", species: "種数", morphs: "変異", dexRate: "図鑑" };
 function buildNestWeb() {
   const legacy = buildNestWebLegacy().filter((n) => n.id !== "core");
   const nodes = [{ id: "core", ring: -1, angle: 0, conds: [], reward: null, name: "巣の中心" }];
@@ -1131,7 +1132,7 @@ function buildNestWeb() {
         angle: (i / n) * Math.PI * 2 + r * 0.35,
         conds: [{ type: c.type, need }],
         reward: { ores },
-        name: `${NEST_SHORT[c.type]}${["Ⅰ", "Ⅱ"][r]}`, // 短名≤5文字(P2-3-4・語感はRic確認)
+        name: `${c.short}${["Ⅰ", "Ⅱ"][r]}`, // 短名≤5文字(単一の真実=NEST_CONDS.short・undefined根治=P2-3追補1)
         icon: c.icon,
         legacyIds: group.map((g) => g.id),  // 4:1静的写像(移行の単一の真実)
       });

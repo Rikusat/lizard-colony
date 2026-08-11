@@ -177,23 +177,7 @@ if (!NOASSETS) {
     //   (実測ΔL12〜17)ため、ゾーン平均で比較=フィルタ雑音は集計で相殺。正素材/正状態/正配置を検出する
     //   構造検査(微細な無改変検知は等倍要素=V1コアが担う分担)。
     const half = Math.min(A.w, A.h) / 2;
-    if (!s.on) {
-      // lock=不透明メダリオン: ゾーン平均色の画素一致(構造+階調)。
-      let n2 = 0; const se = [0, 0, 0], sg = [0, 0, 0];
-      for (let py = Math.ceil(oy); py < oy + dh2; py++) for (let px = Math.ceil(ox); px < ox + dw2; px++) {
-        const sxc = (px - ox) / sc, syc = (py - oy) / sc;
-        if (Math.hypot(sxc - A.w / 2, syc - A.h / 2) / half > 0.92) continue;
-        const ii = (Math.min(A.h - 1, syc | 0) * A.w + Math.min(A.w - 1, sxc | 0)) * 4;
-        if (A.data[ii + 3] < 250) continue;
-        const is2 = (py * img.w + px) * img.bpp;
-        se[0] += A.data[ii]; se[1] += A.data[ii + 1]; se[2] += A.data[ii + 2];
-        sg[0] += img.data[is2]; sg[1] += img.data[is2 + 1]; sg[2] += img.data[is2 + 2];
-        n2++;
-      }
-      const dCh = n2 ? Math.max(Math.abs(se[0] - sg[0]), Math.abs(se[1] - sg[1]), Math.abs(se[2] - sg[2])) / n2 : 1e9;
-      row(`V2 メダリオン(lock) ゾーン平均色Δ(max ch)`, "0(素材=正解)", f1(dCh) + " (n=" + n2 + ")",
-        `≦${T.medallion.maxChanDelta} & n≧${T.medallion.minSamples}`, dCh <= T.medallion.maxChanDelta && n2 >= T.medallion.minSamples);
-    } else {
+    { // P2-3追補2: off/onとも**色相構造検査**へ統一(offはチラ見せ=薄いリング色が見えることの実証を兼ねる)
       // on=発光リング(素材の環は半透過=不透明画素がほぼ無い・実測n1〜5)→**色相の構造検査**:
       //   環状帯(rN0.62〜0.95)の平均色の色相が、リング色の期待レンジに入るか=正素材色/正状態の検出。
       //   微細な無改変検知は等倍要素(V1コア)が担う(閾値ファイルの分担注記)。
@@ -217,7 +201,7 @@ if (!NOASSETS) {
       const RANGE = { amber: [20, 60], red: [345, 30], green: [80, 160], teal: [160, 215], purple: [235, 310] }; // red=0°境界跨ぎ(巻き戻り対応)
       const [h0, h1] = RANGE[s.ring];
       const inR = h0 <= h1 ? (hue >= h0 && hue <= h1) : (hue >= h0 || hue <= h1);
-      row(`V2 メダリオン(${s.ring}・on) 環の色相`, `${h0}〜${h1}°`, hue.toFixed(0) + "° (n=" + n2 + ")",
+      row(`V2 メダリオン(${s.ring}${s.on ? "・on" : "・off(チラ見せ)"}) 環の色相`, `${h0}〜${h1}°`, hue.toFixed(0) + "° (n=" + n2 + ")",
         "期待レンジ内", n2 >= T.medallion.minSamples && inR);
     }
   }

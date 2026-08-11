@@ -207,14 +207,18 @@ Object.assign(UI, {
       //   ラベルピルは on/near のみ(実UIは81ノード=モックの約14より密なため、全数表示は判読不能。数の差はRic裁定で再現対象外)。
       //   条件などの副記はタップのツールチップが引き続き担う。
       const ore = n.id === "core" ? null : oreById(nestRewardList(n)[0].ore); // P2-3: 主要鉱石=配列先頭(メダリオン色/グリフの基準)
-      const glyph = n.id === "core" ? Icon.svg("nestweb") : open ? `<b style="color:${ore.color}">${Icon.svg(ore.icon)}</b>` : Icon.svg("lock");
+      // P2-3追補2: ロック中もリング色+グリフを薄く敷き(チラ見せ=気配)、錠前素材を上に重ねる(無改変・縮小のみ)
+      const glyph = n.id === "core" ? Icon.svg("nestweb") : `<b style="color:${ore.color}">${Icon.svg(ore.icon)}</b>`;
+      const lockMark = n.id !== "core" && !open ? `<i class="wn-lockmark">${Icon.svg("lock")}</i>` : "";
       // P2-3ステップ2: ピルは全ノード常時(短名+解放率%・解放済みは短名のみ)。文字はこれが上限(詳細はタップ後のカード)
       const pill = n.id === "core" ? "" : open ? `<i class="wn-pill">${n.name}</i>` : `<i class="wn-pill">${n.name}<em>${Math.floor(p * 100)}%</em></i>`;
-      const ring = n.id === "core" ? "" : ` data-ring="${open ? ore.ring : "lock"}"`; // v2-V2: 素材リング(未解放=錠前素材)
+      const ring = n.id === "core" ? "" : ` data-ring="${ore.ring}"`; // P2-3追補2: 常に鉱石色(ロックはオーバーレイ)
       html += `<div class="wnode ${cls}" data-node="${n.id}" data-tip="${tip}"${ring} style="left:${x}px;top:${y}px">
-        <span>${glyph}</span>${pill}</div>`;
+        <span>${glyph}</span>${lockMark}${pill}</div>`;
     }
     wrap.innerHTML = html;
+    wrap.style.setProperty("--tease-off", CFG.nestTeaseOff != null ? CFG.nestTeaseOff : 0.4);
+    wrap.style.setProperty("--tease-near", CFG.nestTeaseNear != null ? CFG.nestTeaseNear : 0.65);
     // P2-3ステップ2: タップ=クエストカード(右カラム最上部・#nest-tipは廃止)。解放操作は存在しない(§4.2)
     for (const el of wrap.querySelectorAll(".wnode")) {
       el.addEventListener("click", () => {
