@@ -2004,6 +2004,7 @@ button.holding::after {
 /* 重なり順だけが用途で異なる(器の見た目は同一=知識を1箇所に置く) */
 #holo-travel { z-index: 210; }   /* 惑星移動: 頻発・軽い */
 #holo-opening { z-index: 500; }  /* 起動ブリーフィング: 初回のみ・全ての上(ヒーロー340/報酬320より上) */
+#holo-lore { z-index: 490; }     /* Lore ARCHIVE(P4-2): モーダル/ヒーローより上・オープニングの下(UISkills §5.10) */
 
 /* 宇宙船トランジション(CFG.holoTravelOn=false 時の復帰先) */
 #travel-overlay {

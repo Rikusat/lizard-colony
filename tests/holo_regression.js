@@ -564,5 +564,73 @@ console.log("== 13) オープニングの本編組み込み(初回だけ自動�
   }
 }
 
+// ---- P4-2 Lore ARCHIVE(2026-08-11 Ric承認): 尺/実データ/遮蔽語彙/gate連動/manifest同一行/非接触/導線/可逆 ----
+{
+  console.log("== 13) P4-2 Lore ARCHIVE(世界の記録) ==");
+  const at = (id) => Holo.loreAt(id);
+  const D = Holo.loreDur();
+  check("★Lore: 尺はCFGクランプ以下(実尺14.4s≦15s)", D <= (CFG.holoLoreMaxSec || 15) && Math.abs(D - 14.4) < 1e-9, String(D));
+  check("Lore: 全ノードが0.4秒グリッド上", Holo.loreNodes().every((n) => Number.isInteger(n.grid)));
+  check("Lore: 暴走した表を書いてもクランプ(15s)", (() => { const L = loadHolo(); L.api.CFG.holoLoreNodes = [{ id: "net", grid: 0 }, { id: "end", grid: 999 }]; return L.api.Holo.loreDur() === (L.api.CFG.holoLoreMaxSec || 15); })());
+  check("Lore: CFG.holoLoreOn は既定true(誰でも見られる形で出す=Ric指示)", CFG.holoLoreOn === true);
+  const textsL = (t, opts) => { const l = []; Holo.drawLore(stubCtx(l), 1200, 675, t, opts); return l.filter((x) => x.startsWith("fillText")).map((x) => x.slice(9, -1).split(",")[0]); };
+  const LORE_D = __L.sb.LORE;
+  const sent = (id, n) => (((LORE_D.find((x) => x.id === id) || {}).text || "").split("。")[n || 0]);
+  // 章1 NETWORK: 実在の惑星名10・故郷は伏せたまま・読み行はLORE実文(gate連動)
+  const n1 = textsL(at("purity") - 0.2, { gates: { net: true } });
+  check("Lore1: 十球は実在の惑星名(PLANET_NAMES全10一致・捏造なし)", Object.values(PLANET_NAMES).every((nm) => n1.includes(nm)), n1.join("/"));
+  check("★Lore1: HOMEWORLD / REDACTED を再提示(名は伏せたまま)", n1.some((x) => /HOMEWORLD \/ REDACTED/.test(x)));
+  check("Lore1: 読み行=LORE.hq実文(解放時)", n1.includes(sent("hq", 0)));
+  check("Lore1: 未解放は RECORD / REDACTED へ落ちる(gate連動)", textsL(at("purity") - 0.2, { gates: {} }).some((x) => /RECORD \/ REDACTED/.test(x)));
+  // 章2 PURITY: 固有種は実名・3種目=REDACTED(正体は渡さない)
+  const sp1 = __L.sb.SPECIES.filter((s) => s.stage === 1).map((s) => s.name);
+  const n2 = textsL(at("bugger") - 0.2, { gates: { purity: true }, planetId: 1 });
+  check("Lore2: 固有2種が実名(SPECIES stage1と一致)", sp1.length === 2 && sp1.every((nm) => n2.includes(nm)), n2.join("/"));
+  check("★Lore2: ENDEMIC 3RD 行があり値は REDACTED(伏線の再提示)", n2.some((x) => /ENDEMIC 3RD/.test(x)) && n2.includes("REDACTED"));
+  check("Lore2: 読み行=LORE.native実文(解放時)", n2.includes(sent("native", 0)));
+  // 章3 ORIGIN OF BUGGER: gate連動で核心の一文に切替わる。ヌシ・バガー/上位存在には触れない
+  const n3o = textsL(at("archive") - 0.2, { gates: { bugger: true } });
+  const n3c = textsL(at("archive") - 0.2, { gates: {} });
+  check("★Lore3: cricket解読済み=核心の一文(同じ虫の実験)へ切替", n3o.includes(sent("cricket", 1)) && !n3o.includes(sent("intro", 1)));
+  check("Lore3: 未解読=intro第2文(初期解放Lore=常に実文・REDACTEDに落ちない唯一の章)", n3c.includes(sent("intro", 1)) && !n3c.includes(sent("cricket", 1)));
+  check("Lore3: バガー名と脅威型は実データ(BOSS_TYPES)", n3o.includes("バガー") && n3o.includes((BOSS_TYPES.find((b) => b.id === "bugger") || {}).threat));
+  // 全編走査: ヌシ・バガーの正体と上位存在に触れない(Ric裁定)・遮蔽語彙の統一
+  const sweep = [];
+  for (let t = 0.1; t < D; t += 0.4) sweep.push.apply(sweep, textsL(t, { gates: { net: true, purity: true, bugger: true }, archive: { got: 3, total: 11 } }));
+  check("★Lore全編: ヌシ・バガー/上位存在/次元に触れない(その先の階層として温存)", !sweep.some((x) => /ヌシ|上位存在|次元/.test(x)));
+  check("Lore全編: 遮蔽は REDACTED/UNRESOLVED 語彙のみ(???等の別語彙を作らない)", !sweep.some((x) => /\?\?\?|■/.test(x)));
+  // 結び: manifest()末尾行と同一の行(コピーでなく導出)
+  const holoSrc = fs.readFileSync(path.join(ROOT, "js/holo.js"), "utf8");
+  const nE = textsL(D - 0.3, { archive: { got: 3, total: 11 } });
+  check("★結び: SPECIMEN / REDACTED / UNRESOLVED で締める", nE.some((x) => /SPECIMEN/.test(x)) && nE.includes("REDACTED") && nE.includes("UNRESOLVED"));
+  check("★結び: manifest()末尾行から導出(コピーでなく単一の真実)", /const m = this\.manifest\(\), last = m\.length \? m\[m\.length - 1\]/.test(holoSrc));
+  check("結び: 解読数は注入された実データ(3 / 11)", nE.includes("3 / 11"));
+  check("結び: archive未注入なら UNRESOLVED(捏造しない)", textsL(D - 0.3, {}).includes("UNRESOLVED"));
+  check("Lore: reduced用 loreStaticT は結び章内(解読数と謎の行が読める位相)", Holo.loreStaticT() >= at("archive") && Holo.loreStaticT() <= D);
+  // 決定論: 同一t・同一optsで同一の描画命令列
+  const l1 = [], l2 = [];
+  Holo.drawLore(stubCtx(l1), 1200, 675, 6.6, { gates: { purity: true }, planetId: 1 });
+  Holo.drawLore(stubCtx(l2), 1200, 675, 6.6, { gates: { purity: true }, planetId: 1 });
+  check("Lore: 決定論(同一tで同一の命令列)", l1.join("|") === l2.join("|"));
+  // スキップ即時(オープニングと同じ play 機構)
+  {
+    let ended = false, cv = { width: 1200, height: 675, getContext: () => stubCtx(null), addEventListener: () => {}, removeEventListener: () => {} };
+    const st = Holo.play(cv, { total: D, reduced: false, bind: false, now: () => 0, draw: (c, w, h, t) => Holo.drawLore(c, w, h, t, {}), onEnd: () => { ended = true; } });
+    st.skip();
+    check("★Loreのスキップは即時(確認を挟まず onEnd へ)", st.done === true && st.skipped === true && ended === true);
+  }
+  // 導線と共有(ソース検査): 器はmount・実セーブの解決は UI.loreMovieOpts ただ1箇所・導線2つ・z-index
+  const metaSrc = fs.readFileSync(path.join(ROOT, "js/ui/screens/meta.js"), "utf8");
+  const dexSrc = fs.readFileSync(path.join(ROOT, "js/ui/screens/dex.js"), "utf8");
+  const hqSrc = fs.readFileSync(path.join(ROOT, "js/ui/screens/hq.js"), "utf8");
+  const bootSrc = fs.readFileSync(path.join(ROOT, "js/ui/boot.js"), "utf8");
+  const cssSrc = fs.readFileSync(path.join(ROOT, "style.css"), "utf8");
+  check("導線: 器は Holo.mount(\"holo-lore\")・再生は playLore(meta.js)", /Holo\.mount\("holo-lore"\)/.test(metaSrc) && /playLore\(\)/.test(metaSrc));
+  check("★共有: 実セーブの解決は UI.loreMovieOpts ただ1箇所(検分ビューアも共有)", /loreMovieOpts\(\)/.test(metaSrc) && /UI\.loreMovieOpts/.test(bootSrc) && !/holoLoreChapterGate/.test(bootSrc));
+  check("導線: 図鑑Loreタブ(#lore-play)+標本棚(#hq-lore-holo)の2箇所", /id="lore-play"/.test(dexSrc) && /id="hq-lore-holo"/.test(hqSrc));
+  check("導線: CFG.holoLoreOn=false で導線ごと消える(loreMovieOnゲート)", /loreMovieOn\(\)/.test(dexSrc) && /loreMovieOn\(\)/.test(hqSrc) && /CFG\.holoLoreOn === false/.test(metaSrc));
+  check("器: #holo-lore はオープニングの下・ヒーローより上(z=490)", /#holo-lore\s*\{\s*z-index:\s*490/.test(cssSrc));
+}
+
 console.log(`\n==== holo_regression: ${pass} PASS / ${fail} FAIL ====`);
 process.exit(fail ? 1 : 0);

@@ -306,6 +306,28 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       ok("P3-3解禁: CFG=falseで従来リスト完全復帰(全" + RESEARCH.length + "件+購入ボタン)", rl.querySelectorAll(".list-row").length === RESEARCH.length && rl.querySelectorAll("button").length > 0 && /生産効率/.test(rl.textContent));
       ok("P3-3解禁: 購入済み(prod1)は済表示=遮蔽中も状態が保たれていた", !!rl.querySelector(".list-row.done") && /生産効率 I/.test(rl.querySelector(".list-row.done").textContent));
       CFG.researchBetaHidden = true; UI.closeModal();
+
+      // ===== P4-2: Lore ARCHIVE 導線2箇所(標本棚/図鑑Loreタブ)・器・スキップ即時・CFG可逆 =====
+      UI.openLabPanel("shelf");
+      var sb = document.getElementById("modal-body");
+      ok("P4-2導線: 標本棚に「読む」と「ホロ再生」が並ぶ", !!sb.querySelector("#hq-lore") && !!sb.querySelector("#hq-lore-holo"));
+      sb.querySelector("#hq-lore-holo").click();
+      var hov = document.getElementById("holo-lore");
+      ok("P4-2再生: クリックで器 #holo-lore が表示(共通.holo-stage)", !!hov && hov.classList.contains("show") && hov.classList.contains("holo-stage"));
+      hov.querySelector("canvas").dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      ok("P4-2スキップ: 器上のクリックで即時に閉じる(確認なし)", !hov.classList.contains("show"));
+      UI.closeModal();
+      UI.dexTab = "lore"; UI.openDex();
+      var dxb = document.getElementById("modal-body");
+      ok("P4-2導線: 図鑑Loreタブヘッダに #lore-play", !!dxb.querySelector("#lore-play"));
+      dxb.querySelector("#lore-play").click();
+      ok("P4-2再生: 図鑑からも器が開く", document.getElementById("holo-lore").classList.contains("show"));
+      document.querySelector("#holo-lore canvas").dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      UI.closeModal();
+      CFG.holoLoreOn = false; // 可逆: falseで導線ごと消える(読むは残る)
+      UI.openLabPanel("shelf"); sb = document.getElementById("modal-body");
+      ok("P4-2可逆: CFG.holoLoreOn=falseで導線が消える(「読む」は残る)", !sb.querySelector("#hq-lore-holo") && !!sb.querySelector("#hq-lore"));
+      CFG.holoLoreOn = true; UI.closeModal();
       UI.closeHqLab();
 
       ok("console: 実行時エラーなし", !window.__err, window.__err);

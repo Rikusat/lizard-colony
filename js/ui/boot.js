@@ -540,26 +540,17 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
           mk(ctl, "↻ 最初から", () => { S.t = 0; S.playing = true; sync(); });
           const bSpd = SPD.map((v) => mk(ctl, "×" + v, () => { S.speed = v; sync(); }));
           const bLoop = mk(ctl, "ループ ON", () => { S.loop = !S.loop; sync(); });
-          // 章ゲート(深い1行)の解決はUI層の責務=holo.jsはGameを知らない(恒久テストの規律)。
-          //   導線実装時(次スプリント)はこの解決式をUIヘルパへ昇格し、本編と検分で共有する。
-          const gatesFromSave = () => {
-            const map = (typeof CFG !== "undefined" && CFG.holoLoreChapterGate) || {};
-            const lore = (typeof Game !== "undefined" && Game.state && Game.state.lore) || {};
-            const g = {}; for (const k in map) g[k] = !!lore[map[k]];
-            return g;
-          };
+          // 実セーブの知識(章ゲート/現在惑星/解読数)の解決は UI.loreMovieOpts() を共有(P4-2導線実装で昇格済み
+          //   =単一の真実)。ビューア固有なのは gateMode 上書き(全解放/全未解放の検分)だけ。
           S.gateMode = "save";
           const GM = [["save", "実セーブ"], ["open", "全解放"], ["closed", "全未解放"]];
-          const gatesOf = () => S.gateMode === "open" ? { net: true, purity: true, bugger: true }
-            : S.gateMode === "closed" ? {} : gatesFromSave();
-          const bGate = GM.map(([id, lb]) => mk(ctl, "行:" + lb, () => { S.gateMode = id; sync(); }));
-          // 章2の惑星と結びの解読数もUI層で解決して注入(holo.jsは実セーブを知らない)
-          const pidOf = () => (typeof Game !== "undefined" && Game.currentStage) ? Game.currentStage().id : 1;
-          const arcOf = () => {
-            if (typeof Game === "undefined" || !Game.state || typeof LORE === "undefined") return null;
-            const lore = Game.state.lore || {};
-            return { got: Object.keys(lore).filter((k) => lore[k]).length, total: LORE.length };
+          const optsOf = () => {
+            const o = (typeof UI !== "undefined" && UI.loreMovieOpts) ? UI.loreMovieOpts() : { gates: {}, planetId: 1, archive: null };
+            if (S.gateMode === "open") o.gates = { net: true, purity: true, bugger: true };
+            else if (S.gateMode === "closed") o.gates = {};
+            return o;
           };
+          const bGate = GM.map(([id, lb]) => mk(ctl, "行:" + lb, () => { S.gateMode = id; sync(); }));
 
           const jump = document.createElement("div");
           jump.style.cssText = "display:flex;flex-wrap:wrap;gap:5px;align-items:center;justify-content:center;font-size:11px;";
@@ -608,7 +599,7 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
               S.t += dt * S.speed;
               if (S.t >= T) { if (S.loop) S.t %= T; else { S.t = T - 0.001; S.playing = false; } }
             }
-            Holo.drawLore(cv.getContext("2d"), cv.width, cv.height, S.t, { gates: gatesOf(), planetId: pidOf(), archive: arcOf() });
+            Holo.drawLore(cv.getContext("2d"), cv.width, cv.height, S.t, optsOf());
             sync();
             lRaf = requestAnimationFrame(loop);
           };

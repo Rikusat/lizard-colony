@@ -269,13 +269,16 @@ Object.assign(UI, {
   // ---------------- 標本棚(Lore・鉱石在庫) ----------------
   openLabShelf() {
     this.openModal(`${Icon.svg("scroll")} 標本棚・記録の間`, (body) => {
+      // P4-2: 「読む」の隣にホロ再生(Lore ARCHIVEムービー)。CFG.holoLoreOn=falseなら導線ごと出さない(可逆)
       body.innerHTML = `
         <div class="list-row">
           <span class="fic">${Icon.svg("scroll")}</span><div class="grow"><b>Lore</b></div>
-          <button id="hq-lore">${Icon.svg("scroll")} 読む</button></div>
+          <button id="hq-lore">${Icon.svg("scroll")} 読む</button>${this.loreMovieOn && this.loreMovieOn() ? `<button id="hq-lore-holo" title="世界の記録をホログラムで再生(クリックでスキップ)">${Icon.svg("hq")} ホロ再生</button>` : ""}</div>
         <div class="rowline" style="font-size:calc(13px * var(--fs-scale, 1));color:var(--sub)">
           ${ORES.map((o) => `${Icon.svg(o.icon)}${fmt(Game.ore(o.id))}`).join("  ")}</div>`;
       body.querySelector("#hq-lore").addEventListener("click", () => { this.dexTab = "lore"; this.openDex(); });
+      const hl = body.querySelector("#hq-lore-holo");
+      if (hl) hl.addEventListener("click", () => this.playLore());
     });
   },
 });

@@ -26,8 +26,12 @@ Object.assign(UI, {
       // V4 §3.5: Loreタブ(遊ぶうちに解放されるコレクション)
       const lore = Game.state.lore || {};
       const gotN = LORE.filter((L) => lore[L.id]).length;
-      box.innerHTML = `<div class="dex-summary">解読済み: <b style="color:var(--gold)">${gotN}/${LORE.length}</b>
-        — 惑星レプタイルの記録。遊ぶほどに世界が見えてくる</div>`;
+      // P4-2: ホロ再生(Lore ARCHIVEムービー)。CFG.holoLoreOn=falseなら導線ごと出さない(可逆)
+      box.innerHTML = `<div class="dex-summary" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span>解読済み: <b style="color:var(--gold)">${gotN}/${LORE.length}</b>
+        — 惑星レプタイルの記録。遊ぶほどに世界が見えてくる</span>
+        ${this.loreMovieOn && this.loreMovieOn() ? `<button id="lore-play" title="世界の記録をホログラムで再生(約${Holo.loreDur().toFixed(0)}秒・クリックでスキップ)">${Icon.svg("hq")} ホロ再生</button>` : ""}</div>`;
+      const lp = box.querySelector("#lore-play");
+      if (lp) lp.addEventListener("click", () => this.playLore());
       for (const L of LORE) {
         const got = lore[L.id];
         const row = document.createElement("div");

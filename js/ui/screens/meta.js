@@ -233,6 +233,41 @@ Object.assign(UI, {
     return true;
   },
 
+  // ---------------- P4-2: Lore ARCHIVE の再生(2026-08-11 Ric承認) ----------------
+  // 器・スキップ・reduced は playOpening と同じ Holo 機構。何度でも再生可(一度きりフラグなし)。
+  // CFG.holoLoreOn=false で導線ごと消える(可逆・既定true=Ric指示)。
+  loreMovieOn() {
+    return !(typeof CFG === "undefined" || CFG.holoLoreOn === false || typeof Holo === "undefined" || typeof Holo.drawLore !== "function");
+  },
+  // 実セーブの知識(章ゲート/現在惑星/解読数)は**ここ1箇所**が解決して opts で注入する
+  //   =holo.jsはルール層を参照しない(恒久テスト§8)。検分ビューア(?tune=1#lore)もこれを共有=単一の真実。
+  loreMovieOpts() {
+    const map = (typeof CFG !== "undefined" && CFG.holoLoreChapterGate) || {};
+    const lore = (Game.state && Game.state.lore) || {};
+    const gates = {};
+    for (const k in map) gates[k] = !!lore[map[k]];
+    return {
+      gates: gates,
+      planetId: Game.currentStage().id,
+      archive: (typeof LORE !== "undefined") ? { got: Object.keys(lore).filter((k) => lore[k]).length, total: LORE.length } : null,
+    };
+  },
+  playLore() {
+    if (!this.loreMovieOn()) return false;
+    const stage = Holo.mount("holo-lore");
+    if (!stage) return false;
+    const reduced = !!(typeof Motion !== "undefined" && Motion.reduced);
+    const opts = this.loreMovieOpts();
+    Holo.play(stage.cv, {
+      total: Holo.loreDur(), reduced: reduced,
+      reducedHoldSec: reduced ? (CFG.holoLoreReducedHoldSec || 3.0) : 0,
+      staticT: Holo.loreStaticT(),
+      draw: (c, w, h, t) => Holo.drawLore(c, w, h, t, opts),
+      onEnd: () => { stage.ov.classList.remove("show"); },
+    });
+    return true;
+  },
+
   // 初回起動時の自動再生。**ゲートはここ1箇所**(CFG / 演出モジュールの有無 / 再生済みフラグ)。
   // 既存プレイヤーは Game.migrateOpeningSeen で「見た」ことになっているので、ここを通らない。
   autoPlayOpening() {
