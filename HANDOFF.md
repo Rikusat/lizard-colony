@@ -1947,6 +1947,12 @@ V3=パネル枠/効果一覧ボタン/スパーク素材化→配信・本番実
 - **三者同期clean**: local=origin=本番=`133bd6a`。live index/game.js等バイト一致・source-sheet=404。**ブランチ後始末済**(hotfix/nest-node-css・deliver/nest-assets をremote/local削除=mainに包含)。
 - **V6-P2 完了。次フェーズ=P3(HQ完成)**。
 
+### 5s-V6-P3-1. ★P3-1 調査完了(2026-08-11・読み取りのみ・対処はRic裁定待ち)
+- **「トカゲの分析」の特定=(b)tuneゲート内**: `?tune=1#roster` の**個体一覧ビューア**(§6R.16・セーブ同定ヘッダ+全個体一覧)。コードは本番配信済みで、**本番URLでも `?tune=1#roster` 直打ちで動作することを実測**(SAVE:ヘッダ表示確認)。=「他端末では動作」の説明: その端末のURLにtuneが付いていた。**本番導線(ボタン)が無いだけ**。導入経緯はdev支援として意図的tune限定→本番機能と見なす場合の対処案=本部メニューへ「個体分析」として昇格(裁定待ち)。
+- **全数点検**: ①index.html未読込JS=**0件** ②.vercelignore除外=全て意図的(devページ24/docs/参照画像) ③tuneゲート=#roster(本件)以外は全て意図的なdev検分/デバッグ(#opening/#p12/#slitskin/#weather/#travel/#spotdebug/#hqlab-*・tune資源付与) ④導線なし関数=open系30を全数監査: **openStages=旧コロニー一覧モーダルの残骸**(マップ画面に置換済・呼び出しゼロ=掃除候補)/openHQ=互換エイリアス(意図的)。
+- **区分**: 漏れ(対処候補)=❶#rosterの本番導線(機能と見なす場合) ❷openStages残骸の掃除。他は意図的除外。
+- 監査の学び: シェル経由の正規表現埋め込みが壊れ全関数が孤児判定→スクリプトファイル化で是正(ワンライナーのエスケープを疑え)。
+
 ### 5x-GUARD. ★描画の非有限ガード(2026-08-10・Ric裁定・本番デプロイ済)[7e3d369, bac5fbc, c46d7ba, a231f1e]
 前セッションの報告テキストがクラッシュで失われ**HANDOFF記録も欠落していた**ため、コミットメッセージ・テスト実体・本番実測から復元して記録(2026-08-10 再開セッション)。
 - **7e3d369**: Canvas2D の createRadialGradient/arc/ellipse 等は NaN/Infinity で TypeError を投げ、**そのフレームの描画が丸ごと止まる**(画面停止)。計算値を渡す71ヶ所に検査を散らすと漏れるため、**`Render.guardCtx` で ctx を一度だけ包む**方式(知識は1箇所)。非有限は「その図形だけ」捨てる=握りつぶしではない(絵の欠けとして残る・`?tune=1` で警告1回・`__finGuard` で冪等)。`finite()` は数値のみ検査(arc の anticlockwise=boolean 等を誤って弾かない)。`drawGenesisFx` は undefined 座標も弾く必要があるため `Number.isFinite` の厳格判定で分離。
