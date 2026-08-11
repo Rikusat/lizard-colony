@@ -214,10 +214,11 @@ if (!NOASSETS) {
         else hue = 60 * ((r3 - g3) / (mx - mn) + 4);
         if (hue < 0) hue += 360;
       }
-      const RANGE = { amber: [20, 60], red: [0, 30], green: [80, 160], teal: [160, 215], purple: [235, 310] };
+      const RANGE = { amber: [20, 60], red: [345, 30], green: [80, 160], teal: [160, 215], purple: [235, 310] }; // red=0°境界跨ぎ(巻き戻り対応)
       const [h0, h1] = RANGE[s.ring];
+      const inR = h0 <= h1 ? (hue >= h0 && hue <= h1) : (hue >= h0 || hue <= h1);
       row(`V2 メダリオン(${s.ring}・on) 環の色相`, `${h0}〜${h1}°`, hue.toFixed(0) + "° (n=" + n2 + ")",
-        "期待レンジ内", n2 >= T.medallion.minSamples && hue >= h0 && hue <= h1);
+        "期待レンジ内", n2 >= T.medallion.minSamples && inR);
     }
   }
   // v2-V3: パネル枠/ボタンの自己アンカー型(ゾーン平均色一致・素材=正解)。
