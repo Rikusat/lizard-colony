@@ -14,9 +14,89 @@ Object.assign(UI, {
     if (key === "desks") this.openLabDesks();
     else if (key === "tank") this.openLabTank();
     else if (key === "rocket") this.openLabRocket();
+    else if (key === "roster") this.openLabRoster();
     else if (key === "shelf") this.openLabShelf();
   },
   _labRefresh(key) { this.closeModal(); this.openLabPanel(key); if (this.renderHqLab) this.renderHqLab(); },
+
+  // ================= P3-1裁定①(2026-08-11): 個体分析 =================
+  // 本部パネル(本番)と devビューア(?tune=1#roster)が**同じ収集/整列/表生成**を使う=単一の真実・二重実装なし。
+  // 読み取り専用: この関数群に Game.state への書き込みは1行も無い(grepで証明・恒久保証は装置QA)。
+  rosterCollect() {
+    const curId = Game.currentStage().id;
+    const rows = [];
+    for (const lz of Game.state.lizards) rows.push({ lz, planet: curId });
+    for (const st of ((Game.world && Game.world.stages) || [])) {
+      if (st.stageId === curId) continue;
+      for (const lz of (st.lizards || [])) rows.push({ lz, planet: st.stageId });
+    }
+    return rows;
+  },
+  buildRosterTable(host, state) {
+    const rebuild = () => this.buildRosterTable(host, state);
+    const rows = this.rosterCollect();
+    const sorted = rows.slice().sort((a, b) => {
+      const key = state.sort;
+      const v = (r) => key === "lv" ? (r.lz.level || 1) : key === "name" ? Game.lizardName(r.lz) : key === "sp" ? r.lz.speciesId : key === "mo" ? r.lz.morphId : key === "cd" ? (r.lz.breedCd || 0) : key === "pl" ? r.planet : 0;
+      const va = v(a), vb = v(b);
+      if (key !== "default" && va !== vb) return (va < vb ? -1 : 1) * state.dir;
+      return (a.planet - b.planet) || (a.lz.speciesId < b.lz.speciesId ? -1 : a.lz.speciesId > b.lz.speciesId ? 1 : 0) || ((b.lz.level || 1) - (a.lz.level || 1));
+    }).filter((r) =>
+      (!state.fSp || r.lz.speciesId === state.fSp) &&
+      (!state.fPl || String(r.planet) === state.fPl) &&
+      (!state.fMo || r.lz.morphId === state.fMo) &&
+      (state.fTr === "" || (state.fTr === "y") === ((r.lz.traits || []).length > 0)));
+    const spOpts = [...new Set(rows.map((r) => r.lz.speciesId))].map((id2) => `<option value="${id2}" ${state.fSp === id2 ? "selected" : ""}>${(speciesById(id2) || {}).name || id2}</option>`).join("");
+    const plOpts = [...new Set(rows.map((r) => r.planet))].sort((a, b) => a - b).map((p) => `<option value="${p}" ${state.fPl === String(p) ? "selected" : ""}>${(stageById(p) || {}).name || p}</option>`).join("");
+    const moOpts = MORPHS.map((m) => `<option value="${m.id}" ${state.fMo === m.id ? "selected" : ""}>${m.name}</option>`).join("");
+    const th = (key, label, cls) => `<th data-sort="${key}" class="${cls || ""}">${label}${state.sort === key ? (state.dir > 0 ? " ▲" : " ▼") : ""}</th>`;
+    let html = `<div class="rst-ctl">
+      <label>惑星 <select data-f="fPl"><option value="">すべて</option>${plOpts}</select></label>
+      <label>種 <select data-f="fSp"><option value="">すべて</option>${spOpts}</select></label>
+      <label>モーフ <select data-f="fMo"><option value="">すべて</option>${moOpts}</select></label>
+      <label>特性 <select data-f="fTr"><option value="">すべて</option><option value="y" ${state.fTr === "y" ? "selected" : ""}>あり</option><option value="n" ${state.fTr === "n" ? "selected" : ""}>なし</option></select></label>
+      <button class="rst-refresh">更新</button><span class="rst-count">表示 ${sorted.length} / ${rows.length}</span></div>
+      <div class="rst-scroll"><table class="rst-table"><thead><tr>
+      <th>#</th>${th("name", "名前")}${th("sp", "種")}${th("mo", "モーフ", "rc-mo")}${th("lv", "Lv")}<th>特性</th>${th("cd", "CD残", "rc-cd")}<th class="rc-st">状態</th>${th("pl", "惑星")}</tr></thead><tbody>`;
+    sorted.forEach((r, i) => {
+      const lz = r.lz, mo = morphById(lz.morphId) || { name: lz.morphId };
+      const leg = lz.morphId === "legendary";
+      const status = lz.injuredT > 0 ? `負傷 ${Math.ceil(lz.injuredT)}s` : lz.tailRegrowT > 0 ? "尾再生中" : lz.poisonT > 0 ? "毒" : "—";
+      html += `<tr><td class="rc-i">${i + 1}</td>
+        <td><b class="${leg ? "leg-name" : ""}">${Game.lizardName(lz)}</b></td>
+        <td>${(speciesById(lz.speciesId) || {}).name || lz.speciesId}</td>
+        <td class="rc-mo">${mo.name}</td>
+        <td class="rc-num">${lz.stage === "baby" ? "ベビー" : "Lv" + (lz.level || 1)}</td>
+        <td>${UI.breedTraitChips ? UI.breedTraitChips(lz) : ""}</td>
+        <td class="rc-cd rc-num">${lz.breedCd > 0 ? Math.ceil(lz.breedCd) + "s" : "—"}</td>
+        <td class="rc-st">${status}</td>
+        <td>${(stageById(r.planet) || {}).name || r.planet}</td></tr>`;
+    });
+    html += "</tbody></table></div>";
+    host.innerHTML = html;
+    host.querySelector(".rst-refresh").addEventListener("click", rebuild);
+    for (const sel of host.querySelectorAll("[data-f]")) sel.addEventListener("change", (e) => { state[e.target.dataset.f] = e.target.value; rebuild(); });
+    for (const el of host.querySelectorAll("[data-sort]")) el.addEventListener("click", () => {
+      const k = el.dataset.sort;
+      if (state.sort === k) state.dir = -state.dir; else { state.sort = k; state.dir = 1; }
+      rebuild();
+    });
+  },
+  openLabRoster() {
+    this.openModal(`${Icon.svg("lizard")} 個体分析 <small class="rst-en">SPECIMEN ANALYSIS</small>`, (body) => {
+      const rows = this.rosterCollect();
+      const planets = new Set(rows.map((r) => r.planet));
+      const adults = rows.filter((r) => r.lz.stage !== "baby").length;
+      const nTr = rows.filter((r) => (r.lz.traits || []).length > 0).length;
+      body.innerHTML = `<div class="rst-sum">
+        <span>${Icon.svg("lizard")}総個体 <b>${rows.length}</b></span>
+        <span>${Icon.svg("planet")}惑星 <b>${planets.size}</b></span>
+        <span>アダルト率 <b>${rows.length ? Math.round(adults / rows.length * 100) : 0}%</b></span>
+        <span>${Icon.svg("spark")}特性保持 <b>${nTr}</b></span></div>
+        <div class="rst-host"></div>`;
+      this.buildRosterTable(body.querySelector(".rst-host"), this._rstState || (this._rstState = { sort: "default", dir: 1, fSp: "", fMo: "", fTr: "", fPl: "" }));
+    });
+  },
   // コスト表示: アイコン+個数のみ。不足=赤字(.cost-ng)
   _costHtml(pairs) { // pairs=[{icon,n,have}]
     return pairs.map((p) => `<span class="lab-cost${p.have >= p.n ? "" : " cost-ng"}">${Icon.svg(p.icon)}${p.n}</span>`).join("");

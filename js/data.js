@@ -401,6 +401,7 @@ const CFG = {
     { key: "tank", jp: "錬成", en: "ALCHEMY", icon: "bio" },
     { key: "shelf", jp: "標本棚", en: "ARCHIVE ROOM", icon: "scroll" },
     { key: "rocket", jp: "宇宙港", en: "SPACEPORT", icon: "rocket" },
+    { key: "roster", jp: "個体分析", en: "SPECIMEN ANALYSIS", icon: "lizard" }, // P3-1裁定①
     { key: "dex", jp: "図鑑", en: "SPECIMEN DEX", icon: "dex" },
   ],
   // V6-P2-2 B0/B1: 巣ビジュアル(nest_image2 再現・★全てRic実機判定)

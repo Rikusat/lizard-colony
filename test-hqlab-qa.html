@@ -257,6 +257,21 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       var ms = (performance.now() - t0) / 120;
       ok("fps: フル再描画 " + ms.toFixed(2) + "ms(" + (1000 / ms).toFixed(0) + "fps) 予算内<8ms", ms < 8); console.log("[LABFPS] " + ms.toFixed(2) + "ms = " + (1000 / ms).toFixed(0) + "fps");
       document.title = "LABFPS " + (1000 / ms).toFixed(0);
+
+      // ===== P3-1裁定①: 個体分析パネル(本番)。行数=実個体数・dev情報の非露出・読み取り専用 =====
+      var rosterExpected = UI.rosterCollect().length;
+      var rsbtn = document.querySelector(String.fromCharCode(35)+"hqlab-menu [data-panel=\"roster\"]");
+      if (rsbtn) rsbtn.click();
+      var mb = document.getElementById("modal-body");
+      ok("個体分析: メニューから開く", !!rsbtn && !document.getElementById("modal").classList.contains("hidden"));
+      ok("個体分析: 行数=実個体数(全惑星)", mb.querySelectorAll(".rst-table tbody tr").length === rosterExpected, "rows=" + mb.querySelectorAll(".rst-table tbody tr").length + " exp=" + rosterExpected);
+      ok("個体分析: サマリ4項目(総個体/惑星/アダルト率/特性保持)", mb.querySelectorAll(".rst-sum b").length === 4);
+      ok("個体分析: dev情報(SAVE同定/読取経路)が本番パネルに露出しない", !/SAVE:|読取経路/.test(mb.textContent));
+      var stSnap = JSON.stringify([Game.state.lizards.length, Game.state.coins, Game.state.rank]);
+      var lvBtn = mb.querySelector("[data-sort=\"lv\"]"); if (lvBtn) lvBtn.click();
+      var plSel = mb.querySelector("[data-f=\"fPl\"]"); if (plSel) { plSel.value = ""; plSel.dispatchEvent(new Event("change")); }
+      ok("個体分析: 操作(ソート/フィルタ)してもstate非接触=読み取り専用", stSnap === JSON.stringify([Game.state.lizards.length, Game.state.coins, Game.state.rank]));
+      UI.closeModal();
       UI.closeHqLab();
 
       ok("console: 実行時エラーなし", !window.__err, window.__err);

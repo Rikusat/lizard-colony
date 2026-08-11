@@ -1822,6 +1822,22 @@ button.holding::after {
 .nq-cond > b { float: right; color: var(--paper-100, #F3E9D8); }
 .nq-rw { margin-top: 7px; font-size: calc(12px * var(--fs-scale, 1)); color: var(--paper-100, #F3E9D8); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .nq-note { margin-top: 5px; font-size: calc(10px * var(--fs-scale, 1)); color: var(--sub); }
+/* P3-1: 個体分析(本部・HOLO書式=琥珀罫/mono数値)。列優先: 狭幅で CD残→状態/モーフ の順に隠す */
+.rst-en { font-family: ui-monospace, monospace; font-size: 11px; color: rgba(255, 181, 71, .5); letter-spacing: .08em; margin-left: 8px; }
+.rst-sum { display: flex; gap: 16px; flex-wrap: wrap; padding: 8px 10px; margin-bottom: 8px; background: var(--lcd-bg, #14100a); border: 1px solid var(--lcd-border, #3a2f1e); border-radius: 6px; font-size: calc(12px * var(--fs-scale, 1)); color: var(--sub); }
+.rst-sum span { display: inline-flex; align-items: center; gap: 4px; }
+.rst-sum b { color: var(--amber-400); font-family: ui-monospace, monospace; font-size: calc(15px * var(--fs-scale, 1)); margin-left: 4px; }
+.rst-ctl { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; font-size: calc(12px * var(--fs-scale, 1)); color: var(--sub); }
+.rst-count { margin-left: auto; font-family: ui-monospace, monospace; }
+.rst-scroll { max-height: 52vh; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+.rst-table { border-collapse: collapse; width: 100%; font-size: calc(12px * var(--fs-scale, 1)); }
+.rst-table th { position: sticky; top: 0; background: var(--lcd-bg, #14100a); color: var(--amber-400); text-align: left; padding: 5px 8px; border-bottom: 1px solid #5a4a33; white-space: nowrap; }
+.rst-table th[data-sort] { cursor: pointer; }
+.rst-table td { padding: 4px 8px; border-bottom: 1px solid #2e2418; }
+.rst-table .rc-i { color: var(--sub); }
+.rst-table .rc-num { font-family: ui-monospace, monospace; }
+@media (max-width: 900px) { .rst-table .rc-cd { display: none; } }
+@media (max-width: 760px) { .rst-table .rc-st, .rst-table .rc-mo { display: none; } }
 .nest-fx-note { font-size: calc(11px * var(--fs-scale, 1)); color: var(--sub); margin: 8px 0 0; }
 /* v2-V3: パネル枠/ボタンの素材モード(.assets)。焼き込み見本値(Lv.12/325/800/28.7%)は不透明地+実データDOMで
    覆う(素材無改変・rank/rate方式)。rateは見出し「総解放率」が実概念と一致=数値領域のみ覆い素材を最大活用 */
