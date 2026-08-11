@@ -96,6 +96,31 @@ function loadSound(extraCfg) {
   check("probe def はテスト器専用(soundDefsに存在)", !!CFG.soundDefs.probe);
 }
 
+// ---- 2b) S1 基準音3種(給餌/孵化/撃破)。数値の良し悪しはRic実機判定・ここは構造だけ検査 ----
+{
+  const { Sound, CFG } = loadSound();
+  for (const id of ["feed", "hatch", "defeat"]) check("S1基準音 " + id + " が soundDefs にある", !!CFG.soundDefs[id]);
+  const P = CFG.soundPriority;
+  check("★優先度: 通常撃破はボス撃破より軽い(承認済み序列への挿入=並べ替えではない)", P.defeat < P.boss);
+  check("★優先度: 承認済み5項の序列は不変(石>ボス>孵化>繁殖>給餌)",
+    P.stone > P.boss && P.boss > P.hatch && P.hatch > P.breed && P.breed > P.feed);
+  check("S1の3種は追加枠の対象外(満杯時に核以外が割り込まない)",
+    P.feed < CFG.soundPrioFloor && P.hatch < CFG.soundPrioFloor && P.defeat < CFG.soundPrioFloor);
+  // 既定値のマージ: 部分指定のdefでも完全なdefが返る(欠損の面倒は def() が引き受ける)
+  const d = Sound.def("feed");
+  check("def() が CFG.soundDefDefaults を重ねて完全なdefを返す", d.seed === CFG.soundDefDefaults.seed && d.vol === CFG.soundDefs.feed.vol);
+  check("def() は元の定義を書き換えない(コピーを返す)", CFG.soundDefs.feed.seed === undefined);
+  check("音予算(§2-7 頻発ほど軽く短く): vol 撃破>孵化>給餌",
+    CFG.soundDefs.defeat.vol > CFG.soundDefs.hatch.vol && CFG.soundDefs.hatch.vol > CFG.soundDefs.feed.vol);
+  check("音予算(§2-7): 尺 撃破>孵化>給餌",
+    (CFG.soundDefs.defeat.dur + CFG.soundDefs.defeat.release) > (CFG.soundDefs.hatch.dur + CFG.soundDefs.hatch.release) &&
+    (CFG.soundDefs.hatch.dur + CFG.soundDefs.hatch.release) > (CFG.soundDefs.feed.dur + CFG.soundDefs.feed.release));
+  check("★検分ページ ?tune=1#sound が存在する(Ricが実クリックで判定する唯一の場所)",
+    /#sound/.test(read("js/ui/boot.js")) && /sound-view/.test(read("js/ui/boot.js")));
+  check("検分ページはセーブを書き換えない(setSoundEnabled を呼ばない)",
+    !/Game\.setSoundEnabled/.test(codeOf(read("js/ui/boot.js"))));
+}
+
 // ---- 3) 単一窓口(全数走査): AudioContext系を書けるのは js/sound.js だけ ----
 {
   const walk = (dir, out) => {
@@ -106,8 +131,14 @@ function loadSound(extraCfg) {
     }
     return out;
   };
-  const offenders = walk("js", []).filter((f) => f !== "js/sound.js" && /AudioContext|createOscillator|createGain|createBufferSource/.test(codeOf(read(f))));
-  check("★AudioContext系API は js/sound.js 以外に0件(不可逆②=窓口散在の禁止)", offenders.length === 0, offenders.join(","));
+  // 「叩く形」だけを違反とする(removed_api_regression と同じ作法)。UI文言に "OfflineAudioContext" と
+  // 書くのは説明であって使用ではない=検分ページの表示テキストを違反にしない。
+  const USE = /new\s+(?:Offline)?AudioContext\b|\.\s*create(?:Oscillator|Gain|BufferSource|Buffer|BiquadFilter)\s*\(/;
+  check("★カナリア: 生成形(new AudioContext)を検知する", USE.test("const c = new Audio" + "Context();"));
+  check("★カナリア: ノード生成形(.createOscillator())を検知する", USE.test("src = ctx.create" + "Oscillator();"));
+  check("★カナリア: 文言中の語は違反にしない(説明は使用ではない)", !USE.test('o.textContent = "Offline' + 'AudioContext 非対応";'));
+  const offenders = walk("js", []).filter((f) => f !== "js/sound.js" && USE.test(codeOf(read(f))));
+  check("★AudioContext系API を使うのは js/sound.js だけ(不可逆②=窓口散在の禁止)", offenders.length === 0, offenders.join(","));
 }
 
 // ---- 4) 非接触 ----
@@ -116,6 +147,24 @@ function loadSound(extraCfg) {
   check("sound.js は Game を参照しない(ON状態は setEnabled 注入)", !/\bGame\b/.test(src));
   check("sound.js は localStorage を参照しない", !/localStorage/.test(src));
   check("sound.js は Math.random を使わない(決定論=固定シード xorshift)", !/Math\.random/.test(src));
+}
+
+// ---- 4b) ★知識は1箇所: sound.js に CFG のフォールバック定数を置かない(2026-08-11 Ric承認の片付け) ----
+//   `CFG.soundX != null ? CFG.soundX : 60` や `CFG.soundX || 8` は「CFGを直しても効かない第二の既定値」を
+//   生む。data.js は sound.js より必ず先に読まれる硬い依存なので、フォールバックは不要かつ有害。
+{
+  const FALLBACK = /CFG\.\w+\s*(?:!=\s*null\s*\?[^:]*:\s*-?[\d.]|\|\|\s*-?[\d.])/;
+  check("★カナリア: フォールバック検知が違反サンプル(三項)を捕まえる", FALLBACK.test("const g = CFG.soundMinGapMs != null ? CFG.soundMinGapMs : 60;"));
+  check("★カナリア: フォールバック検知が違反サンプル(||)を捕まえる", FALLBACK.test("const c = CFG.soundMaxVoices || 8;"));
+  check("★カナリア: 正しい直読は違反にしない", !FALLBACK.test("if (this._voices < CFG.soundMaxVoices) return true;"));
+  check("★sound.js に CFG のフォールバック定数が無い(知識はCFGの1箇所)", !FALLBACK.test(codeOf(read("js/sound.js"))));
+}
+
+// ---- 4c) ルール層に音コードを置かない(憲章§2-3: 演出はイベント購読で鳴らす) ----
+{
+  const PLAY = /Sound\s*\.\s*play\s*\(/;
+  check("★カナリア: 発音呼び出しの検知が効く", PLAY.test('Sound.play("feed")'));
+  check("★ルール層(js/game.js)は発音しない(状態通知 setEnabled のみ)", !PLAY.test(codeOf(read("js/game.js"))));
 }
 
 // ---- 5) 窓口ロジック(クロック注入) ----

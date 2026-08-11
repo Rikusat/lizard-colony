@@ -211,17 +211,41 @@ const CFG = {
   holoLoreChapterGate: { net: "hq", purity: "native", bugger: "cricket" }, // 章の深い1行⇔Lore id。未解放=REDACTEDへ落とす(嘘をつかない・解読が進むと行が開く=リプレイ価値)
   // ---- V6-P5 S0(2026-08-11 Ric承認・SoundSkills憲章): 音の基盤CFG。数値は全て★Ric実機調整 ----
   //   最重要の柱: 音にしかない情報を作らない(SoundSkills §2-2)。発音は Sound.play(id) のみ(不可逆②)。
+  //   ★js/sound.js は音の数値を一切持たない(CFG直読・フォールバック定数なし=知識は1箇所)。
+  //     ここを書き換えれば必ず効く。恒久テストが sound.js 側での二重定義の再発を検査する。
   soundOn: false,            // ★既定=初回無音(不可逆④=変更は裁定)。ユーザーのON状態はセーブ(dial)が上書き
   soundMaster: 0.5,          // ★全体音量
   soundSeVol: 1.0,           // ★SE系統音量
-  soundAmbVol: 1.0,          // ★環境音系統音量(S2から使用)
+  soundAmbVol: 1.0,          // ★環境音系統音量(def.bus="amb" が使う。S2の環境音から本格使用)
   soundMinGapMs: 60,         // ★同一SEの最小間隔ms(連打の間引き)
   soundMaxVoices: 8,         // ★同時発音上限(ボイスプール)
   soundPrioFloor: 4,         // ★満杯時も鳴らせる優先度の下限(=boss以上)
   soundPrioExtra: 2,         // ★高優先が満杯時に使える追加枠
-  soundPriority: { stone: 5, boss: 4, hatch: 3, breed: 2, feed: 1 }, // 優先度表(Ric承認・SoundSkills §2-4)
-  soundDefs: {               // 音の定義(S1で基準音3種を追加)。probe=テスト器専用・ゲームから鳴らさない
+  soundLogMax: 64,           // 発音ログ(リングバッファ)の保持数=装置QAの観測窓
+  soundStopPadSec: 0.01,     // 発音停止の余白秒(エンベロープ終端の切れを防ぐ)
+  soundRenderPadSec: 0.05,   // テスト器: オフラインレンダリング尺の余白秒(余韻の裾まで含める)
+  soundRenderSampleRate: 44100, // テスト器: オフラインレンダリングのサンプルレート
+  // defの既定値。個別defは必要な項目だけ上書きすればよい(欠損の面倒は Sound.def() が引き受ける)
+  soundDefDefaults: { type: "sine", freq: 440, dur: 0.1, vol: 0.5, attack: 0.005, release: 0.05, seed: 12345 },
+  // 優先度表(Ric承認・SoundSkills §2-4: 石の生成>ボス撃破>孵化>繁殖>給餌)。
+  //   defeat(通常撃破)は承認済み5項への**挿入**: ボス撃破(4)より軽く、孵化と同格(3)に置いた。
+  //   ★並べ替えではないので承認済みの序列は不変。この1点はRicの確認事項。
+  soundPriority: { stone: 5, boss: 4, hatch: 3, defeat: 3, breed: 2, feed: 1 },
+  // ---- 音の定義。probe=テスト器専用(ゲームから鳴らさない)/ feed・hatch・defeat=S1基準音3種 ----
+  //   ★S1たたき台=全数値はRicが ?tune=1#sound で実機判定して調整する。
+  //   設計方針(§2-7): 頻発するものほど短く小さく、核となる瞬間に音予算を集中。
+  //   §2-2の規律: 3種とも既存の視覚表示と対になる(給餌=XP/成長表示・孵化=卵→ベビー・撃破=撃破演出と報酬)。
+  //   ※S1では**ゲームへ配線しない**(Ricが音そのものを判定してから配線する)。
+  soundDefs: {
     probe: { type: "sine", freq: 880, dur: 0.12, vol: 0.5, attack: 0.005, release: 0.08 },
+    // 給餌: 最軽・超短の小さな「コッ」。何百回も鳴るため予算は最小(§2-7 頻発=軽く)
+    feed: { type: "sine", freq: 1200, freqEnd: 1500, dur: 0.03, vol: 0.16, attack: 0.002, release: 0.03 },
+    // 孵化: 命が生まれる=柔らかい上昇。給餌より長く大きいが、まだ「静か」の側
+    hatch: { type: "sine", freq: 620, freqEnd: 990, dur: 0.16, vol: 0.30, attack: 0.010, release: 0.16 },
+    // 撃破: 核となる瞬間=重い一撃。低域に寄せたノイズバースト(ボス用のさらに重い音は後段)。
+    //   ★filterFreq/vol の初期案(800Hz/0.50)は装置QAの数値ゲートで**給餌より小さい**と判明した
+    //     (ローパスがノイズの大半の帯域を削るため vol の額面どおりには鳴らない)。実測に合わせて是正。
+    defeat: { type: "noise", filterType: "lowpass", filterFreq: 1600, dur: 0.14, vol: 0.75, attack: 0.002, release: 0.20, seed: 20260811 },
   },
   // ---- C2改訂 フェーズ1: 惑星移動トランジション(頻発する導線=摩擦にしない) ----
   //   OFF(false)にすると従来の宇宙船トランジション(planetTravelSec)へ完全復帰する=可逆。

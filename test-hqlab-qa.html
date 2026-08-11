@@ -373,7 +373,11 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       CFG.soundDefs.__qaQuiet = { type: "sine", freq: 880, dur: 0.12, vol: 0.05, attack: 0.005, release: 0.08 };
       CFG.soundDefs.__qaLong = { type: "sine", freq: 880, dur: 0.36, vol: 0.5, attack: 0.005, release: 0.08 };
       CFG.soundDefs.__qaNoise = { type: "noise", dur: 0.12, vol: 0.5, attack: 0.005, release: 0.08, seed: 7777 };
-      var expLen = Math.ceil(44100 * (0.12 + 0.08 + 0.05));   // probe の尺(dur+release+余白)
+      // 期待値はCFGとdefから導く(QA側に数値を書き写さない=知識はCFGの1箇所)
+      var pd = Sound.def("probe");
+      var lenOf = function (d) { return Math.ceil(CFG.soundRenderSampleRate * (d.dur + d.release + CFG.soundRenderPadSec)); };
+      var volOf = function (d) { return d.vol * CFG.soundMaster * (d.bus === "amb" ? CFG.soundAmbVol : CFG.soundSeVol); };
+      var expLen = lenOf(pd);
       return Promise.all([Sound.renderOffline("probe"), Sound.renderOffline("__qaQuiet"), Sound.renderOffline("__qaLong"),
         Sound.renderOffline("__qaNoise"), Sound.renderOffline("__qaNoise")]).then(function (r) {
         var base = r[0], quiet = r[1], lng = r[2], n1 = r[3], n2 = r[4];
@@ -382,15 +386,51 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
         ok("§15カナリア: 計測器が尺の差を観測できる(dur 0.36 vs 0.12)", !!lng && lng.length > base.length * 1.5,
           "base=" + base.length + " long=" + lng.length);
         // ---- 数値ゲート(憲章§2-6) ----
-        ok("§15波形: probe の尺が def どおり(" + expLen + "サンプル/44.1kHz)", base.length === expLen, "実測=" + base.length);
+        ok("§15波形: probe の尺が def どおり(" + expLen + "サンプル)", base.length === expLen, "実測=" + base.length);
         ok("§15波形: 無音ではない(RMS>0.01)", base.rms > 0.01, "rms=" + base.rms.toFixed(4));
         ok("§15波形: クリップしない(0.05<peak≤1.0)", base.peak > 0.05 && base.peak <= 1.0, "peak=" + base.peak.toFixed(4));
-        ok("§15波形: peak が CFG の音量計算どおり(vol×master×se=0.25)", Math.abs(base.peak - 0.25) < 0.02, "peak=" + base.peak.toFixed(4));
+        ok("§15波形: peak が CFG の音量計算どおり(vol×master×se)", Math.abs(base.peak - volOf(pd)) < 0.02,
+          "peak=" + base.peak.toFixed(4) + " 期待=" + volOf(pd).toFixed(4));
+        ok("§15カナリア: 計測器が周波数を観測できる(probe=" + pd.freq + "Hz)", Math.abs(base.freqHz - pd.freq) < 20, "実測=" + base.freqHz.toFixed(1) + "Hz");
         ok("§15決定論: ノイズは固定シードで同一波形(Math.random不使用の実証)",
           n1.rms === n2.rms && n1.peak === n2.peak && n1.length === n2.length, "rms " + n1.rms.toFixed(6) + " / " + n2.rms.toFixed(6));
         delete CFG.soundDefs.__qaQuiet; delete CFG.soundDefs.__qaLong; delete CFG.soundDefs.__qaNoise;
-        Game.setSoundEnabled(false);
-        ok("§15保存: OFFへ戻せる(両方向トグル=単調フラグではない)", Game.soundEnabled() === false && Sound.on() === false);
+
+        // ---- S1 基準音3種の数値ゲート(音の良し悪しはRic実機判定・ここは「defどおり鳴るか」だけ) ----
+        var S1 = ["feed", "hatch", "defeat"];
+        return Promise.all(S1.map(function (id) { return Sound.renderOffline(id); })).then(function (rs) {
+          var pk = {}, ln = {};
+          S1.forEach(function (id, i) {
+            var d = Sound.def(id), r = rs[i];
+            pk[id] = r.peak; ln[id] = r.length;
+            ok("§15 S1[" + id + "]: 尺が def どおり(" + lenOf(d) + "サンプル)", r.length === lenOf(d), "実測=" + r.length);
+            ok("§15 S1[" + id + "]: 無音ではない(RMS>0.005)", r.rms > 0.005, "rms=" + r.rms.toFixed(4));
+            ok("§15 S1[" + id + "]: クリップしない(peak≤1.0)", r.peak <= 1.0, "peak=" + r.peak.toFixed(4));
+            if (d.filterFreq) {
+              // フィルタは減衰させるだけ(vol の額面どおりには鳴らない)。=ではなく上限で縛る。
+              ok("§15 S1[" + id + "]: peak は CFG音量以下(フィルタの減衰ぶん小さい)", r.peak > 0 && r.peak <= volOf(d) * 1.05,
+                "peak=" + r.peak.toFixed(4) + " 上限=" + volOf(d).toFixed(4));
+            } else {
+              ok("§15 S1[" + id + "]: peak が CFG の音量計算どおり", Math.abs(r.peak - volOf(d)) < 0.02,
+                "peak=" + r.peak.toFixed(4) + " 期待=" + volOf(d).toFixed(4));
+            }
+            if (d.type !== "noise") {
+              // スイープは持続部の平均周波数=両端の内側に必ず入る(端の値を書き写さない形の検査)
+              var lo = Math.min(d.freq, d.freqEnd || d.freq), hi = Math.max(d.freq, d.freqEnd || d.freq);
+              ok("§15 S1[" + id + "]: 実測周波数が def の範囲内(" + lo + "〜" + hi + "Hz)",
+                r.freqHz > lo - 30 && r.freqHz < hi + 30, "実測=" + r.freqHz.toFixed(1) + "Hz");
+            }
+          });
+          // 憲章§2-7「頻発ほど軽く短く・核となる瞬間に予算を集中」を数値で固定する。
+          //   ★序列の物差しは RMS ではなく peak。RMS はバッファ全体の平均で、余韻の長い音ほど
+          //     静寂で薄まる(尺の違う音の重さ比較には使えない)。peak は瞬間の当たりの強さで尺に依存しない。
+          ok("§15 音予算(§2-7): peak 撃破>孵化>給餌", pk.defeat > pk.hatch && pk.hatch > pk.feed,
+            JSON.stringify({ feed: +pk.feed.toFixed(3), hatch: +pk.hatch.toFixed(3), defeat: +pk.defeat.toFixed(3) }));
+          ok("§15 音予算(§2-7): 尺 撃破>孵化>給餌", ln.defeat > ln.hatch && ln.hatch > ln.feed,
+            JSON.stringify({ feed: ln.feed, hatch: ln.hatch, defeat: ln.defeat }));
+          Game.setSoundEnabled(false);
+          ok("§15保存: OFFへ戻せる(両方向トグル=単調フラグではない)", Game.soundEnabled() === false && Sound.on() === false);
+        });
       });
     } catch (err) { fail++; R.push('<div class="ng">EXCEPTION(§15 sound) ' + (err && err.message) + '</div>'); return Promise.resolve(); }
   }

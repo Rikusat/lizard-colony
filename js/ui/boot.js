@@ -681,6 +681,109 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
         window.addEventListener("hashchange", pGate);
         if (location.hash === "#p12") setTimeout(pGate, 400);
       }
+
+      // dev支援(V6-P5 S1・2026-08-11): 基準音3種の検分ページ(?tune=1#sound・セーブ非接触)。
+      //   目的: Ricが**本物のクリック**で音の質・音量・長さを判定する。自動QAでは実音を鳴らせない
+      //     (合成イベントは user gesture ではなく AudioContext が suspended のまま=S0で実証済)。
+      //     ここが「実音の判定」の唯一の場所であり、装置QAは数値ゲートだけを担う。
+      //   ★セーブ非接触: ONは Sound.setEnabled() のメモリ注入のみ。Game.setSoundEnabled は呼ばない
+      //     (dialへ書くと検分がユーザーの保存状態を書き換えてしまう)。閉じると保存側の値へ戻す。
+      {
+        let sPanel = null;
+        const stopS = () => {
+          if (!sPanel) return;
+          sPanel.remove(); sPanel = null;
+          if (typeof Game !== "undefined") Sound.setEnabled(Game.soundEnabled()); // 真実(セーブ)へ戻す
+        };
+        const buildS = () => {
+          stopS();
+          if (typeof Sound === "undefined") { console.warn("[sound] js/sound.js 未読込"); return; }
+          const LBL = { probe: "probe(テスト器専用・ゲームでは鳴らさない)", feed: "給餌 feed", hatch: "孵化 hatch", defeat: "撃破 defeat" };
+          const PAIR = { probe: "—", feed: "視覚の対: XP/成長表示", hatch: "視覚の対: 卵→ベビーの演出", defeat: "視覚の対: 撃破演出と報酬表示" };
+          const IDS = Object.keys(CFG.soundDefs);
+          Sound.setEnabled(true);   // 検分中だけメモリ上でON
+
+          const panel = document.createElement("div"); panel.id = "sound-view";
+          panel.style.cssText = "position:fixed;inset:0;z-index:9999;background:#05060a;color:#e8dccb;font:13px/1.7 system-ui;display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px;overflow:auto;";
+          const ttl = document.createElement("div"); ttl.style.cssText = "font-size:15px;font-weight:600;";
+          ttl.textContent = "V6-P5 S1 基準音の検分 (?tune=1#sound) — 給餌 / 孵化 / 撃破。#で閉じる";
+          panel.appendChild(ttl);
+          const note = document.createElement("div"); note.style.cssText = "font-size:11px;opacity:.6;max-width:920px;text-align:center;";
+          note.textContent = "セーブ非接触: このページのONはメモリ上だけ(閉じる/リロードで初回無音へ戻る)。数値は OfflineAudioContext の実測=装置QAの数値ゲートと同じ経路。"
+            + " 全数値は★Ric調整前提のたたき台(js/data.js の CFG.soundDefs)。";
+          panel.appendChild(note);
+
+          const outs = {};
+          const measure = () => {
+            IDS.forEach((id) => {
+              const raw = CFG.soundDefs[id], d = Sound.def(id);
+              Sound.renderOffline(id).then((r) => {
+                if (!r) { outs[id].textContent = "OfflineAudioContext 非対応(数値なし)"; return; }
+                const isNoise = d.type === "noise";
+                outs[id].textContent = "尺 " + (r.length / r.sampleRate * 1000).toFixed(0) + "ms"
+                  + "(dur " + (d.dur * 1000).toFixed(0) + " + release " + (d.release * 1000).toFixed(0) + " + 余白)"
+                  + " / RMS " + r.rms.toFixed(4) + " / ピーク " + r.peak.toFixed(4)
+                  + " / 周波数 " + (isNoise ? "—(ノイズ=交差が乱数的で意味を持たない)"
+                    : r.freqHz.toFixed(0) + "Hz" + (raw.freqEnd ? "(" + raw.freq + "→" + raw.freqEnd + "の平均)" : ""))
+                  + " / 音源 " + (isNoise ? (d.filterType || "lowpass") + " " + d.filterFreq + "Hz" : d.type);
+              });
+            });
+          };
+
+          const box = document.createElement("div"); box.style.cssText = "display:flex;flex-direction:column;gap:8px;width:min(980px,94vw);";
+          panel.appendChild(box);
+          // 系統別の音量(スライダーは CFG を直接動かす=鳴らしながら調整し、良い値をdata.jsへ書き戻す)
+          const volBox = document.createElement("div");
+          volBox.style.cssText = "display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:center;padding:9px;border:1px solid #2a2f3a;border-radius:4px;";
+          box.appendChild(volBox);
+          [["soundMaster", "全体 master"], ["soundSeVol", "SE"], ["soundAmbVol", "環境(S2から使用)"]].forEach(([key, lb]) => {
+            const w = document.createElement("label"); w.style.cssText = "display:flex;gap:6px;align-items:center;font-size:12px;";
+            const sp = document.createElement("span"); sp.textContent = lb;
+            const sl = document.createElement("input"); sl.type = "range"; sl.min = "0"; sl.max = "1"; sl.step = "0.01"; sl.value = String(CFG[key]);
+            const rd = document.createElement("span"); rd.style.cssText = "font:12px ui-monospace,Consolas,monospace;min-width:32px;"; rd.textContent = CFG[key].toFixed(2);
+            sl.oninput = () => { CFG[key] = parseFloat(sl.value); rd.textContent = CFG[key].toFixed(2); measure(); };
+            w.appendChild(sp); w.appendChild(sl); w.appendChild(rd); volBox.appendChild(w);
+          });
+
+          const burst = document.createElement("div"); burst.style.cssText = "font-size:12px;opacity:.85;"; burst.textContent = "連打結果: (未実行)";
+          const logEl = document.createElement("div"); logEl.style.cssText = "font:11px ui-monospace,Consolas,monospace;opacity:.55;text-align:center;";
+          const bump = () => {
+            logEl.textContent = "発音ログ(直近" + CFG.soundLogMax + "件保持): 受理 " + Sound.log.length + " 件 / 最後 = "
+              + (Sound.log.length ? Sound.log[Sound.log.length - 1].id : "—");
+          };
+          const mk = (parent, txt, fn, css) => { const b = document.createElement("button"); b.style.cssText = css || BOFF; b.textContent = txt; b.onclick = fn; parent.appendChild(b); return b; };
+          IDS.forEach((id) => {
+            const row = document.createElement("div");
+            row.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:9px;border:1px solid #2a2f3a;border-radius:4px;";
+            const nm = document.createElement("div"); nm.style.cssText = "min-width:230px;font-weight:600;"; nm.textContent = LBL[id] || id;
+            row.appendChild(nm);
+            // ▶は毎回鳴ってほしいので直前の発音時刻を捨てる(間引きの検分は隣の連打ボタンが担当)
+            mk(row, "▶ 鳴らす", () => { Sound.unlock(); Sound._last[id] = null; Sound.play(id); bump(); });
+            mk(row, "×10 連打(間引き確認)", () => {
+              Sound.unlock(); Sound._last[id] = null;
+              let acc = 0; for (let i = 0; i < 10; i++) { if (Sound.play(id)) acc++; }
+              burst.textContent = "連打結果: " + (LBL[id] || id) + " → 10回中 受理 " + acc + " 回(minGap " + CFG.soundMinGapMs + "ms・憲章§2-4)";
+              bump();
+            });
+            const pr = document.createElement("span"); pr.style.cssText = "font-size:11px;opacity:.55;";
+            pr.textContent = "優先度 " + Sound.prio(id) + " / " + (PAIR[id] || "");
+            row.appendChild(pr);
+            const o = document.createElement("div"); o.style.cssText = "font:12px ui-monospace,Consolas,monospace;opacity:.9;flex-basis:100%;";
+            o.textContent = "計測中…"; row.appendChild(o); outs[id] = o;
+            box.appendChild(row);
+          });
+          box.appendChild(burst); box.appendChild(logEl);
+          const foot = document.createElement("div"); foot.style.cssText = "font-size:11px;opacity:.5;max-width:920px;text-align:center;";
+          foot.textContent = "判定の観点: 給餌=頻発ゆえ短く小さいか(うるさくないか) / 孵化=柔らかく祝えているか / 撃破=手応えがあるか。"
+            + " S1では**ゲームへ配線していない**(音そのものの合格後に配線する)。";
+          panel.appendChild(foot);
+          document.body.appendChild(panel); sPanel = panel;
+          measure(); bump();
+        };
+        const sGate = () => { if (location.hash === "#sound") { buildS(); console.log("[sound] 基準音の検分ページ表示(実クリックで再生・セーブ非接触)"); } else stopS(); };
+        window.addEventListener("hashchange", sGate);
+        if (location.hash === "#sound") setTimeout(sGate, 400);
+      }
     }
     }
     }
