@@ -2022,6 +2022,19 @@ V3=パネル枠/効果一覧ボタン/スパーク素材化→配信・本番実
 - **★計測ミスの記録(道具の嘘⑬類例)**: 当初evalで`Motion.reduced=true`代入→**Motion.reducedはmatchMediaのgetterで代入無効**=非reduced経路を「reduced検証」と誤認(スクショで章1が出て発覚)。正=qa-cdp `--reduced`(--force-prefers-reduced-motion)。reduced検証は必ずブラウザ強制で行うこと。
 - **V6-P4完了**: P4-1(タイトル案B・P3同乗済)+P4-2(Lore ARCHIVE)。次=P5(音・憲章改定案の提示から)。S6着手禁止継続。
 
+### 5s-V6-P5-S0. ★V6-P5 S0=音の単一窓口+CFG+テスト器 完了(2026-08-11・**デプロイなし**=S1のRic実機判定後にまとめて)
+前セッションが使用枠切れで中断し、作業ツリーに未コミットのS0実装が残っていた状態からの再開・保全。**この段階では音を鳴らさない**(窓口とテスト器のみ・基準音3種はS1)。
+
+- **承認前提(2026-08-11 Ric裁定4点)**: ①技術方式=WebAudio合成基盤+拡張条項 ②独立憲章 `docs/SoundSkills.md`(UISkills同格・fable1の下位) ③規律8項(初回無音の既定OFFを含む) ④**不可逆制約4点**(①音必須のゲームプレイを作れない ②発音はSound窓口+CFG経由のみ・AudioContext散在禁止 ③音声ファイル追加は拡張条項の再裁定 ④初回無音の既定変更は裁定)。
+- **実装**: `js/sound.js`(単一窓口 `Sound.play(id)`・enabledゲート/def必須/minGap間引き/ボイスプール+優先度の追加枠/発音ログ64件リングバッファ・`_voice()` が実再生とOfflineレンダの**単一の真実**・ノイズは固定シードxorshift=`Math.random` 不使用)/ `CFG` の音パラメータ一式(`soundOn:false` 既定ほか・数値は全て★Ric実機調整)/ `Game.soundEnabled|setSoundEnabled`(ON状態は**dialの器**=保存の追加配線ゼロで往復・`openingSeen` と同じ境界)/ boot配線(起動時 `Sound.setEnabled(Game.soundEnabled())`・unlockは初回ユーザー操作で一度だけ・リスナ自己解除)。**演出層はセーブのキー名を知らない**(holoのgates注入と同型)。
+- **恒久テスト `tests/sound_regression.js`(38 PASS / 0 FAIL)**: 憲章の存在/初回無音/★**単一窓口の全数走査**(AudioContext系を書けるのは `js/sound.js` だけ=不可逆②)/非接触(Game・localStorage・Math.random を参照しない)/窓口ロジック(クロック注入)/autoplay(unlock前は生成しない・生成は1度きり)/セーブ往復/boot配線。**★実ファイルカナリア実証済**=`sound.js` に `Game.soundEnabled()` 参照を1行注入→**37/1 FAIL**、戻して**38/0 PASS**。
+- **装置QA §15 を新設(75 → 91/0)×3解像度(1600×900/1280×800/900×700)・console 0**: 窓口(OFF不受理/未定義id不受理/**連打10回=受理1回**)・autoplay・★**計測器のカナリア先行**(音量差 vol0.5 vs 0.05 を観測できる/尺差 dur0.36 vs 0.12 を観測できる)を実証してから**波形の数値ゲート**(尺=11025サンプル/RMS>0.01/0.05<peak≤1.0/peak=vol×master×se=0.25±0.02)・**ノイズ2回レンダで完全一致=固定シードの実証**。波形ゲートは `OfflineAudioContext` が要るため node ではなく装置QAが担う。
+- **★是正1: テストがコメントを走査していた(偽のFAIL)**。素の正規表現走査は `sound.js` の**解説コメント**(「Game.soundEnabled=dialの器」「Math.random 不使用」)にヒットして2件FAILしていた。**語を消して通すのは偽の合格**なので、走査側に `codeOf()`(コメントのみ除去・文字列/テンプレート/正規表現リテラルは保持)を入れ、**カナリア6項**(本物の参照は検知/コメントは落とす/文字列は保持/除算を正規表現と誤読しない…)で検知能力を先に実証した。
+- **★是正2: 合成PointerEventはuser gestureではない(道具の嘘⑬類例)**。装置QAが `dispatchEvent` した pointerdown で `Sound.unlock()` が走り実AudioContextを生成→Chromeが `The AudioContext was not allowed to start` **warning 3件**(console 0 を破る)。しかも生成されたctxは **suspended のまま=「鳴った証拠」にならない**(偽の計測)。是正=§15冒頭で `_unlocked=false/_ctx=null` に戻し、**「ユーザー操作前はAudioContextを作らない」を実ブラウザで実証する検査へ置換**。→ console 0 復帰。**実音の判定はS1の `?tune=1` で Ric が本物のクリックで行う**(自動QAでは原理的に代替できない)。
+- **検証(証拠)**: node **21スイート全PASS**(sound 38/0 新設・holo 284/0・weather 69/0 ほか)/ 装置QA **91/0×3解像度 console 0** / 統合 **20/20** / 姿形 **176/176** / opening **32/0** / **boot console 0**(通常・`?tune=1` とも。★カナリア先行=`console.error`/`console.warn`/例外の3種を注入し**3種とも捕捉されること**を実証してから本計測)。boot実測で **初回無音を直接確認**(`CFG.soundOn=false / Game.soundEnabled()=false / Sound.on()=false / _ctx=null / _unlocked=false / log=0`)。cache-buster bump 済(`js/sound.js?v=ddf59072`)。
+- **既知の警告(本件と無関係・記録のみ)**: 統合QAの console 1件 `[on] 要素なし(スキップ): btn-breed-menu`(`js/ui/components.js:47` の欠落ガード=**QAページのDOMに当該ボタンが無い**ため。製品バグではない・S0非接触)。姿形QAの `willReadFrequently` 1件は既知無害(§5s-V6既出)。
+- **次(S1・Ricゲート)**: 基準音3種(給餌/孵化/撃破)を `CFG.soundDefs` に追加し、**`?tune=1` の検分ページで個別に再生できる形**にする(Ricが実機で音の質・音量・長さを判定)。S1承認後にS0+S1をまとめてデプロイ。**S6着手禁止を維持**。
+
 ### 5x-GUARD. ★描画の非有限ガード(2026-08-10・Ric裁定・本番デプロイ済)[7e3d369, bac5fbc, c46d7ba, a231f1e]
 前セッションの報告テキストがクラッシュで失われ**HANDOFF記録も欠落していた**ため、コミットメッセージ・テスト実体・本番実測から復元して記録(2026-08-10 再開セッション)。
 - **7e3d369**: Canvas2D の createRadialGradient/arc/ellipse 等は NaN/Infinity で TypeError を投げ、**そのフレームの描画が丸ごと止まる**(画面停止)。計算値を渡す71ヶ所に検査を散らすと漏れるため、**`Render.guardCtx` で ctx を一度だけ包む**方式(知識は1箇所)。非有限は「その図形だけ」捨てる=握りつぶしではない(絵の欠けとして残る・`?tune=1` で警告1回・`__finGuard` で冪等)。`finite()` は数値のみ検査(arc の anticlockwise=boolean 等を誤って弾かない)。`drawGenesisFx` は undefined 座標も弾く必要があるため `Number.isFinite` の厳格判定で分離。
@@ -2129,7 +2142,7 @@ V3=パネル枠/効果一覧ボタン/スパーク素材化→配信・本番実
 | P2 | 巣ネットワークの完成(別ページ化+画像素材) | 未着手 |
 | P3 | 本部の完成(分析機能の本番反映調査+指令表示+研究デスク遮蔽) | 未着手 |
 | P4 | 演出と物語(タイトル文言+Loreのホログラム化) | 未着手 |
-| P5 | 音(外部アセット禁止の憲法改定を伴う) | 未着手 |
+| P5 | 音(外部アセット禁止の憲法改定を伴う) | 憲章承認済+**S0完了**(窓口/CFG/テスト器・§5s-V6-P5-S0)。次=S1基準音3種のRic実機判定 |
 
 - 軽微裁定の処理済: ミッション名の語を「襲来を」へ統一(`win200` のみ「襲撃を」だった)。表示のみ・セーブ非接触。
 

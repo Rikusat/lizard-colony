@@ -152,8 +152,8 @@ UIに関わる変更（スタイル・レイアウト・アイコン・演出）
 
 ### 優先順位（重要・競合時の判断）
 1. **fable0 の「価値の優先順位」（正直さ ＞ 構造の一貫性 ＞ 再現性 ＞ シンプルさ ＞ 速度）が、プロジェクト全体の最上位思想。** ルール未定義の状況はこの優先順位から演繹して判断し、演繹である旨を明記する。
-2. **プロジェクト固有仕様は各憲章が定める**：`crank.md`（クランク設計）、`UISkills.md`（本プロジェクト固有のUI仕様＝色・トークン・コンポーネント）、`roulette.md`（遺伝子ルーレット）、`GameExpansion_V5.md`（V5指示書・`GameExpansion/` 配下）。
-3. **fable1（UIの普遍原則）と UISkills.md（本プロジェクト固有のUI仕様）が競合した場合は、固有仕様（UISkills.md）を優先する。** fable1 は思想・原則として参照し、具体の数値・トークン・レイアウトは UISkills.md が正。
+2. **プロジェクト固有仕様は各憲章が定める**：`crank.md`（クランク設計）、`UISkills.md`（本プロジェクト固有のUI仕様＝色・トークン・コンポーネント）、`docs/SoundSkills.md`（音の憲章・V6-P5 2026-08-11承認）、`roulette.md`（遺伝子ルーレット）、`GameExpansion_V5.md`（V5指示書・`GameExpansion/` 配下）。
+3. **fable1（UIの普遍原則）と UISkills.md（本プロジェクト固有のUI仕様）が競合した場合は、固有仕様（UISkills.md）を優先する。** fable1 は思想・原則として参照し、具体の数値・トークン・レイアウトは UISkills.md が正。音も同型：fable1＞SoundSkills.md の階層で、固有の数値・規律は SoundSkills.md が正。
 4. **ユーザー（Ric）の指示が Fable 群と競合した場合は、指示を優先する。** ただし競合を1度だけ指摘し、判断記録（HANDOFF）に残す。
 5. `HANDOFF.md` が単一の真実（session運用・判断記録）。fable0 の運用方針と一致する。
 

@@ -1181,6 +1181,16 @@ const Game = {
   //   保存状態の知識はルール層(ここ)だけが持つ。演出層(holo.js)はフラグを知らない。
   OPENING_SEEN_KEY: "holoPlayed",
   openingSeen() { return !!this.ensureDial()[this.OPENING_SEEN_KEY]; },
+  // V6-P5 S0(SoundSkills 2026-08-11 Ric承認): 音ON状態はセーブ(dial=往復する器)が真実。既定OFF=初回無音(不可逆④)。
+  //   Sound(演出層)は setEnabled で知らされるだけ=セーブのキー名を知らない(openingSeenと同じ境界)。
+  SOUND_ON_KEY: "soundOn",
+  soundEnabled() { return !!this.ensureDial()[this.SOUND_ON_KEY]; },
+  setSoundEnabled(v) {
+    const d = this.ensureDial();
+    d[this.SOUND_ON_KEY] = v ? 1 : 0;
+    if (typeof Sound !== "undefined") Sound.setEnabled(!!v);
+    this.save();
+  },
   markOpeningSeen() {
     const d = this.ensureDial();
     if (d[this.OPENING_SEEN_KEY]) return false;   // 冪等(再視聴では何も起きない)

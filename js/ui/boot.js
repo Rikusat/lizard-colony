@@ -693,3 +693,17 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
 if (!(typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search))) {
   if (UI.autoPlayOpening) UI.autoPlayOpening();
 }
+
+// ---- V6-P5 S0(SoundSkills 2026-08-11 Ric承認): 音の初期化 ----
+// ON状態の真実はセーブ(Game.soundEnabled)。Sound(演出層)へは通知するだけ。
+// autoplay policy: 初回のユーザー操作(pointerdown/keydown)で一度だけ unlock する。
+if (typeof Sound !== "undefined" && typeof Game !== "undefined") {
+  Sound.setEnabled(Game.soundEnabled());
+  const soundUnlock = () => {
+    Sound.unlock();
+    window.removeEventListener("pointerdown", soundUnlock);
+    window.removeEventListener("keydown", soundUnlock);
+  };
+  window.addEventListener("pointerdown", soundUnlock);
+  window.addEventListener("keydown", soundUnlock);
+}

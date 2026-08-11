@@ -209,6 +209,20 @@ const CFG = {
   holoLoreMaxSec: 15,           // ★尺の上限(恒久テストのガード)。超える表を書いてもクランプ
   holoLoreReducedHoldSec: 3.0,  // reduced-motion: 最終画の静止表示秒(スキップは即時のまま)
   holoLoreChapterGate: { net: "hq", purity: "native", bugger: "cricket" }, // 章の深い1行⇔Lore id。未解放=REDACTEDへ落とす(嘘をつかない・解読が進むと行が開く=リプレイ価値)
+  // ---- V6-P5 S0(2026-08-11 Ric承認・SoundSkills憲章): 音の基盤CFG。数値は全て★Ric実機調整 ----
+  //   最重要の柱: 音にしかない情報を作らない(SoundSkills §2-2)。発音は Sound.play(id) のみ(不可逆②)。
+  soundOn: false,            // ★既定=初回無音(不可逆④=変更は裁定)。ユーザーのON状態はセーブ(dial)が上書き
+  soundMaster: 0.5,          // ★全体音量
+  soundSeVol: 1.0,           // ★SE系統音量
+  soundAmbVol: 1.0,          // ★環境音系統音量(S2から使用)
+  soundMinGapMs: 60,         // ★同一SEの最小間隔ms(連打の間引き)
+  soundMaxVoices: 8,         // ★同時発音上限(ボイスプール)
+  soundPrioFloor: 4,         // ★満杯時も鳴らせる優先度の下限(=boss以上)
+  soundPrioExtra: 2,         // ★高優先が満杯時に使える追加枠
+  soundPriority: { stone: 5, boss: 4, hatch: 3, breed: 2, feed: 1 }, // 優先度表(Ric承認・SoundSkills §2-4)
+  soundDefs: {               // 音の定義(S1で基準音3種を追加)。probe=テスト器専用・ゲームから鳴らさない
+    probe: { type: "sine", freq: 880, dur: 0.12, vol: 0.5, attack: 0.005, release: 0.08 },
+  },
   // ---- C2改訂 フェーズ1: 惑星移動トランジション(頻発する導線=摩擦にしない) ----
   //   OFF(false)にすると従来の宇宙船トランジション(planetTravelSec)へ完全復帰する=可逆。
   holoTravelOn: true,
