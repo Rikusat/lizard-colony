@@ -1938,6 +1938,15 @@ V3=パネル枠/効果一覧ボタン/スパーク素材化→配信・本番実
 - 検証: **SKIP全解消**=cut **10/10**(B2復帰)・shot素材 **10/10**・shot退化 **7/7**(B3/B4復帰)・統合20/20・boot console 0・node 20全PASS。**デプロイなし**。
 - 次: **P2完了判定(Ric目視: http://localhost:3000/index.html?tune=1 →巣穴クリック / test-nest-b3.html)→P2全体デプロイ**(P2-1別ページ化+P2-2素材化+P2-3統合/表示/文言+hotfix上書き+配信設定。同乗全申告)。
 
+### 5s-V6-P2-19. ★★V6-P2 完了 — 巣ネットワーク一式を本番デプロイ(2026-08-11・本番実証済)[133bd6a]
+- **同乗全申告**: 配信変更=index/style/data/game/render/nest/hqlab(P2-1排他1行)/nest-reveal(報酬配列)の8ファイル+.vercelignore+image/nest/83素材。**P2外の混入なし**(113e8c3からの全diff点検+bump実測=申告ファイルのみハッシュ変化)。
+- **内容**: P2-1別ページ化 / P2-2素材化(コア・メダリオン・パネル・ボタン・スパーク①) / P2-3統合(80→20)・%ピル・クエストカード・チラ見せ・文言(遺伝子ネットワーク/結節・網語彙) / hotfix上書き / 配信設定。
+- **QAゲート**: 装置52/0・統合20/20・姿形176/176・boot console 0(カナリア先行)・node20スイート。
+- **★本番実証がバグを1件検出→即修正デプロイ**: 移行トーストの判定が `applyWorld`(=_nestRosterGrant設定箇所)より**前**にあり誰にも出なかった→後段へ移動[133bd6a]。恒久テスト⑦(発火する/二度目は出ない・migration **11 PASS**。UIプロキシ横取り+setTimeout即時化の作法も記録)。**「移行の実証をデプロイ項目に入れる」というRic指示が機能した実例**。
+- **本番実証(https://lizardcolony.vercel.app・全項目・console 0)**: ①別ページで開く ②素材配信・表示(初回はCDNロード中コード描画→約1〜3秒で素材へ=設計どおり) ③`?noassets=1`退化 ④20結節・チラ見せ・%ピル・クエストカード・文言 ⑤**移行**: 旧80セーブ(30解放=37.5%)→rosterV2=1・**新15/20=75%(非減少)**・未受領一括付与(iridium30/amber12/orichalcum5/titanium23)・**トースト初回のみ**・二重実行無変化・legacy30保全 ⑥スパーク=解放8件で3表示→自壊0 ⑦3解像度console 0。
+- **三者同期clean**: local=origin=本番=`133bd6a`。live index/game.js等バイト一致・source-sheet=404。**ブランチ後始末済**(hotfix/nest-node-css・deliver/nest-assets をremote/local削除=mainに包含)。
+- **V6-P2 完了。次フェーズ=P3(HQ完成)**。
+
 ### 5x-GUARD. ★描画の非有限ガード(2026-08-10・Ric裁定・本番デプロイ済)[7e3d369, bac5fbc, c46d7ba, a231f1e]
 前セッションの報告テキストがクラッシュで失われ**HANDOFF記録も欠落していた**ため、コミットメッセージ・テスト実体・本番実測から復元して記録(2026-08-10 再開セッション)。
 - **7e3d369**: Canvas2D の createRadialGradient/arc/ellipse 等は NaN/Infinity で TypeError を投げ、**そのフレームの描画が丸ごと止まる**(画面停止)。計算値を渡す71ヶ所に検査を散らすと漏れるため、**`Render.guardCtx` で ctx を一度だけ包む**方式(知識は1箇所)。非有限は「その図形だけ」捨てる=握りつぶしではない(絵の欠けとして残る・`?tune=1` で警告1回・`__finGuard` で冪等)。`finite()` は数値のみ検査(arc の anticlockwise=boolean 等を誤って弾かない)。`drawGenesisFx` は undefined 座標も弾く必要があるため `Number.isFinite` の厳格判定で分離。
