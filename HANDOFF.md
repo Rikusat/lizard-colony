@@ -2005,6 +2005,15 @@ V3=パネル枠/効果一覧ボタン/スパーク素材化→配信・本番実
 - **検証**: holo回帰256/0・opening QA32/0・装置QA69/0・node20/20・4位相スクショ(章2解放/章3解放/章3未解放/結び実セーブ=DECODED 1/11)・console 0。
 - **残(次スプリント)**: 全章通しのRic検分→導線2箇所(図鑑Loreタブ+標本棚)+**ゲート解決式のUIヘルパ昇格**(ビューアと本編で共有)→恒久テスト(lore節)→QA→Ric判定→デプロイ。
 
+### 5s-V6-P4-2-3. ★P4-2=導線2箇所+ヘルパ昇格+恒久テスト+QA 完了(2026-08-11・ローカルのみ=Ric判定待ち)
+- **全章検分承認(Ric)**: 様式・尺・間合い・暗転不使用(io抜き/入りで成立)。
+- **UIヘルパ昇格**(meta.js): `UI.loreMovieOn()`(CFG.holoLoreOn既定true=誰でも見られる形・falseで導線ごと消える可逆)/`UI.loreMovieOpts()`(章ゲート/現在惑星/解読数=**実セーブの知識はここ1箇所**)/`UI.playLore()`(器=Holo.mount("holo-lore")・スキップ/reducedはplayOpeningと同機構・何度でも再生可)。検分ビューア(#lore)は局所リゾルバを撤去しUI.loreMovieOpts共有(ビューア固有=gateMode上書きのみ)。
+- **導線2箇所**: 図鑑Loreタブヘッダ`#lore-play`「ホロ再生」(尺表示・クリックでスキップの旨をtitleに)/標本棚`#hq-lore-holo`(「読む」の隣)。器`#holo-lore`=z490(モーダル/ヒーローより上・オープニング500の下)。UISkills §5.10へ差込先追記済(追記→実装の順)。
+- **恒久テスト(holo_regression §14=28項)**: 尺≦15sクランプ/グリッド整合/実データ(惑星10・固有種・BOSS_TYPES)/遮蔽語彙統一(???禁止)/gate連動切替(hq/native/cricket⇔REDACTED)/**全編走査でヌシ・上位存在・次元に触れない**/manifest末尾行の導出検査(ソース)/reduced位相/決定論/スキップ即時/導線2箇所+共有+z-index(ソース検査)。→**284/0**。
+- **是正2件**: ①vmトップレベルconstは文脈に載らない→LOREは`vm.runInContext("LORE",sb)`で取得 ②QA雛形にholo.js未読込で導線検査FAIL→script追加(⑫index.htmlと同構成)。
+- **QA**: 装置**75/0**(P4-2の6項追加: 導線2/器/スキップ即時/図鑑導線/CFG可逆)×3解像度・統合20/20・姿形10/0・opening32/0・node20/20・bootカナリア(注入捕捉→本走console 0)・実UI再生スクショ(器がモーダルの上・全画面)。
+- 次: Ric判定→デプロイ(P4-2一式=章1〜結び+導線+テスト同乗・全申告)。
+
 ### 5x-GUARD. ★描画の非有限ガード(2026-08-10・Ric裁定・本番デプロイ済)[7e3d369, bac5fbc, c46d7ba, a231f1e]
 前セッションの報告テキストがクラッシュで失われ**HANDOFF記録も欠落していた**ため、コミットメッセージ・テスト実体・本番実測から復元して記録(2026-08-10 再開セッション)。
 - **7e3d369**: Canvas2D の createRadialGradient/arc/ellipse 等は NaN/Infinity で TypeError を投げ、**そのフレームの描画が丸ごと止まる**(画面停止)。計算値を渡す71ヶ所に検査を散らすと漏れるため、**`Render.guardCtx` で ctx を一度だけ包む**方式(知識は1箇所)。非有限は「その図形だけ」捨てる=握りつぶしではない(絵の欠けとして残る・`?tune=1` で警告1回・`__finGuard` で冪等)。`finite()` は数値のみ検査(arc の anticlockwise=boolean 等を誤って弾かない)。`drawGenesisFx` は undefined 座標も弾く必要があるため `Number.isFinite` の厳格判定で分離。

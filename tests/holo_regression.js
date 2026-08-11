@@ -566,7 +566,7 @@ console.log("== 13) オープニングの本編組み込み(初回だけ自動�
 
 // ---- P4-2 Lore ARCHIVE(2026-08-11 Ric承認): 尺/実データ/遮蔽語彙/gate連動/manifest同一行/非接触/導線/可逆 ----
 {
-  console.log("== 13) P4-2 Lore ARCHIVE(世界の記録) ==");
+  console.log("== 14) P4-2 Lore ARCHIVE(世界の記録) ==");
   const at = (id) => Holo.loreAt(id);
   const D = Holo.loreDur();
   check("★Lore: 尺はCFGクランプ以下(実尺14.4s≦15s)", D <= (CFG.holoLoreMaxSec || 15) && Math.abs(D - 14.4) < 1e-9, String(D));
@@ -574,7 +574,7 @@ console.log("== 13) オープニングの本編組み込み(初回だけ自動�
   check("Lore: 暴走した表を書いてもクランプ(15s)", (() => { const L = loadHolo(); L.api.CFG.holoLoreNodes = [{ id: "net", grid: 0 }, { id: "end", grid: 999 }]; return L.api.Holo.loreDur() === (L.api.CFG.holoLoreMaxSec || 15); })());
   check("Lore: CFG.holoLoreOn は既定true(誰でも見られる形で出す=Ric指示)", CFG.holoLoreOn === true);
   const textsL = (t, opts) => { const l = []; Holo.drawLore(stubCtx(l), 1200, 675, t, opts); return l.filter((x) => x.startsWith("fillText")).map((x) => x.slice(9, -1).split(",")[0]); };
-  const LORE_D = __L.sb.LORE;
+  const LORE_D = vm.runInContext("LORE", __L.sb);   // 注: vmのトップレベルconstは文脈オブジェクトに載らない=式で取り出す
   const sent = (id, n) => (((LORE_D.find((x) => x.id === id) || {}).text || "").split("。")[n || 0]);
   // 章1 NETWORK: 実在の惑星名10・故郷は伏せたまま・読み行はLORE実文(gate連動)
   const n1 = textsL(at("purity") - 0.2, { gates: { net: true } });
@@ -583,7 +583,7 @@ console.log("== 13) オープニングの本編組み込み(初回だけ自動�
   check("Lore1: 読み行=LORE.hq実文(解放時)", n1.includes(sent("hq", 0)));
   check("Lore1: 未解放は RECORD / REDACTED へ落ちる(gate連動)", textsL(at("purity") - 0.2, { gates: {} }).some((x) => /RECORD \/ REDACTED/.test(x)));
   // 章2 PURITY: 固有種は実名・3種目=REDACTED(正体は渡さない)
-  const sp1 = __L.sb.SPECIES.filter((s) => s.stage === 1).map((s) => s.name);
+  const sp1 = SPECIES.filter((s) => s.stage === 1).map((s) => s.name);
   const n2 = textsL(at("bugger") - 0.2, { gates: { purity: true }, planetId: 1 });
   check("Lore2: 固有2種が実名(SPECIES stage1と一致)", sp1.length === 2 && sp1.every((nm) => n2.includes(nm)), n2.join("/"));
   check("★Lore2: ENDEMIC 3RD 行があり値は REDACTED(伏線の再提示)", n2.some((x) => /ENDEMIC 3RD/.test(x)) && n2.includes("REDACTED"));
