@@ -17,4 +17,17 @@ const NEST_VIS_THRESHOLDS = {
     cenDist: 15,             // 高輝度重心(L>170)の距離px
     brightMin: 0.5, brightMax: 2.1, // 高輝度画素率の参照比
   },
+  // B2 糸+輝点(2026-08-11実測)。amber判定 = r>96 && g>56 && b<64 && r>g && g>b*1.6 && L>50(参照と再現で同一パイプライン)
+  threads: {
+    samples: [               // 参照上で糸だけが通る帯(メダリオン/ラベル非含有を実測で選定)
+      { rect: [708, 323, 60, 36], ref: { avgL: 40.6, amber: 6.48 } },
+      { rect: [508, 483, 60, 40], ref: { avgL: 41.9, amber: 7.83 } },
+    ],
+    sampleAvgLTol: 12,       // 帯の平均輝度 ±12L
+    sampleAmberMin: 3, sampleAmberMax: 16, // 帯のamber率(参照6.5〜7.8の約0.5〜2倍)
+    // 全域の琥珀予算: 参照コンテンツ全域の amber=2.55%(ノードリム/ラベル込み)。
+    // 糸だけ(B2時点=ノード未実装)でこの予算を超えないこと=Ric指示「糸の占有が琥珀アクセントに収まる」。
+    // 下限0.5%=糸が実在すること。B5(ノード込みの全画面ゲート)で参照±へ締め直す。
+    contentAmberRef: 2.55, contentAmberMin: 0.5, contentAmberMax: 3.06, // 上限=参照×1.2
+  },
 };

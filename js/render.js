@@ -4568,6 +4568,49 @@ const Render = {
     ctx.restore();
   },
 
+  // B2: 糸+輝点。**スアミ(traitSuami)と同じ視覚言語**=低alphaの多重曲線(たわみ)+結節の灯。
+  //   特性側とページ側で「同じ世界の同じもの」として読めること(Ric指示 2026-08-11)。完全静的=決定論。
+  //   琥珀の占有はゲート管理(参照の琥珀予算 2.55% を糸だけで超えない=閾値ファイル参照)。
+  //   segs = [{x1,y1,x2,y2,state:'lit'|'half'|'off',i}](座標は呼び出し側がキャンバス系へ変換済み)。
+  nestThreads(ctx, segs) {
+    const P = NEST_VIS.palette;
+    const h2 = (a, b) => { let x = (a * 374761393 + b * 668265263) ^ (a << 7); x = (x ^ (x >> 13)) * 1274126177; return ((x ^ (x >> 16)) >>> 0) / 4294967295; };
+    ctx.save(); ctx.lineCap = "round";
+    for (const s of segs) {
+      const dx = s.x2 - s.x1, dy = s.y2 - s.y1, len = Math.hypot(dx, dy) || 1;
+      const sag = len * 0.055;                                   // 張られた糸の重さ(スアミと同じたわみ)
+      const mx = (s.x1 + s.x2) / 2 + (h2(s.i, 1) - 0.5) * len * 0.05;
+      const my = (s.y1 + s.y2) / 2 + sag * (0.6 + h2(s.i, 2) * 0.6);
+      const curve = (off, col, alpha, lw) => {
+        ctx.strokeStyle = col; ctx.globalAlpha = alpha; ctx.lineWidth = lw;
+        ctx.beginPath(); ctx.moveTo(s.x1, s.y1);
+        ctx.quadraticCurveTo(mx + off, my + off * 0.6, s.x2, s.y2);
+        ctx.stroke();
+      };
+      if (s.state === "off") {                                   // 未解放=気配(非琥珀・従来SVGのトーン踏襲)
+        curve(0, "#ffffff", 0.055, 0.8);
+        continue;
+      }
+      const k = s.state === "lit" ? 1 : 0.45;                    // half=淡い琥珀
+      curve(0, P.thread, 0.30 * k, 1.4);                         // 主糸
+      curve(1.6, P.thread, 0.14 * k, 0.8);                       // 添い糸(撚りの気配)
+      // 輝点(糸を渡る灯=スアミの結節の灯と同語彙)。litのみ1〜2粒・決定論
+      if (s.state === "lit") {
+        const dots = 1 + (h2(s.i, 3) > 0.55 ? 1 : 0);
+        for (let d = 0; d < dots; d++) {
+          const t = 0.25 + h2(s.i, 4 + d) * 0.5, u = 1 - t;
+          const px = u * u * s.x1 + 2 * u * t * mx + t * t * s.x2;
+          const py = u * u * s.y1 + 2 * u * t * my + t * t * s.y2;
+          ctx.globalAlpha = 0.75; ctx.fillStyle = P.spark;
+          ctx.shadowColor = P.thread; ctx.shadowBlur = 4;
+          ctx.beginPath(); ctx.arc(px, py, 1.1, 0, 7); ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+      }
+    }
+    ctx.globalAlpha = 1; ctx.restore();
+  },
+
   // ドクシルシ(tier2): ⑥密林ユンガ。毒蛙の文法=暗い喉にこそ警告色は鮮やかに載る。静=毒は誇示しない、在るだけで語る。
   // V6-P2 基準カット: ①毒腺の沈み=喉〜胸の墨色面(暗さが先・ヨウガンと同じ「地の暗さが徴を読ませる」構造)
   //   ②警告斑=翡翠の不揃い斑(決定論jitter・各斑を暗環で締める=明るい砂地でも潰れない)

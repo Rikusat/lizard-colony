@@ -1802,10 +1802,7 @@ button.holding::after {
 #nest-hint { margin-top: 8px; padding: 7px 12px; background: var(--lcd-bg, #14100a); border: 1px solid var(--border);
   border-radius: 8px; color: var(--sub); font-size: calc(11px * var(--fs-scale, 1)); }
 @media (max-width: 900px) { #nest-side { width: 170px; } }
-/* 糸の3状態(Phase 4): 結線=琥珀の光 / 片側のみ=淡い琥珀 / 未解放=気配 */
-#nest-web line.lit { stroke: var(--amber-400); stroke-opacity: .60; stroke-width: 2; }
-#nest-web line.half { stroke: var(--amber-500); stroke-opacity: .28; stroke-width: 1.5; }
-#nest-web line.off { stroke: #fff; stroke-opacity: .07; stroke-width: 1; }
+/* 糸の3状態(Phase 4→V6-P2-2 B2): SVG線を廃止し canvas(Render.nestThreads)へ移行。3状態の意味は継承 */
 .nest-legend { display: inline-flex; align-items: center; gap: 6px; font-size: calc(11px * var(--fs-scale, 1)); color: var(--sub); }
 .nest-legend .lg { width: 10px; height: 10px; border-radius: 50%; display: inline-block; border: 2px solid var(--border); }
 .nest-legend .lg.on { border-color: var(--amber-400); background: rgba(228, 188, 58, .35); }

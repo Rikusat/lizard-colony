@@ -981,6 +981,7 @@ const NEST_VIS = {
     twig0: "#4a3115", twig1: "#7a5628", twig2: "#b8904e", // 枝3層(暗→中間→ハイライト)
     leaf: "#4a6b2a",
     egg0: "#d8ac60", egg1: "#8c5f2a", egg2: "#4f3512",    // 卵(光→中間→陰・参照の中間トーンに合わせ暗め)
+    thread: "#d9ad4e", spark: "#ffe9a8",                  // 糸(金色フィラメント)と輝点(B2・スアミの視覚言語)
   },
 };
 
@@ -1007,6 +1008,30 @@ const NEST_ORES_BY_RING = [
 const NEST_GROWTH = { bred: 2.6, hatched: 2.6, species: 0, morphs: 0, dexRate: 0, wins: 2.4 };
 
 // ノード生成(定義は保存しない・解放IDのみセーブ)
+// V6-P2-2 B2: 巣webの幾何(単一の真実)。nest.js(実ページ)と test-nest-cut.html(検分ゲート)が共用
+// =絵とテストがズレない(§5x-OPS ⑮)。結線規則=各ノード→内側リングの最寄り(従来SVG結線と同一)。
+const NESTWEB_GEO = { SIZE: 1100, C: 550, R_STEP: 95 };
+function nestWebPos(n) {
+  const { C, R_STEP } = NESTWEB_GEO;
+  return n.id === "core" ? [C, C] : [C + Math.cos(n.angle) * (R_STEP * (n.ring + 1)), C + Math.sin(n.angle) * (R_STEP * (n.ring + 1))];
+}
+function nestWebLinks(nodes) {
+  const links = [];
+  for (const n of nodes) {
+    if (n.id === "core") continue;
+    const [x, y] = nestWebPos(n);
+    const inner = nodes.filter((m) => (n.ring === 0 ? m.id === "core" : m.ring === n.ring - 1));
+    let best = inner[0], bd = 1e9;
+    for (const m of inner) {
+      const [mx, my] = nestWebPos(m);
+      const d = (mx - x) ** 2 + (my - y) ** 2;
+      if (d < bd) { bd = d; best = m; }
+    }
+    links.push({ from: best, to: n });
+  }
+  return links;
+}
+
 function buildNestWeb() {
   const nodes = [{ id: "core", ring: -1, angle: 0, conds: [], reward: null, name: "巣の中心" }];
   for (let r = 0; r < NESTWEB_RINGS.length; r++) {

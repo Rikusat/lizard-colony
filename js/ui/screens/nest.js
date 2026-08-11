@@ -159,32 +159,15 @@ Object.assign(UI, {
       <div id="nest-hint">ヒント: 各ノードは繁殖や日々の営みで自然に解放される。巣のネットワークが広がるほど、コロニーは豊かになる。</div>
       <div id="nest-tip" class="hidden"></div>`;
     const wrap = body.querySelector("#nest-web");
-    const SIZE = 1100, C = SIZE / 2;
-    const R_STEP = 95;
-    // 糸(SVG): 各ノード→内側リングの最寄りノード
-    let svg = `<svg width="${SIZE}" height="${SIZE}" style="position:absolute;inset:0;pointer-events:none">`;
-    const posOf = (n) => n.id === "core"
-      ? [C, C]
-      : [C + Math.cos(n.angle) * (R_STEP * (n.ring + 1)), C + Math.sin(n.angle) * (R_STEP * (n.ring + 1))];
-    for (const n of nodes) {
-      if (n.id === "core") continue;
-      const [x, y] = posOf(n);
-      // 内側の最寄り
-      const inner = nodes.filter((m) => (n.ring === 0 ? m.id === "core" : m.ring === n.ring - 1));
-      let best = inner[0], bd = 1e9;
-      for (const m of inner) {
-        const [mx, my] = posOf(m);
-        const d = (mx - x) ** 2 + (my - y) ** 2;
-        if (d < bd) { bd = d; best = m; }
-      }
-      const [bx, by] = posOf(best);
-      const open = !!web.nodes[n.id];
-      const parentOpen = best.id === "core" || !!web.nodes[best.id];
-      const cls = open && parentOpen ? "lit" : open ? "half" : "off";
-      svg += `<line class="${cls}" x1="${bx}" y1="${by}" x2="${x}" y2="${y}"/>`;
-    }
-    svg += `</svg>`;
-    let html = svg;
+    const { SIZE, C } = NESTWEB_GEO;
+    const posOf = nestWebPos; // V6-P2-2 B2: 幾何は data.js の単一の真実(検分ゲートと共用)
+    // 糸はSVGを廃止し canvas(Render.nestThreads=スアミの視覚言語)へ。結線規則と3状態は従来のまま。
+    const links = nestWebLinks(nodes).map((l, i) => {
+      const open = !!web.nodes[l.to.id];
+      const parentOpen = l.from.id === "core" || !!web.nodes[l.from.id];
+      return { from: l.from, to: l.to, i, state: open && parentOpen ? "lit" : open ? "half" : "off" };
+    });
+    let html = "";
     for (const n of nodes) {
       const [x, y] = posOf(n);
       const open = n.id === "core" || web.nodes[n.id];
@@ -226,10 +209,23 @@ Object.assign(UI, {
       if (!sw || !sh) return;
       cv.width = sw; cv.height = sh;
       const nctx = cv.getContext("2d");
+      const ccx = sw * NEST_VIS.core.x, ccy = sh * NEST_VIS.core.y, R = Math.min(sw, sh) * NEST_VIS.core.r;
       Render.nestBg(nctx, sw, sh);
-      Render.nestCore(nctx, sw * NEST_VIS.core.x, sh * NEST_VIS.core.y, Math.min(sw, sh) * NEST_VIS.core.r);
+      Render.nestCore(nctx, ccx, ccy, R);
       const k = (Math.min(sw, sh) / SIZE) * 0.98;
-      wrap.style.transform = `translate(${sw * NEST_VIS.core.x - C * k}px, ${sh * NEST_VIS.core.y - C * k}px) scale(${k})`;
+      // B2: 糸(コア起点は鉢の縁から=卵に糸を刺さない)
+      const tf = ([x, y]) => [ccx + (x - C) * k, ccy + (y - C) * k];
+      const segs = links.map((l) => {
+        let [x1, y1] = tf(posOf(l.from));
+        const [x2, y2] = tf(posOf(l.to));
+        if (l.from.id === "core") {
+          const d = Math.hypot(x2 - x1, y2 - y1) || 1;
+          x1 += (x2 - x1) / d * R * 1.12; y1 += (y2 - y1) / d * R * 0.78;
+        }
+        return { x1, y1, x2, y2, state: l.state, i: l.i };
+      });
+      Render.nestThreads(nctx, segs);
+      wrap.style.transform = `translate(${ccx - C * k}px, ${ccy - C * k}px) scale(${k})`;
     };
     this._nestLayout = layoutStage;
     requestAnimationFrame(layoutStage);

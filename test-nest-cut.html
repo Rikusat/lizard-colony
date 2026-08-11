@@ -53,17 +53,19 @@ const row = (name, refV, repV, thr, ok) => {
   document.getElementById("tbl").insertAdjacentHTML("beforeend",
     `<tr><td>${name}</td><td>${refV}</td><td>${repV}</td><td>${thr}</td><td class="${ok ? "ok" : "ng"}">${ok ? "PASS" : "FAIL"}</td></tr>`);
 };
+const isAmber = (r, g, b, L) => r > 96 && g > 56 && b < 64 && r > g && g > b * 1.6 && L > 50; // 参照と再現で同一パイプライン
 const stat = (cx, x, y, w, h) => {
   const d = cx.getImageData(x, y, w, h).data;
-  let s = 0, warm = 0, bx = 0, by = 0, bc = 0; const n = d.length / 4;
+  let s = 0, warm = 0, am = 0, bx = 0, by = 0, bc = 0; const n = d.length / 4;
   for (let i = 0, p = 0; i < d.length; i += 4, p++) {
     const r = d[i], g = d[i + 1], b = d[i + 2];
     const L = .2126 * r + .7152 * g + .0722 * b;
     s += L;
     if (r > g && g > b && L > 60) warm++;
+    if (isAmber(r, g, b, L)) am++;
     if (L > 170) { bx += p % w; by += (p / w | 0); bc++; }
   }
-  return { avgL: s / n, warm: warm / n * 100, cen: bc ? [bx / bc, by / bc] : null, bright: bc / n * 100 };
+  return { avgL: s / n, warm: warm / n * 100, amber: am / n * 100, cen: bc ? [bx / bc, by / bc] : null, bright: bc / n * 100 };
 };
 (async () => {
   // 参照(フル解像でオフスクリーンに展開=閾値の座標系)
@@ -77,7 +79,26 @@ const stat = (cx, x, y, w, h) => {
   const repCv = document.createElement("canvas"); repCv.width = W; repCv.height = H;
   const repCx = repCv.getContext("2d", { willReadFrequently: true });
   Render.nestBg(repCx, W, H);
-  Render.nestCore(repCx, W * NEST_VIS.core.x, H * NEST_VIS.core.y, Math.min(W, H) * NEST_VIS.core.r);
+  const ccx = W * NEST_VIS.core.x, ccy = H * NEST_VIS.core.y, R = Math.min(W, H) * NEST_VIS.core.r;
+  Render.nestCore(repCx, ccx, ccy, R);
+  // B2: 糸(実ページと同じ単一の真実=buildNestWeb/nestWebLinks/NESTWEB_GEO・同じ変換式)。
+  //   状態は全て lit=参照モックの「明るく灯る網」を代表状態とする(実ページは解放状態で3状態に変わる)。
+  {
+    const nodes = buildNestWeb();
+    const { SIZE, C } = NESTWEB_GEO;
+    const k = (Math.min(W, H) / SIZE) * 0.98;
+    const tf = ([x, y]) => [ccx + (x - C) * k, ccy + (y - C) * k];
+    const segs = nestWebLinks(nodes).map((l, i) => {
+      let [x1, y1] = tf(nestWebPos(l.from));
+      const [x2, y2] = tf(nestWebPos(l.to));
+      if (l.from.id === "core") {
+        const d = Math.hypot(x2 - x1, y2 - y1) || 1;
+        x1 += (x2 - x1) / d * R * 1.12; y1 += (y2 - y1) / d * R * 0.78;
+      }
+      return { x1, y1, x2, y2, state: "lit", i };
+    });
+    Render.nestThreads(repCx, segs);
+  }
   // 表示(縮小)
   document.getElementById("ref").getContext("2d").drawImage(refCv, 0, 0, 730, 442);
   document.getElementById("rep").getContext("2d").drawImage(repCv, 0, 0, 730, 442);
@@ -119,6 +140,17 @@ const stat = (cx, x, y, w, h) => {
     row("B1 コア 高輝度重心距離px", R.cen ? R.cen.map(Math.round) : "-", P.cen ? P.cen.map(Math.round) : "なし", `≦ ${T.core.cenDist}px`, dist <= T.core.cenDist);
     const br = R.bright > 0 ? P.bright / R.bright : 0;
     row("B1 コア 高輝度画素率(参照比)", f1(R.bright) + "%", f1(P.bright) + "% (×" + f1(br) + ")", `×${T.core.brightMin}〜${T.core.brightMax}`, br >= T.core.brightMin && br <= T.core.brightMax);
+  }
+  { // B2 糸+輝点
+    T.threads.samples.forEach((sm, si) => {
+      const [x, y, w, h] = sm.rect;
+      const Rr = stat(refCx, x, y, w, h), P = stat(repCx, x, y, w, h);
+      row(`B2 糸帯${si + 1} 平均輝度`, f1(Rr.avgL), f1(P.avgL), `±${T.threads.sampleAvgLTol}L`, Math.abs(P.avgL - Rr.avgL) <= T.threads.sampleAvgLTol);
+      row(`B2 糸帯${si + 1} amber率%`, f1(Rr.amber), f1(P.amber), `${T.threads.sampleAmberMin}〜${T.threads.sampleAmberMax}%`, P.amber >= T.threads.sampleAmberMin && P.amber <= T.threads.sampleAmberMax);
+    });
+    const Rc = stat(refCx, 0, 0, W, H), Pc = stat(repCx, 0, 0, W, H);
+    row("B2 全域 琥珀占有%(糸の予算)", f1(Rc.amber) + "(ノード込)", f1(Pc.amber) + "(糸のみ)", `${T.threads.contentAmberMin}〜${T.threads.contentAmberMax}%`,
+      Pc.amber >= T.threads.contentAmberMin && Pc.amber <= T.threads.contentAmberMax);
   }
   document.title = (fail ? "NESTVIS FAIL " : "NESTVIS PASS ") + pass + "/" + (pass + fail);
 })();
