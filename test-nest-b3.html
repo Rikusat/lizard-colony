@@ -20,9 +20,10 @@
 <style>
   body { margin: 0; overflow: hidden; }
   #wrapb3 { position: fixed; left: 0; top: 0; width: 1460px; height: 884px; }
-  #wrapb3 .nest-head, #wrapb3 #nest-side, #wrapb3 #nest-hint, #wrapb3 #nest-tip { display: none !important; }
-  #wrapb3 #nest-main { position: absolute; inset: 0; display: block; }
-  #wrapb3 #nest-stage { position: absolute; inset: 0; min-height: 0; border: none; border-radius: 0; }
+  /* B4: 右パネル(#nest-side)も表示=実コード経路のDOMをそのまま計測対象へ */
+  #wrapb3 .nest-head, #wrapb3 #nest-hint, #wrapb3 #nest-tip { display: none !important; }
+  #wrapb3 #nest-main { position: absolute; inset: 0; display: flex; gap: 12px; }
+  #wrapb3 #nest-stage { min-height: 0; border: none; border-radius: 0; }
 </style>
 </head>
 <body>
@@ -41,6 +42,8 @@ Game.ensureNestWeb();
 // 代表状態: 内側から23ノード解放(モック 23/80 と同水準・決定論)
 const ns = buildNestWeb().filter((n) => n.id !== "core");
 ns.sort((a, b) => a.ring - b.ring || a.angle - b.angle).slice(0, 23).forEach((n) => { Game.state.nestWeb.nodes[n.id] = { t: 1 }; });
+// B4: レア資源の代表値(モック水準の桁・決定論)=パネルの数値表示が計測対象に載る
+Game.state.rare = { amethyst: 450, iridium: 120, amber: 35, meteorite: 5, orichalcum: 78, titaniumOre: 12 };
 UI.buildNest(document.getElementById("wrapb3"));
 // ★スタイル適用前のrAFで初回描画が走るとステージ寸法が未確定のままcanvasを描く(実測でRが1.5倍化)。
 //   load後に必ず再レイアウトしてから ready を立てる=スクショは確定寸法のみを撮る。

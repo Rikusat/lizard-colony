@@ -1799,6 +1799,19 @@ button.holding::after {
   font-size: calc(12px * var(--fs-scale, 1)); color: var(--sub); }
 .np-row span { display: flex; align-items: center; gap: 6px; }
 .np-row b { color: var(--paper-100, #F3E9D8); }
+/* V6-P2-2 B4: ステータス大表示+進捗バー+鉱石メダリオン+効果一覧CTA(参照右カラム準拠・実データ駆動) */
+.np-label { font-size: calc(11px * var(--fs-scale, 1)); color: var(--sub); }
+.np-big { font-size: calc(30px * var(--fs-scale, 1)); font-weight: 800; color: var(--amber-400); line-height: 1.1; }
+.np-big small { font-size: calc(13px * var(--fs-scale, 1)); color: var(--sub); font-weight: 400; margin-left: 4px; }
+.np-bar { height: 8px; border-radius: 5px; background: rgba(0, 0, 0, .5); border: 1px solid var(--ink-600, #37301f); overflow: hidden; margin: 6px 0 2px; }
+.np-bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--amber-500, #C9A227), var(--amber-400, #E4BC3A)); }
+.np-barcap { font-size: calc(10px * var(--fs-scale, 1)); color: var(--sub); margin-bottom: 6px; }
+.np-medal { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%;
+  background: radial-gradient(#3a2c18, #1c1409); border: 1px solid rgba(201, 162, 39, .5); font-style: normal; }
+.np-medal svg.icon { width: 14px; height: 14px; }
+.np-ore b { color: var(--amber-400); }
+.np-cta { width: 100%; padding: 9px; font-size: calc(12px * var(--fs-scale, 1)); display: flex; align-items: center; justify-content: center; gap: 6px; border-color: var(--amber-500, #C9A227); }
+.nest-fx-note { font-size: calc(11px * var(--fs-scale, 1)); color: var(--sub); margin: 8px 0 0; }
 #nest-hint { margin-top: 8px; padding: 7px 12px; background: var(--lcd-bg, #14100a); border: 1px solid var(--border);
   border-radius: 8px; color: var(--sub); font-size: calc(11px * var(--fs-scale, 1)); }
 @media (max-width: 900px) { #nest-side { width: 170px; } }

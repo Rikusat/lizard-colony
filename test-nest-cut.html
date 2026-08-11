@@ -115,17 +115,19 @@ const stat = (cx, x, y, w, h) => {
     dcx.putImageData(out, 0, 0);
   }
   if (!refOk) { document.title = "NESTVIS NOREF"; document.querySelector("p.note").textContent = "参照画像なし(本番/配布環境)。ゲートはローカルでのみ実行できます。"; return; }
-  // ---- 部分ゲート(B0: 背景 / B1: コア) ----
+  // ---- 部分ゲート(B0: 背景 / B1: コア)。★B4改訂: 再現側の矩形/帯はコア相対(幾何差に頑健) ----
+  const refCore = [618, 362], repCore = [ccx, ccy];
+  const at = (base, rel) => [Math.round(base[0] + rel[0]), Math.round(base[1] + rel[1]), rel[2], rel[3]];
   const f1 = (v) => (typeof v === "number" ? v.toFixed(1) : v);
   { // B0 背景
-    const [x, y, w, h] = T.bg.rect;
-    const R = stat(refCx, x, y, w, h), P = stat(repCx, x, y, w, h);
+    const [rx2, ry2, w, h] = at(refCore, T.bg.rectRel), [px2, py2] = at(repCore, T.bg.rectRel);
+    const R = stat(refCx, rx2, ry2, w, h), P = stat(repCx, px2, py2, w, h);
     row("B0 背景 平均輝度", f1(R.avgL), f1(P.avgL), `±${T.bg.avgLTol}L`, Math.abs(P.avgL - R.avgL) <= T.bg.avgLTol);
     row("B0 背景 暖色画素率%", f1(R.warm), f1(P.warm), `< ${T.bg.warmMax}%`, P.warm < T.bg.warmMax);
   }
   { // B1 コア
-    const [x, y, w, h] = T.core.rect;
-    const R = stat(refCx, x, y, w, h), P = stat(repCx, x, y, w, h);
+    const [rx2, ry2, w, h] = at(refCore, T.core.rectRel), [px2, py2] = at(repCore, T.core.rectRel);
+    const R = stat(refCx, rx2, ry2, w, h), P = stat(repCx, px2, py2, w, h);
     const lo = T.core.ref.avgL * (1 - T.core.avgLRel), hi = T.core.ref.avgL * (1 + T.core.avgLRel);
     row("B1 コア 平均輝度", f1(R.avgL), f1(P.avgL), `${f1(lo)}〜${f1(hi)}`, P.avgL >= lo && P.avgL <= hi);
     row("B1 コア 暖色画素率%", f1(R.warm), f1(P.warm), `${T.core.warmMin}〜${T.core.warmMax}%`, P.warm >= T.core.warmMin && P.warm <= T.core.warmMax);
@@ -134,13 +136,13 @@ const stat = (cx, x, y, w, h) => {
     const br = R.bright > 0 ? P.bright / R.bright : 0;
     row("B1 コア 高輝度画素率(参照比)", f1(R.bright) + "%", f1(P.bright) + "% (×" + f1(br) + ")", `×${T.core.brightMin}〜${T.core.brightMax}`, br >= T.core.brightMin && br <= T.core.brightMax);
   }
-  { // B2 糸+輝点(環状帯=角度非依存・トポロジ差に頑健。閾値ファイルの再設計注記を参照)
+  { // B2 糸+輝点(環状帯=角度非依存・トポロジ差に頑健。中心=各側の実コア)
     const B = T.threads.band;
-    const annStat = (cx2) => {
+    const annStat = (cx2, cen) => {
       const d = cx2.getImageData(0, 0, W, H).data;
       let s = 0, am = 0, warm = 0, n = 0;
       for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) {
-        const dd = Math.hypot(x - B.cx, y - B.cy);
+        const dd = Math.hypot(x - cen[0], y - cen[1]);
         if (dd < B.r0 || dd > B.r1) continue;
         const i = (y * W + x) * 4, r = d[i], g = d[i + 1], b = d[i + 2];
         const L = .2126 * r + .7152 * g + .0722 * b;
@@ -150,7 +152,7 @@ const stat = (cx, x, y, w, h) => {
       }
       return { avgL: s / n, amber: am / n * 100, warm: warm / n * 100 };
     };
-    const Rr = annStat(refCx), P = annStat(repCx);
+    const Rr = annStat(refCx, refCore), P = annStat(repCx, repCore);
     row("B2 糸帯(環状110-200) 平均輝度", f1(Rr.avgL), f1(P.avgL), `±${T.threads.bandAvgLTol}L`, Math.abs(P.avgL - Rr.avgL) <= T.threads.bandAvgLTol);
     row("B2 糸帯(環状) amber率%", f1(Rr.amber), f1(P.amber), `${T.threads.bandAmberMin}〜${T.threads.bandAmberMax}%`, P.amber >= T.threads.bandAmberMin && P.amber <= T.threads.bandAmberMax);
     row("B2 糸帯(環状) 暖色率%", f1(Rr.warm), f1(P.warm), `< ${T.threads.bandWarmMax}%`, P.warm < T.threads.bandWarmMax);

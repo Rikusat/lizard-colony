@@ -128,9 +128,11 @@ Object.assign(UI, {
       const p = Game.nestProgress(n);
       if (p > nextP) { nextP = p; next = n; }
     }
-    // V6-P2-2 B0: レイアウト=中央ステージ(canvas背景+コア+web)+右パネル+ヒント帯(nest_image2 準拠)。
-    //   右パネルの数値は実データのみ(モックの見本値は使わない・Ric裁定 2026-08-11)。
+    // V6-P2-2 B0/B4: レイアウト=中央ステージ(canvas背景+コア+web)+右パネル+ヒント帯(nest_image2 準拠)。
+    //   右パネルの数値は実データのみ(モックの見本値 Lv.12/325/800 等は使わない・Ric裁定 2026-08-11)。
+    //   B4: 大表示=解放ノード数 / 進捗バー=次に開きそうなノード / レア資源=6鉱石(写像対応表どおり)。
     const rate = counts.total ? Math.floor(counts.open / counts.total * 100) : 0;
+    const nearCount = nodes.filter((n) => n.id !== "core" && !web.nodes[n.id] && Game.nestProgress(n) >= CFG.nestNearThreshold).length;
     body.innerHTML = `
       <div class="nest-head">
         <span>解放済み <b>${counts.open}/${counts.total}</b>
@@ -147,13 +149,18 @@ Object.assign(UI, {
         </div>
         <aside id="nest-side">
           <div class="nest-panel"><h3>${Icon.svg("nestweb")} 巣のステータス</h3>
-            <div class="np-row"><span>解放済みノード</span><b>${counts.open}/${counts.total}</b></div>
+            <div class="np-label">解放ノード</div>
+            <div class="np-big">${counts.open}<small>/${counts.total}</small></div>
+            <div class="np-bar"><span style="width:${Math.round((next ? nextP : 1) * 100)}%"></span></div>
+            <div class="np-barcap">${next ? `次: ${next.name}(${Math.floor(nextP * 100)}%)` : "全ノード解放済み"}</div>
             <div class="np-row"><span>総解放率</span><b>${rate}%</b></div>
+            <div class="np-row"><span>もうすぐ解放</span><b>${nearCount}個</b></div>
             <div class="np-row"><span>先行解放</span><b>${web.surprises || 0}回</b></div>
           </div>
           <div class="nest-panel"><h3>${Icon.svg("stone")} レア資源</h3>
-            ${ORES.map((o) => `<div class="np-row"><span>${Icon.svg(o.icon)}${o.name}</span><b>${(Game.state.rare && Game.state.rare[o.id]) || 0}</b></div>`).join("")}
+            ${ORES.map((o) => `<div class="np-row np-ore"><span><i class="np-medal" style="color:${o.color}">${Icon.svg(o.icon)}</i>${o.name}</span><b>${(Game.state.rare && Game.state.rare[o.id]) || 0}</b></div>`).join("")}
           </div>
+          <button id="nest-fx-btn" class="np-cta">${Icon.svg("spark")} 巣の効果一覧</button>
         </aside>
       </div>
       <div id="nest-hint">ヒント: 各ノードは繁殖や日々の営みで自然に解放される。巣のネットワークが広がるほど、コロニーは豊かになる。</div>
@@ -230,5 +237,22 @@ Object.assign(UI, {
     };
     this._nestLayout = layoutStage;
     requestAnimationFrame(layoutStage);
+    // B4: 効果一覧(閲覧専用・実データ=解放済みノードの獲得報酬)
+    const fxBtn = body.querySelector("#nest-fx-btn");
+    if (fxBtn) fxBtn.addEventListener("click", () => this.openNestEffects());
+  },
+  // B4: 巣の効果一覧(モーダル・閲覧専用)。解放済みノードと獲得済み報酬の一覧=実データのみ
+  openNestEffects() {
+    const web = Game.ensureNestWeb();
+    const opened = buildNestWeb().filter((n) => n.id !== "core" && web.nodes[n.id]);
+    this.openModal(`${Icon.svg("spark")} 巣の効果一覧`, (body) => {
+      body.innerHTML = opened.length
+        ? `<div class="nest-fx-list">${opened.map((n) => {
+            const o = oreById(n.reward.ore);
+            return `<div class="np-row np-ore"><span><i class="np-medal" style="color:${o.color}">${Icon.svg(o.icon)}</i>${n.name}</span><b>${o.name}×${n.reward.n}</b></div>`;
+          }).join("")}</div>
+          <p class="nest-fx-note">解放時に受け取り済み。巣は増えるほど豊かになる。</p>`
+        : `<p class="nest-fx-note">まだ解放された巣がない。いつもの繁殖を続ければ自然に開く。</p>`;
+    });
   },
 });
