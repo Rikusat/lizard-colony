@@ -4576,8 +4576,10 @@ const Render = {
       const k = CFG.nestCoreScale != null ? CFG.nestCoreScale : 2.35;
       const ax = CFG.nestCoreAnchorX != null ? CFG.nestCoreAnchorX : 0.485;
       const ay = CFG.nestCoreAnchorY != null ? CFG.nestCoreAnchorY : 0.60;
-      const w = R * k, h = w * img.naturalHeight / img.naturalWidth;
-      ctx.drawImage(img, cx - w * ax, cy - h * ay, w, h);
+      let w = R * k, h = w * img.naturalHeight / img.naturalWidth;
+      // 等倍スナップ: 原寸±2px以内なら原寸・整数座標で描く=リサンプリング排除(最鮮明+無改変検査が成立)
+      if (Math.abs(w - img.naturalWidth) <= 2) { w = img.naturalWidth; h = img.naturalHeight; }
+      ctx.drawImage(img, Math.round(cx - w * ax), Math.round(cy - h * ay), w, h);
       return;
     }
     this.nestCore(ctx, cx, cy, R);

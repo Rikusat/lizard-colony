@@ -21,11 +21,18 @@ const T = new Function(fs.readFileSync(path.join(ROOT, "docs/nest_visual_thresho
 // ---- スクショ取得(qa-cdp を子プロセスで流用=手順の単一の真実) ----
 const tmp = path.join(os.tmpdir(), "nest-b3-shot.png");
 // ★B4: 再現側のサンプル幾何はコア相対(B2教訓の徹底)。実コア位置とパネルbboxはページから実測して受け取る。
+const NOASSETS = process.argv.includes("--noassets"); // フォールバック実測モード(素材ゲートは対象外)
 const EVAL = "(()=>{const st=document.getElementById('nest-stage').getBoundingClientRect();" +
   "const sd=document.getElementById('nest-side').getBoundingClientRect();" +
-  "return JSON.stringify({core:[Math.round(st.left+st.width*NEST_VIS.core.x),Math.round(st.top+st.height*NEST_VIS.core.y)]," +
+  "const cx=st.left+st.width*NEST_VIS.core.x, cy=st.top+st.height*NEST_VIS.core.y;" +
+  "const R=Math.min(st.width,st.height)*NEST_VIS.core.r;" +
+  "const k=CFG.nestCoreScale, ax=CFG.nestCoreAnchorX, ay=CFG.nestCoreAnchorY;" +
+  "let w=R*k, h=w*258/318;" + // 素材の縦横比(nest-core 318×258)
+  "if(Math.abs(w-318)<=2){w=318;h=258;}" + // nestCoreDrawの等倍スナップと同一(単一の真実=同式)
+  "return JSON.stringify({core:[Math.round(cx),Math.round(cy)]," +
+  "assetRect:[Math.round(cx-w*ax), Math.round(cy-h*ay), w, h]," +
   "side:[Math.round(sd.left),Math.round(sd.top),Math.round(sd.width),Math.round(sd.height)]})})()";
-const r = spawnSync("node", [path.join(ROOT, "tools/qa-cdp.mjs"), "/test-nest-b3.html",
+const r = spawnSync("node", [path.join(ROOT, "tools/qa-cdp.mjs"), "/test-nest-b3.html" + (NOASSETS ? "?noassets=1" : ""),
   "--wait-title", "b3 ready", "--timeout", "30000", "--size", "1460x884", "--eval", EVAL, "--shot", tmp], { encoding: "utf8" });
 let meta = null;
 try { meta = JSON.parse((r.stdout || "").trim().split("\n").pop()); } catch (e) { /* 下で検査 */ }
@@ -102,5 +109,44 @@ row("B4 パネル列 平均輝度", f1(PN.ref.avgL), f1(PP.avgL), `±${PN.avgLTo
 row("B4 パネル列 明部率%(数値/見出しの存在)", f1(PN.ref.hi), f1(PP.hi), `${PN.hiMin}〜${PN.hiMax}%`, PP.hi >= PN.hiMin && PP.hi <= PN.hiMax);
 row("B4 パネル列 amber率%", f1(PN.ref.amber), f1(PP.amber), `< ${PN.amberMax}%`, PP.amber < PN.amberMax);
 row("B4 パネル列 暖色率%", f1(PN.ref.warm), f1(PP.warm), `< ${PN.warmMax}%`, PP.warm < PN.warmMax);
+// v2-V1: 素材コアの自己アンカー型ゲート(素材=正解・無改変+正配置)。高α画素を素材→スクショへ写像し|ΔL|平均。
+if (!NOASSETS) {
+  const asset = decodePNG(fs.readFileSync(path.join(ROOT, "image/nest/nest-core.png")));
+  if (asset.bpp !== 4) { console.log("FAIL: 素材にαが無い"); process.exit(1); }
+  const [arx, ary, arw, arh] = geo.assetRect;
+  const sxk = arw / asset.w, syk = arh / asset.h;
+  // 一致標本=素材中央(卵+鉢内側・半径0.40)に限定: 糸(鉢縁から)とノード(ring0=縁外)が構造的に届かず、
+  //   合成による正当なΔLが混入しない。無改変+正配置の担保には中央領域で十分。
+  const cxA = asset.w / 2, cyA = asset.h / 2, rLim = Math.min(asset.w, asset.h) * 0.40;
+  let n = 0, sum = 0, exBx = 0, exBy = 0, exBc = 0;
+  for (let ya = 0; ya < asset.h; ya += 2) for (let xa = 0; xa < asset.w; xa += 2) {
+    const ia = (ya * asset.w + xa) * 4;
+    const aA = asset.data[ia + 3];
+    const Lr = .2126 * asset.data[ia] + .7152 * asset.data[ia + 1] + .0722 * asset.data[ia + 2];
+    if (aA > 200 && Lr > 170) { exBx += arx + xa * sxk; exBy += ary + ya * syk; exBc++; }
+    if (aA < 250 || Math.hypot(xa - cxA, ya - cyA) > rLim) continue;
+    const sx = Math.round(arx + xa * sxk), sy = Math.round(ary + ya * syk);
+    if (sx < 0 || sy < 0 || sx >= img.w || sy >= img.h) continue;
+    const is = (sy * img.w + sx) * img.bpp;
+    const Ls = .2126 * img.data[is] + .7152 * img.data[is + 1] + .0722 * img.data[is + 2];
+    sum += Math.abs(Ls - Lr); n++;
+  }
+  const meanDL = n ? sum / n : 1e9;
+  row("V1 素材コア 無改変+正配置(高α画素の平均|ΔL|)", "0(素材=正解)", f1(meanDL) + " (n=" + n + ")",
+    `≦${T.asset.maxMeanDL} & n≧${T.asset.minSamples}`, meanDL <= T.asset.maxMeanDL && n >= T.asset.minSamples);
+  // 卵の照り(高輝度)重心が素材どおりの位置に来るか
+  let bx = 0, by = 0, bc = 0;
+  for (let y = Math.max(0, ary | 0); y < Math.min(img.h, ary + arh); y += 2)
+    for (let x = Math.max(0, arx | 0); x < Math.min(img.w, arx + arw); x += 2) {
+      const i = (y * img.w + x) * img.bpp;
+      const L = .2126 * img.data[i] + .7152 * img.data[i + 1] + .0722 * img.data[i + 2];
+      if (L > 170) { bx += x; by += y; bc++; }
+    }
+  const exp = exBc ? [exBx / exBc, exBy / exBc] : null;
+  const got = bc ? [bx / bc, by / bc] : null;
+  const dist = exp && got ? Math.hypot(got[0] - exp[0], got[1] - exp[1]) : 1e9;
+  row("V1 素材コア 高輝度重心の正配置px", exp ? exp.map(Math.round) : "-", got ? got.map(Math.round) : "-",
+    `≦${T.asset.cenDist}px`, dist <= T.asset.cenDist);
+}
 console.log(`\n=== qa-nest-shot: ${pass} PASS / ${fail} FAIL(実寸=実コード経路 DOM+canvas)===`);
 process.exit(fail ? 1 : 0);

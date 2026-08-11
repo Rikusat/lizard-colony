@@ -40,6 +40,9 @@ docs/
 
 # 企画用参照画像(実行時に未使用・約4.7MB)
 image/
+# V6-P2-2 v2(Ric裁定 2026-08-11): 巣の使用素材のみ配信解禁(元シートは除外=参照/再切り出し用)
+!image/nest/
+image/nest/source-sheet.png
 
 # ローカル環境
 .claude/

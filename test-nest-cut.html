@@ -76,16 +76,24 @@ const stat = (cx, x, y, w, h) => {
   const refCx = refCv.getContext("2d", { willReadFrequently: true });
   if (refOk) refCx.drawImage(img, 212, 57, W, H, 0, 0, W, H);
   // 再現(同座標系・ページと同じ NEST_VIS から導出=単一の真実)
-  const repCv = document.createElement("canvas"); repCv.width = W; repCv.height = H;
-  const repCx = repCv.getContext("2d", { willReadFrequently: true });
-  Render.nestBg(repCx, W, H);
+  // v2: 2モード描画。表示=素材モード(実運用の見え)/ ゲートB0〜B2=**コードモード**(フォールバック経路の恒久回帰)。
+  //   素材コアは参照モックと別作画=「モックとの輝度一致」は測る意味を失うため、素材の検査は
+  //   実寸シュートゲート(qa-nest-shot)の**自己アンカー型**(素材そのもの=正解・無改変/正配置)が担う。
   const ccx = W * NEST_VIS.core.x, ccy = H * NEST_VIS.core.y, R = Math.min(W, H) * NEST_VIS.core.r;
-  // v2: 素材のコア(読めなければコード描画へ退化=実ページと同じ窓口 nestCoreDraw)。?noassets=1で強制退化
+  const mkRep = (img) => {
+    const cv2 = document.createElement("canvas"); cv2.width = W; cv2.height = H;
+    const c2 = cv2.getContext("2d", { willReadFrequently: true });
+    Render.nestBg(c2, W, H);
+    Render.nestCoreDraw(c2, ccx, ccy, R, img);
+    return c2;
+  };
   let coreImg = null;
   if (!/[?&]noassets=1(?:&|$)/.test(location.search)) {
     try { coreImg = new Image(); coreImg.src = "image/nest/nest-core.png"; await coreImg.decode(); } catch (e) { coreImg = null; }
   }
-  Render.nestCoreDraw(repCx, ccx, ccy, R, coreImg);
+  const repCx = mkRep(coreImg);          // 表示用(素材モード。素材が無い環境では自動的にコードモード)
+  const codeCx = mkRep(null);            // ゲート用(コード描画=フォールバック回帰)
+  const repCv = repCx.canvas;
   // B2: 糸(実ページと同じ単一の真実=buildNestWeb/nestWebLinks/NESTWEB_GEO・同じ変換式)。
   //   状態は全て lit=参照モックの「明るく灯る網」を代表状態とする(実ページは解放状態で3状態に変わる)。
   {
@@ -95,7 +103,9 @@ const stat = (cx, x, y, w, h) => {
     const tf = ([x, y]) => [ccx + (x - C) * k, ccy + (y - C) * k];
     const list = nestWebLinks(nodes).map((l) => ({ from: l.from, to: l.to, state: "lit" }))
       .concat(nestWebLaterals(nodes).map((l) => ({ from: l.from, to: l.to, state: "half" })));
-    Render.nestThreads(repCx, Render.nestThreadSegs(list, tf, ccx, ccy, R));
+    const segs = Render.nestThreadSegs(list, tf, ccx, ccy, R);
+    Render.nestThreads(repCx, segs);   // 表示(素材モード)
+    Render.nestThreads(codeCx, segs);  // ゲート(コードモード)
   }
   // 表示(縮小)
   document.getElementById("ref").getContext("2d").drawImage(refCv, 0, 0, 730, 442);
@@ -126,13 +136,13 @@ const stat = (cx, x, y, w, h) => {
   const f1 = (v) => (typeof v === "number" ? v.toFixed(1) : v);
   { // B0 背景
     const [rx2, ry2, w, h] = at(refCore, T.bg.rectRel), [px2, py2] = at(repCore, T.bg.rectRel);
-    const R = stat(refCx, rx2, ry2, w, h), P = stat(repCx, px2, py2, w, h);
+    const R = stat(refCx, rx2, ry2, w, h), P = stat(codeCx, px2, py2, w, h);
     row("B0 背景 平均輝度", f1(R.avgL), f1(P.avgL), `±${T.bg.avgLTol}L`, Math.abs(P.avgL - R.avgL) <= T.bg.avgLTol);
     row("B0 背景 暖色画素率%", f1(R.warm), f1(P.warm), `< ${T.bg.warmMax}%`, P.warm < T.bg.warmMax);
   }
   { // B1 コア
     const [rx2, ry2, w, h] = at(refCore, T.core.rectRel), [px2, py2] = at(repCore, T.core.rectRel);
-    const R = stat(refCx, rx2, ry2, w, h), P = stat(repCx, px2, py2, w, h);
+    const R = stat(refCx, rx2, ry2, w, h), P = stat(codeCx, px2, py2, w, h);
     const lo = T.core.ref.avgL * (1 - T.core.avgLRel), hi = T.core.ref.avgL * (1 + T.core.avgLRel);
     row("B1 コア 平均輝度", f1(R.avgL), f1(P.avgL), `${f1(lo)}〜${f1(hi)}`, P.avgL >= lo && P.avgL <= hi);
     row("B1 コア 暖色画素率%", f1(R.warm), f1(P.warm), `${T.core.warmMin}〜${T.core.warmMax}%`, P.warm >= T.core.warmMin && P.warm <= T.core.warmMax);
@@ -157,11 +167,11 @@ const stat = (cx, x, y, w, h) => {
       }
       return { avgL: s / n, amber: am / n * 100, warm: warm / n * 100 };
     };
-    const Rr = annStat(refCx, refCore), P = annStat(repCx, repCore);
+    const Rr = annStat(refCx, refCore), P = annStat(codeCx, repCore);
     row("B2 糸帯(環状110-200) 平均輝度", f1(Rr.avgL), f1(P.avgL), `±${T.threads.bandAvgLTol}L`, Math.abs(P.avgL - Rr.avgL) <= T.threads.bandAvgLTol);
     row("B2 糸帯(環状) amber率%", f1(Rr.amber), f1(P.amber), `${T.threads.bandAmberMin}〜${T.threads.bandAmberMax}%`, P.amber >= T.threads.bandAmberMin && P.amber <= T.threads.bandAmberMax);
     row("B2 糸帯(環状) 暖色率%", f1(Rr.warm), f1(P.warm), `< ${T.threads.bandWarmMax}%`, P.warm < T.threads.bandWarmMax);
-    const Rc = stat(refCx, 0, 0, W, H), Pc = stat(repCx, 0, 0, W, H);
+    const Rc = stat(refCx, 0, 0, W, H), Pc = stat(codeCx, 0, 0, W, H);
     row("B2 全域 琥珀占有%(糸の予算)", f1(Rc.amber) + "(ノード込)", f1(Pc.amber) + "(糸のみ)", `${T.threads.contentAmberMin}〜${T.threads.contentAmberMax}%`,
       Pc.amber >= T.threads.contentAmberMin && Pc.amber <= T.threads.contentAmberMax);
   }
