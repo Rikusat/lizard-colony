@@ -57,6 +57,13 @@
       "ids": ["RECIPES", "synthesize", "synthesizableRecipes", "stoneSynthCost"]
     },
     {
+      "feature": "旧コロニー一覧モーダル",
+      "removedOn": "2026-08-11",
+      "section": "HANDOFF §5s-V6-P3-1 裁定②",
+      "replacement": "マップ画面(openMap/planet-map)に置換済。呼び出し0の死コードを全数監査で証明して撤去",
+      "ids": ["openStages"]
+    },
+    {
       "feature": "レシピ解読(RESEARCH recipe1〜6)",
       "removedOn": "2026-08-09",
       "section": "HANDOFF §5s-V6-P1-2 ③ [ac1814a, 1344d9e]",

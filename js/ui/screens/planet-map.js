@@ -4,43 +4,8 @@
 // =============================================================
 
 Object.assign(UI, {
-  // ---------------- V3: Stage切替(独立コロニー) ----------------
-  openStages() {
-    this.openModal(`${Icon.svg("planet")} コロニー一覧 (各Stageは独立して生き続ける)`, (body) => {
-      body.innerHTML = "";
-      const cur = Game.currentStage();
-      for (const st of STAGES) {
-        const unlocked = Game.state.rank >= st.rank;
-        const data = Game.stageData(st.id);
-        const row = document.createElement("div");
-        row.className = "list-row" + (unlocked ? "" : " done");
-        const pop = data ? data.lizards.length : 0;
-        const badges = unlocked ? Game.stageBadges(st.id === cur.id ? Game.activeStageData() : data).join("") : "";
-        const extra = [
-          st.envText,
-          data && data.pioneered ? `個体${pop}匹 / 撃退${(data.boss && data.boss.wins) || 0}回` : (unlocked ? "未開拓" : ""),
-        ].filter(Boolean).join(" / ");
-        if (unlocked) {
-          const here = cur.id === st.id;
-          const pioneered = data && data.pioneered;
-          row.innerHTML = `
-            <span class="fic" style="background:${st.ground};border-color:${st.accent}">${Icon.svg(st.icon)}</span>
-            <div class="grow"><b>${st.name}</b> ${badges}
-              <div class="desc">${extra}</div></div>
-            ${here ? `<span class="lv">滞在中</span>` : `<button>${pioneered ? "移動" : Icon.svg("build") + " 開拓"}</button>`}`;
-          if (!here) row.querySelector("button").addEventListener("click", () => this.confirmSwitch(st.id));
-        } else {
-          row.innerHTML = `
-            <span class="fic">${Icon.svg("lock")}</span>
-            <div class="grow"><b>${st.name}</b>
-              <div class="desc">${st.envText}</div></div>
-            <span class="lv">R${st.rank}で解放</span>`;
-        }
-        body.appendChild(row);
-      }
-    });
-  },
-
+  // P3-1裁定②(2026-08-11): 旧「コロニー一覧」モーダル openStages はマップ画面(openMap)に置換済の
+  //   死コード(呼び出し0を全数監査で証明)につき撤去。docs/removed_api.json に登録(§5x-OPS ⑭)。
   // 切替(未開拓は「開拓する」確認のみ)。Phase4純血: 引き連れ(創始者)は撤廃済=各星は固有2種のみが根付く(生態系を守る)
   confirmSwitch(stageId) {
     const data = Game.stageData(stageId);
