@@ -95,6 +95,8 @@ Object.assign(UI, {
         <span>${Icon.svg("spark")}特性保持 <b>${nTr}</b></span></div>
         <div class="rst-host"></div>`;
       this.buildRosterTable(body.querySelector(".rst-host"), this._rstState || (this._rstState = { sort: "default", dir: 1, fSp: "", fMo: "", fTr: "", fPl: "" }));
+      // 本番の更新=サマリ行も含めて全再構築(共通関数の更新は表のみのため上書きで格上げ)
+      body.querySelector(".rst-refresh").addEventListener("click", () => this._labRefresh("roster"));
     });
   },
   // コスト表示: アイコン+個数のみ。不足=赤字(.cost-ng)
