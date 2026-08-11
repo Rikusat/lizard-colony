@@ -1812,6 +1812,19 @@ button.holding::after {
 .np-ore b { color: var(--paper-100, #F3E9D8); } /* 参照実測: 鉱石数値は白系(琥珀ではない) */
 .np-cta { width: 100%; padding: 9px; font-size: calc(12px * var(--fs-scale, 1)); display: flex; align-items: center; justify-content: center; gap: 6px; border-color: var(--amber-500, #C9A227); }
 .nest-fx-note { font-size: calc(11px * var(--fs-scale, 1)); color: var(--sub); margin: 8px 0 0; }
+/* v2-V3: パネル枠/ボタンの素材モード(.assets)。焼き込み見本値(Lv.12/325/800/28.7%)は不透明地+実データDOMで
+   覆う(素材無改変・rank/rate方式)。rateは見出し「総解放率」が実概念と一致=数値領域のみ覆い素材を最大活用 */
+.np-frame-rank { margin: 2px 0 4px; }
+#nest-side.assets .np-frame-rank { background: url("image/nest/panel-rank.png") center/100% 100% no-repeat; aspect-ratio: 326 / 158; position: relative; }
+#nest-side.assets .np-frame-rank .np-fr-inner { position: absolute; inset: 9% 6% 10% 6%; background: #16100a; border-radius: 6px; padding: 4px 8px; display: flex; flex-direction: column; justify-content: space-between; }
+#nest-openrate.assets { background: url("image/nest/panel-rate.png") center/100% 100% no-repeat; aspect-ratio: 296 / 144; width: 168px; position: absolute; }
+#nest-openrate.assets .npo-cap { visibility: hidden; } /* 見出しは素材の焼き込み「総解放率」が担う(意味一致) */
+#nest-openrate.assets b { position: absolute; left: 36%; top: 42%; width: 58%; height: 44%; background: #16100a;
+  display: flex; align-items: center; justify-content: center; font-size: calc(21px * var(--fs-scale, 1)); color: #F3E9D8; border-radius: 4px; }
+#nest-side.assets .np-cta { background: url("image/nest/btn-effects.png") center/contain no-repeat; border: none; box-shadow: none;
+  aspect-ratio: 318 / 102; color: transparent; } /* 文言は素材の焼き込みが一致・SR向けにDOMテキストは保持(透明) */
+#nest-side.assets .np-cta svg.icon { display: none; }
+#nest-side.assets .np-cta:hover { filter: brightness(1.15); }
 #nest-hint { margin-top: 8px; padding: 7px 12px; background: var(--lcd-bg, #14100a); border: 1px solid var(--border);
   border-radius: 8px; color: var(--sub); font-size: calc(11px * var(--fs-scale, 1)); }
 @media (max-width: 900px) { #nest-side { width: 170px; } }

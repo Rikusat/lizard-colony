@@ -52,6 +52,8 @@ const NEST_VIS_THRESHOLDS = {
   // v2-V2 メダリオン: 3.4×縮小の細リングは画素単位比較が縮小フィルタ差で壊れる(実測ΔL12〜17)ため
   //   **ゾーン平均色(チャンネル別)**で比較=正素材/正状態/正配置の構造検査。微細な無改変検知は等倍のV1が担う。
   medallion: { maxChanDelta: 8, minSamples: 60 }, // 中帯0.80-0.90=狭帯のため標本下限60
+  // v2-V3 パネル枠/ボタン(ゾーン平均色一致。rank=枠帯のみ/rate=左34%アイコン域/cta=全面)
+  panelAsset: { maxChanDelta: 10, minSamples: 80 },
   // B4 右パネル列(2026-08-11実測・参照絶対rect=(1078,15,380,830))。再現側=実DOMの#nest-side bbox
   //   (qa-nest-shotが--evalで取得)。幅が違っても密度(%)比較=スケール頑健。hi=L>140(明るい文字/数値の存在)。
   panel: {

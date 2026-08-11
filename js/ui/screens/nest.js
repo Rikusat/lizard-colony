@@ -163,13 +163,15 @@ Object.assign(UI, {
         <div id="nest-stage">
           <canvas id="nest-canvas"></canvas>
           <div id="nest-web"></div>
-          <div id="nest-openrate">総解放率 <b>${rate}%</b></div>
+          <div id="nest-openrate"><span class="npo-cap">総解放率</span><b>${rate}%</b></div>
         </div>
         <aside id="nest-side">
           <div class="nest-panel"><h3>${Icon.svg("nestweb")} 巣のステータス</h3>
-            <div class="np-label">解放ノード</div>
-            <div class="np-big">${counts.open}<small>/${counts.total}</small></div>
-            <div class="np-bar"><span style="width:${Math.round((next ? nextP : 1) * 100)}%"></span></div>
+            <div class="np-frame-rank"><div class="np-fr-inner">
+              <div class="np-label">解放ノード</div>
+              <div class="np-big">${counts.open}<small>/${counts.total}</small></div>
+              <div class="np-bar"><span style="width:${Math.round((next ? nextP : 1) * 100)}%"></span></div>
+            </div></div>
             <div class="np-barcap">${next ? `次: ${next.name}(${Math.floor(nextP * 100)}%)` : "全ノード解放済み"}</div>
             <div class="np-row"><span>総解放率</span><b>${rate}%</b></div>
             <div class="np-row"><span>もうすぐ解放</span><b>${nearCount}個</b></div>
@@ -254,12 +256,17 @@ Object.assign(UI, {
       Render.nestThreads(nctx, Render.nestThreadSegs(links.concat(laterals), tf, ccx, ccy, R));
       wrap.style.transform = `translate(${ccx - C * k}px, ${ccy - C * k}px) scale(${k})`;
     };
-    // v2-V2: メダリオン素材(6ファイル)を先読みし、**全て**読めた時だけ .assets で一括切替
-    //   (部分適用の混在意匠を作らない=1つでも欠けたら現行DOM描画へ丸ごと退化)。実体6ファイルを81ノードで共有。
-    const ringKeys = Object.values(NEST_RING_ASSETS);
+    // v2-V2/V3: DOM系素材(リング6+パネル枠2+ボタン1=同一トーンの装飾群)を先読みし、
+    //   **全て**読めた時だけ .assets で一括切替(部分適用の混在意匠を作らない=欠けたら丸ごと退化)。
+    //   コア素材(canvas)は別要素種のため独立退化(nestCoreDrawのフォールバック)。
+    const ringKeys = Object.values(NEST_RING_ASSETS).concat(["panel-rank", "panel-rate", "btn-effects"]);
+    const side = body.querySelector("#nest-side");
     const applyRingAssets = () => {
       const all = ringKeys.every((k2) => this._nestAsset(k2));
       wrap.classList.toggle("assets", all);
+      if (side) side.classList.toggle("assets", all);
+      const orate = body.querySelector("#nest-openrate");
+      if (orate) orate.classList.toggle("assets", all);
     };
     ringKeys.forEach((k2) => this._nestAsset(k2));
     this._nestRingApply = applyRingAssets;

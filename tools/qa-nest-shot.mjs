@@ -37,6 +37,7 @@ const EVAL = "(()=>{const st=document.getElementById('nest-stage').getBoundingCl
   "assetsMode:document.getElementById('nest-web').classList.contains('assets')," +
   "assetRect:[Math.round(cx-w*ax), Math.round(cy-h*ay), w, h]," +
   "samples:samp," +
+  "v3:(()=>{const q=(sel)=>{const e=document.querySelector(sel);if(!e)return null;const b2=e.getBoundingClientRect();return [b2.left,b2.top,b2.width,b2.height]};return {rank:q('#nest-side .np-frame-rank'),rate:q('#nest-openrate'),cta:q('#nest-side .np-cta')}})()," +
   "side:[Math.round(sd.left),Math.round(sd.top),Math.round(sd.width),Math.round(sd.height)]})})()";
 const r = spawnSync("node", [path.join(ROOT, "tools/qa-cdp.mjs"), "/test-nest-b3.html" + (NOASSETS ? "?noassets=1" : ""),
   "--wait-title", "b3 ready", "--timeout", "30000", "--size", "1460x884", "--eval", EVAL, "--shot", tmp], { encoding: "utf8" });
@@ -113,12 +114,15 @@ if (NOASSETS) {
   row("B3 ノード帯 amber率%", f1(N.ref.amber), f1(P.amber), `${N.amberMin}〜${N.amberMax}%`, P.amber >= N.amberMin && P.amber <= N.amberMax);
   row("B3 ノード帯 暖色率%", f1(N.ref.warm), f1(P.warm), `< ${N.warmMax}%`, P.warm < N.warmMax);
 }
-// B4 右パネル列(密度比較=幅差にスケール頑健。再現側=実DOM #nest-side の bbox)
+// B4パネル列(モック統計)も素材モードでは枠素材で統計が変わる=**--noassetsの恒久回帰へ**(B3と同じ論理・4例目)。
+// 素材モードのパネルはV3自己アンカー型ゲートが担う。
 const PN = T.panel;
-row("B4 パネル列 平均輝度", f1(PN.ref.avgL), f1(PP.avgL), `±${PN.avgLTol}L`, Math.abs(PP.avgL - PN.ref.avgL) <= PN.avgLTol);
-row("B4 パネル列 明部率%(数値/見出しの存在)", f1(PN.ref.hi), f1(PP.hi), `${PN.hiMin}〜${PN.hiMax}%`, PP.hi >= PN.hiMin && PP.hi <= PN.hiMax);
-row("B4 パネル列 amber率%", f1(PN.ref.amber), f1(PP.amber), `< ${PN.amberMax}%`, PP.amber < PN.amberMax);
-row("B4 パネル列 暖色率%", f1(PN.ref.warm), f1(PP.warm), `< ${PN.warmMax}%`, PP.warm < PN.warmMax);
+if (NOASSETS) {
+  row("B4 パネル列 平均輝度", f1(PN.ref.avgL), f1(PP.avgL), `±${PN.avgLTol}L`, Math.abs(PP.avgL - PN.ref.avgL) <= PN.avgLTol);
+  row("B4 パネル列 明部率%(数値/見出しの存在)", f1(PN.ref.hi), f1(PP.hi), `${PN.hiMin}〜${PN.hiMax}%`, PP.hi >= PN.hiMin && PP.hi <= PN.hiMax);
+  row("B4 パネル列 amber率%", f1(PN.ref.amber), f1(PP.amber), `< ${PN.amberMax}%`, PP.amber < PN.amberMax);
+  row("B4 パネル列 暖色率%", f1(PN.ref.warm), f1(PP.warm), `< ${PN.warmMax}%`, PP.warm < PN.warmMax);
+}
 // v2-V1: 素材コアの自己アンカー型ゲート(素材=正解・無改変+正配置)。高α画素を素材→スクショへ写像し|ΔL|平均。
 if (!NOASSETS) {
   const asset = decodePNG(fs.readFileSync(path.join(ROOT, "image/nest/nest-core.png")));
@@ -214,6 +218,39 @@ if (!NOASSETS) {
       row(`V2 メダリオン(${s.ring}・on) 環の色相`, `${h0}〜${h1}°`, hue.toFixed(0) + "° (n=" + n2 + ")",
         "期待レンジ内", n2 >= T.medallion.minSamples && hue >= h0 && hue <= h1);
     }
+  }
+  // v2-V3: パネル枠/ボタンの自己アンカー型(ゾーン平均色一致・素材=正解)。
+  //   rank=枠帯のみ(内部は実データDOMで覆う設計) / rate=左34%(金の分子アイコン・非覆い) / cta=全面。
+  const v3defs = [
+    { key: "rank", file: "panel-rank", zone: "border", stretch: true },
+    { key: "rate", file: "panel-rate", zone: "left34", stretch: true },
+    { key: "cta", file: "btn-effects", zone: "full", stretch: false },
+  ];
+  for (const d of v3defs) {
+    const bb = geo.v3 && geo.v3[d.key];
+    if (!bb) { row(`V3 ${d.key} 要素が存在`, "あり", "なし", "存在", false); continue; }
+    const A = rings[d.file] || (rings[d.file] = decodePNG(fs.readFileSync(path.join(ROOT, "image/nest", d.file + ".png"))));
+    const [bx3, by3, bw3, bh3] = bb;
+    let sxk3, syk3, ox3, oy3;
+    if (d.stretch) { sxk3 = bw3 / A.w; syk3 = bh3 / A.h; ox3 = bx3; oy3 = by3; }
+    else { const sc3 = Math.min(bw3 / A.w, bh3 / A.h); sxk3 = syk3 = sc3; ox3 = bx3 + (bw3 - A.w * sc3) / 2; oy3 = by3 + (bh3 - A.h * sc3) / 2; }
+    let n3 = 0; const se3 = [0, 0, 0], sg3 = [0, 0, 0];
+    for (let ya = 0; ya < A.h; ya += 2) for (let xa = 0; xa < A.w; xa += 2) {
+      const u = xa / A.w, v = ya / A.h;
+      if (d.zone === "border" && u > 0.06 && u < 0.94 && v > 0.09 && v < 0.90) continue; // 内部=DOM覆い領域を除外
+      if (d.zone === "left34" && u > 0.34) continue;                                     // 数値覆い領域を除外
+      const ia = (ya * A.w + xa) * 4;
+      if (A.data[ia + 3] < 250) continue;
+      const px3 = Math.round(ox3 + xa * sxk3), py3 = Math.round(oy3 + ya * syk3);
+      if (px3 < 0 || py3 < 0 || px3 >= img.w || py3 >= img.h) continue;
+      const is3 = (py3 * img.w + px3) * img.bpp;
+      se3[0] += A.data[ia]; se3[1] += A.data[ia + 1]; se3[2] += A.data[ia + 2];
+      sg3[0] += img.data[is3]; sg3[1] += img.data[is3 + 1]; sg3[2] += img.data[is3 + 2];
+      n3++;
+    }
+    const dC3 = n3 ? Math.max(Math.abs(se3[0] - sg3[0]), Math.abs(se3[1] - sg3[1]), Math.abs(se3[2] - sg3[2])) / n3 : 1e9;
+    row(`V3 ${d.file}(${d.zone}) ゾーン平均色Δ(max ch)`, "0(素材=正解)", f1(dC3) + " (n=" + n3 + ")",
+      `≦${T.panelAsset.maxChanDelta} & n≧${T.panelAsset.minSamples}`, dC3 <= T.panelAsset.maxChanDelta && n3 >= T.panelAsset.minSamples);
   }
 }
 console.log(`\n=== qa-nest-shot: ${pass} PASS / ${fail} FAIL(実寸=実コード経路 DOM+canvas)===`);
