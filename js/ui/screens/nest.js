@@ -79,7 +79,7 @@ Object.assign(UI, {
     Game.ensureNestWeb();
     const main = document.querySelector("main"), pg = document.getElementById("nestpage");
     if (!main || !pg) { // ページ骨格が無い環境(旧テストページ等)はモーダルへフォールバック(退路)
-      this.openModal(`${Icon.svg("nestweb")} 巣ネットワーク — 全惑星共通(閲覧専用)`, (body) => this.buildNest(body));
+      this.openModal(`${Icon.svg("nestweb")} 巣ネットワーク — 全惑星共通の遺伝子ネットワーク(閲覧専用)`, (body) => this.buildNest(body));
       Game.state.nestWeb.seen = Game.nestWebCounts().open;
       return;
     }
@@ -101,7 +101,7 @@ Object.assign(UI, {
   _nestPageBind() {
     if (this._nestPageBound) return; this._nestPageBound = true;
     const h2 = document.querySelector("#nestpage-head h2");
-    if (h2) h2.innerHTML = `${Icon.svg("nestweb")} 巣ネットワーク — 全惑星共通`;
+    if (h2) h2.innerHTML = `${Icon.svg("nestweb")} 巣ネットワーク`;
     const back = document.getElementById("nestpage-back");
     if (back) back.addEventListener("click", () => this.closeNestPage());
     window.addEventListener("resize", () => { if (this.nestPageOpen() && this._nestLayout) this._nestLayout(); }); // V6-P2-2: 背景canvas再描画
@@ -154,7 +154,7 @@ Object.assign(UI, {
     body.innerHTML = `
       <div class="nest-head">
         <span>解放済み <b>${counts.open}/${counts.total}</b>
-          ${next ? ` / 次に開きそう: <b>${next.name}</b>(${Math.floor(nextP * 100)}%)` : ""}</span>
+          ${next ? ` / 次の結節: <b>${next.name}</b>(${Math.floor(nextP * 100)}%)` : ""}</span>
         <span class="nest-legend">
           <i class="lg on"></i>解放済み <i class="lg near"></i>もうすぐ <i class="lg off"></i>未解放
         </span>
@@ -169,7 +169,7 @@ Object.assign(UI, {
           <div id="nest-quest" class="hidden"></div>
           <div class="nest-panel"><h3>${Icon.svg("nestweb")} 巣のステータス</h3>
             <div class="np-frame-rank"><div class="np-fr-inner">
-              <div class="np-label">解放ノード</div>
+              <div class="np-label">解放結節</div>
               <div class="np-big">${counts.open}<small>/${counts.total}</small></div>
               <div class="np-bar"><span style="width:${Math.round((next ? nextP : 1) * 100)}%"></span></div>
             </div></div>
@@ -184,7 +184,7 @@ Object.assign(UI, {
           <button id="nest-fx-btn" class="np-cta">${Icon.svg("spark")} 巣の効果一覧</button>
         </aside>
       </div>
-      <div id="nest-hint">ヒント: 各ノードは繁殖や日々の営みで自然に解放される。巣のネットワークが広がるほど、コロニーは豊かになる。</div>`;
+      <div id="nest-hint">各結節は繁殖と営みの記録から自律的に解放される。網が広がるほど、資源は満ちる。</div>`;
     const wrap = body.querySelector("#nest-web");
     const { SIZE, C } = NESTWEB_GEO;
     const posOf = nestWebPos; // V6-P2-2 B2: 幾何は data.js の単一の真実(検分ゲートと共用)
@@ -295,7 +295,7 @@ Object.assign(UI, {
       <div class="nq-head"><b>${n.name}</b><span class="nq-rate">${open ? Icon.svg("check") + "解放済み" : `解放率 <b>${pct}%</b>`}</span></div>
       ${conds}
       <div class="nq-rw">${rw}</div>
-      ${open ? "" : `<div class="nq-note">いつもの繁殖を続ければ自然に開く</div>`}`;
+      ${open ? "" : `<div class="nq-note">繁殖の記録が条件を満たしたとき、結節は開く</div>`}`;
   },
 
   // v2-V3+(Ric裁定: スパークは「①解放の瞬間の一回性」のみ採用・②常設微飾は不採用)。
@@ -330,8 +330,8 @@ Object.assign(UI, {
             const rw = nestRewardList(n).map((x) => { const o = oreById(x.ore); return o.name + '×' + x.n; }).join(' / ');
             return `<div class="np-row np-ore"><span><i class="np-medal" style="color:${first.color}">${Icon.svg(first.icon)}</i>${n.name}</span><b>${rw}</b></div>`;
           }).join("")}</div>
-          <p class="nest-fx-note">解放時に受け取り済み。巣は増えるほど豊かになる。</p>`
-        : `<p class="nest-fx-note">まだ解放された巣がない。いつもの繁殖を続ければ自然に開く。</p>`;
+          <p class="nest-fx-note">結節の解放時に受領済み。網が広がるほど、資源は満ちる。</p>`
+        : `<p class="nest-fx-note">開かれた結節はまだ無い。繁殖の記録が条件を満たしたとき、結節は開く。</p>`;
     });
   },
 });

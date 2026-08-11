@@ -372,7 +372,7 @@ const Game = {
       } else {
         for (const node of opened) {
           const txt = nestRewardList(node).map((x) => { const o = oreById(x.ore); return `${Icon.svg(o.icon)}${o.name}+${x.n}`; }).join(" ");
-          UI.toast(`巣ノード解放!「${node.name}」 → ${txt}`);
+          UI.toast(`結節が開いた!「${node.name}」 → ${txt}`);
         }
       }
     }
@@ -393,7 +393,7 @@ const Game = {
     if (UI.heroNestReveal) UI.heroNestReveal([node], true); // サプライズ版(少し特別)
     else {
       const txt = nestRewardList(node).map((x) => { const o = oreById(x.ore); return `${Icon.svg(o.icon)}${o.name}+${x.n}`; }).join(" ");
-      UI.toast(`予想外のノードが解放された!!「${node.name}」 → ${txt}`);
+      UI.toast(`予想外の結節が開いた!!「${node.name}」 → ${txt}`);
     }
     return node;
   },
