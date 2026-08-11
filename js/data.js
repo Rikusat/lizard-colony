@@ -410,6 +410,10 @@ const CFG = {
   nestVisLeaves: 7,           // 巣に差す葉の枚数
   nestVisEggSpots: 12,        // 卵の斑点数
   nestVisGlow: 0.5,           // コア光暈の強さ(0=無効)
+  // V6-P2-2 v2(素材化・★ゲート較正値)
+  nestCoreScale: 2.35,        // 素材巣の幅(コア半径R比)
+  nestCoreAnchorX: 0.485,     // 素材内の鉢中心アンカー(横)
+  nestCoreAnchorY: 0.60,      // 素材内の鉢中心アンカー(縦)
   nestMenuItems: [            // V6-P2-1: 巣ページ右メニュー(本部§14と同様式。巣は閲覧専用=中身は常設導線)
     { key: "feed", jp: "飼育槽", en: "TERRARIUM", icon: "lizard" },
     { key: "hq", jp: "本部", en: "HOLO COMMAND", icon: "hq" },

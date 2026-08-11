@@ -57,6 +57,24 @@ Object.assign(UI, {
   // V6-P2-1(2026-08-10 Ric指示): 巣=モーダル→独立ページへ(本部#hqlabの様式を踏襲)。
   //   機能(閲覧専用・進捗・ツールチップ・パン)は buildNest のまま非接触=表示層と導線のみの変更。
   //   openNest は従来名の入口として維持(呼び出し側=飼育槽の巣穴クリックは無変更)。
+  // v2(素材化): 素材の遅延ロード窓口。読めなければ null=呼び出し側が手続き描画へ退化(壊れない)。
+  //   ?noassets=1 で強制退化(フォールバックの実測用)。読了時は再レイアウト(どの器でも寸法ガード済み)。
+  _nestAssets: {},
+  _nestAssetFailed: {},
+  _nestAsset(name) {
+    if (typeof location !== "undefined" && /[?&]noassets=1(?:&|$)/.test(location.search)) return null;
+    if (this._nestAssetFailed[name]) return null;
+    let img = this._nestAssets[name];
+    if (!img) {
+      img = new Image();
+      img.onload = () => { if (this._nestLayout) this._nestLayout(); };
+      img.onerror = () => { this._nestAssetFailed[name] = true; delete this._nestAssets[name]; };
+      img.src = "image/nest/" + name + ".png";
+      this._nestAssets[name] = img;
+    }
+    return img.complete && img.naturalWidth ? img : null;
+  },
+
   openNest() {
     Game.ensureNestWeb();
     const main = document.querySelector("main"), pg = document.getElementById("nestpage");
@@ -224,7 +242,7 @@ Object.assign(UI, {
       const nctx = cv.getContext("2d");
       const ccx = sw * NEST_VIS.core.x, ccy = sh * NEST_VIS.core.y, R = Math.min(sw, sh) * NEST_VIS.core.r;
       Render.nestBg(nctx, sw, sh);
-      Render.nestCore(nctx, ccx, ccy, R);
+      Render.nestCoreDraw(nctx, ccx, ccy, R, this._nestAsset("nest-core")); // v2: 素材(未着ならコード描画へ退化)
       const k = (Math.min(sw, sh) / SIZE) * 0.98;
       // B2: 糸(放射=結線規則+状態 / 横糸=網の織り・両端が解放済みのときだけ淡く灯る)
       const tf = ([x, y]) => [ccx + (x - C) * k, ccy + (y - C) * k];

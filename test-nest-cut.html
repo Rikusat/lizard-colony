@@ -80,7 +80,12 @@ const stat = (cx, x, y, w, h) => {
   const repCx = repCv.getContext("2d", { willReadFrequently: true });
   Render.nestBg(repCx, W, H);
   const ccx = W * NEST_VIS.core.x, ccy = H * NEST_VIS.core.y, R = Math.min(W, H) * NEST_VIS.core.r;
-  Render.nestCore(repCx, ccx, ccy, R);
+  // v2: 素材のコア(読めなければコード描画へ退化=実ページと同じ窓口 nestCoreDraw)。?noassets=1で強制退化
+  let coreImg = null;
+  if (!/[?&]noassets=1(?:&|$)/.test(location.search)) {
+    try { coreImg = new Image(); coreImg.src = "image/nest/nest-core.png"; await coreImg.decode(); } catch (e) { coreImg = null; }
+  }
+  Render.nestCoreDraw(repCx, ccx, ccy, R, coreImg);
   // B2: 糸(実ページと同じ単一の真実=buildNestWeb/nestWebLinks/NESTWEB_GEO・同じ変換式)。
   //   状態は全て lit=参照モックの「明るく灯る網」を代表状態とする(実ページは解放状態で3状態に変わる)。
   {

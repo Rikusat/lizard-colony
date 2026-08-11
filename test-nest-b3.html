@@ -48,10 +48,17 @@ UI.buildNest(document.getElementById("wrapb3"));
 // ★スタイル適用前のrAFで初回描画が走るとステージ寸法が未確定のままcanvasを描く(実測でRが1.5倍化)。
 //   load後に必ず再レイアウトしてから ready を立てる=スクショは確定寸法のみを撮る。
 window.addEventListener("load", () => {
-  requestAnimationFrame(() => {
+  // v2: 素材の読了/失敗が確定してから ready(スクショが素材有無どちらかの確定状態だけを撮る)
+  const settled = () => {
+    const a = UI._nestAssets && UI._nestAssets["nest-core"];
+    return /[?&]noassets=1/.test(location.search) || (a && a.complete) || (UI._nestAssetFailed && UI._nestAssetFailed["nest-core"]);
+  };
+  const tick = () => {
+    if (!settled()) { setTimeout(tick, 50); return; }
     UI._nestLayout && UI._nestLayout();
     requestAnimationFrame(() => { document.title = "b3 ready"; });
-  });
+  };
+  requestAnimationFrame(tick);
 });
 </script>
 </body>

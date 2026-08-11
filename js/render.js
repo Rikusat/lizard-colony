@@ -4568,6 +4568,20 @@ const Render = {
     ctx.restore();
   },
 
+  // v2(素材化・2026-08-11 Ric裁定): コア描画の単一窓口。素材(nest-core.png)があれば等比配置
+  //   (意匠無改変・アンカーは素材内の鉢中心)、無ければ手続き描画(B1)へ**フォールバック**=壊れない。
+  //   アンカー/倍率はゲート実測で較正(nestCoreAnchor*/nestCoreScale・★)。
+  nestCoreDraw(ctx, cx, cy, R, img) {
+    if (img && img.naturalWidth) {
+      const k = CFG.nestCoreScale != null ? CFG.nestCoreScale : 2.35;
+      const ax = CFG.nestCoreAnchorX != null ? CFG.nestCoreAnchorX : 0.485;
+      const ay = CFG.nestCoreAnchorY != null ? CFG.nestCoreAnchorY : 0.60;
+      const w = R * k, h = w * img.naturalHeight / img.naturalWidth;
+      ctx.drawImage(img, cx - w * ax, cy - h * ay, w, h);
+      return;
+    }
+    this.nestCore(ctx, cx, cy, R);
+  },
   // B2: 糸+輝点。**スアミ(traitSuami)と同じ視覚言語**=低alphaの多重曲線(たわみ)+結節の灯。
   //   特性側とページ側で「同じ世界の同じもの」として読めること(Ric指示 2026-08-11)。完全静的=決定論。
   //   琥珀の占有はゲート管理(参照の琥珀予算 2.55% を糸だけで超えない=閾値ファイル参照)。
