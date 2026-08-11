@@ -1995,6 +1995,16 @@ V3=パネル枠/効果一覧ボタン/スパーク素材化→配信・本番実
 - **未実装(次スプリント=章1のRic検分後)**: 章2 PURITY/章3 BUGGER/結び・導線2箇所(図鑑Loreタブ+標本棚)・Holo.mount("holo-lore")再生配線・恒久テスト(lore節)・デプロイ。
 - **検分URL**: `http://localhost:3000/?tune=1#lore`(×0.5/×0.25とスクラブで章末の読み行を判定)。
 
+### 5s-V6-P4-2-2. ★P4-2=章2 PURITY/章3 ORIGIN OF BUGGER/結び ARCHIVE 完成(2026-08-11・ローカルのみ=Ric通し検分待ち)
+- **章1様式承認(Ric)**を基準に同じ文法で3章を制作。全章とも: io入り抜き/実データ+遮蔽語彙/章末の読み行1行(2グリッド以上)/タグ0.895/loreTag。
+- **章2 PURITY**(grid11-21): 惑星球1つ(`opts.planetId`=再生時の現在惑星をUI層が注入=自分の星の話として観られる)+固有種の帳簿(ENDEMIC 01/02=実名・**3RD=REDACTED深紅**=伏線の再提示)。読み行=LORE.native第1文「新しい惑星は無人ではない」(gate: native)。
+- **章3 ORIGIN OF BUGGER**(grid21-31): 系譜図=INSECT FARM EXPERIMENT結節から**同じ根の2本の枝**(琥珀=コオロギ/深紅=バガー・脈動は決定論sin(t))。threat実データ(BOSS_TYPES.bugger)添え。読み行=cricket解放済み「だが忘れてはならない——バガーもまた、同じ虫の実験から生まれた」(cricket第2文)/未解放=intro第2文(初期解放につき常に実文)。**ヌシ・バガーの正体と上位存在(ID8)には触れない**(Ric裁定)。姿は描かない(影の記憶はオープニングの領分)。
+- **結び ARCHIVE**(grid31-36): 帳簿2行=DECODED n/11(`opts.archive`=UI層注入の実解読数)+**manifest()末尾行と同一の行**(`SPECIMEN / REDACTED / UNRESOLVED`=コピーでなくmanifest()から導出=単一の真実)。END OF RECORDで閉じる。★判断記録(Ric承認): 同じ謎が別の場所で疼く。
+- **暗転(溜め)は不使用**: ノード表に置いていない(章のio抜き0.2s+入り0.17sで間を作る)=効きの実測対象なし。使う場合の実測義務はC2の規律のまま。
+- **loreText(id, n)**: 第n文取得へ拡張(単一の真実=LORE定義から導出・捏造しない)。
+- **検証**: holo回帰256/0・opening QA32/0・装置QA69/0・node20/20・4位相スクショ(章2解放/章3解放/章3未解放/結び実セーブ=DECODED 1/11)・console 0。
+- **残(次スプリント)**: 全章通しのRic検分→導線2箇所(図鑑Loreタブ+標本棚)+**ゲート解決式のUIヘルパ昇格**(ビューアと本編で共有)→恒久テスト(lore節)→QA→Ric判定→デプロイ。
+
 ### 5x-GUARD. ★描画の非有限ガード(2026-08-10・Ric裁定・本番デプロイ済)[7e3d369, bac5fbc, c46d7ba, a231f1e]
 前セッションの報告テキストがクラッシュで失われ**HANDOFF記録も欠落していた**ため、コミットメッセージ・テスト実体・本番実測から復元して記録(2026-08-10 再開セッション)。
 - **7e3d369**: Canvas2D の createRadialGradient/arc/ellipse 等は NaN/Infinity で TypeError を投げ、**そのフレームの描画が丸ごと止まる**(画面停止)。計算値を渡す71ヶ所に検査を散らすと漏れるため、**`Render.guardCtx` で ctx を一度だけ包む**方式(知識は1箇所)。非有限は「その図形だけ」捨てる=握りつぶしではない(絵の欠けとして残る・`?tune=1` で警告1回・`__finGuard` で冪等)。`finite()` は数値のみ検査(arc の anticlockwise=boolean 等を誤って弾かない)。`drawGenesisFx` は undefined 座標も弾く必要があるため `Number.isFinite` の厳格判定で分離。
