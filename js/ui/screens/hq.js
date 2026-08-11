@@ -184,6 +184,17 @@ Object.assign(UI, {
       body.querySelector("#hq-dev").addEventListener("click", () => { Game.buyDev(); this._labRefresh("desks"); });
       // 研究(現行項目・順序維持+統一書式。ロック=錠前+ホバーで開放条件)
       const list = body.querySelector("#research-list");
+      // P3-3(2026-08-11 Ric指示): β遮蔽 — 研究名/コスト/購入ボタンをDOMに一切出さない(把握不能の保証)。
+      //   遮蔽はこのブロックのみ=投資/変換/開発/侵食/手持ちは非接触。効果は researchBonus が state.research を
+      //   直読するため表示と独立に継続。CFG.researchBetaHidden=false でβ後に従来リストへ復帰(UISkills §13)。
+      if (CFG.researchBetaHidden) {
+        list.classList.add("rsr-redacted");
+        list.innerHTML = `
+          <div class="rsr-head">${Icon.svg("lock")}<span class="rsr-en">${CFG.researchBetaEn.replace("REDACTED", '<span class="rsr-red">REDACTED</span>')}</span></div>
+          <div class="rsr-bar"></div><div class="rsr-bar"></div><div class="rsr-bar"></div>
+          <div class="rsr-note">${CFG.researchBetaJp}</div>`;
+        return;
+      }
       const resName = { science: "研究力", coins: "ゴールド", orichalcum: "オリハルコン", stones: "賢者の石" };
       for (const r of RESEARCH) {
         const done = Game.state.research[r.id];

@@ -403,6 +403,11 @@ const CFG = {
   hqDirectiveSub: "次の建造材: イリジウム あと{need} / コロニー: 個体{liz}・惑星{pl}",
   hqDirectiveSubOk: "建造材は充足 — 宇宙港で投入せよ / コロニー: 個体{liz}・惑星{pl}",
   hqDirectiveSubDone: "コロニー: 個体{liz}・惑星{pl}",
+  // P3-3(2026-08-11 Ric指示): 研究リストのβ遮蔽。表示のみ隠す(購入済み効果=researchBonusはstate直読で継続)。
+  //   falseでβ後に解禁(従来リスト復帰)。語彙はC2遮蔽表示(REDACTED)と統一・UISkills §13。
+  researchBetaHidden: true,
+  researchBetaEn: "RESEARCH — REDACTED / DECLASSIFY: PENDING",
+  researchBetaJp: "研究記録は現在封鎖されている — 今後のアップデートで公開予定",
   hqMenuItems: [              // 項目順・ラベル(action: panel=openLabPanel / dex=openDex)
     { key: "desks", jp: "研究デスク", en: "RESEARCH DESK", icon: "hq" },
     { key: "tank", jp: "錬成", en: "ALCHEMY", icon: "bio" },

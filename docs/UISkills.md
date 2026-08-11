@@ -361,6 +361,7 @@
 - **研究リスト** `.plan-research`: 現行項目・順序維持。コストは統一書式。ロック行=錠前+**ホバー(title)で開放条件**(常時表示しない=気配の作法)。
 - **手持ち資源** `.plan-pocket`: 俯瞰用に存続・一段沈める(opacity .55)。
 - **CFG**(`CFG.plan*`): planCurColor/planLackColor/planLackWord/planDimOpacity(色はパネルルートのCSS変数へ)。
+- **β遮蔽(P3-3・2026-08-11 Ric指示)**: `CFG.researchBetaHidden=true` の間、④研究リストのみ封鎖ブロック `.rsr-redacted` に置換(①②③⑤は不変=巻き添え禁止)。構成=見出し(錠前+等幅英字 `CFG.researchBetaEn`・REDACTEDのみ深紅)/マスクバー3本(縞ストライプ・文字情報ゼロ)/和文告知 `CFG.researchBetaJp`(「今後のアップデートで公開予定」=壊れているでなく「これから来る」)。語彙はC2遮蔽表示(REDACTED/UNRESOLVED)と統一・偽情報を書かない(holo.js冒頭の規約と同源)。研究名/コスト/購入ボタンをDOMに一切出さない(把握不能の保証=装置QA両面検査)。購入済み効果(`Game.researchBonus`)は表示と独立に継続。`false`で従来リスト復帰(β後の解禁)。
 
 
 ## §14 本部右メニュー(v5 HOLO COMMAND 操作系・2026-07-25)

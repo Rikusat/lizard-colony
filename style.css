@@ -2454,6 +2454,17 @@ button.holding::after {
 .plan-research .list-row { padding-top: 5px; padding-bottom: 5px; }
 .plan-research .mat { padding: 1px 6px; font-size: calc(12px * var(--fs-scale,1)); }
 .plan-research .locked { opacity: .45; cursor: help; }
+/* P3-3: 研究βの封鎖ブロック(UISkills §13)。文字情報ゼロのマスクバー+C2遮蔽語彙。plan-root内=var(--plan-lack)が使える */
+.rsr-redacted { padding: 10px 8px 8px; }
+.rsr-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.rsr-head .icon { width: 14px; height: 14px; color: rgba(255, 181, 71, .55); }
+.rsr-en { font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .1em; color: rgba(255, 181, 71, .6); }
+.rsr-red { color: var(--plan-lack, #d8404e); }
+.rsr-bar { height: 13px; margin: 5px 0; border-radius: 3px; opacity: .5;
+  background: repeating-linear-gradient(45deg, rgba(255, 181, 71, .10) 0 8px, rgba(13, 10, 6, .5) 8px 16px); }
+.rsr-bar:nth-child(3) { width: 84%; }
+.rsr-bar:nth-child(4) { width: 62%; }
+.rsr-note { margin-top: 8px; font-size: calc(12px * var(--fs-scale, 1)); color: var(--sub); }
 .plan-pocket { opacity: .55; font-size: calc(11.5px * var(--fs-scale,1)); color: var(--sub); padding: 8px 4px 0; border-top: 1px solid rgba(190,214,235,.06); margin-top: 10px; }
 
 /* ==== 本部右メニュー(UISkills §14・v5 HUD言語=琥珀/ブラケット/等幅サブ) ==== */

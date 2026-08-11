@@ -97,7 +97,8 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       UI.openHqLab();
       UI.openLabPanel("desks");
       var body = document.getElementById("modal-body");
-      ok("機能: デスク群パネル(投資/変換/開発/侵食/研究)", body.querySelector("#lab-invest") && body.querySelector("#cv-food") && body.querySelector("#hq-dev") && body.querySelector("#hq-invasion") && body.querySelector("#research-list").children.length > 5);
+      // P3-3: 研究リストはβ遮蔽対象のため「枠の存在」のみ(中身の両面検査は後段のP3-3節が単一の真実)
+      ok("機能: デスク群パネル(投資/変換/開発/侵食+研究枠)", body.querySelector("#lab-invest") && body.querySelector("#cv-food") && body.querySelector("#hq-dev") && body.querySelector("#hq-invasion") && body.querySelector("#research-list").children.length > 0);
       var food0 = Game.res("food"), c0 = Game.state.coins;
       body.querySelector("#cv-food").click(); body = document.getElementById("modal-body");
       ok("機能: Gold変換(実クリック)=食料+・Gold-", Game.res("food") === food0 + CFG.convertBatch && Game.state.coins < c0);
@@ -283,6 +284,28 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       var plSel = mb.querySelector("[data-f=\"fPl\"]"); if (plSel) { plSel.value = ""; plSel.dispatchEvent(new Event("change")); }
       ok("個体分析: 操作(ソート/フィルタ)してもstate非接触=読み取り専用", stSnap === JSON.stringify([Game.state.lizards.length, Game.state.coins, Game.state.rank]));
       UI.closeModal();
+
+      // ===== P3-3: 研究デスクβ遮蔽 — 「遮蔽が効いている/機能は生きている」の両面検査(Ric指示 2026-08-11) =====
+      ok("P3-3前提: CFG.researchBetaHidden=trueが既定(β)", CFG.researchBetaHidden === true);
+      UI.openLabPanel("desks");
+      var db = document.getElementById("modal-body"), rl = db.querySelector("#research-list");
+      ok("P3-3遮蔽: REDACTED+「今後公開予定」が表示される(これから来る)", /REDACTED/.test(rl.textContent) && /公開予定/.test(rl.textContent));
+      ok("P3-3遮蔽: 研究名/コスト/購入ボタンがDOMに一切無い(把握不能)", !/生産効率|探索技術|孵化学|迎撃戦術|留守番|始祖の知恵|侵食抑制/.test(rl.innerHTML) && rl.querySelectorAll("button").length === 0 && rl.querySelectorAll(".mat").length === 0);
+      ok("P3-3残置: 投資/変換3種/開発/侵食/手持ちは巻き添えなし(全て到達可)", db.querySelector("#lab-invest") && db.querySelector("#cv-food") && db.querySelector("#cv-energy") && db.querySelector("#cv-science") && db.querySelector("#hq-dev") && db.querySelector("#hq-invasion") && db.querySelector(".plan-pocket"));
+      var en0 = Game.res("energy"), ec0 = Game.state.coins;
+      db.querySelector("#cv-energy").click(); db = document.getElementById("modal-body");
+      ok("P3-3残置: 遮蔽中もGold→電力変換が実クリックで通る(機能は生きている)", Game.res("energy") === en0 + CFG.convertBatch && Game.state.coins < ec0);
+      Game.state.research.prod1 = true;
+      ok("P3-3効果: 購入済み研究の効果は遮蔽中も継続(researchBonus=state直読)", Math.abs(Game.researchBonus("income") - 0.05) < 1e-9);
+      var tk0 = UI.labTiers().tank;
+      Game.state.research.hatch1 = true;
+      ok("P3-3水槽: tank tierは研究状態と無関係(P1-2のHQ Lv駆動を再確認)", UI.labTiers().tank === tk0);
+      delete Game.state.research.hatch1;
+      UI.closeModal(); CFG.researchBetaHidden = false; // β後の解禁を再現
+      UI.openLabPanel("desks"); db = document.getElementById("modal-body"); rl = db.querySelector("#research-list");
+      ok("P3-3解禁: CFG=falseで従来リスト完全復帰(全" + RESEARCH.length + "件+購入ボタン)", rl.querySelectorAll(".list-row").length === RESEARCH.length && rl.querySelectorAll("button").length > 0 && /生産効率/.test(rl.textContent));
+      ok("P3-3解禁: 購入済み(prod1)は済表示=遮蔽中も状態が保たれていた", !!rl.querySelector(".list-row.done") && /生産効率 I/.test(rl.querySelector(".list-row.done").textContent));
+      CFG.researchBetaHidden = true; UI.closeModal();
       UI.closeHqLab();
 
       ok("console: 実行時エラーなし", !window.__err, window.__err);
