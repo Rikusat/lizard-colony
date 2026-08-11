@@ -553,6 +553,13 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
           const gatesOf = () => S.gateMode === "open" ? { net: true, purity: true, bugger: true }
             : S.gateMode === "closed" ? {} : gatesFromSave();
           const bGate = GM.map(([id, lb]) => mk(ctl, "行:" + lb, () => { S.gateMode = id; sync(); }));
+          // 章2の惑星と結びの解読数もUI層で解決して注入(holo.jsは実セーブを知らない)
+          const pidOf = () => (typeof Game !== "undefined" && Game.currentStage) ? Game.currentStage().id : 1;
+          const arcOf = () => {
+            if (typeof Game === "undefined" || !Game.state || typeof LORE === "undefined") return null;
+            const lore = Game.state.lore || {};
+            return { got: Object.keys(lore).filter((k) => lore[k]).length, total: LORE.length };
+          };
 
           const jump = document.createElement("div");
           jump.style.cssText = "display:flex;flex-wrap:wrap;gap:5px;align-items:center;justify-content:center;font-size:11px;";
@@ -601,7 +608,7 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
               S.t += dt * S.speed;
               if (S.t >= T) { if (S.loop) S.t %= T; else { S.t = T - 0.001; S.playing = false; } }
             }
-            Holo.drawLore(cv.getContext("2d"), cv.width, cv.height, S.t, { gates: gatesOf() });
+            Holo.drawLore(cv.getContext("2d"), cv.width, cv.height, S.t, { gates: gatesOf(), planetId: pidOf(), archive: arcOf() });
             sync();
             lRaf = requestAnimationFrame(loop);
           };

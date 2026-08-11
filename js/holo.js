@@ -816,9 +816,9 @@ const Holo = {
   // 章の深い1行の解放状態は呼び出し側(UI層)が解決し opts.gates={net:bool,...} で渡す
   //   =演出層はセーブ/ルール層を参照しない(恒久テスト§8の非接触規律。drawTravelのinfoと同形)。
   loreTag(ctx, W, H, S, a) { this.mono(ctx, "LIZARD COLONY / ARCHIVE", W * 0.06, H * 0.085, 10 * S, this.C().amber, a); },
-  loreText(id) {                     // Lore実文の第1文(単一の真実=LORE定義から導出。捏造しない)
+  loreText(id, n) {                  // Lore実文の第n文(既定=第1文)。単一の真実=LORE定義から導出。捏造しない
     const L = (typeof LORE !== "undefined") && LORE.find((x) => x.id === id);
-    return L ? L.text.split("。")[0] : null;
+    return L ? (L.text.split("。")[n || 0] || null) : null;
   },
 
   drawLore(ctx, W, H, t, opts) {
@@ -881,7 +881,101 @@ const Holo = {
       this.loreTag(ctx, W, H, S, 0.45 * io);
     }
 
-    // (章2 PURITY・章3 BUGGER・結び ARCHIVE は次スプリント=章1のRic検分後。ノード表は確定済み)
+    // ---- 2 PURITY: 純血の理。惑星球1つ+固有種の帳簿(2実名+3行目=REDACTED=伏線の再提示) ----
+    //   惑星は呼び出し側が opts.planetId で渡す(=再生時の現在惑星。自分の星の話として観られる)。
+    if (inNode("purity")) {
+      const p = seg(A("purity"), this.loreAfter("purity"));
+      const io = Math.min(1, p * 6) * (1 - Math.max(0, (p - 0.95) / 0.05));
+      const pid = (opts && opts.planetId) || 1;
+      const inf = this.travelInfo(pid), tint = (inf && inf.tint) || C.amber;
+      const cx = W * 0.29, cy = H * 0.47, r = Math.min(W, H) * 0.17;
+      this.glow(ctx, tint, 10);
+      this.sphere(ctx, cx, cy, r, 0.35, t * 0.5, tint, 0.85 * io, 14);
+      this.noGlow(ctx);
+      this.planetRing(ctx, cx, cy, r * 1.45, inf && inf.sk, tint, 0.5 * io);
+      this.jp(ctx, (inf && inf.short) || "REDACTED", cx, cy + r * 1.9, 12 * S, C.pale, 0.85 * io, "center");
+      // 右: 固有種の帳簿。1行ずつ(grid2/4/6)=読める速度。3行目だけ深紅=正体は渡さない
+      const bx = W * 0.52, by = H * 0.37;
+      this.bracket(ctx, bx - 18 * S, by - 24 * S, W * 0.40, 92 * S, 14 * S, C.amber, 0.5 * io, 1.2);
+      const sp = (inf && inf.sp) || [];
+      const rows = [["ENDEMIC 01", sp[0] || "REDACTED", false], ["ENDEMIC 02", sp[1] || "REDACTED", false], ["ENDEMIC 3RD", "REDACTED", true]];
+      for (let i = 0; i < rows.length; i++) {
+        const a = seg(A("purity") + G * (2 + i * 2), A("purity") + G * (3 + i * 2));
+        const yy = by + i * 26 * S;
+        this.mono(ctx, (rows[i][0] + " ...............").slice(0, 17), bx, yy, 11 * S, C.amber, 0.5 * a * io);
+        if (rows[i][2]) this.mono(ctx, rows[i][1], bx + 128 * S, yy, 11 * S, C.crim, 0.9 * a * io);
+        else this.jp(ctx, rows[i][1], bx + 128 * S, yy, 12 * S, C.pale, 0.9 * a * io);
+      }
+      // 読み(章末grid7〜9で全灯・実文=LORE.native第1文): 純血の理由=生態系を守る隣人の作法
+      const readK = seg(A("purity") + G * 7, A("purity") + G * 9);
+      const line = gates.purity ? this.loreText("native") : null;
+      if (line) this.jp(ctx, line, W * 0.5, H * 0.855, 13 * S, C.pale, 0.9 * readK * io, "center");
+      else this.mono(ctx, "RECORD / REDACTED", W * 0.5, H * 0.855, 12 * S, C.crim, 0.7 * readK * io, "center");
+      this.mono(ctx, "ARCHIVE 02 / PURITY", W * 0.5, H * 0.895, 11 * S, C.amber, 0.75 * io, "center");
+      this.loreTag(ctx, W, H, S, 0.45 * io);
+    }
+
+    // ---- 3 ORIGIN OF BUGGER: 唯一「明かす」章。同じ実験から2本の枝=養う虫と喰らう虫の系譜図 ----
+    //   既存Lore実文(intro/cricket)の映像化に留める。ヌシ・バガーの正体と上位存在には触れない(Ric裁定)。
+    if (inNode("bugger")) {
+      const p = seg(A("bugger"), this.loreAfter("bugger"));
+      const io = Math.min(1, p * 6) * (1 - Math.max(0, (p - 0.95) / 0.05));
+      const nx = W * 0.5, ny = H * 0.26;
+      // 起点=実験の結節(惑星でも生物でもない=標本枠のブラケット)
+      const nodeA = Math.min(1, p * 4);
+      this.bracket(ctx, nx - 96 * S, ny - 20 * S, 192 * S, 36 * S, 12 * S, C.amber, 0.6 * nodeA * io, 1.2);
+      this.mono(ctx, "INSECT FARM EXPERIMENT", nx, ny + 3 * S, 11 * S, C.amber, 0.85 * nodeA * io, "center");
+      // 分岐(grid2〜5で伸びる): 左=コオロギ(琥珀=食) / 右=バガー(深紅=侵食)。根は同じ1点
+      const growth = seg(A("bugger") + G * 2, A("bugger") + G * 5);
+      const y0 = ny + 22 * S, lx = W * 0.28, rx = W * 0.72, byy = H * 0.60;
+      const branch = (x1, col, k) => {
+        ctx.strokeStyle = col; ctx.globalAlpha = 0.45 * io; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(nx, y0);
+        ctx.lineTo(nx + (x1 - nx) * k, y0 + (byy - y0) * k); ctx.stroke(); ctx.globalAlpha = 1;
+      };
+      branch(lx, C.amber, growth); branch(rx, C.crim, growth);
+      if (growth >= 1) {
+        // 左端点: コオロギ(食の側=静かな琥珀の結節)
+        this.tickRing(ctx, lx, byy, 16 * S, 12, 0, 6.28318, C.amber, 0.55 * io, 1, 3);
+        this.jp(ctx, "コオロギ", lx, byy + 34 * S, 13 * S, C.pale, 0.9 * io, "center");
+        // 右端点: バガー(侵食の側=深紅の脈動。決定論=tのみ)。姿は描かない(影の記憶はオープニングの領分)
+        const pulse = 0.7 + 0.3 * Math.sin(t * 3.0);
+        this.glow(ctx, C.crim, 12);
+        ctx.strokeStyle = C.crim; ctx.globalAlpha = 0.6 * pulse * io; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.arc(rx, byy, 15 * S * (0.9 + 0.15 * pulse), 0, 6.28318); ctx.stroke();
+        this.noGlow(ctx); ctx.globalAlpha = 1;
+        this.jp(ctx, "バガー", rx, byy + 34 * S, 13 * S, C.crim, 0.9 * io, "center");
+        // 脅威型の実データ(BOSS_TYPES)を小さく添える(捏造しない)
+        const bt = (typeof BOSS_TYPES !== "undefined") && BOSS_TYPES.find((b) => b.id === "bugger");
+        if (bt) this.jp(ctx, bt.threat, rx, byy + 52 * S, 10 * S, C.crim, 0.55 * io, "center");
+      }
+      // 読み(grid5.5〜7で全灯=長文につき早めに出して3グリッド以上読める): cricket解放済み=核心の一文/未解放=intro第2文(初期解放=常に実文)
+      const readK = seg(A("bugger") + G * 5.5, A("bugger") + G * 7);
+      const line = (gates.bugger && this.loreText("cricket", 1)) || this.loreText("intro", 1) ;
+      if (line) this.jp(ctx, line, W * 0.5, H * 0.855, 13 * S, C.pale, 0.9 * readK * io, "center");
+      else this.mono(ctx, "RECORD / REDACTED", W * 0.5, H * 0.855, 12 * S, C.crim, 0.7 * readK * io, "center");
+      this.mono(ctx, "ARCHIVE 03 / ORIGIN OF BUGGER", W * 0.5, H * 0.895, 11 * S, C.amber, 0.75 * io, "center");
+      this.loreTag(ctx, W, H, S, 0.45 * io);
+    }
+
+    // ---- 結び ARCHIVE: 帳簿2行で締める。2行目=manifest()末尾行と同一の行(コピーでなく導出=単一の真実) ----
+    //   判断記録(Ric承認 2026-08-11): 同じ謎(積んだが正体が分からないもの)が別の場所でも疼く。
+    if (inNode("archive")) {
+      const p = seg(A("archive"), this.loreAfter("archive"));
+      const io = Math.min(1, p * 5) * (1 - Math.max(0, (p - 0.88) / 0.12));   // 終端はゆっくり落ちて閉じる
+      const ar = (opts && opts.archive) || null;
+      const bx = W * 0.36, by = H * 0.42;
+      const m = this.manifest(), last = m.length ? m[m.length - 1] : ["SPECIMEN", "REDACTED", "UNRESOLVED"];
+      const a1 = seg(A("archive") + G * 1, A("archive") + G * 2);
+      const a2 = seg(A("archive") + G * 2.5, A("archive") + G * 3.5);
+      this.mono(ctx, ("DECODED ...............").slice(0, 17), bx, by, 12 * S, C.amber, 0.5 * a1 * io);
+      this.mono(ctx, ar ? (ar.got + " / " + ar.total) : "UNRESOLVED", bx + 128 * S, by, 12 * S, ar ? C.pale : C.crim, 0.9 * a1 * io);
+      this.mono(ctx, (last[0] + " ...............").slice(0, 17), bx, by + 28 * S, 12 * S, C.amber, 0.5 * a2 * io);
+      this.mono(ctx, last[1], bx + 128 * S, by + 28 * S, 12 * S, C.crim, 0.9 * a2 * io);
+      this.mono(ctx, last[2], bx + 205 * S, by + 28 * S, 12 * S, C.crim, 0.9 * a2 * io);
+      this.mono(ctx, "END OF RECORD", W * 0.5, H * 0.895, 11 * S, C.amber, 0.6 * a2 * io, "center");
+      this.loreTag(ctx, W, H, S, 0.45 * io);
+    }
 
     this.glitch(ctx, W, H, t, (typeof CFG !== "undefined" && CFG.holoGlitchRate != null) ? CFG.holoGlitchRate : 0.10);
     this.scan(ctx, W, H, t, 1);
