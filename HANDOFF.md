@@ -2014,6 +2014,14 @@ V3=パネル枠/効果一覧ボタン/スパーク素材化→配信・本番実
 - **QA**: 装置**75/0**(P4-2の6項追加: 導線2/器/スキップ即時/図鑑導線/CFG可逆)×3解像度・統合20/20・姿形10/0・opening32/0・node20/20・bootカナリア(注入捕捉→本走console 0)・実UI再生スクショ(器がモーダルの上・全画面)。
 - 次: Ric判定→デプロイ(P4-2一式=章1〜結び+導線+テスト同乗・全申告)。
 
+### 5s-V6-P4-2-4. ★V6-P4-2 本番デプロイ完了=V6-P4全体完了(2026-08-11・Ric承認)[e7261c6 / lizardcolony-qja285etg]
+- **同乗全申告**(本番06d4689→e7261c6): P4-2の6コミット(章1[1c81083,44179eb]/章2・3・結び[cb5609c,6981164]/導線+ヘルパ+テスト[c584c1f,b31e554])+P3-5 docs記録[617465d]+bump[e7261c6]。**P4-2外の機能変更なし**(diff全数・hq.js 5行=標本棚導線のみ)。
+- **QA3層+カナリア**: 装置75/0×3解像度・統合20/20・姿形10/0・opening32/0・holo284/0・node20/20・カナリア捕捉→本走console 0。bump=変更8ファイル(style/data/holo/hq/dex/meta/boot+index)。
+- **デプロイ検証**: alias byte一致8/8・三者同期 HEAD=origin=本番=e7261c6 clean。
+- **本番実証**(3解像度・console 0): 両導線再生 ✓ / 通し14.4s=onEndで自動クローズ ✓ / スキップ即時 ✓ / gate連動実データ(新規セーブ=RECORD/REDACTED→hq/native/cricket解読で実文3種) ✓ / 章2固有種=惑星1(カナヘビ/ニホントカゲ)と惑星2(selectStage後・stage2種)の2惑星 ✓ / reduced=最終画(結び)静止+保持+即時スキップ ✓ / CFG.holoLoreOn=false導線消滅 ✓。スクショ=章3系譜図・reduced結び。
+- **★計測ミスの記録(道具の嘘⑬類例)**: 当初evalで`Motion.reduced=true`代入→**Motion.reducedはmatchMediaのgetterで代入無効**=非reduced経路を「reduced検証」と誤認(スクショで章1が出て発覚)。正=qa-cdp `--reduced`(--force-prefers-reduced-motion)。reduced検証は必ずブラウザ強制で行うこと。
+- **V6-P4完了**: P4-1(タイトル案B・P3同乗済)+P4-2(Lore ARCHIVE)。次=P5(音・憲章改定案の提示から)。S6着手禁止継続。
+
 ### 5x-GUARD. ★描画の非有限ガード(2026-08-10・Ric裁定・本番デプロイ済)[7e3d369, bac5fbc, c46d7ba, a231f1e]
 前セッションの報告テキストがクラッシュで失われ**HANDOFF記録も欠落していた**ため、コミットメッセージ・テスト実体・本番実測から復元して記録(2026-08-10 再開セッション)。
 - **7e3d369**: Canvas2D の createRadialGradient/arc/ellipse 等は NaN/Infinity で TypeError を投げ、**そのフレームの描画が丸ごと止まる**(画面停止)。計算値を渡す71ヶ所に検査を散らすと漏れるため、**`Render.guardCtx` で ctx を一度だけ包む**方式(知識は1箇所)。非有限は「その図形だけ」捨てる=握りつぶしではない(絵の欠けとして残る・`?tune=1` で警告1回・`__finGuard` で冪等)。`finite()` は数値のみ検査(arc の anticlockwise=boolean 等を誤って弾かない)。`drawGenesisFx` は undefined 座標も弾く必要があるため `Number.isFinite` の厳格判定で分離。
