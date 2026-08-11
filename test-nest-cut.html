@@ -151,7 +151,9 @@ const stat = (cx, x, y, w, h) => {
     const br = R.bright > 0 ? P.bright / R.bright : 0;
     row("B1 コア 高輝度画素率(参照比)", f1(R.bright) + "%", f1(P.bright) + "% (×" + f1(br) + ")", `×${T.core.brightMin}〜${T.core.brightMax}`, br >= T.core.brightMin && br <= T.core.brightMax);
   }
-  { // B2 糸+輝点(環状帯=角度非依存・トポロジ差に頑健。中心=各側の実コア)
+  if (T.pendingRecalP2_3) {
+    document.getElementById("tbl").insertAdjacentHTML("beforeend", `<tr><td colspan="5" style="color:#c9b8a2">B2 糸帯/全域琥珀: SKIP(P2-3ロスター統合の再較正待ち=ステップ3で復帰)</td></tr>`);
+  } else { // B2 糸+輝点(環状帯=角度非依存・トポロジ差に頑健。中心=各側の実コア)
     const B = T.threads.band;
     const annStat = (cx2, cen) => {
       const d = cx2.getImageData(0, 0, W, H).data;

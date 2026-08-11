@@ -23,6 +23,7 @@ vm.runInContext(code, sb, { filename: "combined.js" });
 const { Game, buildNestWeb, buildNestWebLegacy, nestRewardList } = sb.__t;
 let pass = 0, fail = 0; const fails = [];
 const ok = (n, c, e) => { if (c) pass++; else { fail++; fails.push(n + (e ? " :: " + e : "")); } };
+const canon = (o) => JSON.stringify(Object.keys(o).sort().map((k) => [k, o[k]])); // キー順非依存の正規化比較
 
 const LEG = buildNestWebLegacy().filter((n) => n.id !== "core");
 const V2 = buildNestWeb().filter((n) => n.id !== "core");
@@ -35,7 +36,7 @@ ok("写像: 新20が旧80を重複なく被覆", (() => {
 const sumOres = (list, get) => { const s = {}; for (const n of list) for (const x of get(n)) s[x.ore] = (s[x.ore] || 0) + x.n; return s; };
 const oldTotal = sumOres(LEG, (n) => [n.reward]);
 const newTotal = sumOres(V2, (n) => nestRewardList(n));
-ok("保存則(定義): Σ新20 ≡ Σ旧80(全鉱石種別)", JSON.stringify(oldTotal) === JSON.stringify(newTotal), JSON.stringify({ oldTotal, newTotal }));
+ok("保存則(定義): Σ新20 ≡ Σ旧80(全鉱石種別)", canon(oldTotal) === canon(newTotal), JSON.stringify({ oldTotal, newTotal }));
 
 const mkW = (openedIds) => {
   const nodes = {}; for (const id of openedIds) nodes[id] = true;
@@ -94,8 +95,8 @@ const grantOf = (w) => w._nestRosterGrant || {};
       const g2 = grantOf(w);
       const total = {};
       for (const src of [already, future, g2]) for (const o of Object.keys(src)) total[o] = (total[o] || 0) + src[o];
-      if (JSON.stringify(total) !== JSON.stringify(oldTotal)) bad++;
-      if (JSON.stringify(w.nestWeb.legacy) !== JSON.stringify(mkW(opened).nestWeb.nodes)) bad++; // ⑤ legacy保全
+      if (canon(total) !== canon(oldTotal)) bad++;
+      if (canon(w.nestWeb.legacy) !== canon(mkW(opened).nestWeb.nodes)) bad++; // ⑤ legacy保全
     }
   }
   ok("② 代表3順序×81状態: 率非減少+鉱石種別ごとの保存則の等式+legacy保全", bad === 0, "bad=" + bad);

@@ -101,9 +101,9 @@ window.__err=null; window.addEventListener("error",e=>{window.__err=(window.__er
     var wnsAll=[].slice.call(document.querySelectorAll(".wnode"));
     // 中心ノードはB1で意図的に display:none(canvasの巣が正)=検査対象は可視ノードのみ
     var wns=wnsAll.filter(function(e){return e.offsetParent!==null;});
-    ok("巣: ノード81個が生成される(可視80+中心=canvas)", wnsAll.length===81&&wns.length===80, "all="+wnsAll.length+" vis="+wns.length);
+    ok("巣: ノード21個が生成される(可視20+中心=canvas・P2-3ロスター統合)", wnsAll.length===21&&wns.length===20, "all="+wnsAll.length+" vis="+wns.length);
     ok("巣: computed positionがabsolute(汎用セレクタに奪われていない)",
-      wns.length>30&&getComputedStyle(wns[30]).position==="absolute", wns.length>30?getComputedStyle(wns[30]).position:"-");
+      wns.length>10&&getComputedStyle(wns[10]).position==="absolute", wns.length>10?getComputedStyle(wns[10]).position:"-");
     var mis=wns.filter(function(e){return Math.abs(e.offsetLeft-parseFloat(e.style.left))>2||Math.abs(e.offsetTop-parseFloat(e.style.top))>2;}).length;
     ok("巣: 全可視ノードが指定座標に配置(乖離>2pxゼロ)", mis===0, "misplaced="+mis);
     var stEl=document.getElementById("nest-stage"), stR=stEl&&stEl.getBoundingClientRect(), outside=-1;

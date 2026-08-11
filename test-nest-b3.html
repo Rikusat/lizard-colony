@@ -6,7 +6,7 @@
 <!-- V6-P2-2 B3 実寸シュートページ(開発用・2026-08-11)。
      **実コード経路そのまま**(UI.buildNest+layoutStage=DOM+canvas)を、参照コンテンツ領域と同じ
      1460×884 で描画する。tools/qa-nest-shot.mjs がこのページをスクショし参照実測値と比較=B3部分ゲート。
-     代表状態=モックの 23/80 解放に合わせ、内側から23ノードを解放済みにする(決定論)。
+     代表状態=モックの28.7%相当=6/20 解放(P2-3統合後)に合わせ、内側から23ノードを解放済みにする(決定論)。
      周辺UI(ヘッダ/パネル/ヒント)はCSSで隠し、ステージだけを(0,0)-(1460,884)に固定=座標系が参照と一致。 -->
 <script>
 (function () {
@@ -41,7 +41,7 @@ Game.newGame();
 Game.ensureNestWeb();
 // 代表状態: 内側から23ノード解放(モック 23/80 と同水準・決定論)
 const ns = buildNestWeb().filter((n) => n.id !== "core");
-ns.sort((a, b) => a.ring - b.ring || a.angle - b.angle).slice(0, 23).forEach((n) => { Game.state.nestWeb.nodes[n.id] = { t: 1 }; });
+ns.sort((a, b) => a.ring - b.ring || a.angle - b.angle).slice(0, 6).forEach((n) => { Game.state.nestWeb.nodes[n.id] = { t: 1 }; });
 // B4: レア資源の代表値(モック水準の桁・決定論)=パネルの数値表示が計測対象に載る
 Game.state.rare = { amethyst: 450, iridium: 120, amber: 35, meteorite: 5, orichalcum: 78, titaniumOre: 12 };
 UI.buildNest(document.getElementById("wrapb3"));

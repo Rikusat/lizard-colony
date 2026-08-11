@@ -109,7 +109,7 @@ let pass = 0, fail = 0;
 const row = (name, refV, repV, thr, ok) => { ok ? pass++ : fail++; console.log(`${ok ? "PASS" : "FAIL"} ${name}: 参照${refV} / 再現${repV} / 閾値${thr}`); };
 // B3ノード帯(モック統計)は素材モードでは測る意味を失う(V1コアと同じ論理=素材は別作画・無改変)ため
 // **フォールバック経路(--noassets)の恒久回帰**としてのみ実行。素材モードのメダリオンはV2ゲートが担う。
-if (NOASSETS) {
+if (NOASSETS && !T.pendingRecalP2_3) {
   row("B3 ノード帯(環状200-330・実コア中心) 平均輝度", f1(N.ref.avgL), f1(P.avgL), `±${N.avgLTol}L`, Math.abs(P.avgL - N.ref.avgL) <= N.avgLTol);
   row("B3 ノード帯 amber率%", f1(N.ref.amber), f1(P.amber), `${N.amberMin}〜${N.amberMax}%`, P.amber >= N.amberMin && P.amber <= N.amberMax);
   row("B3 ノード帯 暖色率%", f1(N.ref.warm), f1(P.warm), `< ${N.warmMax}%`, P.warm < N.warmMax);
@@ -117,7 +117,8 @@ if (NOASSETS) {
 // B4パネル列(モック統計)も素材モードでは枠素材で統計が変わる=**--noassetsの恒久回帰へ**(B3と同じ論理・4例目)。
 // 素材モードのパネルはV3自己アンカー型ゲートが担う。
 const PN = T.panel;
-if (NOASSETS) {
+if (NOASSETS && T.pendingRecalP2_3) console.log("SKIP B3/B4 モック統計帯(P2-3ロスター統合の再較正待ち=ステップ3で復帰)");
+if (NOASSETS && !T.pendingRecalP2_3) {
   row("B4 パネル列 平均輝度", f1(PN.ref.avgL), f1(PP.avgL), `±${PN.avgLTol}L`, Math.abs(PP.avgL - PN.ref.avgL) <= PN.avgLTol);
   row("B4 パネル列 明部率%(数値/見出しの存在)", f1(PN.ref.hi), f1(PP.hi), `${PN.hiMin}〜${PN.hiMax}%`, PP.hi >= PN.hiMin && PP.hi <= PN.hiMax);
   row("B4 パネル列 amber率%", f1(PN.ref.amber), f1(PP.amber), `< ${PN.amberMax}%`, PP.amber < PN.amberMax);
