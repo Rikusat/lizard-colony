@@ -1984,6 +1984,17 @@ V3=パネル枠/効果一覧ボタン/スパーク素材化→配信・本番実
 - **本番実証**(3解像度×全項目・console 0): 指令帯=実データ初期端状態「計画は始動を待っている(全5段階)」+サブ行不足イリジウム→クリックで宇宙港 ✓ / 個体分析=行数2=実個体2・dev情報(SAVE:|読取経路)非露出 ✓ / 研究遮蔽=REDACTED+今後公開予定・研究名/コスト/購入ボタンDOM 0件・残置6ID全到達+**Gold→電力変換と設備投資の実クリック成立** ✓ / prod1効果income+5%が遮蔽と独立に継続 ✓ / タイトル案B「〜コロニーを育て、この星系を脱出せよ〜」✓。実機スクショで指令帯/遮蔽ブロックの意匠確認。
 - 次: P4-2(Loreホロムービー=提案→承認→制作)。P5(音)は憲章改定の承認から。S6着手禁止継続。
 
+### 5s-V6-P4-2-1. ★P4-2=Lore ARCHIVE 章1 NETWORK 完成(2026-08-11・ローカルのみ=Ric検分待ち)
+- **構成案承認(Ric)**: 章立て(NETWORK/PURITY/BUGGER/結び=36グリッド14.4秒)・実データ・導線2箇所・CFG・C2流用範囲。**伏線=明かす1・伏せる3**: バガーの由来のみ明かす(既存Lore実文の映像化=新規ネタバレゼロ)/故郷・3種目・1個体は再提示のみ。★判断記録: 結びの`SPECIMEN / UNRESOLVED`は**manifest()末尾行と同一の行**を使う(同じ謎が別の場所で疼く)。ヌシ・バガーの正体と上位存在(ID8)は「その先の階層」として温存=謎に階層があることを伝える。
+- **CFG**(data.js): holoLoreOn/holoLoreNodes(★尺の唯一の真実・net0/purity11/bugger21/archive31/end36)/holoLoreMaxSec15/holoLoreReducedHoldSec/holoLoreChapterGate(章の深い1行⇔Lore id)。
+- **holo.js**: 尺関数群(loreNodes/At/After/Dur/StaticT=openNodes同形)+drawLore章1。星系図=**ハブ+環の網**(HQ結節tickRing中心・十球が環・回線が1本ずつ結ばれ環がつながる)=オープニング「7 航路」の一筆の線と構図から変えて再演回避。実データ=PLANET_NAMES/tint/LORE.hq第1文(`loreText()`=LORE定義から導出・捏造しない)。伏線再提示=`HOMEWORLD / REDACTED`(左上・沈めた深紅)。
+- **密度の規律(Ric注意への対応)**: 十球の点灯はgrid1〜6に収め、章末2グリッド以上(0.8s+フェード)を読み行に確保。読み行は約20字1行のみ。
+- **是正2件(実測で検出)**: ①`loreGateOpen`がGame.state直読→恒久テスト「holo.jsはGameを参照しない」FAIL→**解放状態はUI層が解決しopts.gatesで渡す**(drawTravelのinfoと同形)へ設計是正。ゲート解決式はビューア内(導線実装時にUIヘルパへ昇格し共有) ②章タグH*0.94がletterbox帯8.5%に隠れる→0.895(オープニング下段タグと同位置)へ。
+- **検分ビューア** `?tune=1#lore`(boot.js・#opening/#travelと同スコープ=BOFF/BON共有): 再生/速度3種/ループ/章頭ジャンプ/スクラブ/**行:実セーブ・全解放・全未解放切替**/reduced=loreStaticT静止。
+- **検証**: holo回帰256/0(非接触規律含む)・opening QA32/0・装置QA69/0・node20/20・#loreビューアCDP実測(点灯位相/環完成/読み行の解放・未解放両状態をスクショ確認)・console 0。※opening QAの初回0/0は--wait-title正規表現の先行一致=計測ミス(道具の嘘)、"done"待ちで32/0。
+- **未実装(次スプリント=章1のRic検分後)**: 章2 PURITY/章3 BUGGER/結び・導線2箇所(図鑑Loreタブ+標本棚)・Holo.mount("holo-lore")再生配線・恒久テスト(lore節)・デプロイ。
+- **検分URL**: `http://localhost:3000/?tune=1#lore`(×0.5/×0.25とスクラブで章末の読み行を判定)。
+
 ### 5x-GUARD. ★描画の非有限ガード(2026-08-10・Ric裁定・本番デプロイ済)[7e3d369, bac5fbc, c46d7ba, a231f1e]
 前セッションの報告テキストがクラッシュで失われ**HANDOFF記録も欠落していた**ため、コミットメッセージ・テスト実体・本番実測から復元して記録(2026-08-10 再開セッション)。
 - **7e3d369**: Canvas2D の createRadialGradient/arc/ellipse 等は NaN/Infinity で TypeError を投げ、**そのフレームの描画が丸ごと止まる**(画面停止)。計算値を渡す71ヶ所に検査を散らすと漏れるため、**`Render.guardCtx` で ctx を一度だけ包む**方式(知識は1箇所)。非有限は「その図形だけ」捨てる=握りつぶしではない(絵の欠けとして残る・`?tune=1` で警告1回・`__finGuard` で冪等)。`finite()` は数値のみ検査(arc の anticlockwise=boolean 等を誤って弾かない)。`drawGenesisFx` は undefined 座標も弾く必要があるため `Number.isFinite` の厳格判定で分離。

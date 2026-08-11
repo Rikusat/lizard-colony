@@ -813,24 +813,22 @@ const Holo = {
     const a = this.loreAt("archive"), b = this.loreAfter("archive");
     return b > a ? a + (b - a) * 0.7 : this.loreDur() * 0.9;
   },
-  loreGateOpen(ch) {                 // 章の深い1行の解放判定。ゲート未定義の章は常に開く
-    const g = (typeof CFG !== "undefined" && CFG.holoLoreChapterGate) || {};
-    const id = g[ch];
-    return !id || !!(typeof Game !== "undefined" && Game.state && Game.state.lore && Game.state.lore[id]);
-  },
+  // 章の深い1行の解放状態は呼び出し側(UI層)が解決し opts.gates={net:bool,...} で渡す
+  //   =演出層はセーブ/ルール層を参照しない(恒久テスト§8の非接触規律。drawTravelのinfoと同形)。
   loreTag(ctx, W, H, S, a) { this.mono(ctx, "LIZARD COLONY / ARCHIVE", W * 0.06, H * 0.085, 10 * S, this.C().amber, a); },
   loreText(id) {                     // Lore実文の第1文(単一の真実=LORE定義から導出。捏造しない)
     const L = (typeof LORE !== "undefined") && LORE.find((x) => x.id === id);
     return L ? L.text.split("。")[0] : null;
   },
 
-  drawLore(ctx, W, H, t) {
+  drawLore(ctx, W, H, t, opts) {
     const C = this.C(), G = this.grid();
     const A = (id) => this.loreAt(id);
     const seg = (a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
     const S = Math.max(0.75, Math.min(2, H / 675));
     ctx.fillStyle = C.void; ctx.fillRect(0, 0, W, H);
     const inNode = (id) => t >= A(id) && t < this.loreAfter(id);
+    const gates = (opts && opts.gates) || {};   // 章の深い1行の解放状態(UI層が解決)。未指定=閉=REDACTED(嘘をつかない側へ倒す)
 
     // ---- 1 NETWORK: 星系図。中心=HQ結節・十球が環に並び、回線が1本ずつ結ばれる ----
     //   密度の規律(Ric注意 2026-08-11): 読ませる行は章末2グリッド以上残して全灯させる=速すぎて残らないを避ける。
@@ -873,12 +871,13 @@ const Holo = {
       }
       // 読み(章末grid6〜: 実文が2グリッド以上読める)。LORE.hq第1文=単一の真実から導出・未解放はREDACTED
       const readK = seg(A("net") + G * 6, A("net") + G * 8);
-      const line = this.loreGateOpen("net") ? this.loreText("hq") : null;
-      if (line) this.jp(ctx, line, W * 0.5, H * 0.875, 13 * S, C.pale, 0.9 * readK * io, "center");
-      else this.mono(ctx, "RECORD / REDACTED", W * 0.5, H * 0.875, 12 * S, C.crim, 0.7 * readK * io, "center");
+      const line = gates.net ? this.loreText("hq") : null;
+      if (line) this.jp(ctx, line, W * 0.5, H * 0.855, 13 * S, C.pale, 0.9 * readK * io, "center");
+      else this.mono(ctx, "RECORD / REDACTED", W * 0.5, H * 0.855, 12 * S, C.crim, 0.7 * readK * io, "center");
       // 伏線の再提示(左上・沈めた深紅): 故郷は網のどこにもいない=名は伏せたまま
       this.mono(ctx, "HOMEWORLD / REDACTED", W * 0.06, H * 0.16, 10 * S, C.crim, 0.42 * io);
-      this.mono(ctx, "ARCHIVE 01 / NETWORK", W * 0.5, H * 0.94, 11 * S, C.amber, 0.75 * io, "center");
+      // 章タグ(0.895=オープニングの下段タグと同位置。0.94はletterbox帯8.5%に隠れるため不可)
+      this.mono(ctx, "ARCHIVE 01 / NETWORK", W * 0.5, H * 0.895, 11 * S, C.amber, 0.75 * io, "center");
       this.loreTag(ctx, W, H, S, 0.45 * io);
     }
 

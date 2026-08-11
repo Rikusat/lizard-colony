@@ -540,6 +540,19 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
           mk(ctl, "↻ 最初から", () => { S.t = 0; S.playing = true; sync(); });
           const bSpd = SPD.map((v) => mk(ctl, "×" + v, () => { S.speed = v; sync(); }));
           const bLoop = mk(ctl, "ループ ON", () => { S.loop = !S.loop; sync(); });
+          // 章ゲート(深い1行)の解決はUI層の責務=holo.jsはGameを知らない(恒久テストの規律)。
+          //   導線実装時(次スプリント)はこの解決式をUIヘルパへ昇格し、本編と検分で共有する。
+          const gatesFromSave = () => {
+            const map = (typeof CFG !== "undefined" && CFG.holoLoreChapterGate) || {};
+            const lore = (typeof Game !== "undefined" && Game.state && Game.state.lore) || {};
+            const g = {}; for (const k in map) g[k] = !!lore[map[k]];
+            return g;
+          };
+          S.gateMode = "save";
+          const GM = [["save", "実セーブ"], ["open", "全解放"], ["closed", "全未解放"]];
+          const gatesOf = () => S.gateMode === "open" ? { net: true, purity: true, bugger: true }
+            : S.gateMode === "closed" ? {} : gatesFromSave();
+          const bGate = GM.map(([id, lb]) => mk(ctl, "行:" + lb, () => { S.gateMode = id; sync(); }));
 
           const jump = document.createElement("div");
           jump.style.cssText = "display:flex;flex-wrap:wrap;gap:5px;align-items:center;justify-content:center;font-size:11px;";
@@ -573,6 +586,7 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
             bSpd.forEach((b, i) => { b.style.cssText = (SPD[i] === S.speed) ? BON : BOFF; });
             bLoop.textContent = "ループ " + (S.loop ? "ON" : "OFF");
             bLoop.style.cssText = S.loop ? BON : BOFF;
+            bGate.forEach((b, i) => { b.style.cssText = (GM[i][0] === S.gateMode) ? BON : BOFF; });
             scrub.value = String(S.t);
             const txt = "t=" + S.t.toFixed(2) + "s / " + T.toFixed(1) + "s  グリッド" + Math.floor(S.t / G + 1e-6) + "  速度×" + S.speed;
             if (txt !== lastRead) { readout.textContent = txt; lastRead = txt; }
@@ -587,7 +601,7 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
               S.t += dt * S.speed;
               if (S.t >= T) { if (S.loop) S.t %= T; else { S.t = T - 0.001; S.playing = false; } }
             }
-            Holo.drawLore(cv.getContext("2d"), cv.width, cv.height, S.t);
+            Holo.drawLore(cv.getContext("2d"), cv.width, cv.height, S.t, { gates: gatesOf() });
             sync();
             lRaf = requestAnimationFrame(loop);
           };
