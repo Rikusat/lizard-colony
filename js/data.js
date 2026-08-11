@@ -1025,7 +1025,9 @@ const NEST_GROWTH = { bred: 2.6, hatched: 2.6, species: 0, morphs: 0, dexRate: 0
 // =絵とテストがズレない(§5x-OPS ⑮)。結線規則=各ノード→内側リングの最寄り(従来SVG結線と同一)。
 // B3(2026-08-11): ring0が鉢(1100空間換算≈172)の内側に来ていた配置を是正。
 //   半径 = R_BASE + R_STEP×ring → 200,266,332,398,464(content換算 157〜365)=ring0が鉢の外・最外環も枠内。
-const NESTWEB_GEO = { SIZE: 1100, C: 550, R_BASE: 200, R_STEP: 66 };
+// P2-3ステップ2: 20ノード・Ø128box(表示Ø≈101=素材native等倍近傍)へ拡大するため環を再配置。
+//   content換算: ring0=205/ring1=323(参照の221/380へ接近)。環間150>ノード128=重なりなし・鉢135+余白も確保。
+const NESTWEB_GEO = { SIZE: 1100, C: 550, R_BASE: 260, R_STEP: 150 };
 function nestWebPos(n) {
   const { C, R_BASE, R_STEP } = NESTWEB_GEO;
   if (n.id === "core") return [C, C];

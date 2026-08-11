@@ -1811,6 +1811,17 @@ button.holding::after {
 .np-medal svg.icon { width: 14px; height: 14px; }
 .np-ore b { color: var(--paper-100, #F3E9D8); } /* 参照実測: 鉱石数値は白系(琥珀ではない) */
 .np-cta { width: 100%; padding: 9px; font-size: calc(12px * var(--fs-scale, 1)); display: flex; align-items: center; justify-content: center; gap: 6px; border-color: var(--amber-500, #C9A227); }
+#nest-quest { padding: 10px 12px; background: var(--ink-700, #241c14); border: 1px solid var(--ink-600, #37301f); border-radius: 10px; }
+#nest-side.assets #nest-quest { border: 14px solid transparent; border-image: url("image/nest/frame-sm-b.png") 24 fill / 14px stretch; border-radius: 0; background: none; } /* frame素材=9-slice(枠を歪めない) */
+.nq-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+.nq-head > b { font-size: calc(14px * var(--fs-scale, 1)); color: var(--amber-400); }
+.nq-rate { font-size: calc(12px * var(--fs-scale, 1)); color: var(--sub); }
+.nq-rate b { color: var(--life-400); font-size: calc(17px * var(--fs-scale, 1)); }
+.nq-cond { font-size: calc(12px * var(--fs-scale, 1)); color: var(--sub); margin: 4px 0; }
+.nq-cond > span { display: inline-flex; align-items: center; gap: 5px; }
+.nq-cond > b { float: right; color: var(--paper-100, #F3E9D8); }
+.nq-rw { margin-top: 7px; font-size: calc(12px * var(--fs-scale, 1)); color: var(--paper-100, #F3E9D8); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.nq-note { margin-top: 5px; font-size: calc(10px * var(--fs-scale, 1)); color: var(--sub); }
 .nest-fx-note { font-size: calc(11px * var(--fs-scale, 1)); color: var(--sub); margin: 8px 0 0; }
 /* v2-V3: パネル枠/ボタンの素材モード(.assets)。焼き込み見本値(Lv.12/325/800/28.7%)は不透明地+実データDOMで
    覆う(素材無改変・rank/rate方式)。rateは見出し「総解放率」が実概念と一致=数値領域のみ覆い素材を最大活用 */
@@ -1820,7 +1831,7 @@ button.holding::after {
 #nest-openrate.assets { background: url("image/nest/panel-rate.png") center/100% 100% no-repeat; aspect-ratio: 296 / 144; width: 168px; position: absolute; }
 #nest-openrate.assets .npo-cap { visibility: hidden; } /* 見出しは素材の焼き込み「総解放率」が担う(意味一致) */
 #nest-openrate.assets b { position: absolute; left: 36%; top: 42%; width: 58%; height: 44%; background: #16100a;
-  display: flex; align-items: center; justify-content: center; font-size: calc(21px * var(--fs-scale, 1)); color: #F3E9D8; border-radius: 4px; }
+  display: flex; align-items: center; justify-content: center; font-size: calc(28px * var(--fs-scale, 1)); color: #F3E9D8; border-radius: 4px; } /* P2-3: 参照様式へ格上げ */
 #nest-side.assets .np-cta { background: url("image/nest/btn-effects.png") center/contain no-repeat; border: none; box-shadow: none;
   aspect-ratio: 318 / 102; color: transparent; } /* 文言は素材の焼き込みが一致・SR向けにDOMテキストは保持(透明) */
 #nest-side.assets .np-cta svg.icon { display: none; }
@@ -1849,18 +1860,19 @@ button.holding::after {
    上書きし、ノードがフロー配置で飛散していた(旧版から dim 表示で潜伏)。#nest-web を付け特異度で勝つ。 */
 #nest-web .wnode {
   position: absolute; transform: translate(-50%, -50%);
-  width: 56px; height: 56px; border-radius: 50%; cursor: pointer;
+  width: 128px; height: 128px; border-radius: 50%; cursor: pointer; /* P2-3: 拡大(表示Ø≈101=素材等倍近傍) */
   display: flex; align-items: center; justify-content: center; font-size: calc(16px * var(--fs-scale, 1));
   background: radial-gradient(circle at 35% 30%, #6f5a3a, #2e1f0d 72%);
   border: 2px solid var(--amber-500, #C9A227); /* モックの金=琥珀判定(b<64)に入る彩度 */
   box-shadow: inset 0 0 0 2px #1a1106, inset 0 0 0 3px rgba(228, 188, 58, .7), 0 2px 6px rgba(0, 0, 0, .5);
   user-select: none;
 }
-.wnode svg.icon { width: 32px; height: 32px; }
+.wnode svg.icon { width: 48px; height: 48px; }
 .wnode b { display: flex; filter: drop-shadow(0 0 6px currentColor); } /* 彩色グリフの発光=参照の「色が満ちる」見え */
 .wnode .wn-pill {
   position: absolute; bottom: calc(100% + 5px); left: 50%; transform: translateX(-50%);
-  white-space: nowrap; font-style: normal; font-size: 10px; padding: 2px 8px; border-radius: 8px;
+  white-space: nowrap; font-style: normal; font-size: 13px; padding: 2px 9px; border-radius: 9px;
+  max-width: 96px; overflow: hidden; text-overflow: ellipsis;
   background: rgba(14, 9, 4, .85); border: 1px solid rgba(184, 144, 78, .4); color: var(--amber-400);
   pointer-events: none;
 }
@@ -1895,10 +1907,7 @@ button.holding::after {
 #nest-web.assets .wnode.on span { position: relative; }
 #nest-web.assets .wnode.off span, #nest-web.assets .wnode.near span { display: none; }
 #nest-web.assets .wnode.near { box-shadow: 0 0 12px var(--life-glow); border-radius: 50%; }
-#nest-tip {
-  margin-top: 8px; padding: 8px 10px; border-radius: var(--radius-sm); font-size: calc(12px * var(--fs-scale, 1));
-  background: var(--card-hi); border: 1px solid var(--border); line-height: 1.6;
-}
+#nest-web .wnode.sel { outline: 2px solid var(--amber-400); outline-offset: 2px; border-radius: 50%; } /* P2-3: クエスト選択 */
 #nest-tip b { color: var(--gold); }
 @keyframes node-pulse { from { filter: brightness(1); } to { filter: brightness(1.5); } }
 

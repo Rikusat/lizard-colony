@@ -149,7 +149,7 @@ Object.assign(UI, {
     // V6-P2-2 B0/B4: レイアウト=中央ステージ(canvas背景+コア+web)+右パネル+ヒント帯(nest_image2 準拠)。
     //   右パネルの数値は実データのみ(モックの見本値 Lv.12/325/800 等は使わない・Ric裁定 2026-08-11)。
     //   B4: 大表示=解放ノード数 / 進捗バー=次に開きそうなノード / レア資源=6鉱石(写像対応表どおり)。
-    const rate = counts.total ? Math.floor(counts.open / counts.total * 100) : 0;
+    const rate = counts.total ? (counts.open / counts.total * 100).toFixed(1) : "0.0"; // P2-3: 小数1桁(参照様式28.7%)
     const nearCount = nodes.filter((n) => n.id !== "core" && !web.nodes[n.id] && Game.nestProgress(n) >= CFG.nestNearThreshold).length;
     body.innerHTML = `
       <div class="nest-head">
@@ -166,6 +166,7 @@ Object.assign(UI, {
           <div id="nest-openrate"><span class="npo-cap">総解放率</span><b>${rate}%</b></div>
         </div>
         <aside id="nest-side">
+          <div id="nest-quest" class="hidden"></div>
           <div class="nest-panel"><h3>${Icon.svg("nestweb")} 巣のステータス</h3>
             <div class="np-frame-rank"><div class="np-fr-inner">
               <div class="np-label">解放ノード</div>
@@ -183,8 +184,7 @@ Object.assign(UI, {
           <button id="nest-fx-btn" class="np-cta">${Icon.svg("spark")} 巣の効果一覧</button>
         </aside>
       </div>
-      <div id="nest-hint">ヒント: 各ノードは繁殖や日々の営みで自然に解放される。巣のネットワークが広がるほど、コロニーは豊かになる。</div>
-      <div id="nest-tip" class="hidden"></div>`;
+      <div id="nest-hint">ヒント: 各ノードは繁殖や日々の営みで自然に解放される。巣のネットワークが広がるほど、コロニーは豊かになる。</div>`;
     const wrap = body.querySelector("#nest-web");
     const { SIZE, C } = NESTWEB_GEO;
     const posOf = nestWebPos; // V6-P2-2 B2: 幾何は data.js の単一の真実(検分ゲートと共用)
@@ -208,29 +208,21 @@ Object.assign(UI, {
       //   条件などの副記はタップのツールチップが引き続き担う。
       const ore = n.id === "core" ? null : oreById(nestRewardList(n)[0].ore); // P2-3: 主要鉱石=配列先頭(メダリオン色/グリフの基準)
       const glyph = n.id === "core" ? Icon.svg("nestweb") : open ? `<b style="color:${ore.color}">${Icon.svg(ore.icon)}</b>` : Icon.svg("lock");
-      const pill = n.id === "core" ? "" : open ? `<i class="wn-pill">${n.name}</i>` : near ? `<i class="wn-pill">${n.name}<em>${Math.floor(p * 100)}%</em></i>` : "";
+      // P2-3ステップ2: ピルは全ノード常時(短名+解放率%・解放済みは短名のみ)。文字はこれが上限(詳細はタップ後のカード)
+      const pill = n.id === "core" ? "" : open ? `<i class="wn-pill">${n.name}</i>` : `<i class="wn-pill">${n.name}<em>${Math.floor(p * 100)}%</em></i>`;
       const ring = n.id === "core" ? "" : ` data-ring="${open ? ore.ring : "lock"}"`; // v2-V2: 素材リング(未解放=錠前素材)
       html += `<div class="wnode ${cls}" data-node="${n.id}" data-tip="${tip}"${ring} style="left:${x}px;top:${y}px">
         <span>${glyph}</span>${pill}</div>`;
     }
     wrap.innerHTML = html;
-    // タップ=ツールチップのみ(§4.2)。解放操作は存在しない
-    const tip = body.querySelector("#nest-tip");
+    // P2-3ステップ2: タップ=クエストカード(右カラム最上部・#nest-tipは廃止)。解放操作は存在しない(§4.2)
     for (const el of wrap.querySelectorAll(".wnode")) {
       el.addEventListener("click", () => {
         const n = nodes.find((x) => x.id === el.dataset.node);
-        if (!n || n.id === "core") { tip.classList.add("hidden"); return; }
-        const open = web.nodes[n.id];
-        const rw = nestRewardList(n).map((x) => { const o = oreById(x.ore); return Icon.svg(o.icon) + o.name + '×' + x.n; }).join(' ');
-        const condTxt = n.conds.map((c) => {
-          const def = NEST_CONDS.find((d) => d.type === c.type);
-          const cur = Math.floor(Game.nestMetric(c.type));
-          return `${Icon.svg(def.icon)}${def.name} ${Math.min(cur, c.need)}/${c.need}${c.type === "dexRate" ? "%" : ""}`;
-        }).join(" + ");
-        tip.classList.remove("hidden");
-        tip.innerHTML = `<b>${n.name}</b> ${open ? Icon.svg("check") + "解放済み" : ""}<br>
-          条件: ${condTxt}<br>報酬: ${rw}
-          ${open ? "" : `<br><span style="color:var(--sub)">いつもの繁殖を続ければ自然に開く</span>`}`;
+        for (const e2 of wrap.querySelectorAll(".wnode.sel")) e2.classList.remove("sel");
+        if (!n || n.id === "core") { this.renderNestQuest(null); return; }
+        el.classList.add("sel");
+        this.renderNestQuest(n);
       });
     }
     // V6-P2-2 B0/B1: ステージ実寸に合わせて背景+コアを描き、web(1100座標)をコア位置へスケール配置。
@@ -278,6 +270,30 @@ Object.assign(UI, {
     const fxBtn = body.querySelector("#nest-fx-btn");
     if (fxBtn) fxBtn.addEventListener("click", () => this.openNestEffects());
   },
+  // P2-3ステップ2: クエストカード(タップしたノードの試練=条件・進捗・報酬・解放率)。閲覧専用・実データのみ。
+  //   #nest-tip(旧・画面下部)の置き換え=視線動線を右カラムへ統一。
+  renderNestQuest(n) {
+    const el = document.getElementById("nest-quest");
+    if (!el) return;
+    if (!n) { el.classList.add("hidden"); el.innerHTML = ""; return; }
+    const web = Game.ensureNestWeb();
+    const open = !!web.nodes[n.id];
+    const pct = open ? 100 : Math.floor(Game.nestProgress(n) * 100);
+    const conds = n.conds.map((c) => {
+      const def = NEST_CONDS.find((d) => d.type === c.type);
+      const cur = Math.min(Math.floor(Game.nestMetric(c.type)), c.need);
+      return `<div class="nq-cond"><span>${Icon.svg(def.icon)}${def.name}</span><b>${cur}/${c.need}${c.type === "dexRate" ? "%" : ""}</b>
+        <div class="np-bar"><span style="width:${Math.round(cur / c.need * 100)}%"></span></div></div>`;
+    }).join("");
+    const rw = nestRewardList(n).map((x) => { const o = oreById(x.ore); return `<i class="np-medal" style="color:${o.color}">${Icon.svg(o.icon)}</i>${o.name}×${x.n}`; }).join(" ");
+    el.classList.remove("hidden");
+    el.innerHTML = `
+      <div class="nq-head"><b>${n.name}</b><span class="nq-rate">${open ? Icon.svg("check") + "解放済み" : `解放率 <b>${pct}%</b>`}</span></div>
+      ${conds}
+      <div class="nq-rw">${rw}</div>
+      ${open ? "" : `<div class="nq-note">いつもの繁殖を続ければ自然に開く</div>`}`;
+  },
+
   // v2-V3+(Ric裁定: スパークは「①解放の瞬間の一回性」のみ採用・②常設微飾は不採用)。
   //   一回性=animationendで自壊(残らない) / reduced-motionでは出さない(解放状態の表示自体が変化を伝える) /
   //   決定論(乱数なし・1解放=1つ) / CFG.nestSparkOn でOFF可 / 素材が無ければ出さない(退化=状態表示のみ)。
