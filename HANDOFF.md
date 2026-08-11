@@ -1968,6 +1968,14 @@ V3=パネル枠/効果一覧ボタン/スパーク素材化→配信・本番実
 - 装置QA **57→60/0**(帯表示/実データ%一致/クリック=宇宙港)。QAページ雛形にも#hq-directive追加(⑫同一コミット)。boot0・node20全PASS。**デプロイなし**。
 - 次: P3-3(研究デスクβ遮蔽=REDACTED語彙・CFG解禁式)。
 
+### 5s-V6-P3-4. ★P3-3=研究デスクβ遮蔽 完了(2026-08-11・ローカルのみ=未デプロイ)
+- **遮蔽=研究リスト(④ `#research-list`)のみ**。openLabDesks内の描画分岐で封鎖ブロック `.rsr-redacted` に置換(UISkills §13追記済): 錠前+等幅英字 `RESEARCH — REDACTED / DECLASSIFY: PENDING`(REDACTEDのみ深紅=var(--plan-lack))+縞マスクバー3本(文字情報ゼロ)+和文「研究記録は現在封鎖されている — **今後のアップデートで公開予定**」=「壊れている」でなく「これから来る」。語彙はC2遮蔽表示と同源(holo.js冒頭規約)。
+- **残置(巻き添えなし・明示)**: ①設備投資 `#lab-invest` ②変換3種 `#cv-*` ③惑星開発 `#hq-dev`/侵食帯 `#hq-invasion` ⑤手持ち資源 `.plan-pocket` は非接触。実クリックでGold→電力変換が通ることをQAで固定。
+- **表示のみ遮蔽の証明**: 研究名/コスト/購入ボタンをDOMに一切出さない(innerHTML走査で0件)。購入済み効果は `Game.researchBonus` が state.research 直読=表示と独立に継続(QA: prod1でincome+5%)。水槽tierはP1-2のHQ Lv駆動(hqlab.js labTiers)=研究状態と無関係を再確認(QA固定)。
+- **CFG解禁式**: `CFG.researchBetaHidden`(★既定true)。false=従来リスト完全復帰(QA: 全RESEARCH件数+購入ボタン+購入済みprod1の済表示)。文言=`researchBetaEn`/`researchBetaJp`(CFG★)。
+- **装置QA 60→69/0**(両面9項: 遮蔽4+残置2+効果1+水槽1+解禁2 ※前提1含む)。既存「研究リスト>5行」検査は枠検査へ是正(⑫同一コミット)。1600×900/1280×800/900×700全PASS・console 0。実機スクショで意匠確認(封鎖ブロックが研究デスク既存意匠に馴染む)。**デプロイなし**(P3全体のRic目視後)。
+- 次: P3全体の完了判定(Ric目視)→P3デプロイ(P3-1①②③+P3-2+P3-3同乗)→P4。
+
 ### 5x-GUARD. ★描画の非有限ガード(2026-08-10・Ric裁定・本番デプロイ済)[7e3d369, bac5fbc, c46d7ba, a231f1e]
 前セッションの報告テキストがクラッシュで失われ**HANDOFF記録も欠落していた**ため、コミットメッセージ・テスト実体・本番実測から復元して記録(2026-08-10 再開セッション)。
 - **7e3d369**: Canvas2D の createRadialGradient/arc/ellipse 等は NaN/Infinity で TypeError を投げ、**そのフレームの描画が丸ごと止まる**(画面停止)。計算値を渡す71ヶ所に検査を散らすと漏れるため、**`Render.guardCtx` で ctx を一度だけ包む**方式(知識は1箇所)。非有限は「その図形だけ」捨てる=握りつぶしではない(絵の欠けとして残る・`?tune=1` で警告1回・`__finGuard` で冪等)。`finite()` は数値のみ検査(arc の anticlockwise=boolean 等を誤って弾かない)。`drawGenesisFx` は undefined 座標も弾く必要があるため `Number.isFinite` の厳格判定で分離。
