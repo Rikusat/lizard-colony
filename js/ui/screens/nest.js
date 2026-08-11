@@ -67,7 +67,7 @@ Object.assign(UI, {
     let img = this._nestAssets[name];
     if (!img) {
       img = new Image();
-      img.onload = () => { if (this._nestLayout) this._nestLayout(); };
+      img.onload = () => { if (this._nestLayout) this._nestLayout(); if (this._nestRingApply) this._nestRingApply(); };
       img.onerror = () => { this._nestAssetFailed[name] = true; delete this._nestAssets[name]; };
       img.src = "image/nest/" + name + ".png";
       this._nestAssets[name] = img;
@@ -207,7 +207,8 @@ Object.assign(UI, {
       const ore = n.id === "core" ? null : oreById(n.reward.ore);
       const glyph = n.id === "core" ? Icon.svg("nestweb") : open ? `<b style="color:${ore.color}">${Icon.svg(ore.icon)}</b>` : Icon.svg("lock");
       const pill = n.id === "core" ? "" : open ? `<i class="wn-pill">${n.name}</i>` : near ? `<i class="wn-pill">${n.name}<em>${Math.floor(p * 100)}%</em></i>` : "";
-      html += `<div class="wnode ${cls}" data-node="${n.id}" data-tip="${tip}" style="left:${x}px;top:${y}px">
+      const ring = n.id === "core" ? "" : ` data-ring="${open ? ore.ring : "lock"}"`; // v2-V2: 素材リング(未解放=錠前素材)
+      html += `<div class="wnode ${cls}" data-node="${n.id}" data-tip="${tip}"${ring} style="left:${x}px;top:${y}px">
         <span>${glyph}</span>${pill}</div>`;
     }
     wrap.innerHTML = html;
@@ -253,6 +254,16 @@ Object.assign(UI, {
       Render.nestThreads(nctx, Render.nestThreadSegs(links.concat(laterals), tf, ccx, ccy, R));
       wrap.style.transform = `translate(${ccx - C * k}px, ${ccy - C * k}px) scale(${k})`;
     };
+    // v2-V2: メダリオン素材(6ファイル)を先読みし、**全て**読めた時だけ .assets で一括切替
+    //   (部分適用の混在意匠を作らない=1つでも欠けたら現行DOM描画へ丸ごと退化)。実体6ファイルを81ノードで共有。
+    const ringKeys = Object.values(NEST_RING_ASSETS);
+    const applyRingAssets = () => {
+      const all = ringKeys.every((k2) => this._nestAsset(k2));
+      wrap.classList.toggle("assets", all);
+    };
+    ringKeys.forEach((k2) => this._nestAsset(k2));
+    this._nestRingApply = applyRingAssets;
+    applyRingAssets();
     this._nestLayout = layoutStage;
     requestAnimationFrame(layoutStage);
     // B4: 効果一覧(閲覧専用・実データ=解放済みノードの獲得報酬)

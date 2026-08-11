@@ -964,14 +964,18 @@ const LORE = [
 // V4.1: 希少鉱石(§5 巣ノード報酬・フロー資源とは別ウォレット)
 // ============================================================
 // color: 巣ノードのメダリオン彩色(V6-P2-2 B3・データ駆動。アメジストのみUISkillsトークンと同値)
+// color: 巣ノードのメダリオン彩色 / ring: v2-V2 素材リング色(シートの5色へ写像。titaniumOreはamber=
+//   リング色は演出・鉱石の識別はグリフ色(color)が担うため重複を許容)
 const ORES = [
-  { id: "amethyst",    name: "アメジスト",   icon: "amethyst", color: "#9B6BD6", hint: "最上位の貴重鉱石。やり込みの証" },
-  { id: "iridium",     name: "イリジウム",   icon: "iridium", color: "#5FA8C9", hint: "ロケット建造の燃料。惑星移住計画へ" },
-  { id: "amber",       name: "琥珀",         icon: "amber", color: "#D9A441", hint: "太古の遺伝子を封じた樹脂。遺伝子解析に" },
-  { id: "meteorite",   name: "隕石",         icon: "meteorite", color: "#C96A3B", hint: "中身が未確定の鉱塊。割ると希少個体が…" },
-  { id: "orichalcum",  name: "オリハルコン", icon: "orichalcum", color: "#3FBF9F", hint: "伝説の金属。HQ上位研究の鍵" },
-  { id: "titaniumOre", name: "チタン鉱",     icon: "titanium", color: "#B8C4CE", hint: "設備を\"化けさせる\"特殊鉱石(上限突破)" },
+  { id: "amethyst",    name: "アメジスト",   icon: "amethyst", color: "#9B6BD6", ring: "purple", hint: "最上位の貴重鉱石。やり込みの証" },
+  { id: "iridium",     name: "イリジウム",   icon: "iridium", color: "#5FA8C9", ring: "teal", hint: "ロケット建造の燃料。惑星移住計画へ" },
+  { id: "amber",       name: "琥珀",         icon: "amber", color: "#D9A441", ring: "amber", hint: "太古の遺伝子を封じた樹脂。遺伝子解析に" },
+  { id: "meteorite",   name: "隕石",         icon: "meteorite", color: "#C96A3B", ring: "red", hint: "中身が未確定の鉱塊。割ると希少個体が…" },
+  { id: "orichalcum",  name: "オリハルコン", icon: "orichalcum", color: "#3FBF9F", ring: "green", hint: "伝説の金属。HQ上位研究の鍵" },
+  { id: "titaniumOre", name: "チタン鉱",     icon: "titanium", color: "#B8C4CE", ring: "amber", hint: "設備を\"化けさせる\"特殊鉱石(上限突破)" },
 ];
+// v2-V2: リング色→素材ファイル(グリフ焼き込みは不透明地ディスク+DOMグリフで覆う=素材無改変)
+const NEST_RING_ASSETS = { amber: "md-lg-amber-egg", purple: "md-lg-purple-person", green: "md-lg-green-clip", teal: "md-lg-teal-clip", red: "md-lg-red-person", lock: "md-lg-lock" };
 const oreById = (id) => ORES.find((o) => o.id === id);
 
 // ================= V6-P2-2: 巣ビジュアル レイアウトの単一の真実 =================

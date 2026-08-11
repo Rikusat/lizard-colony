@@ -50,8 +50,9 @@ UI.buildNest(document.getElementById("wrapb3"));
 window.addEventListener("load", () => {
   // v2: 素材の読了/失敗が確定してから ready(スクショが素材有無どちらかの確定状態だけを撮る)
   const settled = () => {
-    const a = UI._nestAssets && UI._nestAssets["nest-core"];
-    return /[?&]noassets=1/.test(location.search) || (a && a.complete) || (UI._nestAssetFailed && UI._nestAssetFailed["nest-core"]);
+    if (/[?&]noassets=1/.test(location.search)) return true;
+    const keys = ["nest-core"].concat(Object.values(NEST_RING_ASSETS)); // v2-V2: リング素材も確定待ち
+    return keys.every((k) => (UI._nestAssets[k] && UI._nestAssets[k].complete) || UI._nestAssetFailed[k]);
   };
   const tick = () => {
     if (!settled()) { setTimeout(tick, 50); return; }

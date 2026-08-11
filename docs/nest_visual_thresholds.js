@@ -49,6 +49,8 @@ const NEST_VIS_THRESHOLDS = {
   //   高α(a≥250)画素を素材→スクショへ写像し平均|ΔL|で**無改変+正配置**を検査(モックとの輝度一致は
   //   素材要素では測る意味を失うため対象外へ=B0/B1/B2はコード描画=フォールバック経路の回帰として存続)。
   asset: { maxMeanDL: 3, minSamples: 3000, cenDist: 6 },
+  // v2-V2 メダリオン(CSS contain縮小≈3.4×のため期待値=ソースのボックス平均。等倍のコアより許容広め)
+  medallion: { maxMeanDL: 6, minSamples: 200 },
   // B4 右パネル列(2026-08-11実測・参照絶対rect=(1078,15,380,830))。再現側=実DOMの#nest-side bbox
   //   (qa-nest-shotが--evalで取得)。幅が違っても密度(%)比較=スケール頑健。hi=L>140(明るい文字/数値の存在)。
   panel: {

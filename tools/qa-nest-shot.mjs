@@ -29,8 +29,14 @@ const EVAL = "(()=>{const st=document.getElementById('nest-stage').getBoundingCl
   "const k=CFG.nestCoreScale, ax=CFG.nestCoreAnchorX, ay=CFG.nestCoreAnchorY;" +
   "let w=R*k, h=w*258/318;" + // 素材の縦横比(nest-core 318×258)
   "if(Math.abs(w-318)<=2){w=318;h=258;}" + // nestCoreDrawの等倍スナップと同一(単一の真実=同式)
+  "const samp=[];const seen={};" + // v2-V2: リング素材の標本(色ごとに1ノード・ページ自身が素材ファイル名を知る=単一の真実)
+  "for(const e of document.querySelectorAll('#nest-web .wnode[data-ring]')){" +
+  "if(seen[e.dataset.ring])continue;seen[e.dataset.ring]=1;const b=e.getBoundingClientRect();" +
+  "samp.push({ring:e.dataset.ring,on:e.classList.contains('on'),file:NEST_RING_ASSETS[e.dataset.ring],b:[b.left,b.top,b.width,b.height]});}" +
   "return JSON.stringify({core:[Math.round(cx),Math.round(cy)]," +
+  "assetsMode:document.getElementById('nest-web').classList.contains('assets')," +
   "assetRect:[Math.round(cx-w*ax), Math.round(cy-h*ay), w, h]," +
+  "samples:samp," +
   "side:[Math.round(sd.left),Math.round(sd.top),Math.round(sd.width),Math.round(sd.height)]})})()";
 const r = spawnSync("node", [path.join(ROOT, "tools/qa-cdp.mjs"), "/test-nest-b3.html" + (NOASSETS ? "?noassets=1" : ""),
   "--wait-title", "b3 ready", "--timeout", "30000", "--size", "1460x884", "--eval", EVAL, "--shot", tmp], { encoding: "utf8" });
@@ -147,6 +153,41 @@ if (!NOASSETS) {
   const dist = exp && got ? Math.hypot(got[0] - exp[0], got[1] - exp[1]) : 1e9;
   row("V1 素材コア 高輝度重心の正配置px", exp ? exp.map(Math.round) : "-", got ? got.map(Math.round) : "-",
     `≦${T.asset.cenDist}px`, dist <= T.asset.cenDist);
+  // v2-V2: メダリオン素材の自己アンカー型ゲート。CSS contain縮小(≈3.4×縮小)のため、
+  //   期待値=ソースのボックス平均(縮小の正しいモデル)でスクショ画素と比較。ゾーン=リング環
+  //   (on: 中心のDOMグリフ覆いを除外 rN 0.55〜0.92 / lock: rN≦0.92)。
+  row("V2 メダリオン素材モード(.assets)有効", "true", String(geo.assetsMode), "=true", geo.assetsMode === true);
+  const rings = {};
+  for (const s of geo.samples || []) {
+    if (!rings[s.file]) rings[s.file] = decodePNG(fs.readFileSync(path.join(ROOT, "image/nest", s.file + ".png")));
+    const A = rings[s.file];
+    const [bx2, by2, bw2, bh2] = s.b;
+    const sc = Math.min(bw2 / A.w, bh2 / A.h);
+    const dw2 = A.w * sc, dh2 = A.h * sc, ox = bx2 + (bw2 - dw2) / 2, oy = by2 + (bh2 - dh2) / 2;
+    const rMin = s.on ? 0.55 : 0, rMax = 0.92, half = Math.min(A.w, A.h) / 2;
+    let n2 = 0, sum2 = 0;
+    for (let py = Math.ceil(oy); py < oy + dh2; py++) for (let px = Math.ceil(ox); px < ox + dw2; px++) {
+      const sxc = (px - ox) / sc, syc = (py - oy) / sc;
+      const rN = Math.hypot(sxc - A.w / 2, syc - A.h / 2) / half;
+      if (rN < rMin || rN > rMax) continue;
+      // ソースのボックス平均(footprint 1/sc四方・全画素a≥250のときのみ標本化=合成の不確定を排除)
+      const x0 = Math.max(0, Math.floor(sxc - 0.5 / sc)), x1 = Math.min(A.w - 1, Math.ceil(sxc + 0.5 / sc));
+      const y0 = Math.max(0, Math.floor(syc - 0.5 / sc)), y1 = Math.min(A.h - 1, Math.ceil(syc + 0.5 / sc));
+      let ls = 0, lc = 0, okA = true;
+      for (let yy = y0; yy <= y1 && okA; yy++) for (let xx = x0; xx <= x1; xx++) {
+        const ii = (yy * A.w + xx) * 4;
+        if (A.data[ii + 3] < 250) { okA = false; break; }
+        ls += .2126 * A.data[ii] + .7152 * A.data[ii + 1] + .0722 * A.data[ii + 2]; lc++;
+      }
+      if (!okA || !lc) continue;
+      const is2 = (py * img.w + px) * img.bpp;
+      const Ls2 = .2126 * img.data[is2] + .7152 * img.data[is2 + 1] + .0722 * img.data[is2 + 2];
+      sum2 += Math.abs(Ls2 - ls / lc); n2++;
+    }
+    const mdl = n2 ? sum2 / n2 : 1e9;
+    row(`V2 メダリオン(${s.ring}${s.on ? "・on" : "・lock"}) 無改変+正配置|ΔL|`, "0(素材=正解)", f1(mdl) + " (n=" + n2 + ")",
+      `≦${T.medallion.maxMeanDL} & n≧${T.medallion.minSamples}`, mdl <= T.medallion.maxMeanDL && n2 >= T.medallion.minSamples);
+  }
 }
 console.log(`\n=== qa-nest-shot: ${pass} PASS / ${fail} FAIL(実寸=実コード経路 DOM+canvas)===`);
 process.exit(fail ? 1 : 0);

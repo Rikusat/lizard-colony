@@ -1856,6 +1856,23 @@ button.holding::after {
 /* V6-P2-2 B3: 参照モックの未解放は「明るいメダリオン+錠前」=全体を幽霊化しない(帯統計もこれで参照と一致) */
 .wnode.off { opacity: .92; }
 .wnode.off span { filter: grayscale(1) brightness(.85); }
+/* v2-V2: メダリオン素材モード(#nest-web.assets=6素材すべて読了時のみ一括適用・欠けたら上記へ丸ごと退化)。
+   リング/光=素材(background=子要素の下に描画・::afterはツールチップと衝突するため不使用)。
+   焼き込みグリフは ::before の不透明地ディスクで覆い、DOMグリフ(実データ駆動)を重畳=素材無改変。
+   未解放/もうすぐ=錠前素材(グリフ焼き込み)のためDOM錠前は非表示=二重表示を避ける。 */
+#nest-web.assets .wnode { border: none; box-shadow: none; border-radius: 0;
+  background-color: transparent; background-position: center; background-repeat: no-repeat; background-size: contain; }
+#nest-web.assets .wnode[data-ring="amber"] { background-image: url("image/nest/md-lg-amber-egg.png"); }
+#nest-web.assets .wnode[data-ring="purple"] { background-image: url("image/nest/md-lg-purple-person.png"); }
+#nest-web.assets .wnode[data-ring="green"] { background-image: url("image/nest/md-lg-green-clip.png"); }
+#nest-web.assets .wnode[data-ring="teal"] { background-image: url("image/nest/md-lg-teal-clip.png"); }
+#nest-web.assets .wnode[data-ring="red"] { background-image: url("image/nest/md-lg-red-person.png"); }
+#nest-web.assets .wnode[data-ring="lock"] { background-image: url("image/nest/md-lg-lock.png"); }
+#nest-web.assets .wnode.on::before { content: ""; position: absolute; inset: 26%; border-radius: 50%;
+  background: radial-gradient(#32220f, #170f07); }
+#nest-web.assets .wnode.on span { position: relative; }
+#nest-web.assets .wnode.off span, #nest-web.assets .wnode.near span { display: none; }
+#nest-web.assets .wnode.near { box-shadow: 0 0 12px var(--life-glow); border-radius: 50%; }
 #nest-tip {
   margin-top: 8px; padding: 8px 10px; border-radius: var(--radius-sm); font-size: calc(12px * var(--fs-scale, 1));
   background: var(--card-hi); border: 1px solid var(--border); line-height: 1.6;
