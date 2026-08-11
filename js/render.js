@@ -4612,8 +4612,8 @@ const Render = {
         ctx.quadraticCurveTo(mx + off, my + off * 0.6, s.x2, s.y2);
         ctx.stroke();
       };
-      if (s.state === "off") {                                   // 未解放=気配(非琥珀・従来SVGのトーン踏襲)
-        curve(0, "#ffffff", 0.055, 0.8);
+      if (s.state === "off") {                                   // 未解放=淡い金(B3: 参照モックは未解放でも金の網。lit>half>off の序列は維持)
+        curve(0, P.thread, 0.15, 1.1);
         continue;
       }
       const k = s.state === "lit" ? 1 : 0.45;                    // half=淡い琥珀

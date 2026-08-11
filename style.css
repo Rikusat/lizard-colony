@@ -1810,16 +1810,19 @@ button.holding::after {
 .nest-legend .lg.off { opacity: .5; }
 #nest-web { position: relative; width: 1100px; height: 1100px; }
 /* V6-P2-2 B3: 円形メダリオン(ブロンズ二重リム=border+内側リング)。彩色グリフはORES.color(データ駆動) */
-.wnode {
+/* ★B3で検出した実在バグ: 汎用 [data-tip]{position:relative}(:2281・同特異度で後勝ち)が absolute を
+   上書きし、ノードがフロー配置で飛散していた(旧版から dim 表示で潜伏)。#nest-web を付け特異度で勝つ。 */
+#nest-web .wnode {
   position: absolute; transform: translate(-50%, -50%);
-  width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+  width: 56px; height: 56px; border-radius: 50%; cursor: pointer;
   display: flex; align-items: center; justify-content: center; font-size: calc(16px * var(--fs-scale, 1));
-  background: radial-gradient(#2a1e10, #170f07); border: 2px solid #7a5628;
-  box-shadow: inset 0 0 0 2px #120c05, inset 0 0 0 3px rgba(184, 144, 78, .55), 0 2px 6px rgba(0, 0, 0, .5);
+  background: radial-gradient(circle at 35% 30%, #6f5a3a, #2e1f0d 72%);
+  border: 2px solid var(--amber-500, #C9A227); /* モックの金=琥珀判定(b<64)に入る彩度 */
+  box-shadow: inset 0 0 0 2px #1a1106, inset 0 0 0 3px rgba(228, 188, 58, .7), 0 2px 6px rgba(0, 0, 0, .5);
   user-select: none;
 }
-.wnode svg.icon { width: 20px; height: 20px; }
-.wnode b { display: flex; }
+.wnode svg.icon { width: 32px; height: 32px; }
+.wnode b { display: flex; filter: drop-shadow(0 0 6px currentColor); } /* 彩色グリフの発光=参照の「色が満ちる」見え */
 .wnode .wn-pill {
   position: absolute; bottom: calc(100% + 5px); left: 50%; transform: translateX(-50%);
   white-space: nowrap; font-style: normal; font-size: 10px; padding: 2px 8px; border-radius: 8px;
@@ -1837,8 +1840,9 @@ button.holding::after {
   box-shadow: 0 0 10px var(--amber-glow-soft);
 }
 .wnode.near { border-color: var(--life-400); box-shadow: 0 0 10px var(--life-glow); animation: node-pulse 1s var(--ease-in-out) infinite alternate; }
-.wnode.off { opacity: .42; }
-.wnode.off span { filter: grayscale(1) brightness(.7); }
+/* V6-P2-2 B3: 参照モックの未解放は「明るいメダリオン+錠前」=全体を幽霊化しない(帯統計もこれで参照と一致) */
+.wnode.off { opacity: .92; }
+.wnode.off span { filter: grayscale(1) brightness(.85); }
 #nest-tip {
   margin-top: 8px; padding: 8px 10px; border-radius: var(--radius-sm); font-size: calc(12px * var(--fs-scale, 1));
   background: var(--card-hi); border: 1px solid var(--border); line-height: 1.6;

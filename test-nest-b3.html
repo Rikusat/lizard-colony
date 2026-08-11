@@ -42,7 +42,14 @@ Game.ensureNestWeb();
 const ns = buildNestWeb().filter((n) => n.id !== "core");
 ns.sort((a, b) => a.ring - b.ring || a.angle - b.angle).slice(0, 23).forEach((n) => { Game.state.nestWeb.nodes[n.id] = { t: 1 }; });
 UI.buildNest(document.getElementById("wrapb3"));
-requestAnimationFrame(() => requestAnimationFrame(() => { document.title = "b3 ready"; }));
+// ★スタイル適用前のrAFで初回描画が走るとステージ寸法が未確定のままcanvasを描く(実測でRが1.5倍化)。
+//   load後に必ず再レイアウトしてから ready を立てる=スクショは確定寸法のみを撮る。
+window.addEventListener("load", () => {
+  requestAnimationFrame(() => {
+    UI._nestLayout && UI._nestLayout();
+    requestAnimationFrame(() => { document.title = "b3 ready"; });
+  });
+});
 </script>
 </body>
 </html>
