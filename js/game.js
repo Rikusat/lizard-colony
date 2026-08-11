@@ -3344,11 +3344,6 @@ const Game = {
         } catch (e) { /* noop */ }
         setTimeout(() => UI.toast(`${Icon.svg("planet")} 惑星の完全独立: 自動移行で混入した他惑星種 ${p15.lizards}匹${p15.eggs > 0 ? "・卵" + p15.eggs : ""}を掃除${p15.reseeded > 0 ? `・空いた惑星に固有種の純血ペアを${p15.reseeded}匹配置` : ""}(自動移行は根治済み・設定からロールバック可)`, true), 1000);
       }
-      if (world._nestRosterGrant) {
-        const g = world._nestRosterGrant;
-        const txt = Object.keys(g).map((k) => { const o = oreById(k); return `${Icon.svg(o.icon)}${o.name}+${g[k]}`; }).join(" ");
-        setTimeout(() => UI.toast(`巣のネットワークが編み直されました(80→20の統合)。未受領の報酬を受け取った: ${txt}`), 900);
-      }
       if (world._refundV12 && world._refundV12.gold > 0) {
         const r12 = world._refundV12;
         setTimeout(() => UI.toast(`シェルターは撤廃されました(ベビーは常に安全に)。投資分Lv${r12.shelterLvTotal}を全額払い戻し: +${fmt(r12.gold)}G(設定からロールバック可)`), 920);
@@ -3365,6 +3360,13 @@ const Game = {
         setTimeout(() => UI.toast(`コオロギ在庫${fmt(Math.floor(r6.crickets))}匹を払い戻し: +${fmt(r6.gold)}G`), 900);
       }
       this.applyWorld(world);
+      // ★P2-3是正(2026-08-11・本番実証で検出): _nestRosterGrant は applyWorld 内の migrateNestRosterV2 が
+      //   設定するため、判定は applyWorld の**後**でなければ永遠に undefined=トーストが誰にも出なかった。
+      if (world._nestRosterGrant) {
+        const g = world._nestRosterGrant;
+        const txt = Object.keys(g).map((k) => { const o = oreById(k); return `${Icon.svg(o.icon)}${o.name}+${g[k]}`; }).join(" ");
+        setTimeout(() => UI.toast(`巣の網が編み直された(80→20の統合)。未受領の報酬を受け取った: ${txt}`), 900);
+      }
       // ★V6-P1-2: レシピ解読の払い戻しを**実際に付与**する。migrateRecipeRefund は集計と解読フラグの
       //   掃除までしか行わない(worldの資源の置き場所を直接いじらない)。付与は applyWorld の後に
       //   **正規の加算関数**を通す=整合性・下限・表示更新を既存ロジックに委ねる(§5www と同じ作法)。

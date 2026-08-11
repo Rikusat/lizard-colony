@@ -13,7 +13,7 @@ function np() { const fn = function () {}; return new Proxy(fn, { get(t, p) { if
 const store = {};
 const sb = { console: { log() {}, warn() {}, error() {} }, localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: () => {} },
   document: new Proxy({}, { get() { return np(); } }), navigator: { userAgent: "node" }, location: { reload: () => {}, search: "", hash: "" },
-  requestAnimationFrame: () => 0, cancelAnimationFrame: () => {}, setTimeout: () => 0, clearTimeout: () => {}, setInterval: () => 0, clearInterval: () => {},
+  requestAnimationFrame: () => 0, cancelAnimationFrame: () => {}, setTimeout: (fn) => { if (typeof fn === "function") fn(); return 0; } /* 即時実行=トースト発火順の検査 */, clearTimeout: () => {}, setInterval: () => 0, clearInterval: () => {},
   performance: { now: () => 0 }, Math, JSON, Object, Array, String, Number, Boolean, isNaN, parseInt, parseFloat, Date,
   UI: np(), Icon: np(), Roulette: np(), CrankSkins: np(), Slit: np(), Motion: { reduced: false } };
 sb.window = sb; sb.globalThis = sb; vm.createContext(sb);
@@ -114,6 +114,24 @@ const grantOf = (w) => w._nestRosterGrant || {};
   ok("⑥ load実チェーン: rosterV2=1・新IDのみ・legacy退避", web.rosterV2 === 1 && Object.keys(web.nodes).every((id) => id[0] === "m") && web.legacy && web.legacy["n0-0"] === true,
     JSON.stringify({ rosterV2: web.rosterV2, nodes: Object.keys(web.nodes), legacy: Object.keys(web.legacy || {}) }));
   ok("⑥ 新規ゲーム(newGame)は移行不要の新ロスター", (() => { Game.newGame(); const w2 = Game.toWorld(); Game.applyWorld(w2); return Object.keys(Game.state.nestWeb.nodes).length === 0; })());
+}
+
+// ---- ⑦ トーストの発火順(P2-3是正の再発防止: _nestRosterGrantはapplyWorld内で設定される=判定はその後でないと出ない) ----
+{
+  const toasts = [];
+  // UIはProxy(getトラップ)のため代入では差し替わらない→toastだけ横取りするProxyでラップ
+  vm.runInContext("const __oldUI = UI; UI = new Proxy(function(){}, { get: (t, p) => p === 'toast' ? ((m) => globalThis.__toastCap.push(String(m))) : __oldUI[p] });", sb);
+  sb.__toastCap = toasts;
+  Game.newGame();
+  const w = Game.toWorld();
+  w.nestWeb = { nodes: { "n0-0": true, "n1-3": true }, surprises: 0 };
+  sb.localStorage.setItem(sb.__t.Game ? require("vm").runInContext("CFG.saveKey", sb) : "", JSON.stringify(w));
+  toasts.length = 0;
+  const okLoad = Game.load();
+  ok("⑦ 移行トーストがload時に発火する(applyWorld後判定・本番実証で検出した是正)", okLoad && toasts.some((t) => /編み直/.test(t)), toasts.join("|").slice(0, 120));
+  toasts.length = 0;
+  Game.save(); Game.load();
+  ok("⑦ 二度目のloadでは移行トーストが出ない(一度きり)", !toasts.some((t) => /編み直/.test(t)));
 }
 
 // ---- 解放ペースの掃引(報告用・線形成長モデル: 各指標が最大needまで一様に伸びると仮定) ----
