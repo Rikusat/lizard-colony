@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>b3 loading</title>
+<!-- V6-P2-2 B3 実寸シュートページ(開発用・2026-08-11)。
+     **実コード経路そのまま**(UI.buildNest+layoutStage=DOM+canvas)を、参照コンテンツ領域と同じ
+     1460×884 で描画する。tools/qa-nest-shot.mjs がこのページをスクショし参照実測値と比較=B3部分ゲート。
+     代表状態=モックの 23/80 解放に合わせ、内側から23ノードを解放済みにする(決定論)。
+     周辺UI(ヘッダ/パネル/ヒント)はCSSで隠し、ステージだけを(0,0)-(1460,884)に固定=座標系が参照と一致。 -->
+<script>
+(function () {
+  const mem = {};
+  const shim = { getItem: (k) => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: (k) => { delete mem[k]; }, clear: () => { for (const k in mem) delete mem[k]; } };
+  Object.defineProperty(window, "localStorage", { value: shim, configurable: false });
+})();
+</script>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="style.css">
+<style>
+  body { margin: 0; overflow: hidden; }
+  #wrapb3 { position: fixed; left: 0; top: 0; width: 1460px; height: 884px; }
+  #wrapb3 .nest-head, #wrapb3 #nest-side, #wrapb3 #nest-hint, #wrapb3 #nest-tip { display: none !important; }
+  #wrapb3 #nest-main { position: absolute; inset: 0; display: block; }
+  #wrapb3 #nest-stage { position: absolute; inset: 0; min-height: 0; border: none; border-radius: 0; }
+</style>
+</head>
+<body>
+<div id="wrapb3"></div>
+<canvas id="game" width="10" height="10" style="display:none"></canvas>
+<script src="js/data.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script>globalThis.UI = globalThis.UI || {};</script>
+<script src="js/ui/icons.js"></script>
+<script src="js/ui/screens/nest.js"></script>
+<script>
+UI.toast = UI.toast || (() => {});
+Game.newGame();
+Game.ensureNestWeb();
+// 代表状態: 内側から23ノード解放(モック 23/80 と同水準・決定論)
+const ns = buildNestWeb().filter((n) => n.id !== "core");
+ns.sort((a, b) => a.ring - b.ring || a.angle - b.angle).slice(0, 23).forEach((n) => { Game.state.nestWeb.nodes[n.id] = { t: 1 }; });
+UI.buildNest(document.getElementById("wrapb3"));
+requestAnimationFrame(() => requestAnimationFrame(() => { document.title = "b3 ready"; }));
+</script>
+</body>
+</html>

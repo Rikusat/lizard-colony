@@ -959,13 +959,14 @@ const LORE = [
 // ============================================================
 // V4.1: 希少鉱石(§5 巣ノード報酬・フロー資源とは別ウォレット)
 // ============================================================
+// color: 巣ノードのメダリオン彩色(V6-P2-2 B3・データ駆動。アメジストのみUISkillsトークンと同値)
 const ORES = [
-  { id: "amethyst",    name: "アメジスト",   icon: "amethyst", hint: "最上位の貴重鉱石。やり込みの証" },
-  { id: "iridium",     name: "イリジウム",   icon: "iridium", hint: "ロケット建造の燃料。惑星移住計画へ" },
-  { id: "amber",       name: "琥珀",         icon: "amber", hint: "太古の遺伝子を封じた樹脂。遺伝子解析に" },
-  { id: "meteorite",   name: "隕石",         icon: "meteorite", hint: "中身が未確定の鉱塊。割ると希少個体が…" },
-  { id: "orichalcum",  name: "オリハルコン", icon: "orichalcum", hint: "伝説の金属。HQ上位研究の鍵" },
-  { id: "titaniumOre", name: "チタン鉱",     icon: "titanium", hint: "設備を\"化けさせる\"特殊鉱石(上限突破)" },
+  { id: "amethyst",    name: "アメジスト",   icon: "amethyst", color: "#9B6BD6", hint: "最上位の貴重鉱石。やり込みの証" },
+  { id: "iridium",     name: "イリジウム",   icon: "iridium", color: "#5FA8C9", hint: "ロケット建造の燃料。惑星移住計画へ" },
+  { id: "amber",       name: "琥珀",         icon: "amber", color: "#D9A441", hint: "太古の遺伝子を封じた樹脂。遺伝子解析に" },
+  { id: "meteorite",   name: "隕石",         icon: "meteorite", color: "#C96A3B", hint: "中身が未確定の鉱塊。割ると希少個体が…" },
+  { id: "orichalcum",  name: "オリハルコン", icon: "orichalcum", color: "#3FBF9F", hint: "伝説の金属。HQ上位研究の鍵" },
+  { id: "titaniumOre", name: "チタン鉱",     icon: "titanium", color: "#B8C4CE", hint: "設備を\"化けさせる\"特殊鉱石(上限突破)" },
 ];
 const oreById = (id) => ORES.find((o) => o.id === id);
 
@@ -1010,10 +1011,14 @@ const NEST_GROWTH = { bred: 2.6, hatched: 2.6, species: 0, morphs: 0, dexRate: 0
 // ノード生成(定義は保存しない・解放IDのみセーブ)
 // V6-P2-2 B2: 巣webの幾何(単一の真実)。nest.js(実ページ)と test-nest-cut.html(検分ゲート)が共用
 // =絵とテストがズレない(§5x-OPS ⑮)。結線規則=各ノード→内側リングの最寄り(従来SVG結線と同一)。
-const NESTWEB_GEO = { SIZE: 1100, C: 550, R_STEP: 95 };
+// B3(2026-08-11): ring0が鉢(1100空間換算≈172)の内側に来ていた配置を是正。
+//   半径 = R_BASE + R_STEP×ring → 200,266,332,398,464(content換算 157〜365)=ring0が鉢の外・最外環も枠内。
+const NESTWEB_GEO = { SIZE: 1100, C: 550, R_BASE: 200, R_STEP: 66 };
 function nestWebPos(n) {
-  const { C, R_STEP } = NESTWEB_GEO;
-  return n.id === "core" ? [C, C] : [C + Math.cos(n.angle) * (R_STEP * (n.ring + 1)), C + Math.sin(n.angle) * (R_STEP * (n.ring + 1))];
+  const { C, R_BASE, R_STEP } = NESTWEB_GEO;
+  if (n.id === "core") return [C, C];
+  const r = R_BASE + R_STEP * n.ring;
+  return [C + Math.cos(n.angle) * r, C + Math.sin(n.angle) * r];
 }
 function nestWebLinks(nodes) {
   const links = [];

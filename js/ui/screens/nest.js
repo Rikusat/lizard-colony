@@ -176,8 +176,14 @@ Object.assign(UI, {
       const cls = n.id === "core" ? "core" : open ? "on" : near ? "near" : "off";
       const tip = n.id === "core" ? "巣の中心"
         : open ? `${n.name} — 解放済み` : `${n.name} — 進捗${Math.floor(p * 100)}%`;
+      // V6-P2-2 B3: メダリオン意匠(参照準拠)。未解放=錠前 / 解放=報酬鉱石のグリフ(ORES.colorで彩色=データ駆動)。
+      //   ラベルピルは on/near のみ(実UIは81ノード=モックの約14より密なため、全数表示は判読不能。数の差はRic裁定で再現対象外)。
+      //   条件などの副記はタップのツールチップが引き続き担う。
+      const ore = n.id === "core" ? null : oreById(n.reward.ore);
+      const glyph = n.id === "core" ? Icon.svg("nestweb") : open ? `<b style="color:${ore.color}">${Icon.svg(ore.icon)}</b>` : Icon.svg("lock");
+      const pill = n.id === "core" ? "" : open ? `<i class="wn-pill">${n.name}</i>` : near ? `<i class="wn-pill">${n.name}<em>${Math.floor(p * 100)}%</em></i>` : "";
       html += `<div class="wnode ${cls}" data-node="${n.id}" data-tip="${tip}" style="left:${x}px;top:${y}px">
-        <span>${n.id === "core" ? Icon.svg("nestweb") : open ? Icon.svg(oreById(n.reward.ore).icon) : Icon.svg(n.icon)}</span></div>`;
+        <span>${glyph}</span>${pill}</div>`;
     }
     wrap.innerHTML = html;
     // タップ=ツールチップのみ(§4.2)。解放操作は存在しない

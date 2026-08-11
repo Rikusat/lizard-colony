@@ -33,4 +33,15 @@ const NEST_VIS_THRESHOLDS = {
     // 下限0.5%=糸が実在すること。B5(ノード込みの全画面ゲート)で参照±へ締め直す。
     contentAmberRef: 2.55, contentAmberMin: 0.5, contentAmberMax: 3.06, // 上限=参照×1.2
   },
+  // B3 ノード意匠(2026-08-11)。計測=実寸シュートゲート(tools/qa-nest-shot.mjs が test-nest-b3.html=
+  //   **実コード経路そのまま(buildNest+layoutStage・DOM+canvas)**を1460×884でスクショしnode側で解析)。
+  //   帯=参照のメダリオン環(半径221)を含む環状帯200〜330(B2の教訓=角度非依存・トポロジ差に頑健)。
+  //   実UIは同帯に3環48ノード(モックは約8個+ラベル)=数の差は再現対象外(Ric裁定)・意匠の統計一致を測る。
+  nodes: {
+    band: { r0: 200, r1: 330, cx: 618, cy: 362 },
+    ref: { avgL: 45.8, amber: 5.11, warm: 11.2 },   // 参照同帯の実測
+    avgLTol: 10, amberMin: 2.5, amberMax: 10.2, warmMax: 22,
+  },
 };
+// node側ツール(tools/qa-nest-shot.mjs)からの読込用(ブラウザでは無視される)
+if (typeof module !== "undefined" && module.exports) module.exports = NEST_VIS_THRESHOLDS;
