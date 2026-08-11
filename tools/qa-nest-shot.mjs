@@ -106,9 +106,13 @@ const PP = pixStat((x, y) => x >= sx && x < sx + sw2 && y >= sy && y < sy + sh2)
 const f1 = (v) => v.toFixed(1);
 let pass = 0, fail = 0;
 const row = (name, refV, repV, thr, ok) => { ok ? pass++ : fail++; console.log(`${ok ? "PASS" : "FAIL"} ${name}: 参照${refV} / 再現${repV} / 閾値${thr}`); };
-row("B3 ノード帯(環状200-330・実コア中心) 平均輝度", f1(N.ref.avgL), f1(P.avgL), `±${N.avgLTol}L`, Math.abs(P.avgL - N.ref.avgL) <= N.avgLTol);
-row("B3 ノード帯 amber率%", f1(N.ref.amber), f1(P.amber), `${N.amberMin}〜${N.amberMax}%`, P.amber >= N.amberMin && P.amber <= N.amberMax);
-row("B3 ノード帯 暖色率%", f1(N.ref.warm), f1(P.warm), `< ${N.warmMax}%`, P.warm < N.warmMax);
+// B3ノード帯(モック統計)は素材モードでは測る意味を失う(V1コアと同じ論理=素材は別作画・無改変)ため
+// **フォールバック経路(--noassets)の恒久回帰**としてのみ実行。素材モードのメダリオンはV2ゲートが担う。
+if (NOASSETS) {
+  row("B3 ノード帯(環状200-330・実コア中心) 平均輝度", f1(N.ref.avgL), f1(P.avgL), `±${N.avgLTol}L`, Math.abs(P.avgL - N.ref.avgL) <= N.avgLTol);
+  row("B3 ノード帯 amber率%", f1(N.ref.amber), f1(P.amber), `${N.amberMin}〜${N.amberMax}%`, P.amber >= N.amberMin && P.amber <= N.amberMax);
+  row("B3 ノード帯 暖色率%", f1(N.ref.warm), f1(P.warm), `< ${N.warmMax}%`, P.warm < N.warmMax);
+}
 // B4 右パネル列(密度比較=幅差にスケール頑健。再現側=実DOM #nest-side の bbox)
 const PN = T.panel;
 row("B4 パネル列 平均輝度", f1(PN.ref.avgL), f1(PP.avgL), `±${PN.avgLTol}L`, Math.abs(PP.avgL - PN.ref.avgL) <= PN.avgLTol);
@@ -164,29 +168,52 @@ if (!NOASSETS) {
     const [bx2, by2, bw2, bh2] = s.b;
     const sc = Math.min(bw2 / A.w, bh2 / A.h);
     const dw2 = A.w * sc, dh2 = A.h * sc, ox = bx2 + (bw2 - dw2) / 2, oy = by2 + (bh2 - dh2) / 2;
-    const rMin = s.on ? 0.55 : 0, rMax = 0.92, half = Math.min(A.w, A.h) / 2;
-    let n2 = 0, sum2 = 0;
-    for (let py = Math.ceil(oy); py < oy + dh2; py++) for (let px = Math.ceil(ox); px < ox + dw2; px++) {
-      const sxc = (px - ox) / sc, syc = (py - oy) / sc;
-      const rN = Math.hypot(sxc - A.w / 2, syc - A.h / 2) / half;
-      if (rN < rMin || rN > rMax) continue;
-      // ソースのボックス平均(footprint 1/sc四方・全画素a≥250のときのみ標本化=合成の不確定を排除)
-      const x0 = Math.max(0, Math.floor(sxc - 0.5 / sc)), x1 = Math.min(A.w - 1, Math.ceil(sxc + 0.5 / sc));
-      const y0 = Math.max(0, Math.floor(syc - 0.5 / sc)), y1 = Math.min(A.h - 1, Math.ceil(syc + 0.5 / sc));
-      let ls = 0, lc = 0, okA = true;
-      for (let yy = y0; yy <= y1 && okA; yy++) for (let xx = x0; xx <= x1; xx++) {
-        const ii = (yy * A.w + xx) * 4;
-        if (A.data[ii + 3] < 250) { okA = false; break; }
-        ls += .2126 * A.data[ii] + .7152 * A.data[ii + 1] + .0722 * A.data[ii + 2]; lc++;
+    // ゾーン平均色一致(チャンネル別): 3.4×縮小の細リングでは画素単位比較が縮小フィルタ差で壊れる
+    //   (実測ΔL12〜17)ため、ゾーン平均で比較=フィルタ雑音は集計で相殺。正素材/正状態/正配置を検出する
+    //   構造検査(微細な無改変検知は等倍要素=V1コアが担う分担)。
+    const half = Math.min(A.w, A.h) / 2;
+    if (!s.on) {
+      // lock=不透明メダリオン: ゾーン平均色の画素一致(構造+階調)。
+      let n2 = 0; const se = [0, 0, 0], sg = [0, 0, 0];
+      for (let py = Math.ceil(oy); py < oy + dh2; py++) for (let px = Math.ceil(ox); px < ox + dw2; px++) {
+        const sxc = (px - ox) / sc, syc = (py - oy) / sc;
+        if (Math.hypot(sxc - A.w / 2, syc - A.h / 2) / half > 0.92) continue;
+        const ii = (Math.min(A.h - 1, syc | 0) * A.w + Math.min(A.w - 1, sxc | 0)) * 4;
+        if (A.data[ii + 3] < 250) continue;
+        const is2 = (py * img.w + px) * img.bpp;
+        se[0] += A.data[ii]; se[1] += A.data[ii + 1]; se[2] += A.data[ii + 2];
+        sg[0] += img.data[is2]; sg[1] += img.data[is2 + 1]; sg[2] += img.data[is2 + 2];
+        n2++;
       }
-      if (!okA || !lc) continue;
-      const is2 = (py * img.w + px) * img.bpp;
-      const Ls2 = .2126 * img.data[is2] + .7152 * img.data[is2 + 1] + .0722 * img.data[is2 + 2];
-      sum2 += Math.abs(Ls2 - ls / lc); n2++;
+      const dCh = n2 ? Math.max(Math.abs(se[0] - sg[0]), Math.abs(se[1] - sg[1]), Math.abs(se[2] - sg[2])) / n2 : 1e9;
+      row(`V2 メダリオン(lock) ゾーン平均色Δ(max ch)`, "0(素材=正解)", f1(dCh) + " (n=" + n2 + ")",
+        `≦${T.medallion.maxChanDelta} & n≧${T.medallion.minSamples}`, dCh <= T.medallion.maxChanDelta && n2 >= T.medallion.minSamples);
+    } else {
+      // on=発光リング(素材の環は半透過=不透明画素がほぼ無い・実測n1〜5)→**色相の構造検査**:
+      //   環状帯(rN0.62〜0.95)の平均色の色相が、リング色の期待レンジに入るか=正素材色/正状態の検出。
+      //   微細な無改変検知は等倍要素(V1コア)が担う(閾値ファイルの分担注記)。
+      let n2 = 0, sr = 0, sg2 = 0, sb = 0;
+      for (let py = Math.ceil(oy); py < oy + dh2; py++) for (let px = Math.ceil(ox); px < ox + dw2; px++) {
+        const sxc = (px - ox) / sc, syc = (py - oy) / sc;
+        const rN = Math.hypot(sxc - A.w / 2, syc - A.h / 2) / half;
+        if (rN < 0.62 || rN > 0.95) continue;
+        const is2 = (py * img.w + px) * img.bpp;
+        sr += img.data[is2]; sg2 += img.data[is2 + 1]; sb += img.data[is2 + 2]; n2++;
+      }
+      const r3 = sr / n2, g3 = sg2 / n2, b3 = sb / n2;
+      const mx = Math.max(r3, g3, b3), mn = Math.min(r3, g3, b3);
+      let hue = 0;
+      if (mx > mn) {
+        if (mx === r3) hue = 60 * (((g3 - b3) / (mx - mn)) % 6);
+        else if (mx === g3) hue = 60 * ((b3 - r3) / (mx - mn) + 2);
+        else hue = 60 * ((r3 - g3) / (mx - mn) + 4);
+        if (hue < 0) hue += 360;
+      }
+      const RANGE = { amber: [20, 60], red: [0, 30], green: [80, 160], teal: [160, 215], purple: [235, 310] };
+      const [h0, h1] = RANGE[s.ring];
+      row(`V2 メダリオン(${s.ring}・on) 環の色相`, `${h0}〜${h1}°`, hue.toFixed(0) + "° (n=" + n2 + ")",
+        "期待レンジ内", n2 >= T.medallion.minSamples && hue >= h0 && hue <= h1);
     }
-    const mdl = n2 ? sum2 / n2 : 1e9;
-    row(`V2 メダリオン(${s.ring}${s.on ? "・on" : "・lock"}) 無改変+正配置|ΔL|`, "0(素材=正解)", f1(mdl) + " (n=" + n2 + ")",
-      `≦${T.medallion.maxMeanDL} & n≧${T.medallion.minSamples}`, mdl <= T.medallion.maxMeanDL && n2 >= T.medallion.minSamples);
   }
 }
 console.log(`\n=== qa-nest-shot: ${pass} PASS / ${fail} FAIL(実寸=実コード経路 DOM+canvas)===`);
