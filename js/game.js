@@ -1214,6 +1214,18 @@ const Game = {
     this.save();
     return true;
   },
+  // V6-P5 S2冒頭(SoundSkills §2-1・Ric裁定 2026-08-12): 音の存在を「一度だけ静かに」知らせた記録。
+  //   markOpeningSeen と同じ器・同じ作法(dial内キーの単調追加=一度立ったら戻らない・SAVE_VERSIONは上げない)。
+  //   いつ・どう見せるかは演出層が決める。ルール層は「もう知らせたか」だけを持つ。
+  SOUND_HINT_KEY: "soundHintSeen",
+  soundHintSeen() { return !!this.ensureDial()[this.SOUND_HINT_KEY]; },
+  markSoundHintSeen() {
+    const d = this.ensureDial();
+    if (d[this.SOUND_HINT_KEY]) return false;     // 冪等(2度目以降は何も起きない=押し売りしない)
+    d[this.SOUND_HINT_KEY] = 1;
+    this.save();
+    return true;
+  },
 
   // 給餌ダイヤルのオート(Brushup V2 Phase1)。効果は既存feedAllの再利用・通知は出さない
   dialTick(dt) {

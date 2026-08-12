@@ -302,6 +302,39 @@ function loadSound(extraCfg) {
   const meta = codeOf(read("js/ui/screens/meta.js"));
   check("★設定に音のON/OFF導線がある(初回無音からONにできる)", /set-sound/.test(meta) && /Game\.setSoundEnabled/.test(meta));
   check("設定トグルは形と文字で状態を示す(色のみに依存しない・UISkills §7)", /soundOff/.test(meta) && /aria-checked/.test(meta));
+  // §2-1: ONへの導線を一度だけ静かに知らせる(押し売りしない)
+  check("★一度きりの告知が演出層にある(初回撃退・既にONなら出さない)",
+    /soundHintSeen\(\)/.test(boot) && /markSoundHintSeen\(\)/.test(boot) && /Game\.soundEnabled\(\)/.test(boot));
+  check("告知は既存のトーストを使う(通知の種類を増やさない・§9)", /UI\.toast\(/.test(boot));
+  check("告知の文言に音のONを促す導線がある", /効果音をONに/.test(read("js/ui/boot.js")));
+}
+
+// ---- 7e) §2-1 一度きり告知のセーブ側(単調追加フラグ・往復する器) ----
+{
+  function np() { const fn = function () {}; return new Proxy(fn, { get(t, p) { if (typeof p === "string" && p[0] === "_") return undefined; return p === "svg" ? () => "" : np(); }, apply() { return np(); } }); }
+  const store = {};
+  const sb = {
+    console: { log() {}, warn() {}, error() {} },
+    localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: (k) => { delete store[k]; } },
+    document: new Proxy({}, { get() { return np(); } }), navigator: { userAgent: "node" }, location: { reload: () => {}, search: "", hash: "" },
+    requestAnimationFrame: () => 0, cancelAnimationFrame: () => {}, setTimeout: () => 0, clearTimeout: () => {}, setInterval: () => 0, clearInterval: () => {},
+    performance: { now: () => 0 }, Math, JSON, Object, Array, String, Number, Boolean, isNaN, parseInt, parseFloat, Date,
+    UI: np(), Icon: np(), Roulette: np(), CrankSkins: np(), Slit: np(), Motion: { reduced: false }, Sound: { setEnabled() {} },
+  };
+  sb.window = sb; sb.globalThis = sb; vm.createContext(sb);
+  let code = ""; for (const f of ["js/data.js", "js/render.js", "js/game.js"]) code += read(f) + "\n;\n";
+  code += "globalThis.__g = { Game };\n";
+  vm.runInContext(code, sb, { filename: "combined.js" });
+  const Game = sb.__g.Game;
+  Game.newGame();
+  check("★新規コロニーではまだ告知していない", Game.soundHintSeen() === false);
+  check("★1度目のmarkだけがtrue(=告知は一度きり)", Game.markSoundHintSeen() === true && Game.markSoundHintSeen() === false);
+  check("markの後は soundHintSeen が立つ", Game.soundHintSeen() === true);
+  const w = Game.toWorld();
+  check("★告知済みフラグが dial で往復する(保存の追加配線が要らない)", w.dial && w.dial[Game.SOUND_HINT_KEY] === 1);
+  Game.applyWorld(JSON.parse(JSON.stringify(w)));
+  check("applyWorld 後も告知済みのまま(単調=戻らない)", Game.soundHintSeen() === true && Game.markSoundHintSeen() === false);
+  check("音ONフラグとは独立(別キー)", Game.SOUND_HINT_KEY !== Game.SOUND_ON_KEY && Game.soundEnabled() === false);
 }
 
 // ---- 8) boot配線(ソース検査) ----

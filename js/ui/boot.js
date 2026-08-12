@@ -809,6 +809,17 @@ if (typeof Sound !== "undefined" && typeof Game !== "undefined") {
     const id = CFG.soundCues && CFG.soundCues[name];
     if (id) Sound.play(id);
   });
+  // 憲章§2-1: 音の存在を「一度だけ静かに」知らせる(押し売りしない)。
+  //   ★タイミング=初回の撃退直後。給餌→繁殖→孵化→防衛のコアループを一周し終えた地点で、
+  //     かつ「音が最も活きる瞬間」の直後=文脈として自然。初回起動直後は情報過多になるため避ける。
+  //   ★既にONの人には出さない(知らせる必要がない)。器は既存のトースト=通知の種類を増やさない(§9)。
+  //   一度きりの保証はセーブ側(dialの単調追加フラグ)。演出層はキー名を知らない。
+  Game.onEvent(function (name) {
+    if (name !== "defeat" || Game.soundEnabled() || Game.soundHintSeen()) return;
+    if (Game.markSoundHintSeen() && typeof UI !== "undefined" && UI.toast) {
+      UI.toast(`${Icon.svg("sound")} 設定から効果音をONにできます`);
+    }
+  });
   const soundUnlock = () => {
     Sound.unlock();
     window.removeEventListener("pointerdown", soundUnlock);

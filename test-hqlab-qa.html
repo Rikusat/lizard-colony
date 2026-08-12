@@ -452,6 +452,23 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
           Game._hatchEggObject({ speciesId: "kanahebi", morphId: "normal", hue: 100, sat: 50, light: 50, pattern: "stripe" });
           Game.emit("defeat", { x: 0, y: 0 });
           ok("★§15初回無音: OFFなら配線済みでも1つも鳴らない(不可逆④の実測)", Sound.log.length === 0, "log=" + Sound.log.length);
+
+          // ---- §2-1「ONへの導線を一度だけ静かに知らせる」(boot.jsが張った本番の購読をそのまま使う) ----
+          //   トーストはUI側の器なのでスパイして数える(DOM構造に依存しない=器を変えても壊れない検査)。
+          var toasts = [], origToast = UI.toast;
+          UI.toast = function (m) { toasts.push(String(m)); };
+          Game.newGame(); Game.setSoundEnabled(false); toasts.length = 0;
+          Game.emit("defeat", { x: 0, y: 0 });
+          ok("★§15告知: 初回撃退でONの導線を1度だけ知らせる", toasts.length === 1 && /効果音/.test(toasts[0]), JSON.stringify(toasts));
+          Game.emit("defeat", { x: 0, y: 0 }); Game.emit("defeat", { x: 0, y: 0 });
+          ok("★§15告知: 2度目以降は出ない(押し売りしない)", toasts.length === 1, "件数=" + toasts.length);
+          ok("§15告知: 告知済みがセーブに残る(リロードしても再告知しない)", Game.soundHintSeen() === true);
+          Game.newGame(); Game.setSoundEnabled(true); toasts.length = 0;
+          Game.emit("defeat", { x: 0, y: 0 });
+          ok("§15告知: 既にONの人には知らせない(必要がない)", toasts.length === 0, JSON.stringify(toasts));
+          UI.toast = origToast;
+
+          Game.setSoundEnabled(false);
           ok("§15保存: OFFへ戻せる(両方向トグル=単調フラグではない)", Game.soundEnabled() === false && Sound.on() === false);
         });
       });
