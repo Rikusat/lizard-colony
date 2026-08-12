@@ -316,7 +316,10 @@ function loadSound(extraCfg) {
   check("★一度きりの告知が演出層にある(初回撃退・既にONなら出さない)",
     /soundHintSeen\(\)/.test(boot) && /markSoundHintSeen\(\)/.test(boot) && /Game\.soundEnabled\(\)/.test(boot));
   check("告知は既存のトーストを使う(通知の種類を増やさない・§9)", /UI\.toast\(/.test(boot));
-  check("告知の文言に音のONを促す導線がある", /効果音をONに/.test(read("js/ui/boot.js")));
+  // S2後に文言を見直した: 環境音が入り、このトグルは効果音「だけ」ではなくなったため「音」と呼ぶ
+  check("告知の文言に音のONを促す導線がある", /音をONにできます/.test(read("js/ui/boot.js")));
+  check("★告知/設定の文言が効果音だけを指していない(環境音も含む)",
+    !/効果音をONに/.test(read("js/ui/boot.js")) && /環境音/.test(read("js/ui/screens/meta.js")));
 }
 
 // ---- 7e) §2-1 一度きり告知のセーブ側(単調追加フラグ・往復する器) ----

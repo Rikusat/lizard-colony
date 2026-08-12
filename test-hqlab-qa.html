@@ -43,7 +43,10 @@
 window.__err = null; window.addEventListener("error", (e) => { window.__err = (window.__err || "") + e.message + " | "; });
 (function () {
   var R = [], pass = 0, fail = 0;
-  function ok(n, c, e) { if (c) { pass++; R.push('<div class="ok">PASS ' + n + '</div>'); } else { fail++; R.push('<div class="ng">FAIL ' + n + (e ? " :: " + e : "") + '</div>'); } }
+  // 失敗の詳細(e)は実データ由来でHTMLを含みうる。そのまま流し込むと結果欄に要素が生まれ、
+  //   壊れた <use href> が404を出して「console 0」の証拠を濁す(実際に起きた)。必ずエスケープする。
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function ok(n, c, e) { if (c) { pass++; R.push('<div class="ok">PASS ' + esc(n) + '</div>'); } else { fail++; R.push('<div class="ng">FAIL ' + esc(n) + (e ? " :: " + esc(e) : "") + '</div>'); } }
   function rectOf(el) { var r = el.getBoundingClientRect(); return { w: Math.round(r.width * 10) / 10, h: Math.round(r.height * 10) / 10, x: Math.round(r.left * 10) / 10, y: Math.round(r.top * 10) / 10 }; }
   function run() {
     try {
@@ -459,7 +462,8 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
           UI.toast = function (m) { toasts.push(String(m)); };
           Game.newGame(); Game.setSoundEnabled(false); toasts.length = 0;
           Game.emit("defeat", { x: 0, y: 0 });
-          ok("★§15告知: 初回撃退でONの導線を1度だけ知らせる", toasts.length === 1 && /効果音/.test(toasts[0]), JSON.stringify(toasts));
+          // 文言はS2後に「効果音」→「音」へ見直した(環境音が入りトグルの対象が広がったため)
+          ok("★§15告知: 初回撃退でONの導線を1度だけ知らせる", toasts.length === 1 && /音をONにできます/.test(toasts[0]), JSON.stringify(toasts));
           Game.emit("defeat", { x: 0, y: 0 }); Game.emit("defeat", { x: 0, y: 0 });
           ok("★§15告知: 2度目以降は出ない(押し売りしない)", toasts.length === 1, "件数=" + toasts.length);
           ok("§15告知: 告知済みがセーブに残る(リロードしても再告知しない)", Game.soundHintSeen() === true);

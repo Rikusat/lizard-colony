@@ -872,7 +872,9 @@ if (typeof Sound !== "undefined" && typeof Game !== "undefined") {
   Game.onEvent(function (name) {
     if (name !== "defeat" || Game.soundEnabled() || Game.soundHintSeen()) return;
     if (Game.markSoundHintSeen() && typeof UI !== "undefined" && UI.toast) {
-      UI.toast(`${Icon.svg("sound")} 設定から効果音をONにできます`);
+      // 文言はS2後に見直した: 環境音が入り、このトグルは効果音**だけ**ではなくなったため「音」と呼ぶ。
+      //   一言に留める(押し売りしない)。内訳は設定側の説明が持つ。
+      UI.toast(`${Icon.svg("sound")} 設定から音をONにできます`);
     }
   });
   const soundUnlock = () => {

@@ -134,8 +134,8 @@ Object.assign(UI, {
   openSettings() {
     this.openModal(`${Icon.svg("settings")} 設定`, (body) => {
       body.innerHTML = `
-        <div class="list-row"><div class="grow"><b>音</b><div class="desc">効果音のON/OFF(初期状態はOFF)。音を切っても、起きたことは画面表示だけで分かるように作られています</div></div>
-          <button id="set-sound" role="switch" aria-checked="false" aria-label="効果音のON/OFF"></button></div>
+        <div class="list-row"><div class="grow"><b>音</b><div class="desc">効果音と、惑星ごとの環境音のON/OFF(初期状態はOFF)。音を切っても、起きたことは画面表示だけで分かるように作られています</div></div>
+          <button id="set-sound" role="switch" aria-checked="false" aria-label="音のON/OFF"></button></div>
         <div class="list-row"><div class="grow"><b>セーブ</b><div class="desc">10秒ごとに自動保存されます</div></div>
           <button id="set-save">今すぐ保存</button></div>
         <div class="list-row"><div class="grow"><b>惑星の混入チェック（純血化プレビュー・非破壊）</b><div class="desc">Phase10: 各惑星に他惑星種が混入していないか診断（消えない・数を見るだけ）。自動移行バグで焼き付いた汚染の消失予定数を確認できる</div></div>
@@ -176,7 +176,7 @@ Object.assign(UI, {
       sndBtn.addEventListener("click", () => {
         Game.setSoundEnabled(!Game.soundEnabled());
         syncSnd();
-        this.toast(Game.soundEnabled() ? `${Icon.svg("sound")} 効果音: ON` : `${Icon.svg("soundOff")} 効果音: OFF`);
+        this.toast(Game.soundEnabled() ? `${Icon.svg("sound")} 音: ON` : `${Icon.svg("soundOff")} 音: OFF`);
       });
       syncSnd();
       body.querySelector("#set-save").addEventListener("click", () => {
