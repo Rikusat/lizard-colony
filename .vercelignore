@@ -37,6 +37,18 @@ HANDOFF.md
 V3_CodebaseAudit.md
 GameExpansion/
 docs/
+# β公開前の全数点検で追加(2026-08-12 Ric裁定・本番実測で200だったもの)。
+#   プレイヤーがテストコード・QAツール・設計規律を読める状態にしない=docs//test-*.html と同じ扱いへ揃える。
+#   ★実行時に参照されないことを確認済み(index.html の配信asset 35件は js/*.js と css のみ)。
+V4_Audit.md
+V4.1_Audit.md
+Fable/
+tests/
+tools/
+
+# 参照用の画像(実行時に未参照=コード・CSSからの参照0件を確認済み)
+menu_wide.png
+menu_narrow.png
 
 # 企画用参照画像(実行時に未使用・約4.7MB)。★親dirごと除外すると!で再包含できない(gitignore規則)ため image/* とする
 image/*
