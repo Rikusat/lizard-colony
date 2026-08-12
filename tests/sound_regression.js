@@ -285,8 +285,18 @@ function loadSound(extraCfg) {
     ["feed", "hatch", "defeat"].every((n) => emits.some((e) => e.name === n)), JSON.stringify(emits.map((e) => e.name)));
   check("★カナリア: 視覚検知が本物の呼び出しを捕まえる", VISUAL.test('      this.notice("x", "y", "boss");'));
   check("★カナリア: 無関係な行は視覚と見なさない", !VISUAL.test("      const auto = !!(this.state.dial && this.state.dial.auto);"));
-  const lonely = emits.filter((e) => !near(e.i)).map((e) => e.name + "@" + (e.i + 1));
-  check("★全てのemitが視覚呼び出しの近傍にある(音だけが鳴る箇所を作らない)", lonely.length === 0, lonely.join(","));
+  // ★対象は「一発の音を鳴らすイベント(=CFG.soundCuesに載るもの)」だけ。
+  //   planet/sound のような**制御イベント**(環境音の切替・ON/OFF)は音idに変換されず、
+  //   環境音は情報を運ばない背景なので「音だけが情報を持つ」状態を作らない=この検査の対象外。
+  //   S2で planet/sound を足したとき、この区別が無い版の検査が正しく落ちた(区別を後付けした経緯)。
+  const cues = loadSound().CFG.soundCues || {};
+  const cueEmits = emits.filter((e) => cues[e.name]);
+  check("音を鳴らすイベントが3種そろっている", cueEmits.length >= 3, JSON.stringify(cueEmits.map((e) => e.name)));
+  const lonely = cueEmits.filter((e) => !near(e.i)).map((e) => e.name + "@" + (e.i + 1));
+  check("★音を鳴らす全emitが視覚呼び出しの近傍にある(音だけが鳴る箇所を作らない)", lonely.length === 0, lonely.join(","));
+  const ctrl = emits.filter((e) => !cues[e.name]).map((e) => e.name);
+  check("制御イベント(planet/sound)は音idに変換されない=一発の音を鳴らさない",
+    ctrl.every((n) => !cues[n]), JSON.stringify(ctrl));
 }
 
 // ---- 7d) 対応表と配線口(CFG.soundCues=「何が起きたか」→「どう聞かせるか」の唯一の変換点) ----
@@ -344,6 +354,47 @@ function loadSound(extraCfg) {
   check("unlock は初回のユーザー操作で一度だけ(リスナ自己解除)", /Sound\.unlock\(\)/.test(boot) && /removeEventListener\("pointerdown", soundUnlock\)/.test(boot));
   const idx = read("index.html");
   check("index.html に sound.js が載る(holo.js の後)", /js\/sound\.js/.test(idx));
+}
+
+// ---- 9) S2 環境音: 惑星の空色からの導出(波形の数値ゲートは装置QA=OfflineAudioContextが要る) ----
+//   ★環境音の物差しはSEと違う。SE=一瞬の主張(peak) / 環境音=背景に沈む(持続RMS・定常性・低域比率)。
+//   ここでは「導出が10惑星でどう散るか」という、音を鳴らさなくても検査できる性質を固定する。
+{
+  const { Sound, CFG } = loadSound();
+  const sb = { console, Math, JSON, Object, Array, String, Number, isNaN, parseInt, parseFloat, module: {} };
+  sb.globalThis = sb; vm.createContext(sb);
+  vm.runInContext(read("js/data.js"), sb, { filename: "data.js" });
+  vm.runInContext("globalThis.__s = STAGES", sb);
+  const STAGES = sb.__s;
+  check("環境音のCFGが揃っている(全てCFG外部化)",
+    [CFG.soundAmbLevel, CFG.soundAmbPadBaseHz, CFG.soundAmbCutMinHz, CFG.soundAmbCutMaxHz, CFG.soundAmbBreathSec, CFG.soundAmbFadeSec].every((v) => typeof v === "number"));
+  check("★環境音はSE最軽(給餌)より小さく置かれている(主張しない)", CFG.soundAmbLevel < CFG.soundDefs.feed.vol,
+    "amb=" + CFG.soundAmbLevel + " feed=" + CFG.soundDefs.feed.vol);
+  check("★息づかいは十分ゆっくり(常時鳴る音で速い揺らぎは疲れる・10秒以上)", CFG.soundAmbBreathSec >= 10, "周期=" + CFG.soundAmbBreathSec + "s");
+  check("パッドは風より控えめ(前に出ると主張になる)", CFG.soundAmbPadLevel < CFG.soundAmbWindLevel);
+  const ps = STAGES.map((st) => ({ id: st.id, name: st.name, p: Sound.ambientFromTint(st.sky) }));
+  check("全10惑星でパラメータが導出できる(有限値)", ps.length === 10 && ps.every((x) => isFinite(x.p.padHz) && isFinite(x.p.cutHz) && isFinite(x.p.padMix)));
+  check("導出は決定論(同じ空色=同じ値)", JSON.stringify(Sound.ambientFromTint(STAGES[0].sky)) === JSON.stringify(Sound.ambientFromTint(STAGES[0].sky)));
+  check("ローパスはCFGの範囲内に収まる", ps.every((x) => x.p.cutHz >= CFG.soundAmbCutMinHz - 1e-9 && x.p.cutHz <= CFG.soundAmbCutMaxHz + 1e-9));
+  // ★聴いて分かる差: 隣り合う惑星が同じ音にならないこと。半音(約5.9%)以上離れているか、
+  //   ローパスが十分離れているかのどちらかを満たせば「差がある」とみなす。
+  const near2 = (a, b) => Math.abs(Math.log2(a.padHz / b.padHz)) < 1 / 24 && Math.abs(a.cutHz - b.cutHz) < 80;
+  const dup = [];
+  for (let i = 0; i < ps.length; i++) for (let j = i + 1; j < ps.length; j++) if (near2(ps[i].p, ps[j].p)) dup.push(ps[i].id + "≒" + ps[j].id);
+  check("★惑星ごとに音が違う(聴き分けられない組が無い)", dup.length === 0, "近すぎる組=" + dup.join(","));
+  const lo = ps.reduce((a, x) => Math.min(a, x.p.padHz), 1e9), hi = ps.reduce((a, x) => Math.max(a, x.p.padHz), 0);
+  check("★差が出すぎない(全体で3オクターブ以内=同じ世界の音に聞こえる)", Math.log2(hi / lo) <= 3, "幅=" + Math.log2(hi / lo).toFixed(2) + "oct");
+  check("暗い惑星ほど低く沈む(⑨廃原子炉 < ⑧氷の前線)",
+    ps.find((x) => x.id === 9).p.padHz < ps.find((x) => x.id === 8).p.padHz);
+  check("暗い惑星ほど風がこもる(⑨のローパス < ⑧のローパス)",
+    ps.find((x) => x.id === 9).p.cutHz < ps.find((x) => x.id === 8).p.cutHz);
+  // 配線
+  const boot2 = codeOf(read("js/ui/boot.js")), game2 = codeOf(read("js/game.js"));
+  check("★惑星切替とON/OFFで環境音が追従する(演出層が購読)", /Sound\.ambient\(/.test(boot2) && /Sound\.ambientOff\(\)/.test(boot2));
+  check("ルール層は惑星切替の事実だけを流す(音コードは書かない)", /this\.emit\("planet"/.test(game2) && !/Sound\.ambient/.test(game2));
+  check("OFFにしたら常時音も止まる(切ったのに鳴り続けない)", /ambientOff\(\)/.test(codeOf(read("js/sound.js"))));
+  check("★検分ページで10惑星を聴き比べられる", /ambientFromTint/.test(boot2) && /STAGES\.forEach/.test(boot2));
+  check("環境音は bus=amb の系統音量を通る(系統別が効く)", /soundAmbVol/.test(codeOf(read("js/sound.js"))));
 }
 
 console.log(`\n==== sound_regression: ${pass} PASS / ${fail} FAIL ====`);

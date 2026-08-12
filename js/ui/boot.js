@@ -773,6 +773,51 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
             box.appendChild(row);
           });
           box.appendChild(burst); box.appendChild(logEl);
+
+          // ---- S2 環境音: 10惑星の聴き比べ(tint連動が「聴いて分かる差」になっているかの判定) ----
+          //   ★常時鳴る音なので、SEのように一発鳴らして判断できない。切り替えて**並べて**聴く。
+          const ambBox = document.createElement("div");
+          ambBox.style.cssText = "display:flex;flex-direction:column;gap:6px;padding:9px;border:1px solid #2a3f3a;border-radius:4px;";
+          const ambTtl = document.createElement("div"); ambTtl.style.cssText = "font-weight:600;";
+          ambTtl.textContent = "環境音(飼育槽) — 惑星の空色から導出。疲れないこと・主張しないことが最優先";
+          ambBox.appendChild(ambTtl);
+          const ambRow = document.createElement("div"); ambRow.style.cssText = "display:flex;flex-wrap:wrap;gap:5px;align-items:center;";
+          ambBox.appendChild(ambRow);
+          const ambOut = document.createElement("div");
+          ambOut.style.cssText = "font:12px ui-monospace,Consolas,monospace;opacity:.9;min-height:1.6em;";
+          ambOut.textContent = "停止中(惑星ボタンで再生・切替はフェードを挟む)";
+          ambBox.appendChild(ambOut);
+          const ambNum = document.createElement("div");
+          ambNum.style.cssText = "font:11px ui-monospace,Consolas,monospace;opacity:.6;";
+          ambBox.appendChild(ambNum);
+          let ambCur = null;
+          const ambShow = (st) => {
+            const p = Sound.ambientFromTint(st.sky);
+            ambOut.textContent = st.id + " " + st.name + "  空" + st.sky
+              + " → パッド " + p.padHz.toFixed(1) + "Hz / 風のローパス " + p.cutHz.toFixed(0) + "Hz / パッド比 " + p.padMix.toFixed(3)
+              + "  (色相" + p.hue.toFixed(0) + "° 明度" + (p.light * 100).toFixed(0) + "% 彩度" + (p.sat * 100).toFixed(0) + "%)";
+            Sound.renderAmbientOffline(p).then((r) => {
+              if (!r) { ambNum.textContent = ""; return; }
+              ambNum.textContent = "実測: 持続RMS " + r.rms.toFixed(4) + " / 定常性 " + r.steady.toFixed(2)
+                + "(1.0に近いほど平坦=疲れない) / 低域比率 " + r.lowRatio.toFixed(3) + " / peak " + r.peak.toFixed(4)
+                + "  ※環境音の物差しはpeakではなく持続RMSと定常性";
+            });
+          };
+          STAGES.forEach((st) => {
+            const b = mk(ambRow, String(st.id), () => {
+              Sound.unlock(); Sound.setEnabled(true);
+              ambCur = st; Sound.ambient(Sound.ambientFromTint(st.sky)); ambShow(st);
+              Array.from(ambRow.children).forEach((c) => { c.style.cssText = BOFF + "font-size:11px;padding:3px 9px;"; });
+              b.style.cssText = BON + "font-size:11px;padding:3px 9px;";
+            }, BOFF + "font-size:11px;padding:3px 9px;");
+            b.title = st.name + " / 空 " + st.sky;
+          });
+          mk(ambRow, "停止", () => { Sound.ambientOff(); ambCur = null; ambOut.textContent = "停止中"; ambNum.textContent = ""; }, BOFF + "font-size:11px;padding:3px 9px;");
+          box.appendChild(ambBox);
+          // 音量スライダーは環境音にも即時反映させる(系統別が効くことを耳で確かめられる)
+          volBox.querySelectorAll("input[type=range]").forEach((sl) => {
+            sl.addEventListener("input", () => { Sound.ambientSyncLevel(); if (ambCur) ambShow(ambCur); });
+          });
           const foot = document.createElement("div"); foot.style.cssText = "font-size:11px;opacity:.5;max-width:920px;text-align:center;";
           foot.textContent = "判定の観点: 給餌=頻発ゆえ短く小さいか(うるさくないか) / 孵化=柔らかく祝えているか / 撃破=手応えがあるか。"
             + " S1では**ゲームへ配線していない**(音そのものの合格後に配線する)。";
@@ -809,6 +854,16 @@ if (typeof Sound !== "undefined" && typeof Game !== "undefined") {
     const id = CFG.soundCues && CFG.soundCues[name];
     if (id) Sound.play(id);
   });
+  // S2 環境音: 現在の惑星の空色から音を決めて鳴らす。ON/OFFと惑星切替に追従するだけ。
+  //   「いつ鳴らすか」は演出層(ここ)、「どう鳴らすか」はSound窓口、「何色の惑星か」はルール層。
+  const ambSync = () => {
+    if (!Sound.on()) { Sound.ambientOff(); return; }
+    const st = Game.currentStage && Game.currentStage();
+    if (st && st.sky) Sound.ambient(Sound.ambientFromTint(st.sky));
+  };
+  Game.onEvent(function (name) { if (name === "planet" || name === "sound") ambSync(); });
+  UI._ambSync = ambSync;   // unlock後の起動時同期に使う(検分ページも参照)
+
   // 憲章§2-1: 音の存在を「一度だけ静かに」知らせる(押し売りしない)。
   //   ★タイミング=初回の撃退直後。給餌→繁殖→孵化→防衛のコアループを一周し終えた地点で、
   //     かつ「音が最も活きる瞬間」の直後=文脈として自然。初回起動直後は情報過多になるため避ける。
@@ -822,6 +877,7 @@ if (typeof Sound !== "undefined" && typeof Game !== "undefined") {
   });
   const soundUnlock = () => {
     Sound.unlock();
+    ambSync();   // 起動時から音ONだった人は、最初の操作(=autoplay解禁)の瞬間に環境音を立ち上げる
     window.removeEventListener("pointerdown", soundUnlock);
     window.removeEventListener("keydown", soundUnlock);
   };

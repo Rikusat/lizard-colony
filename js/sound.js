@@ -23,7 +23,11 @@ const Sound = {
 
   _now() { return (typeof performance !== "undefined" && performance.now) ? performance.now() : 0; }, // テストで差し替え可
 
-  setEnabled(v) { this.enabled = !!v; if (this.enabled) this._ensureCtx(); },
+  setEnabled(v) {
+    this.enabled = !!v;
+    if (this.enabled) this._ensureCtx();
+    else this.ambientOff();   // OFFにしたら常時音も止める(切ったのに鳴り続けない)
+  },
   on() { return this.enabled; },
 
   // 初回のユーザー操作で一度だけ呼ばれる(boot が配線)。autoplay policy 対応の唯一の入口
@@ -101,6 +105,155 @@ const Sound = {
     src.start(t0);
     src.stop(t0 + dur + rel + CFG.soundStopPadSec);
     return { src: src, gain: g };
+  },
+
+  // =============================================================
+  // 環境音(S2・飼育槽)。SEとは設計思想が異なる:
+  //   SE   = 一瞬の主張。物差しは peak(尺に依存しない当たりの強さ)。
+  //   環境音 = 常時鳴り背景に沈む。物差しは**持続RMS・定常性・低域比率**。peakは意味を持たない。
+  //   最優先は「疲れないこと・主張しないこと」。だから息づかいは非常にゆっくり・浅く、
+  //   音量はSE最軽(給餌)よりさらに小さく、BGMらしい旋律は置かない。
+  // =============================================================
+
+  // 惑星の空色 → 環境音のパラメータ。**色は既に惑星ごとの真実**なので、音のために別表を作らない
+  //   (データ駆動=知識を二重に持たない)。色相→パッドの音程 / 明度→風のこもり具合とオクターブ /
+  //   彩度→パッドの存在感。調整はここではなくCFGの範囲値で行う=10惑星の関係が崩れない。
+  ambientFromTint(hex) {
+    const s = String(hex).replace("#", "");
+    const r = parseInt(s.slice(0, 2), 16) / 255, g = parseInt(s.slice(2, 4), 16) / 255, b = parseInt(s.slice(4, 6), 16) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    let hue = 0;
+    if (d > 0) {
+      if (mx === r) hue = ((g - b) / d + 6) % 6;
+      else if (mx === g) hue = (b - r) / d + 2;
+      else hue = (r - g) / d + 4;
+      hue *= 60;
+    }
+    const light = (mx + mn) / 2;
+    const den = 1 - Math.abs(2 * light - 1);
+    const sat = (d === 0 || den <= 0) ? 0 : d / den;
+    const semi = Math.round(hue / 30) % 12;                     // 色相を12音へ
+    const oct = (light - 0.5) * CFG.soundAmbPadOctaves;         // 明るい空ほど高い(暗い惑星は低く沈む)
+    return {
+      padHz: CFG.soundAmbPadBaseHz * Math.pow(2, semi / 12 + oct),
+      cutHz: CFG.soundAmbCutMinHz + (CFG.soundAmbCutMaxHz - CFG.soundAmbCutMinHz) * light,
+      padMix: CFG.soundAmbPadLevel * (0.5 + sat),
+      hue: hue, light: light, sat: sat,                          // 検分ページの表示用(音の判断材料)
+    };
+  },
+
+  _ambLevel() { return CFG.soundAmbLevel * CFG.soundMaster * CFG.soundAmbVol; },
+
+  // 音声グラフの単一実装: 実再生とオフライン検査が同じ関数を通る(SEの _voice と同じ作法)
+  _ambientGraph(ctx, dest, p) {
+    const out = ctx.createGain();
+    out.gain.value = this._ambLevel();
+    out.connect(dest);
+    // 風: 決定論ノイズ(固定シードxorshift)のループ → ローパス
+    const len = Math.ceil(ctx.sampleRate * CFG.soundAmbNoiseSec);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const ch = buf.getChannelData(0);
+    let seed = (CFG.soundAmbSeed >>> 0) || 1;
+    for (let i = 0; i < len; i++) { seed ^= seed << 13; seed >>>= 0; seed ^= seed >> 17; seed ^= seed << 5; seed >>>= 0; ch[i] = (seed / 4294967295) * 2 - 1; }
+    const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = p.cutHz;
+    const wind = ctx.createGain(); wind.gain.value = CFG.soundAmbWindLevel;
+    src.connect(lp); lp.connect(wind); wind.connect(out);
+    // 息づかい: ローパスをごくゆっくり浅く開閉する。静止したノイズは扇風機のように疲れるが、
+    //   速い/深い揺らぎは「主張」になる。周期・深さはCFG(★Ric調整)。
+    const lfo = ctx.createOscillator(); lfo.type = "sine"; lfo.frequency.value = 1 / CFG.soundAmbBreathSec;
+    const lfoG = ctx.createGain(); lfoG.gain.value = p.cutHz * CFG.soundAmbBreathDepth;
+    lfo.connect(lfoG); lfoG.connect(lp.frequency);
+    // 微パッド: わずかにずらした2声(うなりでゆっくり揺れる)。旋律は持たない=BGMを置かない
+    const padG = ctx.createGain(); padG.gain.value = p.padMix; padG.connect(out);
+    const o1 = ctx.createOscillator(); o1.type = "sine"; o1.frequency.value = p.padHz;
+    const o2 = ctx.createOscillator(); o2.type = "sine"; o2.frequency.value = p.padHz * CFG.soundAmbPadDetune;
+    o1.connect(padG); o2.connect(padG);
+    src.start(0); lfo.start(0); o1.start(0); o2.start(0);
+    return { out: out, lp: lp, o1: o1, o2: o2, padG: padG, srcs: [src, lfo, o1, o2] };
+  },
+
+  _ambRamp(gainParam, to, sec) {
+    const t = this._ctx.currentTime;
+    gainParam.cancelScheduledValues(t);
+    gainParam.setValueAtTime(gainParam.value, t);
+    gainParam.linearRampToValueAtTime(to, t + sec);
+  },
+  _ambApply(p) {
+    const a = this._amb; if (!a) return;
+    a.lp.frequency.value = p.cutHz;
+    a.o1.frequency.value = p.padHz;
+    a.o2.frequency.value = p.padHz * CFG.soundAmbPadDetune;
+    a.padG.gain.value = p.padMix;
+  },
+
+  // 環境音の開始/切替。★惑星切替は「いったん無音まで下げてから差し替えて戻す」=
+  //   周波数を鳴らしたまま動かすとポルタメント(不自然な滑り)になり、瞬時に差し替えるとクリックが出る。
+  //   惑星移動には視覚のトランジション(走査ビーム)があるので、音が一度沈むのは画と合う。
+  ambient(p) {
+    if (!this.enabled || !CFG.soundAmbOn) return false;
+    this._ensureCtx();
+    if (!this._ctx) return false;
+    const half = CFG.soundAmbFadeSec / 2;
+    if (!this._amb) {
+      this._amb = this._ambientGraph(this._ctx, this._ctx.destination, p);
+      this._amb.out.gain.value = 0;
+      this._ambRamp(this._amb.out.gain, this._ambLevel(), CFG.soundAmbFadeSec); // 無音から静かに立ち上げる
+    } else {
+      this._ambRamp(this._amb.out.gain, 0, half);
+      if (this._ambT) clearTimeout(this._ambT);
+      this._ambT = setTimeout(() => {
+        this._ambT = null;
+        if (!this._amb) return;
+        this._ambApply(p);
+        this._ambRamp(this._amb.out.gain, this._ambLevel(), half);
+      }, half * 1000);
+    }
+    this._ambP = p;
+    return true;
+  },
+  ambientOff() {
+    if (!this._amb) return false;
+    const a = this._amb;
+    this._amb = null; this._ambP = null;
+    if (this._ambT) { clearTimeout(this._ambT); this._ambT = null; }
+    this._ambRamp(a.out.gain, 0, CFG.soundAmbFadeSec);
+    setTimeout(() => { for (const s of a.srcs) { try { s.stop(); } catch (e) { /* 停止済み */ } } a.out.disconnect(); }, CFG.soundAmbFadeSec * 1000 + 50);
+    return true;
+  },
+  // 音量スライダー等でCFGが変わったときに、鳴らしたまま追従させる(検分ページが使う)
+  ambientSyncLevel() { if (this._amb) this._amb.out.gain.value = this._ambLevel(); },
+
+  // テスト器: 環境音の数値ゲート。SEとは物差しが違う(peakでなく持続RMS・定常性・低域比率)
+  renderAmbientOffline(p, seconds) {
+    if (typeof OfflineAudioContext === "undefined") return Promise.resolve(null);
+    const sr = CFG.soundRenderSampleRate;
+    const ctx = new OfflineAudioContext(1, Math.ceil(sr * (seconds || CFG.soundAmbRenderSec)), sr);
+    this._ambientGraph(ctx, ctx.destination, p);
+    return ctx.startRendering().then((buf) => {
+      const ch = buf.getChannelData(0), n = ch.length;
+      let sum = 0, peak = 0;
+      for (let i = 0; i < n; i++) { const x = ch[i]; sum += x * x; const a = x < 0 ? -x : x; if (a > peak) peak = a; }
+      const rms = Math.sqrt(sum / n);
+      // 定常性: 短い窓のRMSが揃っているか(立ち上がりも減衰も、耳につく揺れも無い=背景に沈む)。
+      //   ★窓は短くする必要がある。4等分(1秒窓)にしていた版は**1秒より速い揺れを窓内で平均して見逃し**、
+      //     「わざと速く深く揺らす」カナリアに引っかからなかった(=計測が揺れを観測できていなかった)。
+      //     100ms窓なら疲れの原因になる数Hzの変動まで見える。
+      const wlen = Math.max(1, Math.floor(buf.sampleRate * CFG.soundAmbSteadyWinMs / 1000));
+      const W = Math.max(2, Math.floor(n / wlen)), wr = [];
+      for (let w = 0; w < W; w++) {
+        let s = 0; const a0 = w * wlen, b0 = Math.min(n, a0 + wlen);
+        for (let i = a0; i < b0; i++) s += ch[i] * ch[i];
+        wr.push(Math.sqrt(s / Math.max(1, b0 - a0)));
+      }
+      const steady = Math.max.apply(null, wr) / Math.max(1e-12, Math.min.apply(null, wr));
+      // 低域比率: 一次ローパスを通した後のRMS比=風がこもっているか(明るい惑星ほど下がる)
+      const k = Math.exp(-2 * Math.PI * CFG.soundAmbLowBandHz / buf.sampleRate);
+      let y = 0, ls = 0;
+      for (let i = 0; i < n; i++) { y = (1 - k) * ch[i] + k * y; ls += y * y; }
+      return { rms: rms, peak: peak, crest: peak / Math.max(1e-12, rms), steady: steady,
+        lowRatio: Math.sqrt(ls / n) / Math.max(1e-12, rms), length: n, sampleRate: buf.sampleRate };
+    });
   },
 
   // テスト器: OfflineAudioContext で同じグラフをレンダリングし、数値ゲート(RMS/ピーク/周波数/尺)の材料を返す

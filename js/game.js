@@ -930,6 +930,7 @@ const Game = {
     }
     // V5: 到着時の留守精算トーストは廃止(収入は常時合算・違和感の根治)
     void report;
+    this.emit("planet", { id: id }); // 演出層が環境音を切り替える(視覚の対=走査ビームのトランジション)
     this.save();
     return true;
   },
@@ -1205,6 +1206,7 @@ const Game = {
     const d = this.ensureDial();
     d[this.SOUND_ON_KEY] = v ? 1 : 0;
     if (typeof Sound !== "undefined") Sound.setEnabled(!!v);
+    this.emit("sound", { on: !!v });   // 演出層が環境音の開始/停止を判断する(ルール層は事実だけ流す)
     this.save();
   },
   markOpeningSeen() {

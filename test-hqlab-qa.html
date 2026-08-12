@@ -470,6 +470,48 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
 
           Game.setSoundEnabled(false);
           ok("§15保存: OFFへ戻せる(両方向トグル=単調フラグではない)", Game.soundEnabled() === false && Sound.on() === false);
+
+          // ===== §16: S2 環境音の数値ゲート(SEとは物差しが違う) =====
+          //   SE   = 一瞬の主張 → peak で測る(尺に依存しない当たりの強さ)
+          //   環境音 = 背景に沈む → **持続RMS・定常性・低域比率**で測る。peakは判定に使わない。
+          var st8 = STAGES.find(function (s) { return s.id === 8; });   // 明るい空(氷の前線)
+          var st9 = STAGES.find(function (s) { return s.id === 9; });   // 暗い空(廃原子炉)
+          var p8 = Sound.ambientFromTint(st8.sky), p9 = Sound.ambientFromTint(st9.sky);
+          var deepDepth = CFG.soundAmbBreathDepth;
+          return Promise.all([Sound.renderAmbientOffline(p8), Sound.renderAmbientOffline(p9)]).then(function (ar) {
+            var a8 = ar[0], a9 = ar[1];
+            ok("§16環境音: レンダリングできる(尺=CFGどおり)",
+              !!a8 && a8.length === Math.ceil(CFG.soundRenderSampleRate * CFG.soundAmbRenderSec), "len=" + (a8 && a8.length));
+            ok("§16環境音: 無音ではない(持続RMS>0.001)", a8.rms > 0.001, "rms=" + a8.rms.toFixed(5));
+            ok("§16環境音: クリップしない(peak≤1.0)", a8.peak <= 1.0 && a9.peak <= 1.0);
+            ok("★§16主張しない: 環境音のpeakがSE最軽(給餌)より小さい",
+              a8.peak < pk.feed && a9.peak < pk.feed, "amb8=" + a8.peak.toFixed(4) + " amb9=" + a9.peak.toFixed(4) + " feed=" + pk.feed.toFixed(4));
+            // 定常性=100ms窓RMSの max/min。風は本来ゆらぐので1.0にはならず、実測2.6前後が「静かな風」。
+            //   速く深い息づかい(下のカナリア)では3.9まで悪化する。3.2はその間に引いた線。
+            //   ★レンダリングは固定シードで決定論なので、この閾値は再現する(たまたま通る値ではない)。
+            ok("★§16疲れない: 定常(100ms窓のRMSがそろう=耳につく揺れも立ち上がりも無い)",
+              a8.steady < 3.2 && a9.steady < 3.2, "steady8=" + a8.steady.toFixed(2) + " steady9=" + a9.steady.toFixed(2));
+            ok("§16環境音: 低域寄り(風がこもっている)", a8.lowRatio > 0.15 && a9.lowRatio > 0.15,
+              "low8=" + a8.lowRatio.toFixed(3) + " low9=" + a9.lowRatio.toFixed(3));
+            ok("★§16惑星差: 暗い惑星⑨のほうが低域に寄る(tint連動が音の差として出ている)",
+              a9.lowRatio > a8.lowRatio, "low9=" + a9.lowRatio.toFixed(3) + " > low8=" + a8.lowRatio.toFixed(3));
+            // ★カナリア: 定常性の物差しが「揺れ」を本当に観測できるか(観測できない計測は1.0を偽造する)
+            CFG.soundAmbBreathSec = 1.0; CFG.soundAmbBreathDepth = 0.95;   // わざと速く深く揺らす
+            return Sound.renderAmbientOffline(p8).then(function (aw) {
+              CFG.soundAmbBreathSec = 14; CFG.soundAmbBreathDepth = deepDepth;  // 戻す
+              ok("★§16カナリア: 定常性の計測が揺れを検知できる(速く深い息づかい→定常性が悪化)",
+                aw.steady > a8.steady, "揺らした=" + aw.steady.toFixed(2) + " 通常=" + a8.steady.toFixed(2));
+              // 系統別音量が環境音に効く(bus=ambの最初の利用者)
+              var base = CFG.soundAmbVol;
+              CFG.soundAmbVol = base * 0.25;
+              return Sound.renderAmbientOffline(p8).then(function (aq) {
+                CFG.soundAmbVol = base;
+                ok("★§16系統別音量: 環境音は soundAmbVol で下がる(SEのsoundSeVolとは別系統)",
+                  aq.rms < a8.rms * 0.5, "1/4量=" + aq.rms.toFixed(5) + " 基準=" + a8.rms.toFixed(5));
+                ok("§16環境音: 惑星切替のフェードがCFGにある(クリックを出さない)", CFG.soundAmbFadeSec > 0);
+              });
+            });
+          });
         });
       });
     } catch (err) { fail++; R.push('<div class="ng">EXCEPTION(§15 sound) ' + (err && err.message) + '</div>'); return Promise.resolve(); }
