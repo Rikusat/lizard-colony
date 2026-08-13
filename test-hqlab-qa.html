@@ -513,6 +513,85 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
                 ok("★§16系統別音量: 環境音は soundAmbVol で下がる(SEのsoundSeVolとは別系統)",
                   aq.rms < a8.rms * 0.5, "1/4量=" + aq.rms.toFixed(5) + " 基準=" + a8.rms.toFixed(5));
                 ok("§16環境音: 惑星切替のフェードがCFGにある(クリックを出さない)", CFG.soundAmbFadeSec > 0);
+
+                // ===== §17: S3 場所の環境音(本部/巣)+ 賢者の石 の数値ゲート =====
+                //   ★S2で確立した物差しをそのまま使う。飼育槽が基準で、本部/巣はその相対で判定する。
+                //   ★持続層(ハム/パッド)と点の層(tick/心拍)は物差しが違う: 定常性は持続層で測り、
+                //     点の層はpeakで測る。混ぜて測ると「tickがあるから定常性が悪い」が疲れを隠す。
+                var pHq = Sound.ambientForPlace("hq", null), pNest = Sound.ambientForPlace("nest", null);
+                return Promise.all([Sound.renderAmbientOffline(pHq), Sound.renderAmbientOffline(pNest)]).then(function (br) {
+                  var H = br[0], N = br[1];
+                  ok("§17場所: 本部と巣のパラメータが導出できる", !!pHq && !!pNest && isFinite(pHq.padHz) && isFinite(pNest.padHz));
+                  ok("★§17主張しない: 本部も巣もpeakがSE最軽(給餌)より小さい",
+                    H.peak < pk.feed && N.peak < pk.feed, "hq=" + H.peak.toFixed(4) + " nest=" + N.peak.toFixed(4) + " feed=" + pk.feed.toFixed(4));
+                  // ★基準は飼育槽(Ric承認: 以後の場面音はこの基準からの相対で設計する)。
+                  //   実測 a8/a9 = 0.0097/0.0066。場所の音がこの帯から大きく外れたら「基準からの相対」が崩れている。
+                  ok("★§17基準からの相対: 本部/巣の持続RMSが飼育槽と同程度(0.5〜1.6倍の帯)",
+                    H.rms > a9.rms * 0.5 && H.rms < a8.rms * 1.6 && N.rms > a9.rms * 0.5 && N.rms < a8.rms * 1.6,
+                    "hq=" + H.rms.toFixed(5) + " nest=" + N.rms.toFixed(5) + " 飼育槽=" + a9.rms.toFixed(5) + "〜" + a8.rms.toFixed(5));
+                  ok("§17環境音: 低域寄り(場所の音も背景に沈む)", H.lowRatio > 0.15 && N.lowRatio > 0.15,
+                    "hq=" + H.lowRatio.toFixed(3) + " nest=" + N.lowRatio.toFixed(3));
+                  // ★三者の質感差が数値にも出ているか(Ric要件: 聴いて分かること)
+                  ok("★§17質感差: 籠もり具合に序列がある(巣>本部>飼育槽=巣が最も籠もる)",
+                    N.lowRatio > H.lowRatio && H.lowRatio > a8.lowRatio,
+                    "nest=" + N.lowRatio.toFixed(3) + " > hq=" + H.lowRatio.toFixed(3) + " > tank=" + a8.lowRatio.toFixed(3));
+                  ok("★§17質感差: 本部は計器=最も平坦 / 飼育槽は風=最もゆらぐ",
+                    H.steady < N.steady && N.steady < a8.steady,
+                    "hq=" + H.steady.toFixed(2) + " < nest=" + N.steady.toFixed(2) + " < tank=" + a8.steady.toFixed(2));
+                  ok("★§17質感差: 三者の音程が互いに離れている(同じ音に聞こえない)",
+                    Math.abs(Math.log2(pHq.padHz / pNest.padHz)) > 1 / 12 && Math.abs(Math.log2(p8.padHz / pHq.padHz)) > 1 / 12,
+                    "tank=" + p8.padHz.toFixed(1) + " hq=" + pHq.padHz.toFixed(1) + " nest=" + pNest.padHz.toFixed(1));
+                  // ★持続層だけで疲れを測る(点の層を0にする)。tick/心拍は「点」であって揺れではない
+                  var hqT = CFG.soundHqTickLevel, nsP = CFG.soundNestPulseLevel;
+                  CFG.soundHqTickLevel = 0; CFG.soundNestPulseLevel = 0;
+                  return Promise.all([Sound.renderAmbientOffline(pHq), Sound.renderAmbientOffline(pNest)]).then(function (sr) {
+                    CFG.soundHqTickLevel = hqT; CFG.soundNestPulseLevel = nsP;
+                    ok("★§17疲れない: 持続層が定常(本部のハム・巣のパッドに耳につく揺れが無い)",
+                      sr[0].steady < 3.2 && sr[1].steady < 3.2, "hq=" + sr[0].steady.toFixed(2) + " nest=" + sr[1].steady.toFixed(2));
+                    ok("★§17点の層が存在する(tick・心拍がpeakとして出ている=消えていない)",
+                      H.peak > sr[0].peak * 1.2 && N.peak > sr[1].peak * 1.2,
+                      "hq " + sr[0].peak.toFixed(4) + "→" + H.peak.toFixed(4) + " / nest " + sr[1].peak.toFixed(4) + "→" + N.peak.toFixed(4));
+                    // ★カナリア: 巣のうなりを速く戻すと定常性が悪化して捕まるか(是正が本物である証明)
+                    var nd = CFG.soundNestPadDetune; CFG.soundNestPadDetune = CFG.soundAmbPadDetune;
+                    return Sound.renderAmbientOffline(pNest).then(function (nw) {
+                      CFG.soundNestPadDetune = nd;
+                      ok("★§17カナリア: 巣のうなりを速くすると定常性が悪化する(是正が閾値いじりでない証拠)",
+                        nw.steady > sr[1].steady * 1.5, "速いうなり=" + nw.steady.toFixed(2) + " 現行=" + sr[1].steady.toFixed(2));
+                      // ---- 賢者の石(=四重スリットの全通過) ----
+                      return Sound.renderOffline("stone").then(function (S) {
+                        ok("§17石: レンダリングできる・無音ではない", !!S && S.rms > 0.005, "rms=" + (S && S.rms.toFixed(4)));
+                        ok("§17石: クリップしない(peak≤1.0)", S.peak <= 1.0, "peak=" + S.peak.toFixed(4));
+                        ok("★§17音予算(§2-7): 石が最も重い(peak 石>撃破>孵化>給餌)",
+                          S.peak > pk.defeat && pk.defeat > pk.hatch && pk.hatch > pk.feed,
+                          "石=" + S.peak.toFixed(4) + " 撃破=" + pk.defeat.toFixed(4));
+                        // ★未実装のボス撃破(優先度4)が撃破と石の間に入る余地を残してあるか。
+                        //   石を撃破のすぐ上に置くとボスの居場所が無くなる=優先度表と整合しなくなる。
+                        ok("★§17序列の余地: 石と撃破の間が十分開いている(未実装のボス撃破が入る)",
+                          S.peak > pk.defeat * 1.5, "石/撃破=" + (S.peak / pk.defeat).toFixed(2) + "倍");
+                        ok("★§17石: 最も長い余韻を持つ(極めて稀な事象に見合う尾)",
+                          S.length > ln.defeat * 2, "石=" + Math.round(S.length / S.sampleRate * 1000) + "ms 撃破=" + Math.round(ln.defeat / S.sampleRate * 1000) + "ms");
+                        ok("★§17石: 2層(ノイズバースト+ベル)が両方鳴っている",
+                          (CFG.soundDefs.stone.layers || []).length === 2 && S.peak > 0.3, "peak=" + S.peak.toFixed(4));
+                        // ★ここまでで音はOFFへ戻されている(§15の最後)。窓口はOFFだと受理しないので、
+                        //   この1点だけ一時的にONにして数え、必ず元へ戻す(初回無音の検査を壊さない)。
+                        var stoneLog = (function () {
+                          var was = Sound.on();
+                          Sound.setEnabled(true);
+                          Sound.log.length = 0; Sound._last.stone = null;
+                          var acc = Sound.play("stone");
+                          var n = Sound.log.length;
+                          Sound.setEnabled(was);
+                          return { acc: acc, n: n, was: was };
+                        })();
+                        ok("§17石: 1音として1回だけ数える(層の数だけログを増やさない・§2-7 1操作1音)",
+                          stoneLog.acc === true && stoneLog.n === 1, "受理=" + stoneLog.acc + " log=" + stoneLog.n);
+                        ok("§17石: 計測のあと音はOFFへ戻っている(初回無音の検査を汚さない)", Sound.on() === false && Game.soundEnabled() === false);
+                        ok("★§17石: 全通過は約1/3900の極めて稀な事象(音予算集中の根拠)",
+                          CFG.slitHalfDeg.reduce(function (a, d) { return a * (2 * d / 360); }, 1) < 1 / 1000);
+                      });
+                    });
+                  });
+                });
               });
             });
           });

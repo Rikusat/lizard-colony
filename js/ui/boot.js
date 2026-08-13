@@ -698,15 +698,17 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
         const buildS = () => {
           stopS();
           if (typeof Sound === "undefined") { console.warn("[sound] js/sound.js 未読込"); return; }
-          const LBL = { probe: "probe(テスト器専用・ゲームでは鳴らさない)", feed: "給餌 feed", hatch: "孵化 hatch", defeat: "撃破 defeat" };
-          const PAIR = { probe: "—", feed: "視覚の対: XP/成長表示", hatch: "視覚の対: 卵→ベビーの演出", defeat: "視覚の対: 撃破演出と報酬表示" };
+          const LBL = { probe: "probe(テスト器専用・ゲームでは鳴らさない)", feed: "給餌 feed", hatch: "孵化 hatch", defeat: "撃破 defeat",
+            stone: "★賢者の石の生成 stone(=四重スリットの全通過・約1/3900)" };
+          const PAIR = { probe: "—", feed: "視覚の対: XP/成長表示", hatch: "視覚の対: 卵→ベビーの演出", defeat: "視覚の対: 撃破演出と報酬表示",
+            stone: "視覚の対: 中心の控えめなブルーム(静かな祝祭)" };
           const IDS = Object.keys(CFG.soundDefs);
           Sound.setEnabled(true);   // 検分中だけメモリ上でON
 
           const panel = document.createElement("div"); panel.id = "sound-view";
           panel.style.cssText = "position:fixed;inset:0;z-index:9999;background:#05060a;color:#e8dccb;font:13px/1.7 system-ui;display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px;overflow:auto;";
           const ttl = document.createElement("div"); ttl.style.cssText = "font-size:15px;font-weight:600;";
-          ttl.textContent = "V6-P5 S1 基準音の検分 (?tune=1#sound) — 給餌 / 孵化 / 撃破。#で閉じる";
+          ttl.textContent = "V6-P5 音の検分 (?tune=1#sound) — S1基準音3種 + S3 賢者の石 / 場所の環境音3種(飼育槽・本部・巣)。#で閉じる";
           panel.appendChild(ttl);
           const note = document.createElement("div"); note.style.cssText = "font-size:11px;opacity:.6;max-width:920px;text-align:center;";
           note.textContent = "セーブ非接触: このページのONはメモリ上だけ(閉じる/リロードで初回無音へ戻る)。数値は OfflineAudioContext の実測=装置QAの数値ゲートと同じ経路。"
@@ -779,8 +781,13 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
           const ambBox = document.createElement("div");
           ambBox.style.cssText = "display:flex;flex-direction:column;gap:6px;padding:9px;border:1px solid #2a3f3a;border-radius:4px;";
           const ambTtl = document.createElement("div"); ambTtl.style.cssText = "font-weight:600;";
-          ambTtl.textContent = "環境音(飼育槽) — 惑星の空色から導出。疲れないこと・主張しないことが最優先";
+          ambTtl.textContent = "環境音 — 場所の性格を既に決めている実データから導出。疲れないこと・主張しないことが最優先";
           ambBox.appendChild(ambTtl);
+          const ambNote = document.createElement("div"); ambNote.style.cssText = "font-size:11px;opacity:.6;";
+          ambNote.textContent = "S3: 三者の質感差(飼育槽=温かい生命 / 本部=冷たい計器 / 巣=籠もった安息)が聴いて分かるかを判定する。"
+            + " 導出元 — 飼育槽=STAGES[].sky(惑星ごと) / 本部=CFG.holoPal.void / 巣=NEST_VIS.palette.bg0。"
+            + " 本部と巣は全惑星共通なので惑星差を持たない。切替は惑星移動と同じ沈み込み方式(場所が変わる時だけ構造ごと作り直す)。";
+          ambBox.appendChild(ambNote);
           const ambRow = document.createElement("div"); ambRow.style.cssText = "display:flex;flex-wrap:wrap;gap:5px;align-items:center;";
           ambBox.appendChild(ambRow);
           const ambOut = document.createElement("div");
@@ -791,36 +798,49 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
           ambNum.style.cssText = "font:11px ui-monospace,Consolas,monospace;opacity:.6;";
           ambBox.appendChild(ambNum);
           let ambCur = null;
-          const ambShow = (st) => {
-            const p = Sound.ambientFromTint(st.sky);
-            ambOut.textContent = st.id + " " + st.name + "  空" + st.sky
-              + " → パッド " + p.padHz.toFixed(1) + "Hz / 風のローパス " + p.cutHz.toFixed(0) + "Hz / パッド比 " + p.padMix.toFixed(3)
+          const ambShow = (label, p, tint) => {
+            ambOut.textContent = label + "  元の色 " + tint
+              + " → パッド " + p.padHz.toFixed(1) + "Hz / ローパス " + p.cutHz.toFixed(0) + "Hz / パッド比 " + p.padMix.toFixed(3)
               + "  (色相" + p.hue.toFixed(0) + "° 明度" + (p.light * 100).toFixed(0) + "% 彩度" + (p.sat * 100).toFixed(0) + "%)";
             Sound.renderAmbientOffline(p).then((r) => {
               if (!r) { ambNum.textContent = ""; return; }
-              ambNum.textContent = "実測: 持続RMS " + r.rms.toFixed(4) + " / 定常性 " + r.steady.toFixed(2)
+              ambNum.textContent = "実測: 持続RMS " + r.rms.toFixed(5) + " / 定常性 " + r.steady.toFixed(2)
                 + "(1.0に近いほど平坦=疲れない) / 低域比率 " + r.lowRatio.toFixed(3) + " / peak " + r.peak.toFixed(4)
                 + "  ※環境音の物差しはpeakではなく持続RMSと定常性";
             });
           };
+          const ambPick = (b, label, p, tint) => {
+            Sound.unlock(); Sound.setEnabled(true);
+            ambCur = { label: label, p: p, tint: tint };
+            Sound.ambient(p); ambShow(label, p, tint);
+            Array.from(ambRow.children).forEach((c) => { c.style.cssText = BOFF + "font-size:11px;padding:3px 9px;"; });
+            b.style.cssText = BON + "font-size:11px;padding:3px 9px;";
+          };
+          // 飼育槽=惑星ごと(10惑星の聴き比べ)
           STAGES.forEach((st) => {
             const b = mk(ambRow, String(st.id), () => {
-              Sound.unlock(); Sound.setEnabled(true);
-              ambCur = st; Sound.ambient(Sound.ambientFromTint(st.sky)); ambShow(st);
-              Array.from(ambRow.children).forEach((c) => { c.style.cssText = BOFF + "font-size:11px;padding:3px 9px;"; });
-              b.style.cssText = BON + "font-size:11px;padding:3px 9px;";
+              ambPick(b, "飼育槽 " + st.id + " " + st.name, Sound.ambientForPlace("tank", st), st.sky);
             }, BOFF + "font-size:11px;padding:3px 9px;");
-            b.title = st.name + " / 空 " + st.sky;
+            b.title = "飼育槽 / " + st.name + " / 空 " + st.sky;
+          });
+          // ★S3: 本部・巣。飼育槽と**続けて**押して三者の質感差を聴き比べる(切替は沈み込みを挟む)
+          [["本部", "hq", CFG.holoPal && CFG.holoPal.void, "冷たい計器: 低ハム + 起動シーケンスと同じ0.4秒グリッドのtick"],
+           ["巣", "nest", (typeof NEST_VIS !== "undefined" && NEST_VIS.palette.bg0), "籠もった安息: フィードバックディレイのパッド + 心拍様の低い脈"],
+          ].forEach(([nm, place, tint, tip]) => {
+            const b = mk(ambRow, nm, () => { ambPick(b, nm, Sound.ambientForPlace(place, null), tint); },
+              BOFF + "font-size:11px;padding:3px 11px;");
+            b.title = tip + " / 元の色 " + tint;
           });
           mk(ambRow, "停止", () => { Sound.ambientOff(); ambCur = null; ambOut.textContent = "停止中"; ambNum.textContent = ""; }, BOFF + "font-size:11px;padding:3px 9px;");
           box.appendChild(ambBox);
           // 音量スライダーは環境音にも即時反映させる(系統別が効くことを耳で確かめられる)
           volBox.querySelectorAll("input[type=range]").forEach((sl) => {
-            sl.addEventListener("input", () => { Sound.ambientSyncLevel(); if (ambCur) ambShow(ambCur); });
+            sl.addEventListener("input", () => { Sound.ambientSyncLevel(); if (ambCur) ambShow(ambCur.label, ambCur.p, ambCur.tint); });
           });
           const foot = document.createElement("div"); foot.style.cssText = "font-size:11px;opacity:.5;max-width:920px;text-align:center;";
-          foot.textContent = "判定の観点: 給餌=頻発ゆえ短く小さいか(うるさくないか) / 孵化=柔らかく祝えているか / 撃破=手応えがあるか。"
-            + " S1では**ゲームへ配線していない**(音そのものの合格後に配線する)。";
+          foot.textContent = "判定の観点(SE): 給餌=頻発ゆえ短く小さいか / 孵化=柔らかく祝えているか / 撃破=手応えがあるか /"
+            + " 石=極めて稀な一撃として重さと余韻が見合っているか(peakは撃破を明確に超える)。"
+            + " 判定の観点(環境音): 三者とも疲れないか・主張しすぎないか / 飼育槽↔本部↔巣を続けて押して質感差が聴いて分かるか / 切替が不自然でないか。";
           panel.appendChild(foot);
           document.body.appendChild(panel); sPanel = panel;
           measure(); bump();
@@ -854,12 +874,14 @@ if (typeof Sound !== "undefined" && typeof Game !== "undefined") {
     const id = CFG.soundCues && CFG.soundCues[name];
     if (id) Sound.play(id);
   });
-  // S2 環境音: 現在の惑星の空色から音を決めて鳴らす。ON/OFFと惑星切替に追従するだけ。
-  //   「いつ鳴らすか」は演出層(ここ)、「どう鳴らすか」はSound窓口、「何色の惑星か」はルール層。
+  // S2/S3 環境音: 今いる**場所**の音を鳴らす。ON/OFF・惑星切替・場所の切替に追従するだけ。
+  //   「いつ鳴らすか」は演出層(ここ)、「どう鳴らすか」はSound窓口、
+  //   「何色の惑星か」はルール層、「今どこの画面か」は演出層(UI.place=DOMが真実)。
+  //   ★ルール層は画面を知らないままである(憲章§2-3)。
   const ambSync = () => {
     if (!Sound.on()) { Sound.ambientOff(); return; }
-    const st = Game.currentStage && Game.currentStage();
-    if (st && st.sky) Sound.ambient(Sound.ambientFromTint(st.sky));
+    const place = (UI.place && UI.place()) || "tank";
+    Sound.ambient(Sound.ambientForPlace(place, Game.currentStage && Game.currentStage()));
   };
   Game.onEvent(function (name) { if (name === "planet" || name === "sound") ambSync(); });
   UI._ambSync = ambSync;   // unlock後の起動時同期に使う(検分ページも参照)

@@ -13,6 +13,22 @@ const UI = {
   //   しかも撤廃済み機能(シェルター v12 / 餌場 v13 / クイック繁殖 §5ddd)や汎用敵名を語り続けていた。
   //   「直すより消す」= β公開前の掃除として配列ごと削除(hints / hintIdx / rotateHint / #ui-hint 参照)。
 
+  // ---- V6-P5 S3: 「今どこにいるか」(場所)。★DOMの可視性が既に真実なので状態変数を新設しない ----
+  //   ルール層(Game)は画面を一切知らない(憲章§2-3)。場所は演出層だけが持つ概念。
+  place() {
+    if (this.hqLabOpen && this.hqLabOpen()) return "hq";
+    if (this.nestPageOpen && this.nestPageOpen()) return "nest";
+    return "tank";
+  },
+  // 場所が変わったことの通知。★次のタスクまで**まとめる**のが要点:
+  //   画面の切替は「巣を閉じる→本部を開く」のように途中経過を通る。その中間で音を作ると
+  //   一瞬だけ飼育槽の音が立ち上がってしまう。場所はDOMから導出するので、遅らせて1回読めば
+  //   必ず「最終的にどこにいるか」が取れる(=中間状態が音に出ない)。
+  placeChanged() {
+    if (this._placeT) return;
+    this._placeT = setTimeout(() => { this._placeT = null; if (this._ambSync) this._ambSync(); }, 0);
+  },
+
   init() {
     const ids = ["ui-coins", "ui-cps", "ui-gems", "ui-amethyst", "ui-stones", "ui-rank", "rank-bar",
       "raid-timer", "raid-banner",

@@ -212,9 +212,16 @@ Object.assign(UI, {
     }
 
     // イベント購読: 成功=食の成立のみ控えめに祝う(§9.5: 端点マーカー/惜しさドットは置かない=幾何の純度)
+    //   V6-P5 S3: 音も**この同じ行**で鳴らす。全通過(=賢者の石の生成)は約1/3900の極めて稀な事象で、
+    //   優先度表の最上位(stone:5)=この作品で最も重い一撃。音idへの変換は CFG.soundCues が唯一の窓口
+    //   (Game のイベントと同じ表を引く=変換点を2つに割らない)。視覚の対=中心の控えめなブルーム。
     for (const ev of Slit.drainEvents()) {
       if (calm) continue;
-      if (ev.type === "SlitSuccess") this._slitFx.push({ kind: "win", t: 1.1, ttl: 1.1 });
+      if (ev.type === "SlitSuccess") {
+        this._slitFx.push({ kind: "win", t: 1.1, ttl: 1.1 });
+        const sid = typeof CFG !== "undefined" && CFG.soundCues && CFG.soundCues[ev.type];
+        if (sid && typeof Sound !== "undefined") Sound.play(sid);
+      }
     }
     // fx描画(中心の控えめなブルームのみ)
     this._slitFx = (this._slitFx || []).filter((f) => f.t > 0);

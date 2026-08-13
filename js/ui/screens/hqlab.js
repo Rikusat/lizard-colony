@@ -33,6 +33,7 @@ Object.assign(UI, {
     if (this.renderHqDirective) this.renderHqDirective(); // P3-2: 指令帯(開くたび実データで更新)
     this.renderHqLab();
     this._startLabVideo();
+    this.placeChanged();   // V6-P5 S3: 場所の環境音(本部=冷たい計器)へ沈み込みで切り替える
   },
   closeHqLab() {
     const main = document.querySelector("main"), lab = document.getElementById("hqlab");
@@ -40,6 +41,7 @@ Object.assign(UI, {
     lab.classList.add("hidden");
     main.classList.remove("hidden");
     const btn = document.getElementById("btn-hq"); if (btn) btn.classList.remove("at-lab");
+    this.placeChanged();   // V6-P5 S3: 飼育槽へ戻る
   },
   hqLabOpen() { const lab = document.getElementById("hqlab"); return !!(lab && !lab.classList.contains("hidden")); },
   _hqlabBind() {

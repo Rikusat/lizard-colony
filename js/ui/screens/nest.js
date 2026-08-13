@@ -90,12 +90,14 @@ Object.assign(UI, {
     const body = document.getElementById("nestpage-body");
     if (body) this.buildNest(body); // 開くたび再構築=モーダル時代と同じ鮮度
     Game.state.nestWeb.seen = Game.nestWebCounts().open; // 既読化(バッジ解除)=従来どおり
+    this.placeChanged();   // V6-P5 S3: 場所の環境音(巣=籠もった安息)へ沈み込みで切り替える
   },
   closeNestPage() {
     const main = document.querySelector("main"), pg = document.getElementById("nestpage");
     if (!main || !pg) return;
     pg.classList.add("hidden");
     main.classList.remove("hidden");
+    this.placeChanged();   // V6-P5 S3: 飼育槽へ戻る
   },
   nestPageOpen() { const pg = document.getElementById("nestpage"); return !!(pg && !pg.classList.contains("hidden")); },
   _nestPageBind() {

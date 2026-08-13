@@ -70,8 +70,36 @@ const Sound = {
     return true;
   },
 
-  // 音声グラフの単一実装: 実再生(play)とオフライン検査(renderOffline)が同じ関数を通る=単一の真実
+  // 音の尺(層があれば最も長い層)。テスト器のレンダリング尺と、ボイス解放の基準に使う
+  _span(d) {
+    const L = d.layers && d.layers.length ? d.layers : [d];
+    return L.reduce((m, l) => Math.max(m, (l.dur != null ? l.dur : d.dur) + (l.release != null ? l.release : d.release)), 0);
+  },
+
+  // 音声グラフの単一実装: 実再生(play)とオフライン検査(renderOffline)が同じ関数を通る=単一の真実。
+  //   ★layers: 1つの音idが複数の層を重ねられる(S3の stone=ノイズバースト+ベル)。
+  //     層は def を土台に必要な項目だけ上書きする=既存の単層defは layers 無しのまま一切変わらない。
+  //     「1操作1音」(§2-7)は保たれる: 発音ログもボイス数も**1音として1つ**しか数えない。
   _voice(ctx, dest, d, when, count) {
+    const layers = (d.layers && d.layers.length)
+      ? d.layers.map((l) => { const m = Object.assign({}, d, l); delete m.layers; return m; })
+      : [d];
+    let longest = null, longestSpan = -1;
+    for (const l of layers) {
+      const n = this._layer(ctx, dest, l, when);
+      const sp = l.dur + l.release;
+      if (sp > longestSpan) { longestSpan = sp; longest = n; }
+    }
+    // ボイスの解放は**最後に鳴り終わる層**に紐づける(層の数だけプールを食わない)
+    if (count && longest) {
+      this._voices++;
+      longest.src.onended = () => { this._voices = Math.max(0, this._voices - 1); };
+    }
+    return longest;
+  },
+
+  // 1層ぶんの音声グラフ(従来の _voice の中身。単層defではこれが1回だけ呼ばれる=波形は不変)
+  _layer(ctx, dest, d, when) {
     const vol = d.vol * CFG.soundMaster * (d.bus === "amb" ? CFG.soundAmbVol : CFG.soundSeVol);
     const t0 = when, a = d.attack, dur = d.dur, rel = d.release;
     const g = ctx.createGain();
@@ -97,10 +125,6 @@ const Sound = {
       src.frequency.setValueAtTime(d.freq, t0);
       if (d.freqEnd) src.frequency.linearRampToValueAtTime(d.freqEnd, t0 + dur);
       src.connect(g);
-    }
-    if (count) {
-      this._voices++;
-      src.onended = () => { this._voices = Math.max(0, this._voices - 1); };
     }
     src.start(t0);
     src.stop(t0 + dur + rel + CFG.soundStopPadSec);
@@ -142,10 +166,115 @@ const Sound = {
     };
   },
 
+  // 場所 → 環境音のパラメータ(S3)。★憲章§3-2の原則をそのまま場所へ広げたもの:
+  //   **その場所の性格を既に決めている実データ**から導く。音のために場所の別表を作らない。
+  //     飼育槽 = STAGES[].sky        … 惑星ごとの空色(惑星差はここだけが持つ)
+  //     本部   = CFG.holoPal.void    … HOLOの虚空色(#04060a=冷たく暗い)
+  //     巣     = NEST_VIS.palette.bg0… 巣の背景中心の暖み(#2a1c0c=温かく暗い)
+  //   ★同じ写像(ambientFromTint)を3場所で使う=場所ごとに導出器を作らない。色を変えれば音も追随する。
+  //   ★本部と巣は**全惑星共通**(HQは単一・nestWebも全惑星共通)なので、惑星による差を持たない。
+  //     導出は「差」を作るための道具であり、差の無い場所に惑星差を作らないのが正しい(二重定義の予防)。
+  //   質感の差(温かい生命/冷たい計器/籠もった安息)は色ではなく**グラフの構造**が担う(_ambientGraph)。
+  ambientForPlace(place, stage) {
+    const tint = place === "hq" ? (CFG.holoPal && CFG.holoPal.void)
+      : place === "nest" ? (typeof NEST_VIS !== "undefined" && NEST_VIS.palette && NEST_VIS.palette.bg0)
+        : (stage && stage.sky);
+    if (!tint) return null;
+    const p = this.ambientFromTint(tint);
+    p.place = place;
+    return p;
+  },
+  // 場所とパラメータの同一性(これが同じなら鳴らし直さない=同じ場所の再通知で音を沈ませない)
+  _ambSig(p) { return !p ? "" : p.place + "|" + p.padHz.toFixed(3) + "|" + p.cutHz.toFixed(2) + "|" + p.padMix.toFixed(4); },
+
   _ambLevel() { return CFG.soundAmbLevel * CFG.soundMaster * CFG.soundAmbVol; },
 
-  // 音声グラフの単一実装: 実再生とオフライン検査が同じ関数を通る(SEの _voice と同じ作法)
+  // 点の層(本部のtick・巣の心拍)の単一実装: 決定論のループバッファに焼き込む。
+  //   ★オシレータ+LFOではなくバッファにするのは、①完全に決定論 ②OfflineAudioContextで
+  //     実再生と同一の波形が出る ③周期が「既存の真実」(0.4秒グリッド等)にきっちり乗る、の3点。
+  //   pulses = [{at:秒, freq:Hz, dur:秒, amp:0-1}] を period 秒のバッファへ書き、loop で回す。
+  _loopPulseBuf(ctx, period, pulses) {
+    const sr = ctx.sampleRate, len = Math.max(1, Math.ceil(sr * period));
+    const buf = ctx.createBuffer(1, len, sr);
+    const ch = buf.getChannelData(0);
+    for (const q of pulses) {
+      const i0 = Math.floor(sr * q.at), n = Math.max(1, Math.floor(sr * q.dur));
+      for (let i = 0; i < n && i0 + i < len; i++) {
+        const t = i / sr;
+        const env = Math.exp(-t / (q.dur / 4));                 // 打点=急峻に立ち上がり指数で減衰
+        ch[i0 + i] += Math.sin(2 * Math.PI * q.freq * t) * env * q.amp;
+      }
+    }
+    return buf;
+  },
+
+  // 場所ごとの音声グラフの振り分け。★質感の差(温かい生命/冷たい計器/籠もった安息)はここが担う。
+  //   色から来るのは「音程・こもり・存在感」まで。構造まで色から導くことはできない(§3-2の但し書き)。
   _ambientGraph(ctx, dest, p) {
+    if (p && p.place === "hq") return this._ambGraphHq(ctx, dest, p);
+    if (p && p.place === "nest") return this._ambGraphNest(ctx, dest, p);
+    return this._ambGraphTank(ctx, dest, p);
+  },
+
+  // 本部: 冷たい計器。低ハム(強フィルタ矩形波)+ 起動シーケンスと同じ 0.4秒グリッドに乗るtick。
+  //   ★tickの周期は CFG.holoGridSec の倍数=**HOLOの起動シーケンスと同じ真実**から導く(別表を作らない)。
+  //   ★持続層(ハム)と点の層(tick)を分けてある。疲れの物差し(定常性)は持続層で測り、
+  //     点の層はSEと同じくpeakで測る=同じ音の中に物差しの違う2種が同居している(§3-2)。
+  _ambGraphHq(ctx, dest, p) {
+    const out = ctx.createGain();
+    out.gain.value = this._ambLevel();
+    out.connect(dest);
+    // ハム: 矩形波を強いローパスで削る=倍音の骨だけが残る「計器のうなり」
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = p.cutHz;
+    const humG = ctx.createGain(); humG.gain.value = CFG.soundHqHumLevel;
+    const o1 = ctx.createOscillator(); o1.type = "square"; o1.frequency.value = p.padHz;
+    o1.connect(lp); lp.connect(humG); humG.connect(out);
+    // 息づかい: 完全に静止した音は疲れる(S2の知見)。周期・深さは飼育槽と同じCFG=知識を1箇所に置く
+    const lfo = ctx.createOscillator(); lfo.type = "sine"; lfo.frequency.value = 1 / CFG.soundAmbBreathSec;
+    const lfoG = ctx.createGain(); lfoG.gain.value = p.cutHz * CFG.soundAmbBreathDepth;
+    lfo.connect(lfoG); lfoG.connect(lp.frequency);
+    // tick: 起動シーケンスのグリッド(0.4秒)の倍数ごとに、可聴限界近くの極小の点
+    const period = CFG.holoGridSec * CFG.soundHqTickGrids;
+    const tickG = ctx.createGain(); tickG.gain.value = CFG.soundHqTickLevel; tickG.connect(out);
+    const tick = ctx.createBufferSource();
+    tick.buffer = this._loopPulseBuf(ctx, period, [{ at: 0, freq: CFG.soundHqTickHz, dur: CFG.soundHqTickSec, amp: 1 }]);
+    tick.loop = true; tick.connect(tickG);
+    o1.start(0); lfo.start(0); tick.start(0);
+    return { out: out, lp: lp, o1: o1, srcs: [o1, lfo, tick] };
+  },
+
+  // 巣: 籠もった安息。フィードバックディレイのパッド + 心拍様の低い脈。
+  //   ★巣は全惑星共通=惑星差を持たない。籠もりはローパスではなく**ディレイの反響**が作る。
+  _ambGraphNest(ctx, dest, p) {
+    const out = ctx.createGain();
+    out.gain.value = this._ambLevel();
+    out.connect(dest);
+    // パッド: わずかにずらした2声 → フィードバックディレイ → ローパス(反響が回るほど暗くなる)
+    const padG = ctx.createGain(); padG.gain.value = p.padMix * CFG.soundNestPadLevel;
+    const dly = ctx.createDelay(2.0); dly.delayTime.value = CFG.soundNestDelaySec;
+    const fb = ctx.createGain(); fb.gain.value = CFG.soundNestFeedback;   // <1(発散させない)
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = p.cutHz;
+    const o1 = ctx.createOscillator(); o1.type = "sine"; o1.frequency.value = p.padHz;
+    const o2 = ctx.createOscillator(); o2.type = "sine"; o2.frequency.value = p.padHz * CFG.soundNestPadDetune;
+    o1.connect(padG); o2.connect(padG);
+    padG.connect(lp); padG.connect(dly);
+    dly.connect(fb); fb.connect(lp); fb.connect(dly);   // 反響が減衰しながら回る
+    lp.connect(out);
+    // 心拍: 2打(ドッ・ドッ)の低い脈。安息なので非常にゆっくり=息づかいと同じ「速いと主張になる」規律
+    const hb = ctx.createGain(); hb.gain.value = CFG.soundNestPulseLevel; hb.connect(out);
+    const src = ctx.createBufferSource();
+    const f = p.padHz * CFG.soundNestPulseRatio;
+    src.buffer = this._loopPulseBuf(ctx, CFG.soundNestPulseSec, [
+      { at: 0, freq: f, dur: CFG.soundNestPulseDur, amp: 1 },
+      { at: CFG.soundNestPulseGap, freq: f, dur: CFG.soundNestPulseDur, amp: CFG.soundNestPulse2Amp },
+    ]);
+    src.loop = true; src.connect(hb);
+    o1.start(0); o2.start(0); src.start(0);
+    return { out: out, lp: lp, o1: o1, o2: o2, padG: padG, srcs: [o1, o2, src] };
+  },
+
+  // 飼育槽(S2・Ric承認済み): 風ノイズ+惑星tint連動の微パッド。**波形は一切変更しない**
+  _ambGraphTank(ctx, dest, p) {
     const out = ctx.createGain();
     out.gain.value = this._ambLevel();
     out.connect(dest);
@@ -179,46 +308,67 @@ const Sound = {
     gainParam.setValueAtTime(gainParam.value, t);
     gainParam.linearRampToValueAtTime(to, t + sec);
   },
+  // 惑星の差し替え(同じ場所=同じグラフ構造なので、鳴らしたままパラメータだけ替えられる)
   _ambApply(p) {
     const a = this._amb; if (!a) return;
-    a.lp.frequency.value = p.cutHz;
-    a.o1.frequency.value = p.padHz;
-    a.o2.frequency.value = p.padHz * CFG.soundAmbPadDetune;
-    a.padG.gain.value = p.padMix;
+    if (a.lp) a.lp.frequency.value = p.cutHz;
+    if (a.o1) a.o1.frequency.value = p.padHz;
+    if (a.o2) a.o2.frequency.value = p.padHz * CFG.soundAmbPadDetune;
+    if (a.padG) a.padG.gain.value = p.padMix;
+  },
+  _ambBuild(p) {
+    this._amb = this._ambientGraph(this._ctx, this._ctx.destination, p);
+    this._amb.place = p.place;
+    this._amb.out.gain.value = 0;
+  },
+  _ambDispose(a) {
+    for (const s of a.srcs) { try { s.stop(); } catch (e) { /* 停止済み */ } }
+    try { a.out.disconnect(); } catch (e) { /* 切断済み */ }
   },
 
-  // 環境音の開始/切替。★惑星切替は「いったん無音まで下げてから差し替えて戻す」=
+  // 環境音の開始/切替。★「いったん無音まで下げてから差し替えて戻す」=
   //   周波数を鳴らしたまま動かすとポルタメント(不自然な滑り)になり、瞬時に差し替えるとクリックが出る。
   //   惑星移動には視覚のトランジション(走査ビーム)があるので、音が一度沈むのは画と合う。
+  //   ★S3: 場所の切替(飼育槽↔本部↔巣)も**同じ沈み込み方式**で扱う。ただし場所ごとにグラフの
+  //     構造が違う(風+パッド / ハム+tick / ディレイ+心拍)ため、パラメータ差し替えでは足りず、
+  //     沈んでいる間に**作り直す**。沈む→替わる→戻るという聴こえ方は惑星移動と完全に同じ。
+  //   ★同じ場所・同じ値での再通知では何もしない。画面の開閉やON通知でむやみに音を沈ませないため
+  //     (「場所の切替で音が破綻しないこと」の実体はここ)。
   ambient(p) {
-    if (!this.enabled || !CFG.soundAmbOn) return false;
+    if (!this.enabled || !CFG.soundAmbOn || !p) return false;
     this._ensureCtx();
     if (!this._ctx) return false;
+    const sig = this._ambSig(p);
+    // 変化なし=触らない。★切替の最中(_ambT が動いている)でも同じことが言える: 予約済みの差し替えが
+    //   すでに目的の音を作るので、ここで作り直すとフェードが振り出しに戻って音が二度沈む。
+    if (this._amb && this._ambSig(this._ambP) === sig) return true;
     const half = CFG.soundAmbFadeSec / 2;
     if (!this._amb) {
-      this._amb = this._ambientGraph(this._ctx, this._ctx.destination, p);
-      this._amb.out.gain.value = 0;
+      this._ambBuild(p);
       this._ambRamp(this._amb.out.gain, this._ambLevel(), CFG.soundAmbFadeSec); // 無音から静かに立ち上げる
     } else {
+      const rebuild = this._amb.place !== p.place;   // 場所が変わる=構造ごと作り直す
       this._ambRamp(this._amb.out.gain, 0, half);
       if (this._ambT) clearTimeout(this._ambT);
       this._ambT = setTimeout(() => {
         this._ambT = null;
         if (!this._amb) return;
-        this._ambApply(p);
+        if (rebuild) { const old = this._amb; this._ambDispose(old); this._ambBuild(p); }
+        else this._ambApply(p);
         this._ambRamp(this._amb.out.gain, this._ambLevel(), half);
       }, half * 1000);
     }
     this._ambP = p;
     return true;
   },
+  place() { return this._ambP ? this._ambP.place : null; },
   ambientOff() {
     if (!this._amb) return false;
     const a = this._amb;
     this._amb = null; this._ambP = null;
     if (this._ambT) { clearTimeout(this._ambT); this._ambT = null; }
     this._ambRamp(a.out.gain, 0, CFG.soundAmbFadeSec);
-    setTimeout(() => { for (const s of a.srcs) { try { s.stop(); } catch (e) { /* 停止済み */ } } a.out.disconnect(); }, CFG.soundAmbFadeSec * 1000 + 50);
+    setTimeout(() => this._ambDispose(a), CFG.soundAmbFadeSec * 1000 + 50);
     return true;
   },
   // 音量スライダー等でCFGが変わったときに、鳴らしたまま追従させる(検分ページが使う)
@@ -239,10 +389,15 @@ const Sound = {
       //   ★窓は短くする必要がある。4等分(1秒窓)にしていた版は**1秒より速い揺れを窓内で平均して見逃し**、
       //     「わざと速く深く揺らす」カナリアに引っかからなかった(=計測が揺れを観測できていなかった)。
       //     100ms窓なら疲れの原因になる数Hzの変動まで見える。
+      //   ★S3: 立ち上がりの数百msは**定常性の対象から外す**(soundAmbSteadySkipSec)。巣のフィードバック
+      //     ディレイは無音から反響が積み上がるまで時間が要り、その一度きりの立ち上がりが「耳につく揺れ」と
+      //     同じ数字になってしまうため。実際には 1.2秒のフェードイン中に隠れており、疲れの原因ではない。
+      //     ※飼育槽(承認済み)は立ち上がりを持たない定常信号なので、この除外で数値は動かない=実測で確認する。
       const wlen = Math.max(1, Math.floor(buf.sampleRate * CFG.soundAmbSteadyWinMs / 1000));
-      const W = Math.max(2, Math.floor(n / wlen)), wr = [];
+      const skip = Math.min(n - wlen * 2, Math.max(0, Math.floor(buf.sampleRate * CFG.soundAmbSteadySkipSec)));
+      const W = Math.max(2, Math.floor((n - skip) / wlen)), wr = [];
       for (let w = 0; w < W; w++) {
-        let s = 0; const a0 = w * wlen, b0 = Math.min(n, a0 + wlen);
+        let s = 0; const a0 = skip + w * wlen, b0 = Math.min(n, a0 + wlen);
         for (let i = a0; i < b0; i++) s += ch[i] * ch[i];
         wr.push(Math.sqrt(s / Math.max(1, b0 - a0)));
       }
@@ -262,7 +417,7 @@ const Sound = {
     const d = this.def(id);
     if (!d) return Promise.resolve(null);
     const sr = CFG.soundRenderSampleRate;
-    const total = seconds || (d.dur + d.release + CFG.soundRenderPadSec);
+    const total = seconds || (this._span(d) + CFG.soundRenderPadSec);   // 層があれば最も長い層に合わせる
     const ctx = new OfflineAudioContext(1, Math.ceil(sr * total), sr);
     this._voice(ctx, ctx.destination, d, 0, false);
     return ctx.startRendering().then((buf) => {

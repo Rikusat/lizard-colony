@@ -303,10 +303,15 @@ function loadSound(extraCfg) {
 {
   const { CFG } = loadSound();
   const cues = CFG.soundCues || {};
-  check("CFG.soundCues が3種を対応づける", Object.keys(cues).length === 3 && cues.feed === "feed" && cues.hatch === "hatch" && cues.defeat === "defeat");
+  check("CFG.soundCues が対応づける(S1の3種 + S3の石)",
+    Object.keys(cues).length === 4 && cues.feed === "feed" && cues.hatch === "hatch" && cues.defeat === "defeat" && cues.SlitSuccess === "stone");
   check("対応先の音idが全て soundDefs にある(鳴らない配線を作らない)", Object.values(cues).every((id) => !!CFG.soundDefs[id]));
-  const gameSrc = codeOf(read("js/game.js"));
-  check("対応表のイベントは全てルール層が実際に流している", Object.keys(cues).every((n) => gameSrc.includes('this.emit("' + n + '"')));
+  // ★S3: ルール層のイベント源は Game だけではない。四重スリット(Slit)は自前のイベント列を持つため、
+  //   「対応表のイベントが本当に流れているか」は**両方の源**を見ないと素通しする。
+  const gameSrc = codeOf(read("js/game.js")), slitSrc0 = codeOf(read("js/slit.js"));
+  const emitted = (n) => gameSrc.includes('this.emit("' + n + '"') || slitSrc0.includes('type: "' + n + '"');
+  check("対応表のイベントは全てルール層が実際に流している", Object.keys(cues).every(emitted));
+  check("★カナリア: 流れていないイベント名は捕まる(対応表の書き間違いを素通ししない)", !emitted("nosuchEvent"));
   const boot = codeOf(read("js/ui/boot.js"));
   check("★演出層が購読して CFG.soundCues 経由で鳴らす(変換点は1箇所)", /Game\.onEvent\(/.test(boot) && /CFG\.soundCues/.test(boot) && /Sound\.play\(/.test(boot));
   const meta = codeOf(read("js/ui/screens/meta.js"));
@@ -396,8 +401,94 @@ function loadSound(extraCfg) {
   check("★惑星切替とON/OFFで環境音が追従する(演出層が購読)", /Sound\.ambient\(/.test(boot2) && /Sound\.ambientOff\(\)/.test(boot2));
   check("ルール層は惑星切替の事実だけを流す(音コードは書かない)", /this\.emit\("planet"/.test(game2) && !/Sound\.ambient/.test(game2));
   check("OFFにしたら常時音も止まる(切ったのに鳴り続けない)", /ambientOff\(\)/.test(codeOf(read("js/sound.js"))));
-  check("★検分ページで10惑星を聴き比べられる", /ambientFromTint/.test(boot2) && /STAGES\.forEach/.test(boot2));
+  check("★検分ページで10惑星を聴き比べられる", /ambientForPlace\("tank"/.test(boot2) && /STAGES\.forEach/.test(boot2));
   check("環境音は bus=amb の系統音量を通る(系統別が効く)", /soundAmbVol/.test(codeOf(read("js/sound.js"))));
+}
+
+// ---- 10) S3 場所の環境音(本部/巣)+ 賢者の石 ----
+//   ★S3の核心は「場所の差も既存の真実から導出する」(憲章§3-2をS2の惑星から場所へ広げたもの)。
+//     ここでは音を鳴らさずに検査できる性質=導出元・場所の概念の所在・配線・序列を固定する。
+{
+  const { Sound, CFG } = loadSound();
+  const snd = codeOf(read("js/sound.js"));
+
+  // --- 導出: 場所の音は「既存の真実」から来る(音のための場所別テーブルを作らない) ---
+  check("★本部の音は HOLO の虚空色から導出する(音のための色を新設しない)", /CFG\.holoPal[\s\S]{0,40}void/.test(snd));
+  check("★巣の音は巣ビジュアルの背景色から導出する(同上)", /NEST_VIS\.palette[\s\S]{0,20}bg0/.test(snd));
+  check("★3場所とも同じ写像(ambientFromTint)を通る=場所ごとの導出器を作らない",
+    (snd.match(/ambientFromTint\(/g) || []).length >= 1 && /ambientForPlace\(place, stage\)/.test(snd));
+  const dTank = Sound.ambientForPlace("tank", { sky: "#a8c4e0" });
+  const dHq = Sound.ambientForPlace("hq", null), dNest = Sound.ambientForPlace("nest", null);
+  check("3場所すべてでパラメータが導出できる(有限値)",
+    [dTank, dHq, dNest].every((p) => p && isFinite(p.padHz) && isFinite(p.cutHz) && isFinite(p.padMix)));
+  check("導出は決定論(同じ場所=同じ値)", JSON.stringify(Sound.ambientForPlace("hq", null)) === JSON.stringify(dHq));
+  check("★本部と巣は惑星差を持たない(全惑星共通=差の無い場所に差を作らない)",
+    JSON.stringify(Sound.ambientForPlace("hq", { sky: "#a8c4e0" })) === JSON.stringify(dHq)
+    && JSON.stringify(Sound.ambientForPlace("nest", { sky: "#333c46" })) === JSON.stringify(dNest));
+  check("★三者の音程が互いに離れている(同じ音に聞こえない)",
+    Math.abs(Math.log2(dHq.padHz / dNest.padHz)) > 1 / 12
+    && Math.abs(Math.log2(dTank.padHz / dHq.padHz)) > 1 / 12,
+    "tank=" + dTank.padHz.toFixed(1) + " hq=" + dHq.padHz.toFixed(1) + " nest=" + dNest.padHz.toFixed(1));
+  check("本部は冷たい側・巣は暖かい側の色から来ている(色相で確認)",
+    dHq.hue > 180 && dHq.hue < 260 && (dNest.hue < 60 || dNest.hue > 330), "hq=" + dHq.hue.toFixed(0) + "° nest=" + dNest.hue.toFixed(0) + "°");
+  check("場所名が未知なら鳴らさない(捏造した場所の音を作らない)", Sound.ambientForPlace("nowhere", null) === null);
+  check("飼育槽は惑星が無ければ鳴らさない", Sound.ambientForPlace("tank", null) === null);
+
+  // --- 場所の概念は演出層だけが持つ(ルール層は画面を知らない) ---
+  const core = codeOf(read("js/ui/core.js")), game3 = codeOf(read("js/game.js"));
+  check("★場所(UI.place)は演出層にある", /place\(\)\s*\{/.test(core) && /hqLabOpen/.test(core) && /nestPageOpen/.test(core));
+  check("★場所はDOMから導出する=画面の状態変数を新設していない(真実を二重に持たない)",
+    !/_currentScreen|_curPlace\s*=/.test(core));
+  check("★ルール層は場所/画面を知らない(憲章§2-3)",
+    !/UI\.place\(|hqLabOpen|nestPageOpen/.test(game3) && !/this\.emit\("place"/.test(game3));
+  // ★配線検査: 場所を変える4関数すべてが通知する。c46d7ba の教訓(実装は正しいが配線が狭い)の再発防止
+  const hq = codeOf(read("js/ui/screens/hqlab.js")), nest = codeOf(read("js/ui/screens/nest.js"));
+  for (const [fn, src] of [["openHqLab", hq], ["closeHqLab", hq], ["openNest", nest], ["closeNestPage", nest]]) {
+    const body = src.split(fn + "(")[1] || "";
+    check("場所を変える " + fn + " が場所の変化を通知する", /placeChanged\(\)/.test(body.slice(0, 700)));
+  }
+  check("★通知はまとめられる(画面の切替が通る中間状態で音を作らない)", /_placeT/.test(core) && /setTimeout/.test(core));
+  const boot3 = codeOf(read("js/ui/boot.js"));
+  check("★演出層が場所と惑星の両方を見て環境音を決める", /UI\.place\s*&&\s*UI\.place\(\)/.test(boot3) && /Sound\.ambientForPlace\(/.test(boot3));
+  check("★検分ページで三者(飼育槽/本部/巣)を聴き比べられる",
+    /ambientForPlace\("tank"/.test(boot3) && /"hq"/.test(boot3) && /"nest"/.test(boot3) && /ambientForPlace\(place, null\)/.test(boot3));
+
+  // --- 場所の切替=惑星移動と同じ沈み込み方式(ただし構造ごと作り直す) ---
+  check("★場所が変わるときは構造ごと作り直す(グラフの形が違うため差し替えでは足りない)",
+    /_amb\.place\s*!==\s*p\.place/.test(snd) && /_ambDispose\(/.test(snd) && /_ambBuild\(/.test(snd));
+  check("★沈み込みは惑星移動と同じフェードを使う(挙動を揃える)", /soundAmbFadeSec/.test(snd));
+  check("★同じ場所・同じ値の再通知では音を沈ませない(画面開閉で破綻しない)", /_ambSig\(/.test(snd));
+  // ★切替の最中の再通知でフェードを振り出しに戻さない(実ブラウザで二度沈む挙動を実測して是正した)
+  check("★同値の早期returnが切替中(_ambT)に無効化されない(音が二度沈まない)",
+    /_ambSig\(this\._ambP\) === sig\) return true/.test(snd) && !/=== sig && !this\._ambT/.test(snd));
+
+  // --- 賢者の石(=四重スリットの全通過) ---
+  check("★石の音が定義されている(優先度表の最上位 stone:5 に実体がついた)", !!CFG.soundDefs.stone);
+  check("★石は2層(ノイズバースト+ベル)", (CFG.soundDefs.stone.layers || []).length === 2);
+  check("石の層は既存の単層defを一切変えていない(layers を持つのは stone だけ)",
+    Object.keys(CFG.soundDefs).filter((k) => CFG.soundDefs[k].layers).join(",") === "stone");
+  check("★層があっても尺は最も長い層に合わせる(ベルの余韻が切られない)",
+    Sound._span(Sound.def("stone")) > Sound.def("defeat").dur + Sound.def("defeat").release);
+  check("★全通過は約1/3900の極めて稀な事象(希少性に見合う音予算の根拠)",
+    CFG.slitHalfDeg.reduce((a, d) => a * (2 * d / 360), 1) < 1 / 1000,
+    "1/" + Math.round(1 / CFG.slitHalfDeg.reduce((a, d) => a * (2 * d / 360), 1)));
+  check("★変換点は1つのまま(Slitのイベントも同じ CFG.soundCues を引く)", CFG.soundCues.SlitSuccess === "stone");
+  const slitSrc = codeOf(read("js/slit.js")), slitUi = codeOf(read("js/ui/screens/slit.js"));
+  check("ルール層が全通過のイベントを流している", /SlitSuccess/.test(slitSrc));
+  check("ルール層に音コードは無い(憲章§2-3)", !/Sound\./.test(slitSrc));
+  check("★演出層は CFG.soundCues 経由で鳴らす(2つ目の変換点を作らない)",
+    /CFG\.soundCues\[ev\.type\]/.test(slitUi) && /Sound\.play\(/.test(slitUi));
+  // ★§2-2: 音は視覚と対。石の音は「中心のブルームを積む行」と同じ分岐の中にある
+  const winBlock = slitUi.split('ev.type === "SlitSuccess"')[1] || "";
+  check("★石の音は視覚(中心のブルーム)と同じ分岐の中にある(音だけが鳴る箇所を作らない)",
+    /_slitFx\.push/.test(winBlock.slice(0, 400)) && /Sound\.play/.test(winBlock.slice(0, 400)));
+  check("★常時無音(クランク稼働中の微音は置かない=Ric裁定 S3)",
+    !/SlitFired|SlitPass|SlitBlocked/.test(Object.keys(CFG.soundCues).join(",")));
+
+  // --- 定常性の計測: 立ち上がりの除外(S3で新設)---
+  check("立ち上がりを定常性から外す設定がある(巣の反響が積み上がるまでは疲れではない)",
+    typeof CFG.soundAmbSteadySkipSec === "number" && CFG.soundAmbSteadySkipSec > 0);
+  check("★除外しても窓の長さは変えていない(速い揺れの検知能力を落としていない)", CFG.soundAmbSteadyWinMs === 100);
 }
 
 console.log(`\n==== sound_regression: ${pass} PASS / ${fail} FAIL ====`);
