@@ -586,8 +586,124 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
                         ok("§17石: 1音として1回だけ数える(層の数だけログを増やさない・§2-7 1操作1音)",
                           stoneLog.acc === true && stoneLog.n === 1, "受理=" + stoneLog.acc + " log=" + stoneLog.n);
                         ok("§17石: 計測のあと音はOFFへ戻っている(初回無音の検査を汚さない)", Sound.on() === false && Game.soundEnabled() === false);
-                        ok("★§17石: 全通過は約1/3900の極めて稀な事象(音予算集中の根拠)",
+                        ok("★§17石: 全通過は正値1/4339の極めて稀な事象(音予算集中の根拠・S-SLIT-R後の設計値)",
                           CFG.slitHalfDeg.reduce(function (a, d) { return a * (2 * d / 360); }, 1) < 1 / 1000);
+
+                        // ===== §18: S4(REL-2) ムービーの音 — 予算・導出・タイムライン従属・skip/OFF/reduced =====
+                        //   予算(Ric承認 2026-08-27): SE優先度表に載せない「場面の音」。peakは撃破未満・石に近づけない。
+                        //   時刻の真実は CFG.holoOpenNodes / holoLoreNodes だけ。偽クロックで実プレイヤー(Holo.play)を
+                        //   走らせて cue の発火時刻を実測する(音側に時間表が無いことの行動証明)。
+                        var mvIds = (function () {
+                          var a = [];
+                          for (var k in CFG.soundMovieCues.open) a.push(CFG.soundMovieCues.open[k]);
+                          for (var k2 in CFG.soundMovieCues.lore) a.push(CFG.soundMovieCues.lore[k2]);
+                          a.push(CFG.soundMovieRedactId);
+                          return a.filter(function (v, i) { return a.indexOf(v) === i; });
+                        })();
+                        // ★このQAページはboot経路そのままのため、起動時の自動オープニング(実クロック・14.8秒)が
+                        //   まだ走っている。実プレイヤーのcueが偽クロック計測に混ざる(実測で混入を確認)ので、
+                        //   スキップ(keydown=本物の導線)で終わらせ、少し待ってから測る。
+                        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+                        return new Promise(function (rw0) { setTimeout(rw0, 150); }).then(function () {
+                          return Promise.all(mvIds.map(function (id) { return Sound.renderOffline(id); }));
+                        }).then(function (mrs) {
+                          var mpk = {}; mvIds.forEach(function (id, i) { mpk[id] = mrs[i].peak; });
+                          var mmax = Math.max.apply(null, mvIds.map(function (id) { return mpk[id]; }));
+                          ok("★§18予算: 全語彙のpeakが撃破未満(観る場面の音は行為の音を超えない)",
+                            mvIds.every(function (id) { return mpk[id] < pk.defeat; }),
+                            mvIds.map(function (id) { return id + "=" + mpk[id].toFixed(3); }).join(" ") + " / 撃破=" + pk.defeat.toFixed(3));
+                          ok("§18予算: 全語彙が無音ではない(peak>0.02)", mvIds.every(function (id) { return mpk[id] > 0.02; }));
+                          ok("★§18予算: 石(最重)に近づけない(最大でも石の6割未満)", mmax < 0.507 * 0.6, "max=" + mmax.toFixed(3));
+                          var v0 = CFG.soundDefs.mvSurge.vol; CFG.soundDefs.mvSurge.vol = v0 * 4;
+                          return Sound.renderOffline("mvSurge").then(function (mw) {
+                            CFG.soundDefs.mvSurge.vol = v0;
+                            ok("★§18カナリア: 予算ゲートは破りを検知できる(vol×4で撃破超え)", mw.peak > pk.defeat, "×4=" + mw.peak.toFixed(3));
+                            function runMovie(kind, mutate, skipAt) {
+                              return new Promise(function (res) {
+                                var rec = { cues: [], started: 0, stopped: null }, t = -0.1;
+                                var sS = Sound.movieStart, sN = Sound.movieNode, sT = Sound.movieStop;
+                                Sound.movieStart = function () { rec.started++; return true; };
+                                Sound.movieNode = function (k, id, lk) { rec.cues.push({ id: id, t: t, locked: !!lk }); return true; };
+                                Sound.movieStop = function (sk) { rec.stopped = { skipped: !!sk }; return true; };
+                                var undo = mutate ? mutate() : null;
+                                var cv = document.createElement("canvas"); cv.width = 200; cv.height = 120;
+                                var st = Holo.play(cv, {
+                                  total: kind === "lore" ? Holo.loreDur() : Holo.openDur(),
+                                  reduced: false, bind: false, draw: function () { },
+                                  sound: { kind: kind, locked: kind === "lore" ? { bugger: true } : null },
+                                  now: function () { t += 0.1; return t * 1000; },
+                                  onEnd: function () {
+                                    Sound.movieStart = sS; Sound.movieNode = sN; Sound.movieStop = sT;
+                                    if (undo) undo();
+                                    res(rec);
+                                  },
+                                });
+                                if (skipAt != null) setTimeout(function () { st.skip(); }, skipAt);
+                              });
+                            }
+                            var G = CFG.holoGridSec;
+                            return runMovie("open").then(function (A) {
+                              var expA = CFG.holoOpenNodes.filter(function (n) { return n.id !== "end"; });
+                              ok("★§18従属: 全カットのcueがノード表の時刻どおりに発火(end除く・±0.35s)",
+                                expA.length === A.cues.length && expA.every(function (n, i) {
+                                  return A.cues[i].id === n.id && Math.abs(A.cues[i].t - n.grid * G) <= 0.35;
+                                }), A.cues.map(function (c) { return c.id + "@" + c.t.toFixed(1); }).join(" "));
+                              ok("§18従属: 暗転は鳴らない(表に無いノードは変換がnull=無音が音の一部)",
+                                Sound.movieCueId("open", "blackout", false) === null && Sound.movieCueId("open", "blackout2", false) === null);
+                              ok("§18: 開始は1回・自然終了はskipped=false", A.started === 1 && A.stopped && A.stopped.skipped === false);
+                              var dec0 = A.cues.filter(function (c) { return c.id === "decision"; })[0];
+                              return runMovie("open", function () {
+                                var orig = CFG.holoOpenNodes;
+                                CFG.holoOpenNodes = orig.map(function (n) { return n.id === "decision" ? { id: n.id, grid: n.grid + 2 } : n; });
+                                return function () { CFG.holoOpenNodes = orig; };
+                              }).then(function (B) {
+                                var dec1 = B.cues.filter(function (c) { return c.id === "decision"; })[0];
+                                ok("★§18従属の1ケース実測(Ric指示): ノード表を+2グリッド動かすと音が0.8秒あとへ自動追従",
+                                  !!dec0 && !!dec1 && dec1.t - dec0.t > 0.5 && dec1.t - dec0.t < 1.15,
+                                  "decision " + (dec0 && dec0.t.toFixed(1)) + "→" + (dec1 && dec1.t.toFixed(1)));
+                                return runMovie("lore").then(function (L) {
+                                  var lockedCue = L.cues.filter(function (c) { return c.id === "bugger"; })[0];
+                                  ok("§18Lore: 4章のcueが表どおり(end除く)", L.cues.length === CFG.holoLoreNodes.length - 1,
+                                    L.cues.map(function (c) { return c.id; }).join(","));
+                                  ok("★§18REDACTED: 未解読章はlockedがcueに乗り、一瞬のノイズ(mvRedact)へ落ちる",
+                                    !!lockedCue && lockedCue.locked === true
+                                    && Sound.movieCueId("lore", "bugger", true) === CFG.soundMovieRedactId);
+                                  return runMovie("open", null, 120).then(function (S2) {
+                                    ok("★§18スキップ: 途中で切ると以後のcueが出ず、movieStop(skipped=true)が走る",
+                                      S2.cues.length >= 1 && S2.cues.length < A.cues.length && !!S2.stopped && S2.stopped.skipped === true,
+                                      "cues=" + S2.cues.length + "/" + A.cues.length);
+                                    var red = { started: 0 };
+                                    var rS = Sound.movieStart; Sound.movieStart = function () { red.started++; return true; };
+                                    Holo.play(document.createElement("canvas"), {
+                                      total: 1, reduced: true, reducedHoldSec: 0, staticT: 0.5, bind: false,
+                                      draw: function () { }, sound: { kind: "open" }, onEnd: function () { },
+                                    });
+                                    Sound.movieStart = rS;
+                                    ok("★§18reduced: 音のフックに一切入らない(静止表示=無音・指示書§4-2)", red.started === 0);
+                                    ok("§18OFF: 窓口が開始を断る(enabledゲート)", Sound.on() === false && Sound.movieStart("open") === false && !Sound._mv);
+                                    // skipの減衰: ハードカット(クリック=事故感)ではなく短い減衰で断つ(CFG化)
+                                    var ramp = [];
+                                    var mkG = function () { return { gain: { value: 1, cancelScheduledValues: function () { }, setValueAtTime: function () { }, linearRampToValueAtTime: function (v, tt) { ramp.push([v, tt]); } }, disconnect: function () { } }; };
+                                    Sound._ctx = { currentTime: 7 };
+                                    Sound._mv = { kind: "open", g: mkG() };
+                                    Sound.movieStop(true);
+                                    var rampSkip = ramp[ramp.length - 1];
+                                    Sound._mv = { kind: "open", g: mkG() };
+                                    Sound.movieStop(false);
+                                    var rampEnd = ramp[ramp.length - 1];
+                                    Sound._ctx = null;
+                                    ok("★§18skip即無音: スキップ=soundMovieStopSecで0へ / 自然終了=soundMovieEndSecで見送る",
+                                      !!rampSkip && Math.abs(rampSkip[1] - (7 + CFG.soundMovieStopSec)) < 0.001 && rampSkip[0] === 0
+                                      && !!rampEnd && Math.abs(rampEnd[1] - (7 + CFG.soundMovieEndSec)) < 0.001,
+                                      "skip→+" + CFG.soundMovieStopSec + "s end→+" + CFG.soundMovieEndSec + "s");
+                                    ok("§18後始末: _mv=null・_ctx=null・音はOFFのまま(初回無音の検査を汚さない)",
+                                      Sound._mv === null && Sound._ctx === null && Sound.on() === false);
+                                  });
+                                });
+                              });
+                            });
+                          });
+                        });
                       });
                     });
                   });

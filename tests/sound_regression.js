@@ -469,7 +469,7 @@ function loadSound(extraCfg) {
     Object.keys(CFG.soundDefs).filter((k) => CFG.soundDefs[k].layers).join(",") === "stone");
   check("★層があっても尺は最も長い層に合わせる(ベルの余韻が切られない)",
     Sound._span(Sound.def("stone")) > Sound.def("defeat").dur + Sound.def("defeat").release);
-  check("★全通過は約1/3900の極めて稀な事象(希少性に見合う音予算の根拠)",
+  check("★全通過は正値1/4339の極めて稀な事象(希少性に見合う音予算の根拠・S-SLIT-R後の設計値)",
     CFG.slitHalfDeg.reduce((a, d) => a * (2 * d / 360), 1) < 1 / 1000,
     "1/" + Math.round(1 / CFG.slitHalfDeg.reduce((a, d) => a * (2 * d / 360), 1)));
   check("★変換点は1つのまま(Slitのイベントも同じ CFG.soundCues を引く)", CFG.soundCues.SlitSuccess === "stone");
@@ -489,6 +489,77 @@ function loadSound(extraCfg) {
   check("立ち上がりを定常性から外す設定がある(巣の反響が積み上がるまでは疲れではない)",
     typeof CFG.soundAmbSteadySkipSec === "number" && CFG.soundAmbSteadySkipSec > 0);
   check("★除外しても窓の長さは変えていない(速い揺れの検知能力を落としていない)", CFG.soundAmbSteadyWinMs === 100);
+}
+
+// ============================================================
+// S4(REL-2・2026-08-27 Ric予算承認): ムービーの音 — 構造の恒久検査
+//   予算・波形(peak)・タイムライン従属の発火時刻は OfflineAudioContext と実プレイヤーが要るため
+//   装置QA §18 が担う。ここは構造を固定する: 変換表の整合 / 導出の単一点 / 音側に時間表が無い /
+//   OFF・skip・reduced の規律 / holo.js・meta.js の配線形。
+//   ※movieStop は破棄に setTimeout を使うため、sandbox にスタブを足して読む(挙動は検査しない)。
+// ============================================================
+{
+  console.log("\n--- S4 ムービーの音(構造) ---");
+  const sb = { console, Math, JSON, Object, Array, String, Number, isNaN, parseInt, parseFloat, module: {}, setTimeout: () => 0, clearTimeout: () => { } };
+  sb.globalThis = sb;
+  vm.createContext(sb);
+  vm.runInContext(read("js/data.js"), sb, { filename: "data.js" });
+  vm.runInContext(read("js/sound.js"), sb, { filename: "sound.js" });
+  vm.runInContext("globalThis.__x = { Sound, CFG }", sb);
+  const { Sound, CFG } = sb.__x;
+  const cues = CFG.soundMovieCues;
+  check("ムービー変換表がCFGにある(open/lore)", !!cues && !!cues.open && !!cues.lore);
+  const mvIds = [];
+  for (const k in cues.open) mvIds.push(cues.open[k]);
+  for (const k of Object.keys(cues.lore)) mvIds.push(cues.lore[k]);
+  mvIds.push(CFG.soundMovieRedactId);
+  check("変換表の全idがsoundDefsに実在する(REDACTED含む)", mvIds.every((id) => !!CFG.soundDefs[id]), mvIds.join(","));
+  check("変換表の値はすべて音id文字列(時間を持ち込まない)", mvIds.every((id) => typeof id === "string"));
+  check("★音側に時間表が無い(soundMovie系のCFGに配列を作らない=時刻の真実はノード表だけ)",
+    !Object.keys(CFG).some((k) => /^soundMovie/.test(k) && Array.isArray(CFG[k])));
+  check("暗転とendは表に載らない(無音が音の一部)",
+    !("blackout" in cues.open) && !("blackout2" in cues.open) && !("end" in cues.open) && !("end" in cues.lore));
+  check("ムービー語彙は全て単層(layersを持つのはstoneだけ、が保たれる)",
+    mvIds.every((id) => !CFG.soundDefs[id].layers));
+  // 変換点は movieCueId の1箇所
+  check("movieCueId: 通常はkindの表を引く", Sound.movieCueId("open", "calm", false) === cues.open.calm);
+  check("movieCueId: 未解読(locked)はREDACTEDへ落ちる", Sound.movieCueId("lore", "bugger", true) === CFG.soundMovieRedactId);
+  check("movieCueId: 表に無いノード(暗転)はnull=無音", Sound.movieCueId("open", "blackout", false) === null);
+  // 導出: 音程はholoPal(既存の真実)から。変換点は def() の1箇所
+  const f0 = Sound.def("mvHud").freq;
+  const fExp = Sound.ambientFromTint(CFG.holoPal.amber).padHz * CFG.soundDefs.mvHud.freqMul;
+  check("★導出: mvHudの音程 = ambientFromTint(holoPal.amber) × freqMul(既存の真実から)",
+    Math.abs(f0 - fExp) < 0.5, f0 + " vs " + fExp);
+  const amber0 = CFG.holoPal.amber;
+  CFG.holoPal.amber = "#4080ff";
+  const f1 = Sound.def("mvHud").freq;
+  CFG.holoPal.amber = amber0;
+  check("★導出カナリア: 色を変えると音程が追従する(二重定義が無い証拠)", Math.abs(f1 - f0) > 1, f0 + "→" + f1);
+  check("導出: スイープ終点も導出される(freqEndMul)",
+    Math.abs(Sound.def("mvRise").freqEnd - Sound.def("mvRise").freq * CFG.soundDefs.mvRise.freqEndMul) < 0.01);
+  // 規律: OFFでは開始しない / OFFへの切替はムービーの場も畳む(ctx無しでも落ちない)
+  Sound.enabled = false;
+  check("OFF: movieStartは開始しない", Sound.movieStart("open") === false && !Sound._mv);
+  check("OFF: movieNodeは鳴らさない", Sound.movieNode("open", "calm", false) === false);
+  Sound._mv = { kind: "open", g: { gain: {}, disconnect() { } } };
+  Sound.enabled = true;
+  Sound.setEnabled(false);
+  check("★OFFへの切替はムービーの場も畳む(setEnabled(false)→movieStop)", Sound._mv === null);
+  // ソース走査: タイムライン従属の構造(語の出現ではなく使用を検査する=憲章§3-2)
+  const holoSrc = codeOf(read("js/holo.js"));
+  check("★holo.jsはmovie窓口(movieStart/movieNode/movieStop)だけを呼ぶ(play/ambientを直接呼ばない)",
+    /Sound\.movieStart\s*\(/.test(holoSrc) && /Sound\.movieNode\s*\(/.test(holoSrc) && /Sound\.movieStop\s*\(/.test(holoSrc)
+    && !/Sound\.play\s*\(/.test(holoSrc) && !/Sound\.ambient\s*\(/.test(holoSrc));
+  check("holo.js: Soundはguard付きで参照(Sound未読込の環境でも動く)", /typeof Sound/.test(holoSrc));
+  const metaSrc = codeOf(read("js/ui/screens/meta.js"));
+  check("meta.js: 実再生2経路(playOpening/playLore)がsound optsを渡す",
+    (metaSrc.match(/sound:\s*\{\s*kind:/g) || []).length >= 2);
+  check("meta.js: ムービー終了で場所の環境音へ復帰(onEnd→placeChanged)", /placeChanged/.test(metaSrc));
+  const soundSrcS4 = codeOf(read("js/sound.js"));
+  // ※holoGridSec は対象外: S3承認済みの本部tick周期(起動シーケンスと同じグリッドに乗せる導出)が正当に使う。
+  //   禁じるのは「ムービーのノード表」への参照=時刻の表を音側に写すこと。
+  check("★sound.jsにムービーのノード表の知識が無い(時刻の真実を二重に持たない)",
+    !/holoOpenNodes|holoLoreNodes/.test(soundSrcS4));
 }
 
 console.log(`\n==== sound_regression: ${pass} PASS / ${fail} FAIL ====`);

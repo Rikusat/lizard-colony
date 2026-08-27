@@ -625,7 +625,7 @@ console.log("== 13) オープニングの本編組み込み(初回だけ自動�
   const hqSrc = fs.readFileSync(path.join(ROOT, "js/ui/screens/hq.js"), "utf8");
   const bootSrc = fs.readFileSync(path.join(ROOT, "js/ui/boot.js"), "utf8");
   const cssSrc = fs.readFileSync(path.join(ROOT, "style.css"), "utf8");
-  check("導線: 器は Holo.mount(\"holo-lore\")・再生は playLore(meta.js)", /Holo\.mount\("holo-lore"\)/.test(metaSrc) && /playLore\(\)/.test(metaSrc));
+  check("導線: 器は Holo.mount(\"holo-lore\")・再生は playLore(meta.js)", /Holo\.mount\("holo-lore"\)/.test(metaSrc) && /playLore\s*\(/.test(metaSrc));   // S4: 署名がplayLore(force)へ拡張(検分用)されても意図(=再生の実体はmeta.js)は不変
   check("★共有: 実セーブの解決は UI.loreMovieOpts ただ1箇所(検分ビューアも共有)", /loreMovieOpts\(\)/.test(metaSrc) && /UI\.loreMovieOpts/.test(bootSrc) && !/holoLoreChapterGate/.test(bootSrc));
   check("導線: 図鑑Loreタブ(#lore-play)+標本棚(#hq-lore-holo)の2箇所", /id="lore-play"/.test(dexSrc) && /id="hq-lore-holo"/.test(hqSrc));
   check("導線: CFG.holoLoreOn=false で導線ごと消える(loreMovieOnゲート)", /loreMovieOn\(\)/.test(dexSrc) && /loreMovieOn\(\)/.test(hqSrc) && /CFG\.holoLoreOn === false/.test(metaSrc));

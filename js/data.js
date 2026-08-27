@@ -311,7 +311,32 @@ const CFG = {
         { type: "sine", freq: 1244.5, vol: 0.40, dur: 0.02, attack: 0.004, release: 1.20 }, // ベル(長い余韻)
       ],
     },
+    // ---- S4(REL-2・2026-08-27 Ric予算承認): ムービーの語彙(「場面の音」=SE優先度表に載せない) ----
+    //   予算: peakは撃破(0.259)を超えない・石(0.507)に近づけない(装置QA§18がゲート・★全数値Ric実機調整)。
+    //   語彙はHOLO視覚語彙から: 走査=scan / 警告点灯=alert / 暴走・fuse=surge / 影=shadow / HUD=hud /
+    //   上昇=rise / 題=title / 未解読=redact(一瞬のノイズ=憲章§3)。
+    //   音程も既存の真実(holoPal)から導出: freqHue → ambientFromTint(holoPal[色]).padHz × freqMul。
+    //   変換点は Sound.def() の1箇所(色を変えれば音程が追随する=二重定義を作らない)。
+    mvScan: { type: "noise", filterType: "lowpass", filterFreq: 1100, dur: 0.34, vol: 0.30, attack: 0.10, release: 0.26, seed: 20260827 },
+    mvAlert: { type: "sine", freqHue: "crim", freqMul: 6, dur: 0.05, vol: 0.22, attack: 0.004, release: 0.10 },
+    mvSurge: { type: "noise", filterType: "lowpass", filterFreq: 1500, dur: 0.30, vol: 0.50, attack: 0.02, release: 0.30, seed: 20260828 },
+    mvShadow: { type: "sine", freqHue: "void", freqMul: 1, dur: 0.16, vol: 0.45, attack: 0.010, release: 0.22 },
+    mvHud: { type: "sine", freqHue: "amber", freqMul: 8, dur: 0.03, vol: 0.18, attack: 0.003, release: 0.07 },
+    mvRise: { type: "sine", freqHue: "pale", freqMul: 0.8, freqEndMul: 2.2, dur: 0.30, vol: 0.24, attack: 0.03, release: 0.30 },
+    mvTitle: { type: "sine", freqHue: "amber", freqMul: 4, dur: 0.10, vol: 0.26, attack: 0.010, release: 0.60 },
+    mvRedact: { type: "noise", filterType: "highpass", filterFreq: 1800, dur: 0.06, vol: 0.30, attack: 0.002, release: 0.05, seed: 20260829 },
   },
+  // ---- S4(REL-2): ムービーのノード→音の変換表。★時間・グリッドをここに置かない(禁止) ----
+  //   時刻の真実は CFG.holoOpenNodes / holoLoreNodes ただ一つ(音側に時間表を作らない=指示書§4-2)。
+  //   暗転(blackout/blackout2)と end は載せない=無音(無音が音の一部)。
+  soundMovieCues: {
+    open: { calm: "mvScan", anomaly: "mvAlert", rampage: "mvSurge", bagger: "mvShadow",
+      decision: "mvHud", launch: "mvRise", route: "mvScan", title: "mvTitle" },
+    lore: { net: "mvScan", purity: "mvRise", bugger: "mvSurge", archive: "mvHud" },
+  },
+  soundMovieRedactId: "mvRedact", // 未解読章(REDACTED)はどの章でも一瞬のノイズへ落ちる(憲章§3・嘘をつかない)
+  soundMovieStopSec: 0.18,   // ★スキップ時の減衰秒。即断だがハードカットのクリック(事故感)を出さない
+  soundMovieEndSec: 0.8,     // ★自然終了時の減衰秒(題の余韻を見送る)
   // ---- C2改訂 フェーズ1: 惑星移動トランジション(頻発する導線=摩擦にしない) ----
   //   OFF(false)にすると従来の宇宙船トランジション(planetTravelSec)へ完全復帰する=可逆。
   holoTravelOn: true,

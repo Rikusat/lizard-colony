@@ -233,18 +233,24 @@ Object.assign(UI, {
   // 器は §5.10 の共通 `.holo-stage`(z-index だけ差し替え)。描画・尺・スキップは全て Holo 側の既存機構。
   // ★本編の時間経過・生産は再生中も進む(UI.loop は走り続ける)。惑星移動トランジションと同じ判断で、
   //   メインループに条件分岐を足さない=安全境界(経済/戦闘/確率/セーブ)に触れない。実測はHANDOFF §5x-C2.5。
-  playOpening(onDone) {
+  playOpening(onDone, force) {
     if (typeof Holo === "undefined" || !Holo.drawOpening) return false;
     const stage = Holo.mount("holo-opening");
     if (!stage) return false;
-    const reduced = !!(typeof Motion !== "undefined" && Motion.reduced);
+    // force.reduced は検分専用の上書き(?tune=1#sound の「reducedで再生」=音が鳴らないことの検分)
+    const reduced = (force && force.reduced != null) ? !!force.reduced : !!(typeof Motion !== "undefined" && Motion.reduced);
     const total = Holo.openDur();
     Holo.play(stage.cv, {
       total: total, reduced: reduced,
       reducedHoldSec: reduced ? (CFG.holoOpenReducedHoldSec || 2.0) : 0,
       staticT: Holo.openStaticT(),
       draw: (c, w, h, t) => Holo.drawOpening(c, w, h, t),
-      onEnd: () => { stage.ov.classList.remove("show"); if (onDone) onDone(); },
+      sound: { kind: "open" },   // S4: 音はノード表従属(Holo.play内で同期)。reducedは構造的に無音
+      onEnd: () => {
+        stage.ov.classList.remove("show");
+        if (this.placeChanged) this.placeChanged();   // S4: 場所の環境音へ復帰(合体通知=中間音を挟まない)
+        if (onDone) onDone();
+      },
     });
     return true;
   },
@@ -268,18 +274,25 @@ Object.assign(UI, {
       archive: (typeof LORE !== "undefined") ? { got: Object.keys(lore).filter((k) => lore[k]).length, total: LORE.length } : null,
     };
   },
-  playLore() {
+  playLore(force) {
     if (!this.loreMovieOn()) return false;
     const stage = Holo.mount("holo-lore");
     if (!stage) return false;
-    const reduced = !!(typeof Motion !== "undefined" && Motion.reduced);
+    const reduced = (force && force.reduced != null) ? !!force.reduced : !!(typeof Motion !== "undefined" && Motion.reduced);
     const opts = this.loreMovieOpts();
+    // S4: 未解読の章(gates=false)はREDACTED=一瞬のノイズへ落とす(視覚のREDACTEDと同じ真実から導出)
+    const locked = {};
+    for (const k in opts.gates) locked[k] = !opts.gates[k];
     Holo.play(stage.cv, {
       total: Holo.loreDur(), reduced: reduced,
       reducedHoldSec: reduced ? (CFG.holoLoreReducedHoldSec || 3.0) : 0,
       staticT: Holo.loreStaticT(),
       draw: (c, w, h, t) => Holo.drawLore(c, w, h, t, opts),
-      onEnd: () => { stage.ov.classList.remove("show"); },
+      sound: { kind: "lore", locked: locked },
+      onEnd: () => {
+        stage.ov.classList.remove("show");
+        if (this.placeChanged) this.placeChanged();   // S4: 場所の環境音へ復帰
+      },
     });
     return true;
   },

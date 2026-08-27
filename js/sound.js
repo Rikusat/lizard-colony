@@ -26,7 +26,7 @@ const Sound = {
   setEnabled(v) {
     this.enabled = !!v;
     if (this.enabled) this._ensureCtx();
-    else this.ambientOff();   // OFFにしたら常時音も止める(切ったのに鳴り続けない)
+    else { this.ambientOff(); this.movieStop(true); }   // OFFにしたら常時音もムービーの場も止める
   },
   on() { return this.enabled; },
 
@@ -43,7 +43,18 @@ const Sound = {
   //   ★ここから下、音の数値は一切ハードコードしない(CFG直読)。data.js は sound.js より必ず先に
   //     読まれる硬い依存(index.html / test-hqlab-qa.html / node テストの全経路で保証)。
   //     フォールバック定数を置くと「CFGを直しても効かない第二の既定値」が生まれる=知識の二重化。
-  def(id) { const raw = CFG.soundDefs[id]; return raw ? Object.assign({}, CFG.soundDefDefaults, raw) : null; },
+  def(id) {
+    const raw = CFG.soundDefs[id];
+    if (!raw) return null;
+    const d = Object.assign({}, CFG.soundDefDefaults, raw);
+    // S4: 音程の導出。freqHue="amber|crim|pale|void" → HOLOパレット(既存の真実)から padHz を引く。
+    //   変換点はここ1箇所(play / renderOffline / QA が同じ解決を通る=検分と実再生がズレない)。
+    if (d.freqHue && typeof CFG.holoPal === "object" && CFG.holoPal[d.freqHue]) {
+      d.freq = this.ambientFromTint(CFG.holoPal[d.freqHue]).padHz * (d.freqMul || 1);
+      if (d.freqEndMul) d.freqEnd = d.freq * d.freqEndMul;
+    }
+    return d;
+  },
   prio(id) { return CFG.soundPriority[id] || 0; },
 
   // 発音の可否(純ロジック=クロック注入でテスト可能): 同一SEの最小間隔+ボイスプール+優先度の追加枠
@@ -373,6 +384,58 @@ const Sound = {
   },
   // 音量スライダー等でCFGが変わったときに、鳴らしたまま追従させる(検分ページが使う)
   ambientSyncLevel() { if (this._amb) this._amb.out.gain.value = this._ambLevel(); },
+
+  // =============================================================
+  // ムービーの音(S4=REL-2・2026-08-27 Ric予算承認)。「場面の音」= SE優先度表に載せない。
+  //   憲章§3-2: 最重の音は常にプレイヤーの行為に紐づく(石=成果・撃破=勝利)。観る場面の音はそれを超えない。
+  //   タイムライン従属: いつ鳴らすかは Holo.play(ノード表=holoOpenNodes/holoLoreNodes)が決める。
+  //   ここは合図を受けて鳴らすだけ=音側に時間表・グリッド秒の知識を一切持たない(恒久テストが走査)。
+  //   持続層は置かない(無音が基準・暗転=無音の溜め)。ムービー=HOLO空間なので開始で場所の音を沈め、
+  //   復帰は演出層(meta.js onEnd → UI.placeChanged)が場所を読み直す=場所を知るのは演出層のまま。
+  // =============================================================
+  // ノード→音idの変換点(ここ1箇所)。表に無いノード(暗転・end)は null=無音。未解読章はREDACTEDへ。
+  movieCueId(kind, nodeId, locked) {
+    if (locked) return CFG.soundMovieRedactId || null;
+    const m = CFG.soundMovieCues && CFG.soundMovieCues[kind];
+    return (m && m[nodeId]) || null;
+  },
+  movieStart(kind) {
+    if (!this.enabled) return false;
+    this._ensureCtx();
+    if (!this._ctx) return false;
+    if (this._mv) this.movieStop(true);   // 二重再生の場を作らない(前の場は畳んでから)
+    this.ambientOff();                    // ムービー=HOLO空間: 場所の音を沈める(暗転=無音の溜めを守る)
+    const g = this._ctx.createGain();
+    g.gain.value = 1;
+    g.connect(this._ctx.destination);
+    this._mv = { kind: kind, g: g };
+    return true;
+  },
+  movieNode(kind, nodeId, locked) {
+    if (!this.enabled || !this._mv || this._mv.kind !== kind) return false;
+    const id = this.movieCueId(kind, nodeId, locked);
+    if (!id) return false;
+    const d = this.def(id);
+    if (!d) return false;
+    const t = this._now();
+    if (!this._admit(id, t)) return false;   // 窓口の規律はSEと同じ(間引き・受理ログ・1合図1音)
+    this._last[id] = t;
+    this.log.push({ id: id, t: t });
+    if (this.log.length > CFG.soundLogMax) this.log.shift();
+    this._voice(this._ctx, this._mv.g, d, this._ctx.currentTime, true);
+    return true;
+  },
+  movieStop(skipped) {
+    const mv = this._mv;
+    if (!mv) return false;
+    this._mv = null;
+    // スキップ即無音(指示書§4-2): ハードカットはクリック=「事故感」になるため、短い減衰で断つ。
+    //   スキップ=soundMovieStopSec(即断の体感) / 自然終了=soundMovieEndSec(余韻を見送る)。★Ric実機調整
+    const sec = skipped ? CFG.soundMovieStopSec : CFG.soundMovieEndSec;
+    if (this._ctx) this._ambRamp(mv.g.gain, 0, sec);
+    setTimeout(() => { try { mv.g.disconnect(); } catch (e) { /* 切断済み */ } }, sec * 1000 + 60);
+    return true;
+  },
 
   // テスト器: 環境音の数値ゲート。SEとは物差しが違う(peakでなく持続RMS・定常性・低域比率)
   renderAmbientOffline(p, seconds) {

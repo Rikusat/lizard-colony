@@ -699,16 +699,23 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
           stopS();
           if (typeof Sound === "undefined") { console.warn("[sound] js/sound.js 未読込"); return; }
           const LBL = { probe: "probe(テスト器専用・ゲームでは鳴らさない)", feed: "給餌 feed", hatch: "孵化 hatch", defeat: "撃破 defeat",
-            stone: "★賢者の石の生成 stone(=四重スリットの全通過・約1/3900)" };
+            stone: "★賢者の石の生成 stone(=四重スリットの全通過・正値1/4339)",
+            mvScan: "S4 走査 mvScan(calm・route / Lore net)", mvAlert: "S4 警告点灯 mvAlert(anomaly)",
+            mvSurge: "S4 暴走 mvSurge(rampage / Lore bugger章)", mvShadow: "S4 影 mvShadow(bagger・1グリッドのみ)",
+            mvHud: "S4 HUD mvHud(decision / Lore archive)", mvRise: "S4 上昇 mvRise(launch / Lore purity)",
+            mvTitle: "S4 題 mvTitle(title)", mvRedact: "S4 REDACTED mvRedact(未解読章の一瞬ノイズ)" };
+          const MVPAIR = "視覚の対: ムービーのカット表示(タイムライン従属=ノード表と同時)";
           const PAIR = { probe: "—", feed: "視覚の対: XP/成長表示", hatch: "視覚の対: 卵→ベビーの演出", defeat: "視覚の対: 撃破演出と報酬表示",
-            stone: "視覚の対: 中心の控えめなブルーム(静かな祝祭)" };
+            stone: "視覚の対: 中心の控えめなブルーム(静かな祝祭)",
+            mvScan: MVPAIR, mvAlert: MVPAIR, mvSurge: MVPAIR, mvShadow: MVPAIR,
+            mvHud: MVPAIR, mvRise: MVPAIR, mvTitle: MVPAIR, mvRedact: "視覚の対: REDACTED表示(未解読=嘘をつかない)" };
           const IDS = Object.keys(CFG.soundDefs);
           Sound.setEnabled(true);   // 検分中だけメモリ上でON
 
           const panel = document.createElement("div"); panel.id = "sound-view";
           panel.style.cssText = "position:fixed;inset:0;z-index:9999;background:#05060a;color:#e8dccb;font:13px/1.7 system-ui;display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px;overflow:auto;";
           const ttl = document.createElement("div"); ttl.style.cssText = "font-size:15px;font-weight:600;";
-          ttl.textContent = "V6-P5 音の検分 (?tune=1#sound) — S1基準音3種 + S3 賢者の石 / 場所の環境音3種(飼育槽・本部・巣)。#で閉じる";
+          ttl.textContent = "V6-P5 音の検分 (?tune=1#sound) — S1基準音3種 + S3 賢者の石 / 場所の環境音3種 + S4 ムービーの音。#で閉じる";
           panel.appendChild(ttl);
           const note = document.createElement("div"); note.style.cssText = "font-size:11px;opacity:.6;max-width:920px;text-align:center;";
           note.textContent = "セーブ非接触: このページのONはメモリ上だけ(閉じる/リロードで初回無音へ戻る)。数値は OfflineAudioContext の実測=装置QAの数値ゲートと同じ経路。"
@@ -833,6 +840,27 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
           });
           mk(ambRow, "停止", () => { Sound.ambientOff(); ambCur = null; ambOut.textContent = "停止中"; ambNum.textContent = ""; }, BOFF + "font-size:11px;padding:3px 9px;");
           box.appendChild(ambBox);
+
+          // ---- S4(REL-2): ムービーの音 — 実再生経路(UI.playOpening/playLore=Holo.play)そのもので検分 ----
+          //   時刻の真実はノード表(CFG.holoOpenNodes/holoLoreNodes)。クリック/キー=スキップ(短い減衰で即無音)。
+          //   reducedボタン=最終画の静止のみ(音が一切鳴らないことの検分)。終了後は場所の環境音へ自動復帰。
+          const mvBox = document.createElement("div");
+          mvBox.style.cssText = ambBox.style.cssText;
+          const mvTtl = document.createElement("div"); mvTtl.style.cssText = "font-weight:600;";
+          mvTtl.textContent = "S4 ムービーの音 — 「場面の音」: アクセントは撃破(0.259)を超えない。暗転=無音の溜め";
+          mvBox.appendChild(mvTtl);
+          const mvNote = document.createElement("div"); mvNote.style.cssText = "font-size:11px;opacity:.6;";
+          mvNote.textContent = "オープニング8カット+暗転2(14.8秒)/ Lore4章(14.4秒)。スキップ=クリック/キー(減衰"
+            + CFG.soundMovieStopSec + "秒)。未解読の章はREDACTED=一瞬のノイズに落ちる。音程はholoPalから導出。";
+          mvBox.appendChild(mvNote);
+          const mvRow = document.createElement("div"); mvRow.style.cssText = ambRow.style.cssText;
+          mvBox.appendChild(mvRow);
+          const MB = BOFF + "font-size:11px;padding:3px 11px;";
+          mk(mvRow, "▶ オープニング(音つき)", () => { Sound.unlock(); Sound.setEnabled(true); UI.playOpening(); }, MB);
+          mk(mvRow, "▶ Lore(音つき)", () => { Sound.unlock(); Sound.setEnabled(true); UI.playLore(); }, MB);
+          mk(mvRow, "オープニングreduced(無音の検分)", () => { Sound.unlock(); Sound.setEnabled(true); UI.playOpening(null, { reduced: true }); }, MB);
+          mk(mvRow, "Lore reduced(無音)", () => { Sound.unlock(); Sound.setEnabled(true); UI.playLore({ reduced: true }); }, MB);
+          box.appendChild(mvBox);
           // 音量スライダーは環境音にも即時反映させる(系統別が効くことを耳で確かめられる)
           volBox.querySelectorAll("input[type=range]").forEach((sl) => {
             sl.addEventListener("input", () => { Sound.ambientSyncLevel(); if (ambCur) ambShow(ambCur.label, ambCur.p, ambCur.tint); });
@@ -840,7 +868,8 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
           const foot = document.createElement("div"); foot.style.cssText = "font-size:11px;opacity:.5;max-width:920px;text-align:center;";
           foot.textContent = "判定の観点(SE): 給餌=頻発ゆえ短く小さいか / 孵化=柔らかく祝えているか / 撃破=手応えがあるか /"
             + " 石=極めて稀な一撃として重さと余韻が見合っているか(peakは撃破を明確に超える)。"
-            + " 判定の観点(環境音): 三者とも疲れないか・主張しすぎないか / 飼育槽↔本部↔巣を続けて押して質感差が聴いて分かるか / 切替が不自然でないか。";
+            + " 判定の観点(環境音): 三者とも疲れないか・主張しすぎないか / 飼育槽↔本部↔巣を続けて押して質感差が聴いて分かるか / 切替が不自然でないか。"
+            + " 判定の観点(ムービー): アクセントがカット/章の性格を語るか / 暗転が無音の溜めとして効くか / スキップに事故感が無いか / 音OFF・reducedで完全に無音か。";
           panel.appendChild(foot);
           document.body.appendChild(panel); sPanel = panel;
           measure(); bump();

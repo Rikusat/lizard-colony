@@ -1100,12 +1100,17 @@ const Holo = {
     const variant = opts.variant || "core";
     const draw = opts.draw || ((c, w, h, tt) => this.drawCut(c, w, h, tt, variant));
     const st = { done: false, skipped: false, raf: 0, t: 0 };
+    // ---- S4(REL-2): ムービーの音。時刻の真実は openNodes()/loreNodes() のノード表だけ ----
+    //   音側に時間表を作らない(禁止)。reduced-motion は下の分岐で先に return する=音のフックに一切入らない。
+    //   loop再生(検分ビューア等)では鳴らさない。opts.sound を渡すのは実再生の2経路(meta.js)のみ。
+    let cues = (!opts.loop && opts.sound && typeof Sound !== "undefined" && Sound.movieStart) ? opts.sound : null;
     const finish = (sk) => {
       if (st.done) return; st.done = true; st.skipped = !!sk;
       if (st.raf) cancelAnimationFrame(st.raf);
       if (st._to) clearTimeout(st._to);
       if (st._unbind) st._unbind();
       draw(ctx, W, H, total - 0.001);
+      if (cues) { Sound.movieStop(st.skipped); cues = null; }   // スキップ=短い減衰で即無音(事故感を出さない)
       if (opts.onEnd) opts.onEnd(st);
     };
     st.skip = function () { finish(true); };
@@ -1126,10 +1131,22 @@ const Holo = {
       else { st.done = true; if (opts.onEnd) opts.onEnd(st); }
       return st;
     }
+    if (cues) {
+      cues._nodes = cues.kind === "lore" ? this.loreNodes() : this.openNodes();
+      cues._i = 0;
+      Sound.movieStart(cues.kind);
+    }
     const now = opts.now || (() => performance.now());
     const t0 = now();
     const loop = () => {
       st.t = (now() - t0) / 1000;
+      // S4: ノード進行 → 音の合図(表の時刻に従属)。endは鳴らさない・未解読章はREDACTEDの一瞬ノイズへ
+      if (cues) {
+        while (cues._i < cues._nodes.length && st.t >= cues._nodes[cues._i].grid * this.grid()) {
+          const n = cues._nodes[cues._i++];
+          if (n.id !== "end") Sound.movieNode(cues.kind, n.id, !!(cues.locked && cues.locked[n.id]));
+        }
+      }
       if (st.t >= total) { if (opts.loop) { st.t = 0; return finishLoop(); } return finish(false); }
       draw(ctx, W, H, st.t);
       st.raf = requestAnimationFrame(loop);
