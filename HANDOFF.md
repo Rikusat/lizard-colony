@@ -2196,8 +2196,8 @@ V3=パネル枠/効果一覧ボタン/スパーク素材化→配信・本番実
 |---|---|---|
 | REL-0 | 現在地の実測と同期 | **通過**(実測→2026-08-27 Ric確認) |
 | REL-1 (=S3) | 本部/巣/四重スリットの音 | **判定=合格(2026-08-27)→本番デプロイ完了**(§5s-REL-1D) |
-| REL-2 (=S4) | オープニング/Loreの音同期 | **実装完了・QA済(§5s-REL-2)。デプロイは【S3耳判定待ち】で保留** |
-| REL-3 | 餌プール・報酬設計の最終調整 | 未着手(【最重要】**通過までREL-5=リリース作業に入らない**) |
+| REL-2 (=S4) | オープニング/Loreの音同期 | **判定=合格(2026-08-27)→本番デプロイ完了**(§5s-REL-2D) |
+| REL-3 | 餌プール・報酬設計の最終調整 | **先行提出済(§5s-REL-3P・数値は一切不変)→Ricの調整指示待ち**(【最重要】**通過までREL-5=リリース作業に入らない**) |
 | REL-4 | β公開前の総仕上げ | 未着手 |
 | REL-5 | β公開 | 未着手 |
 
@@ -2258,7 +2258,43 @@ V3=パネル枠/効果一覧ボタン/スパーク素材化→配信・本番実
 - **★併発検出3件(いずれも是正済)**: ①装置QAページはboot経路そのままのため、**起動時の自動オープニング(実クロック14.8秒)が§18の偽クロック計測に混入**(実測でcue列に別ムービーのノードが混じった)→§18冒頭でスキップ(keydown=本物の導線)を送り終わらせてから計測 ②`playLore(force)`への署名拡張に holo_regression の走査が未追随(意図「再生の実体はmeta.js」は不変)→走査を追随(283/1→**284/0**) ③qa-cdpのPID剰余ポートが並走の前景runと衝突(EADDRINUSE)し1280×800が1回未実行→単独再実行で3解像度完了(⑬「実行本数の突き合わせ」の実践)。
 - **QAゲート(実測)**: node **21/21スイート 0 FAIL**(`sound_regression` 139→**159/0**・`holo_regression` **284/0**)/ 装置QA **145→160/0 ×3解像度(1600×900/1280×800/900×700)console 0**(**§18新設**: 予算・導出・従属・skip/OFF/reduced/REDACTED+カナリア2種)/ 姿形 **176/176** / 統合 **20/20**(既知console1)/ opening **32/0** / trait-catalog **22** / **bootカナリア3ch捕捉→console 0 ×3解像度**+初回無音(`Sound._mv`未生成も確認)/ `?tune=1#sound` S4節生成・ボタン43・スライダー3・undefined表示なし・console 0 / 全JS構文OK / bump-cache(data/sound/holo/boot(ui)/meta の5asset更新)。
 - **デプロイ: しない(指示の順序どおり=RicのS3耳判定(本番)が届くまで保留)**。判定で調整が出れば同乗(全申告)。判定後の手順: QA全ゲート(実測本数)+boot console 0(カナリア先行)→bump-cache→deploy→asset実体byte照合→三者同期clean→本番実証(ムービー2本が本番で鳴る経路/スキップ・OFF・reducedの3経路/初回無音/console 0×3)。
-- **次**: RicのS3耳判定待ち(本番 `?tune=1#sound`)。**S4はローカルの `?tune=1#sound` でいつでも耳判定可能**。**S6着手禁止を維持**。REL-2の次はREL-3(餌プール・報酬設計)——**音の完了はリリースの合図ではない**。
+- **次**: RicのS3耳判定待ち(本番 `?tune=1#sound`)。**S4はローカルの `?tune=1#sound` でいつでも耳判定可能**。**S6着手禁止を維持**。REL-2の次はREL-3(餌プール・報酬設計)——**音の完了はリリースの合図ではない**。→ **S3/S4とも合格・S4デプロイ済(§5s-REL-2D)**
+
+### 5s-REL-2D. ★REL-1/2判定=合格 → S4本番デプロイ完了(2026-08-27)[`69a8c86` / dpl_Hz1YS3gNMrz65fuykYsKahSgWSzZ]
+
+- **Ric判定**: S3(本番)・S4(ローカル)の耳判定を通過。承認: タイムライン従属構造+従属1ケース実測の§18常設 / 語彙8種のHOLO導出・holoPal音程導出・影87Hz=void根・REDACTED自動ノイズ化 / スキップ減衰0.18秒・自然終了0.8秒(値は[A]微調整可)/ **惑星移動=専用音なしを確定(以後再燃させない)** / 憲章§3-2のRic文言。
+- **文書反映**: SoundSkillsへ追記(Ric文言)「**場面の音も既存の真実から導出する。同じ真実を持つ音(影と本部ハム等)は同じ根を共有してよい——世界が一つであることの音訳**」+§3表の惑星移動行を確定へ。§5x-OPS **⑲**「計測前に、計測対象外の実クロック事象を排除する(自動再生は計測前にスキップを送る)」を恒久化。
+- **QA全ゲート(デプロイ直前・実測)**: node **21/21スイート 0 FAIL** / 装置QA **160/0 ×3解像度 console 0** / 姿形 **176/176** / 統合 **20/20**(既知1)/ opening **32/0** / trait-catalog **22** / bootカナリア3ch捕捉→**console 0 ×3解像度**+初回無音 / bump-cache=変化なし(docsのみ=正)。
+- **デプロイ同乗の全申告**(本番 `3d9b83c` → `69a8c86`・**3コミット**): ①`8e40d85` S4実装一式(data/sound/holo/boot(ui)/meta+装置QA§18+sound_regression 159/holo_regression追随) ②`010c16e` HANDOFF記録 ③`69a8c86` 合格反映docs(SoundSkills+⑲)。**S3耳判定の調整=なし(合格そのまま)・機能変更はS4の音のみ・セーブ形式非接触**。
+- **デプロイ検証**: `npx vercel --prod`=READY/production(今回は出力全文を確認・1回で完了)。**asset実体byte照合: index.html+35asset=36ファイル全一致**(prod=HEAD)・除外404維持・**三者同期 HEAD=origin=本番=`69a8c86`・clean**。
+- **本番実証(https://lizardcolony.vercel.app)**: ①**初回無音** ✓×3解像度(console 0・`_mv`未生成も確認) ②**ムービー2本が鳴る経路** ✓ `?tune=1#sound` S4節(ボタン43・S4節・語彙ラベル)+実経路: playOpening→cue受理 `mvScan,mvAlert`(スキップまでの2カット) / playLore→**`mvRedact,mvRedact,mvRedact,mvHud`**=新規セーブでは net/purity/bugger が未解読→**REDACTED の一瞬ノイズへ自動で落ち、archive(章ゲート外)だけ本来の音**=設計どおり ③**場所音の沈みと復帰** ✓ 再生中 `ambSunk=true`→**スキップ経由**でも自然終了でも `amb=tank` へ復帰・`_mv=null` ④**スキップ/OFF/reduced の3経路** ✓ skip=cue停止+場の畳み / OFF=logDelta 0・開始拒否 / reduced=logDelta 0・フック不進入 ⑤console 0×3解像度 ✓(機能実証runのみ autoplay警告=既知計測副作用)。
+- **★実音の最終確認はRicが本番で行う**(自動QAで代替不能。本番 `?tune=1#sound` のS4節=音つき再生ボタン)。
+
+### 5s-REL-3P. ★REL-3 先行提出(指示書§5-1・**数値は一切動かしていない**・2026-08-27)
+
+**1. 餌まわりの現況**: 餌=**コオロギのみ**(全惑星共通在庫)。経路=クランク給餌(手動/オート=`dial.auto`。恒久方針「自動化はクランク経路のみ」§5nnn)。購入=1ロット固定表示 `cricketLotBase`50+`cricketLotPerRank`10×rank・単価`cricketCost`10G。**切れ時トグル**=`dial.stopOnEmpty`(ON=在庫切れで停止 / OFF=Gold換算補充=`feedGoldCost`10G・在庫±0・クランク稼働時のみ)+警告ランプ`cricketLowWarn`100。CFG全数(現在値): startCrickets 20 / cricketCost 10 / feedXp 10 / babyXpToAdult 50 / adultXpPerLevel 100 / feedGoldCost 10 / reviveCrickets 300 / cricketLotBase 50 / cricketLotPerRank 10 / cricketLowWarn 100 / dialRates [4,1,0.15]秒 / autoFeedXpPopup false / autoFeedLevelPopSmall true / autoFeedLevelPopSize 10 / autoFeedLevelPopMax 5(効果先: levelIncomeMult 0.12 / levelAtkMult 0.15)。
+
+**2. 報酬の現況(発生源全数)**:
+| 発生源 | 内容・量 | 確率 | 決定論/乱数 |
+|---|---|---|---|
+| 通常撃退 | コイン=floor(maxHp×2)×(elite×2)×frontier係数 / ランクXP30 | ジェム1=**20%** / 捕獲売却maxHp×1.5G=**15%**(snake型のみ) | **Math.random=乱数** |
+| ボス(非署名帯) | 同コイン式 / ジェム3+rank÷5 / science1 / XP100 | 確定 | 決定論 |
+| 署名ボス撃破 | ジェム(1+tier)×(elite2) / science ⌈tier/2⌉+elite2 / bio tier×3 / XP60(elite120) → **報酬ルーレット**: 球数`roulRewardBalls`{T0:8〜T6:40}+elite`roulRewardEliteBonus`12 / 景品帯=◇1(elite=⬡1)・虹=⬡1(elite=**石1**)・中央ポケット=レア卵(elite=虹=新種) | MC実測: 虹2.59%(1/39)・卵28.2% | **物理決定論**(単一シード) |
+| 四重スリット全通過 | **石1**(唯一の生成経路) | **1/4339**(正値) | 決定論(時間の純関数+初期位相ランダム) |
+| ミッション22件 | gems 2〜50 / coins 800〜100,000(全数=data.js `MISSIONS`) | 達成で確定 | 決定論 |
+| 図鑑新規登録 | ジェム=種族の星数 / bio=`resBioPerDex`10 | 確定 | 決定論 |
+| デイリー | coins=max(1000, income×120×streak(≤7)) / ジェム1+⌊streak/2⌋ | 確定 | 決定論(日付) |
+| オフライン | income合算×`offlineRate`0.5×min(閉時間, 24h+研究延長24h) | 確定 | 決定論 |
+| 巣ノード解放 | 鉱石(`nestRewardList`・P2-3配列) | 確定 | 決定論 |
+| 石の出口(参考) | 創世=`stoneGenesisBase`+tier / 固定化=`stoneFixBase`+tier×`stoneFixPerTier` | — | 決定論 |
+
+**3. 数値↔テストの対応**: idle_economy(87)=無操作で資源不減・減る経路はオート給餌のみ・クランク冪等 / feed_discipline(30)=給餌自動化はクランク経路限定 / roulette_prize(15)=景品テーブルR2-1整合 / slit_physics(12)=装置物理・決定論(**確率に触れる変更→roulette_rules.md §4のMC再測が必須**) / trait_stone(35)=石コスト・創世/固定化・二極 / boss_roster(272)=出現分布4,000×15条件 / cfg_sanity(15)=CFG整合 / lab_invest(13)=鉱石消費・rank非接触 / 統合QA(20)・装置QA(160)の経済系検査。**期待値に触れる変更はMC再測・黄金値が壊れる変更は理由と再基準化手順を先に報告(指示書§5-2)**。
+
+**4. 経済フロー(テキスト)**: **入口**=トカゲ生産(incomePerSec×研究income×Lv)・撃退/ボス(コイン/ジェム/science/bio)・報酬ルーレット(◇⬡●/卵)・スリット(●石)・ミッション/図鑑/デイリー(ジェム/コイン)・巣ノード(鉱石6種)・オフライン(コイン) → **変換**=コイン→コオロギ→XP→Lv(生産・攻撃↑)→生産/撃退力↑→報酬↑の主循環 / science+コイン(+鉱石)→研究15件→倍率 / 石→特性の創世・固定化 / 鉱石→本部投資(labInvest)・チタン鍛造 → **出口**=繁殖(breedBaseCost100×星)・設備・卵スロット・コオロギ購入・Gold換算給餌・研究・ロケット(REL-4対象外)。
+
+- **[A]対象**: ★付きCFG=**153行**(検分ページ群 `?tune=1#sound/#lore/#opening/#travel/#slitskin` ほかは現行のまま最新)。
+- **所見(提案止まり・一切変更していない)**: ①CLAUDE.md記載の「ランクアップで報酬コイン」が現行コードに見当たらない(収容+2のみ。浅い走査につき要精査) ②通常撃退の確率報酬2種(20%ジェム/15%捕獲)が `Math.random`=**非決定論のまま**(§5-2でMC対象になる際は要注意・現行の乱数隔離方針の例外) ③初版CLAUDE.mdの「撃退で確率コオロギ」は現行に存在しない(コオロギ入手=購入のみ)。
+- **次**: **提出して停止**。調整の対象と方向性はRicが指示(§5-2の1件ずつ承認制)。**S6着手禁止・REL-5封印を維持**。
 
 ### 5x-GUARD. ★描画の非有限ガード(2026-08-10・Ric裁定・本番デプロイ済)[7e3d369, bac5fbc, c46d7ba, a231f1e]
 前セッションの報告テキストがクラッシュで失われ**HANDOFF記録も欠落していた**ため、コミットメッセージ・テスト実体・本番実測から復元して記録(2026-08-10 再開セッション)。
