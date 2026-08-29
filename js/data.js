@@ -38,7 +38,9 @@ const CFG = {
   breedCooldown: 90,        // 繁殖クールダウン(秒)
   capacityBase: 10,
   capacityPerRank: 2,
-  raidInterval: 120,        // 襲撃周期(秒)
+  raidInterval: 300,        // ★襲撃周期(秒)=全襲来の固定周期。REL-3件1(Ric裁定 2026-08-29): 5分に1回へ統一(旧120)。
+                            //   何が来るか(rollNextRaid=選択則)・敵の中身・報酬式は本件で不変。決定論(実時間dt)。
+                            //   保存済みの進行中タイマーは据え置き(延長しない=プレイヤー不利にしない)。恒久テスト=raid_cadence
   raidDuration: 45,         // 蛇が諦めるまでの秒数
   biteIntervalBase: 8,      // 蛇の噛みつき間隔(秒)
   injuryTime: 60,           // 負傷回復までの秒数(尾の再生もこの時間で完了=§9.1)
