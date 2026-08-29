@@ -59,8 +59,6 @@ const ICONS = {
   "trait-shizumimachi": '<path d="M4 6c2-1.6 4-1.6 6 0s4 1.6 6 0 3-1.2 4 0" fill="none"/><path d="M6 20v-9h4v9M14 20V8h5v12" fill="none"/><rect x="7.2" y="12.6" width="1.5" height="1.5"/><rect x="7.2" y="15.6" width="1.5" height="1.5"/><rect x="15.6" y="10" width="1.5" height="1.5"/><rect x="15.6" y="13.2" width="1.5" height="1.5"/><rect x="15.6" y="16.4" width="1.5" height="1.5"/>',
   // リンカイ: 黒い核と強い光輪(臨界)。
   "trait-rinkai": '<circle cx="12" cy="12" r="5.2"/><circle cx="12" cy="12" r="8.6" fill="none"/><circle cx="12" cy="12" r="1.2" fill="none" stroke-opacity=".7"/>',
-  // 固定印(S5-b): 鍵=「必ず子へ継がれる」。※lockは研究のロック等「未解放」の意味でも使用。
-  lock: '<rect x="6" y="11" width="12" height="9" rx="2" fill="none"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" fill="none"/><circle cx="12" cy="15.2" r="1.2"/>',
   // 固定印(S3③・繁殖ピッカー): 賢者の石の系譜=六角の原石+内環+芯(stoneの記号性から引用・深紅で小さく静かに)。
   //   シルエットで判別(六角+環=lockの錠形ともtraitロゴとも紛れない)。
   "fix-seal": '<path d="M12 3.6 18.6 7.8v8.4L12 20.4 5.4 16.2V7.8z" fill="none"/><circle cx="12" cy="12" r="3.6" fill="none"/><circle cx="12" cy="12" r="1.1"/>',
@@ -139,6 +137,9 @@ const ICONS = {
   // V6-P5 S1: 音の設定トグル用。ON=音波あり / OFF=×付き(状態を形で示す=色のみに依存しない・UISkills §1.6/§7)
   sound: '<path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z" fill="none"/><path d="M15.4 9.2a4.2 4.2 0 0 1 0 5.6M18.1 6.7a7.8 7.8 0 0 1 0 10.6" fill="none"/>',
   soundOff: '<path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z" fill="none"/><path d="M15.8 9.6l5 4.8M20.8 9.6l-5 4.8" fill="none"/>',
+  // 錠前: 研究ロック等「未解放」+固定印(S5-b「必ず子へ継がれる」)で共用。REL§6-1(2026-08-29): 旧63行の
+  //   重複定義(キー穴の点つき)は後勝ちで本定義が有効だったため重複側を除去=現行表示のまま
+  //   (rocketStages/slitSkinByStageで同型の二重定義が実害化した前例への予防)。
   lock: '<rect x="6" y="11" width="12" height="9" rx="2" fill="none"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" fill="none"/>',
   check: '<path d="M4 13l5 5L20 7" fill="none"/>',
   star: '<path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6L12 16.7 6.7 19.6l1.1-6L3.4 9.4l6-.8z"/>',
