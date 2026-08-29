@@ -122,6 +122,29 @@ window.__err=null; window.addEventListener("error",e=>{window.__err=(window.__er
     ok("巣B4: 効果一覧→モーダルが開く", !!fxb&&document.getElementById("modal-title").textContent.indexOf("巣の効果一覧")>=0);
     if(UI.closeModal)UI.closeModal();
 
+    // (6) REL-P0(2026-08-29): 実クリック検査 — 左メニューの主要ボタンを実際に押してパネルが開くことを確認。
+    //   由来: f080e6aの誤削除で Game.facilityCost が消え、設備パネルが全域で開けない事故が
+    //   「要素の存在+配線の確認」だけでは素通りした(「開かない」はクリックしないと見えない)。
+    //   ★カナリア先行: 設備の呼び出しを一時的に壊し、この検査が「開かない」を検知できることを実証してから本判定。
+    //   (カナリア中の構築エラーconsoleは検査自身の副作用なので、consoleを一時差し替えて「console 0」の証拠を汚さない)
+    var mdl=document.getElementById("modal");
+    var brokeFn=Game.facilityCost, canaryErr=0, ce=console.error;
+    Game.facilityCost=undefined; console.error=function(){canaryErr++;};
+    document.getElementById("btn-fac").click();
+    var canaryBroken = mdl.classList.contains("hidden") || !document.querySelector("#fac-list .list-row");
+    Game.facilityCost=brokeFn; console.error=ce; if(UI.closeModal)UI.closeModal();
+    ok("★P0カナリア: 実クリック検査は「開かない」を検知できる(facilityCostを壊すと不合格+構築エラー観測)", canaryBroken && canaryErr>0, "err="+canaryErr);
+    document.getElementById("btn-fac").click();
+    var facRows=document.querySelectorAll("#fac-list .list-row").length;
+    ok("P0実クリック: 設備パネルが開き設備が並ぶ(facilityCost復元)", !mdl.classList.contains("hidden") && document.getElementById("modal-title").textContent.indexOf("設備")>=0 && facRows>0, "rows="+facRows);
+    if(UI.closeModal)UI.closeModal();
+    document.getElementById("btn-breed-menu").click();
+    ok("P0実クリック: 繁殖メニューが開く", !mdl.classList.contains("hidden"), document.getElementById("modal-title").textContent.slice(0,14));
+    if(UI.closeModal)UI.closeModal();
+    var coins0=Game.state.coins, cr0=Game.state.crickets;
+    document.getElementById("btn-cricket").click();
+    ok("P0実クリック: コオロギ購入ボタンが例外なく処理される(購入 or 不足トースト)", Game.state.coins!==coins0 || Game.state.crickets!==cr0 || !!document.querySelector(".toast"));
+
     document.getElementById("itest").innerHTML="<b>統合テスト: "+pass+" PASS / "+fail+" FAIL</b><br>"+R.join("");
     document.title=(fail?"FAIL":"PASS")+" "+pass+"/"+(pass+fail);
    },2600);

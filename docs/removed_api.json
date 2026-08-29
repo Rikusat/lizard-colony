@@ -69,6 +69,17 @@
       "section": "HANDOFF §5s-V6-P1-2 ③ [ac1814a, 1344d9e]",
       "replacement": "headquarters.recipeRefundV1 で購入済み全額払戻(一度きり)。cost表は払戻計算用に js/game.js へ残置",
       "ids": ["recipe1", "recipe2", "recipe3", "recipe4", "recipe5", "recipe6"]
+    },
+    {
+      "feature": "設備購入API(撤廃ではなく誤削除→P0復元)",
+      "removedOn": "2026-08-09",
+      "section": "HANDOFF §5s-REL-P0 [f080e6a(V6-P1-1 WIP)で誤って巻き添え削除 → 2026-08-29 P0で復元]",
+      "replacement": "撤廃ではない。⑭の登録が無かったため走査は原理的に走らず、呼び出し元(equipment.js)残存で設備パネルが全域死。削除前原文どおり復元済み(現役API)",
+      "ids": [],
+      "idsRecordedOnly": [
+        { "id": "facilityCost", "reason": "現役API(P0で復元済み)。誤削除の記録として登録するが、走査すると正当な呼び出しが全て違反になるため走査対象外" },
+        { "id": "buyFacility", "reason": "同上(同一節の巻き添え・同時復元・現役API)" }
+      ]
     }
   ]
 }

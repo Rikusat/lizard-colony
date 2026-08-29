@@ -1618,6 +1618,24 @@ const Game = {
   },
 
   // ---------------- 味方 (GameExpansion_v2 ⑩) ----------------
+  // ---------------- 設備 ----------------
+  //   ★P0復元(2026-08-29): f080e6a(V6-P1-1 味方全廃・WIP)が本節を誤って巻き添え削除し、設備パネル
+  //   (ui/screens/equipment.js)が全域で開けなくなっていた(Game.facilityCost is not a function)。
+  //   削除前の原文どおり復元。コストの真実=FACILITIES(data.js)の baseCost/costMult × facLv(単一窓口のまま)。
+  facilityCost(id) {
+    const f = facilityById(id);
+    return Math.floor(f.baseCost * Math.pow(f.costMult, this.facLv(id)));
+  },
+  buyFacility(id) {
+    const f = facilityById(id);
+    if (this.facLv(id) >= this.facMax(f)) return;
+    const cost = this.facilityCost(id);
+    if (this.state.coins < cost) return UI.denyFlash("coins");
+    this.state.coins -= cost;
+    this.state.facilities[id]++;
+    UI.toast(`${f.name} が Lv${this.facLv(id)} になった!`);
+  },
+
   // ---------------- 襲撃(防衛バトル / GameExpansion_v2 ①②) ----------------
   // 次の襲撃を事前決定(予告UI用)。R30未満=従来(5回に1回ボス蛇)、R30+=毎回ボス+5回に1回Elite
   rollNextRaid() {
