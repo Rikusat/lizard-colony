@@ -1749,6 +1749,32 @@ const Game = {
     return e.hp <= 0;
   },
 
+  // ---------------- UPD-1: ロックオン迎撃(照準ウィンドウ) ----------------
+  //   「開いているか」の判定はこの1箇所(表示・クリック・打撃の三者が共有=経路統一)。
+  //   飛翔系(鷹/カラス)は固有ギミックの領分なので対象外。カットイン中も対象外。
+  aimWindow(r) {
+    r = r || this.raid;
+    if (!CFG.aimOn || !r || !r.snake || !r.snake.arrived) return null;
+    if (r.type && r.type.flying) return null;
+    if (r.cutinT > 0) return null;
+    const t = (r.aimT || 0) - CFG.aimFirstSec;
+    if (t < 0) return null;
+    const idx = Math.floor(t / CFG.aimCycleSec);
+    if (t - idx * CFG.aimCycleSec >= CFG.aimWindowSec) return null;
+    return { idx: idx, struck: r.aimIdx === idx };
+  },
+  //   1ウィンドウ1打(連打をボーナス化しない)。効果=ひるみ(既存stunT)+DPS×aimDmgSec秒ぶんの追撃。
+  aimStrike() {
+    const r = this.raid, w = this.aimWindow(r);
+    if (!w || w.struck) return false;
+    r.aimIdx = w.idx;
+    r.aimFxT = 0.5;
+    r.stunT = Math.max(r.stunT || 0, CFG.aimStunSec);
+    this.popup(r.snake.x, r.snake.y - 64, "照準ヒット!", "#ffd27a");
+    if (this.applyDps(r, CFG.aimDmgSec, 1)) this.endRaid(true);
+    return true;
+  },
+
   updateRaid(dt) {
     const r = this.raid;
     if (r.cutinT > 0) { r.cutinT -= dt; return; }  // カットイン中は静止
@@ -1777,6 +1803,9 @@ const Game = {
       return;
     }
     r.timeLeft -= dt;
+    // UPD-1: 照準ウィンドウの時計(到着からの経過の純関数=決定論)とヒットFxの減衰
+    r.aimT = (r.aimT || 0) + dt;
+    if (r.aimFxT > 0) r.aimFxT -= dt;
     if (this.applyDps(r, dt, 1)) return this.endRaid(true);
     if (r.stunT > 0) { r.stunT -= dt; }
     else {

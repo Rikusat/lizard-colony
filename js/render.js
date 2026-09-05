@@ -243,7 +243,7 @@ const Render = {
     if (typeof Weather !== "undefined") this._wxParts = Weather.drawParticles(ctx, W, H, this.time, this._wx, FIELD.y1, FIELD.y2);
     this.drawSpawnFx(ctx); // §9-C2 誕生の登場エフェクト(生き物の上に重ねる祝祭)
     this.drawGenesisFx(ctx); // S5 創世エフェクト(賢者の石の錬成=深紅の静かな重み)
-    if (Game.raid) this.drawBoss(ctx, Game.raid);
+    if (Game.raid) { this.drawBoss(ctx, Game.raid); this.drawAim(ctx, Game.raid); }
     else if (Game.corpse) this.drawCorpse(ctx, Game.corpse);
     if (Game.currentStage().id === 8) this.drawBugSweep(ctx); // 氷の前線: 自動掃討(純演出)
     this.drawPopups(ctx);
@@ -2918,6 +2918,42 @@ const Render = {
       case "spider": return "drawSpider";
       case "bugger": return "drawBugger";
       default: return "drawSnake";
+    }
+  },
+
+  // UPD-1: 照準ウィンドウのHOLOブラケット+ヒットFx。開いているかはルール層 Game.aimWindow が単一の真実。
+  //   色は既存の真実(CFG.holoPal=本部HOLOの琥珀)から=「本部からの照準支援」という物語と一致。
+  //   reduced-motion時は脈動を止める(機能は形で残す=情報を動きだけに載せない)。
+  drawAim(ctx, raid) {
+    const aw = (typeof Game !== "undefined" && Game.aimWindow) ? Game.aimWindow(raid) : null;
+    const e = raid.snake;
+    if (!e) return;
+    const amber = (CFG.holoPal && CFG.holoPal.amber) || "#ffb547";
+    if (aw && !aw.struck) {
+      const reduced = (typeof Motion !== "undefined" && Motion.reduced);
+      const hs = 46 * this.bossScale(raid) + (reduced ? 0 : Math.sin(this.time * 7) * 4);
+      const cx = e.x, cy = e.y - 14, L = 14;
+      ctx.save();
+      ctx.strokeStyle = amber; ctx.lineWidth = 2.5; ctx.globalAlpha = 0.95;
+      for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+        ctx.beginPath();
+        ctx.moveTo(cx + sx * hs - sx * L, cy + sy * hs);
+        ctx.lineTo(cx + sx * hs, cy + sy * hs);
+        ctx.lineTo(cx + sx * hs, cy + sy * hs - sy * L);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 0.8; ctx.fillStyle = amber;
+      ctx.font = "11px ui-monospace, Consolas, monospace";
+      ctx.textAlign = "center";
+      ctx.fillText("LOCK", cx, cy - hs - 8);
+      ctx.restore();
+    }
+    if (raid.aimFxT > 0) {
+      const p = 1 - raid.aimFxT / 0.5;
+      ctx.save();
+      ctx.strokeStyle = amber; ctx.globalAlpha = 0.7 * (1 - p); ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(e.x, e.y - 14, 30 + p * 55, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
     }
   },
 

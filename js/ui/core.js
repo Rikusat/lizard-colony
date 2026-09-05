@@ -78,6 +78,13 @@ const UI = {
           return;
         }
       }
+      // UPD-1: ロックオン迎撃 — 照準ウィンドウ中に地上敵をタップで「ひるみ+追撃」。
+      //   固有ギミック(クモの巣・鷹の威嚇)を先に判定し、その後の一般ギミックとして置く。
+      //   開いているかの判定はルール層 Game.aimWindow の単一窓口(表示と同じ答え)。
+      if (raid && Game.aimWindow && Game.aimWindow(raid)) {
+        const en = raid.snake;
+        if (en && Math.hypot(en.x - x, en.y - y) < CFG.aimHitR) { Game.aimStrike(); return; }
+      }
       // 卵の巣の卵タップ(小・精密) → 卵の小ウィンドウ(⑤)。トカゲより先に精密判定
       if (!raid && typeof NEST !== "undefined") {
         for (let i = 0; i < Game.state.eggs.length; i++) {
