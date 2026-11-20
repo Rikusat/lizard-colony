@@ -68,7 +68,7 @@ Object.assign(UI, {
     const cost = A && B ? Game.breedCost(A, B) : 0;
     const sl = `<div class="sp-slots">${this._bmSlotHtml("A", A)}${this._bmSlotHtml("B", B)}</div>`;
     const pachi = this._pachi;
-    const goLabel = pachi ? "このペアで発射盤へ" : "この組で繁殖";
+    const goLabel = pachi ? "このペアをセット" : "この組で繁殖";
     const fee = A && B ? ` (${Icon.svg("coin")}${fmt(cost)})` : "";
     // 自動選出(クイック繁殖)と繁殖予約は撤廃(Ric裁定 2026-07-29)。残るのは手動確定のみ
     const act = `<div class="sp-actions">

@@ -30,6 +30,7 @@ const PACHINKO_BOARD = Object.freeze({
   tiers: Object.freeze(CFG.pachinko.tiers.map((tier) => tier.id)),
 });
 const PACHINKO_RARE_INDEX = PACHINKO_BOARD.tiers.indexOf("rare");
+const PACHINKO_FEED_TARGET = 3;
 
 // 残りの釘を通って指定数以上右にはじかれる確率。
 function pachinkoTail(remaining, needed, probability) {
@@ -1393,6 +1394,7 @@ const Game = {
       dry: int(p.dry, cfg.chanceLimit - 1),
       fever: int(p.fever, cfg.feverChargeMax - 1), feverShots: int(p.feverShots, cfg.feverLength),
       rushShots: int(p.rushShots, cfg.rushCap), guard: int(p.guard, cfg.guardCap),
+      feedProgress: int(p.feedProgress, PACHINKO_FEED_TARGET),
     };
   },
 
@@ -1401,6 +1403,15 @@ const Game = {
   },
 
   pachinkoBoard() { return PACHINKO_BOARD; },
+
+  // UIの手動クランクが給餌に成功した時だけ呼ぶ。オート給餌・報酬盤は対象外。
+  notePachinkoCrank() {
+    const progress = this.pachinkoProgress();
+    if (progress.feedProgress >= PACHINKO_FEED_TARGET) return false;
+    progress.feedProgress++;
+    this.save();
+    return true;
+  },
 
   pachinkoPair(parentIds) {
     if (parentIds == null || (Array.isArray(parentIds) && parentIds.length === 0)) {
@@ -1415,30 +1426,42 @@ const Game = {
     return { pair: a && b ? pair : [], fee: a && b ? this.breedCost(a, b) : 0, canBreed: !pairError, pairError };
   },
 
-  pachinkoOptions(progress, aim) {
+  pachinkoMeters(progress) {
+    const cfg = CFG.pachinko, feverShots = progress.feverShots;
+    const untilChance = cfg.chanceLimit - progress.dry;
+    return {
+      fever: feverShots ? Math.round(feverShots / cfg.feverLength * cfg.feverChargeMax) : progress.fever,
+      feverShots, streak: progress.streak, untilChance, chanceReady: untilChance === 1,
+    };
+  },
+
+  pachinkoOptions(progress, aim, feedBall = false) {
     const cfg = CFG.pachinko;
-    const fever = progress.feverShots > 0, rush = progress.rushShots > 0;
-    const chance = progress.dry === cfg.chanceLimit - 1;
+    const meters = this.pachinkoMeters(progress);
+    const fever = progress.feverShots > 0, rush = !feedBall && progress.rushShots > 0;
     const tierBoost = Math.min(cfg.nestOddsCap, (this.nestLv() - 1) * cfg.nestOddsPerLevel)
       + (fever ? cfg.feverOdds : 0) + (rush ? cfg.rushOdds : 0);
     const probability = 0.5 + cfg.aimOdds * aim + tierBoost;
     const multiplier = (fever ? cfg.feverPayout : 1) * (rush ? cfg.rushPayout : 1);
-    return { fever, rush, chance, probability, tierBoost, multiplier };
+    return { fever, rush, chance: meters.chanceReady, probability, tierBoost, multiplier, meters };
   },
 
-  pachinkoStatus(parentIds, aim = 0) {
+  pachinkoStatus(parentIds, aim = 0, options) {
     const cfg = CFG.pachinko, p = this.pachinkoProgress();
-    const opts = this.pachinkoOptions(p, Number.isFinite(aim) ? clamp(aim, -1, 1) : 0);
+    const complimentary = options?.feedBall === true;
+    const opts = this.pachinkoOptions(p, Number.isFinite(aim) ? clamp(aim, -1, 1) : 0, complimentary);
     const rareForks = cfg.tiers[PACHINKO_RARE_INDEX].forks;
     const hitChance = opts.chance ? 1 : pachinkoTail(cfg.rows, rareForks, opts.probability);
     return {
-      cost: cfg.cost + (this.currentStage().id - 1) * cfg.costPerStage, coins: this.state.coins,
+      cost: complimentary ? 0 : cfg.cost + (this.currentStage().id - 1) * cfg.costPerStage,
+      coins: this.state.coins,
       ...this.pachinkoPair(parentIds),
-      total: p.total, streak: p.streak, best: p.best,
-      fever: p.feverShots ? Math.round(p.feverShots / cfg.feverLength * cfg.feverChargeMax) : p.fever,
-      feverShots: p.feverShots, untilChance: cfg.chanceLimit - p.dry, chanceReady: opts.chance,
-      rushShots: p.rushShots, guard: p.guard, guardBonus: Math.round(cfg.guardAttackBonus * 100),
-      rareChance: Math.round(hitChance * 100), tierBoost: Math.round(opts.tierBoost * 100), multiplier: opts.multiplier,
+      ...opts.meters,
+      total: p.total, best: p.best,
+      rushShots: p.rushShots, rushActive: opts.rush, guard: p.guard, guardBonus: Math.round(cfg.guardAttackBonus * 100),
+      rareChance: Math.round(hitChance * 100), tierBoost: Math.round(opts.tierBoost * 100),
+      multiplier: complimentary ? 0 : opts.multiplier,
+      feedProgress: p.feedProgress, feedTarget: PACHINKO_FEED_TARGET, feedBall: p.feedProgress >= PACHINKO_FEED_TARGET,
     };
   },
 
@@ -1469,23 +1492,28 @@ const Game = {
     return { points, index };
   },
 
-  playPachinko(aim, count, parentIds) {
+  playPachinko(aim, count, parentIds, options) {
     if ((count !== 1 && count !== 10) || !Number.isFinite(aim) || Math.abs(aim) > 1) {
       return { error: "発射数と狙いを選び直してください" };
     }
     if (this.raid) return { error: "襲来中はコロニーの防衛に集中しよう" };
     const state = this.state, cfg = CFG.pachinko;
-    const status = this.pachinkoStatus(parentIds, aim);
+    const feedBall = options?.feedBall === true;
+    const status = this.pachinkoStatus(parentIds, aim, options);
     if (status.pairError) return { error: status.pairError };
-    const cost = status.cost * count + status.fee;
+    if (feedBall && (count !== 1 || status.pair.length)) return { error: "給餌玉は親を選ばず1発だけ発射できます" };
+    if (feedBall && !status.feedBall) return { error: "給餌玉の準備ができていません" };
+    const launchCost = status.cost * count;
+    const cost = launchCost + status.fee;
     if (state.coins < cost) return { error: `発射に ${fmt(cost)}G 必要です` };
 
     const seed = this.pachinkoSeed(), rng = pachinkoRng(seed);
     const progress = { ...this.pachinkoProgress() }, shots = [];
+    if (feedBall) progress.feedProgress = 0;
     const total = { coins: 0, crickets: 0, gems: 0, amethyst: 0, guard: 0 };
     let best = 0;
     for (let i = 0; i < count; i++) {
-      const opts = this.pachinkoOptions(progress, aim);
+      const opts = this.pachinkoOptions(progress, aim, feedBall);
       const shotSeed = Math.floor(rng() * 0x100000000);
       const { points, index } = this.pachinkoDrop(shotSeed, aim, opts.probability, opts.chance);
       const tier = cfg.tiers[index];
@@ -1515,7 +1543,7 @@ const Game = {
       }
       for (const key of Object.keys(total)) total[key] += rewards[key];
       shots.push({ tier: tier.id, seed: shotSeed, points, ...rewards, streak: progress.streak,
-        fever: opts.fever, rush: opts.rush, chance: opts.chance, feverStarted });
+        fever: opts.fever, rush: opts.rush, chance: opts.chance, feverStarted, progress: this.pachinkoMeters(progress) });
     }
 
     const bestTier = cfg.tiers[best];
@@ -1525,13 +1553,13 @@ const Game = {
       if (!this.breed(a.id, b.id, true, { rng, tier: bestTier })) return { error: "繁殖条件を確認してください" };
       egg = state.eggs[state.eggs.length - 1];
     }
-    state.coins += total.coins - status.cost * count;
+    state.coins += total.coins - launchCost;
     state.crickets += total.crickets;
     state.gems += total.gems;
     if (total.amethyst) this.addOre("amethyst", total.amethyst);
     state.pachinko = progress;
     this.save();
-    return { seed, shots, egg, cost, bestTier: bestTier.id, total };
+    return { seed, shots, egg, cost, bestTier: bestTier.id, total, feedBall };
   },
 
   // 【撤廃(Ric裁定 2026-07-29)】クイック繁殖(quickBreedScore/quickBreedPick/quickBreed)はここにあった。

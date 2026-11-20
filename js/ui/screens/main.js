@@ -18,7 +18,8 @@ Object.assign(UI, {
         <div class="bh-bar"><div class="bh-fill" id="bh-fill"></div></div>
         <div class="bh-nums"><span id="bh-hp"></span><span id="bh-time"></span></div>
       </div>`;
-    center.appendChild(el);
+    const host = center.closest(".colony-page") ? document.getElementById("frame") : center;
+    host.appendChild(el);
   },
 
   updateBossHud() {

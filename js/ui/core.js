@@ -48,10 +48,10 @@ const UI = {
     if (cricketBtn) attachHold(cricketBtn, () => Game.buyCrickets(undefined, true));
     on("btn-map", () => this.openMap()); // 3.10.2: 惑星バー撤廃→右上マップボタンから惑星マップ
     on("btn-dex", () => this.openDex());
-    on("btn-breed-menu", () => this.openBreedMenu()); // R1: 繁殖=左メニュー常設
+    document.getElementById("btn-breed-menu")?.addEventListener("click", () => this.openBreedMenu());
     on("btn-missions", () => this.openMissions());
     on("btn-settings", () => this.openSettings());
-    on("btn-raid-now", () => Game.raidNow());
+    document.getElementById("btn-raid-now")?.addEventListener("click", () => Game.raidNow());
     on("modal-close", () => this.closeModal());
     this.els["modal"].addEventListener("pointerdown", (e) => {
       if (e.target === this.els["modal"]) this.closeModal();
@@ -156,7 +156,7 @@ const UI = {
         if (typeof Roulette !== "undefined") Roulette.advance(gdt);
         if (typeof Slit !== "undefined") Slit.advance(gdt); // §9: 四重スリット装置(クールダウン/飛行/張り付き寿命)
       }
-      if (!this._pachi || this._pachi.main.dataset.playView === "colony") Render.draw();
+      Render.draw();
       if (this.drawRoulette) this.drawRoulette();
       if (this.drawSlit) this.drawSlit(); // §9: 四重スリット装置(左メニュー下部・線のみ)
       if (this.drawBossReward) this.drawBossReward(); // Phase3.13 C2: ボス報酬オーバーレイ(稼働中のみ)
@@ -254,30 +254,33 @@ const UI = {
       if (fr) Motion.play(fr, "quake");
     }
     this._dreadWas = dread;
-    if (Game.raid) {
-      const r = Game.raid;
-      rt.textContent = "襲撃中!!";
-      rt.classList.add("soon");
-      this.els["raid-banner"].classList.remove("hidden");
-      this.els["raid-banner"].innerHTML =
-        `${r.elite ? Icon.svg("crown") + " " : ""}${Icon.svg(r.type.icon)} ${Game.bossDisplayName(r)}${r.tier ? " T" + r.tier : ""} 襲来中!!`;
-      nb.classList.add("hidden");
-    } else {
-      rt.textContent = fmtTime(s.raidTimer);
-      rt.classList.toggle("soon", s.raidTimer <= 10);
-      this.els["raid-banner"].classList.add("hidden");
-      // 次の襲撃の予告(R30+はBOSSバッジ+名前+脅威)
-      if (s.nextRaid && (s.nextRaid.tier || s.nextRaid.boss)) {
-        const t = bossTypeById(s.nextRaid.typeId);
-        // ★名前は必ず単一窓口(Game.bossDisplayName)を通す。ここは §5z-2 で「表示4経路すべてを新窓口へ」と
-        //   報告した際に**見落とされていた5つ目の経路**で、汎用名(オオグモ/ダイジャ等)を直に出していた。
-        //   アイコンと脅威文は脅威型の"挙動"の予告なので従来どおり BOSS_TYPES 由来のままでよい。
-        nb.classList.remove("hidden");
-        nb.innerHTML = `<span class="boss-badge">BOSS</span>${s.nextRaid.elite ? `<span class="elite-badge">ELITE</span>` : ""}
-          <span class="nb-icon">${Icon.svg(t.icon)}</span> ${Game.bossDisplayName(s.nextRaid)}${s.nextRaid.tier ? " T" + s.nextRaid.tier : ""}
-          <div class="nb-threat">${t.threat}</div>`;
-      } else {
+    const banner = this.els["raid-banner"];
+    if (rt && nb && banner) {
+      if (Game.raid) {
+        const r = Game.raid;
+        rt.textContent = "襲撃中!!";
+        rt.classList.add("soon");
+        banner.classList.remove("hidden");
+        banner.innerHTML =
+          `${r.elite ? Icon.svg("crown") + " " : ""}${Icon.svg(r.type.icon)} ${Game.bossDisplayName(r)}${r.tier ? " T" + r.tier : ""} 襲来中!!`;
         nb.classList.add("hidden");
+      } else {
+        rt.textContent = fmtTime(s.raidTimer);
+        rt.classList.toggle("soon", s.raidTimer <= 10);
+        banner.classList.add("hidden");
+        // 次の襲撃の予告(R30+はBOSSバッジ+名前+脅威)
+        if (s.nextRaid && (s.nextRaid.tier || s.nextRaid.boss)) {
+          const t = bossTypeById(s.nextRaid.typeId);
+          // ★名前は必ず単一窓口(Game.bossDisplayName)を通す。ここは §5z-2 で「表示4経路すべてを新窓口へ」と
+          //   報告した際に**見落とされていた5つ目の経路**で、汎用名(オオグモ/ダイジャ等)を直に出していた。
+          //   アイコンと脅威文は脅威型の"挙動"の予告なので従来どおり BOSS_TYPES 由来のままでよい。
+          nb.classList.remove("hidden");
+          nb.innerHTML = `<span class="boss-badge">BOSS</span>${s.nextRaid.elite ? `<span class="elite-badge">ELITE</span>` : ""}
+            <span class="nb-icon">${Icon.svg(t.icon)}</span> ${Game.bossDisplayName(s.nextRaid)}${s.nextRaid.tier ? " T" + s.nextRaid.tier : ""}
+            <div class="nb-threat">${t.threat}</div>`;
+        } else {
+          nb.classList.add("hidden");
+        }
       }
     }
 

@@ -148,7 +148,7 @@ const Render = {
     this.guardAllCanvases();                 // ★飼育槽以外(本部/オープニング/ルーレット/スリット)も含めて先に包む
     this.ctx = document.getElementById("game").getContext("2d");
     this.guardCtx(this.ctx);
-    if (document.querySelector("main[data-play-view]")) {
+    if (document.querySelector(".colony-page")) {
       const art = new Image();
       art.onload = () => {
         this._aridBackdrop = art;

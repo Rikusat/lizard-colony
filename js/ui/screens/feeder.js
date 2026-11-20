@@ -69,7 +69,7 @@ Object.assign(UI, {
       if (ok) {
         Motion.play(el, "fed");
         Motion.play(crank, "spin");
-        // Phase3.13 v4: 給餌は球を出さない(Gold消費の育成に純化)。ルーレットはボス討伐後の報酬
+        if (this._pachi && Game.notePachinkoCrank()) this.updatePachinko();
         if (typeof Slit !== "undefined") Slit.onCrank(); // §9: クランク稼働で四重スリット装置が作動(クールダウン内蔵)
       } else if (!held) {
         Motion.play(el, "empty");
