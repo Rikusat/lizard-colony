@@ -154,7 +154,7 @@ Object.assign(UI, {
 
   // 盤面ペインタ(左メニュー(暫定)/報酬オーバーレイ で共有・fable1 演出のコピペ増殖を防ぐ)。
   // jackpotMode(§1.2.2): "rainbow"=中央七色(新種) / "rare"=中央琥珀(レア卵)。盤geometryは共通
-  _paintRoulBoard(ctx, cw, ch, jackpotMode) {
+  _paintRoulBoard(ctx, cw, ch, jackpotMode, board = Roulette, effects = this) {
     const W = CFG.roulW, H = CFG.roulH;
     const scale = Math.min(cw / W, ch / H);
     const ox = (cw - W * scale) / 2, oy = (ch - H * scale) / 2;
@@ -177,8 +177,8 @@ Object.assign(UI, {
 
     // 意匠: 背景の紋章(§④・卵と巣)。普段は極薄、スリット落下(BallWin/Rainbow)時のみ0.6s淡く発光→即戻る
     const skin = this._roulSkin();
-    this._roulEmblemGlow = Math.max(0, (this._roulEmblemGlow || 0) - 1 / 60 / 0.6);
-    skin.emblem_draw(ctx, W, H, this._roulEmblemGlow, calm);
+    effects._roulEmblemGlow = Math.max(0, (effects._roulEmblemGlow || 0) - 1 / 60 / 0.6);
+    skin.emblem_draw(ctx, W, H, effects._roulEmblemGlow, calm);
 
     // レール(発射→落下導入・roulette_rules.md §1): 球が沿って走る溝=ファネル状シュートの2軌条
     const railEndY = CFG.roulRailEndYf * H;
@@ -203,7 +203,7 @@ Object.assign(UI, {
     ctx.beginPath(); ctx.arc(CFG.roulLaunchXf * W, 3, 3.2, 0, 7); ctx.fill();
 
     // 釘=巣の藁(藁束+芯の小点で視認性維持・§④)。低コントラスト温色=球が主役
-    for (const n of Roulette.nails) {
+    for (const n of board.nails) {
       skin.nail_draw(ctx, n, scale);
     }
 
@@ -248,7 +248,7 @@ Object.assign(UI, {
       }
       // 意匠: 棚=祭壇。球が乗ると縁が淡く灯る(§④・「乗った!」の高揚は邪魔しない程度)
       let shelfLit = 0;
-      for (const b of Roulette.balls) {
+      for (const b of board.balls) {
         if (Math.abs(b.x - cx) <= sHalf && b.y > stageY - b.r - 2 && b.y < stageY + 4 && Math.abs(b.vy || 0) < 14) { shelfLit = 1; break; }
       }
       skin.shelf_draw(ctx, cx, stageY, sHalf, slotH, shelfLit, scale, calm);
@@ -273,7 +273,7 @@ Object.assign(UI, {
       ctx.strokeStyle = stroke; ctx.lineWidth = 1.0 / scale; ctx.stroke();
     };
     // ②(a): スロット満杯なら景品穴に蓋(閉=一目で満杯と分かる)。球は入らずハズレに(虹は常に開)
-    const prizeOpen = typeof Roulette === "undefined" || !Roulette.canAcceptEgg || Roulette.canAcceptEgg();
+    const prizeOpen = !board.canAcceptEgg || board.canAcceptEgg();
     const pzHalf = (pzOut - rbHalf) / 2;
     const drawLid = (ccx) => { // 閉じた蓋: 灰の金属板+×印
       ctx.fillStyle = "rgba(70,74,70,.95)";
@@ -319,9 +319,9 @@ Object.assign(UI, {
     }
 
     // 球(ルール層の実(x,y)を描く・しっかりした球体・#1)
-    for (const b of Roulette.balls) {
+    for (const b of board.balls) {
       // R2-1: 球=鉱物(通常ボス=◇ダイヤ球/大ボス=⬡アメジスト球)。色はmode由来(geneは景品に不使用へ)
-      const mineralMode = (Roulette.reward && Roulette.reward.jackpotMode) || "rare";
+      const mineralMode = (board.reward && board.reward.jackpotMode) || "rare";
       const nearC = Math.abs(b.x - cx) < pzOut && b.y > railEndY; // 中央帯に迫る=期待
       const hue = mineralMode === "rainbow" ? 268 : 205;
       const sat = mineralMode === "rainbow" ? 52 : 62;
@@ -356,9 +356,9 @@ Object.assign(UI, {
     }
 
     // 入賞バースト(BallRainbow=大・BallWin=小。イベント駆動・fable1)
-    this._roulFx = (this._roulFx || []).filter((f) => f.t > 0);
+    effects._roulFx = (effects._roulFx || []).filter((f) => f.t > 0);
     let flash = 0;
-    for (const f of this._roulFx) {
+    for (const f of effects._roulFx) {
       f.t -= 0.016;
       const q = 1 - f.t / f.ttl;
       const big = f.kind === "rainbow";
@@ -380,11 +380,11 @@ Object.assign(UI, {
     ctx.restore();
 
     // イベント購読(reduced-motionでは装飾を出さない・結果は保証)
-    for (const ev of Roulette.drainEvents()) {
-      if (ev.type === "BallRainbow" || ev.type === "BallWin") this._roulEmblemGlow = 1; // スリット落下=紋章がひと呼吸灯る(§④)
+    for (const ev of board.drainEvents()) {
+      if (ev.type === "BallRainbow" || ev.type === "BallWin") effects._roulEmblemGlow = 1; // スリット落下=紋章がひと呼吸灯る(§④)
       if (calm) continue;
-      if (ev.type === "BallRainbow") { (this._roulFx = this._roulFx || []).push({ x: ev.x, y: landY, t: 1.1, ttl: 1.1, kind: "rainbow" }); }
-      else if (ev.type === "BallWin") { (this._roulFx = this._roulFx || []).push({ x: ev.x, y: landY, t: 0.5, ttl: 0.5, kind: "win" }); }
+      if (ev.type === "BallRainbow") { (effects._roulFx = effects._roulFx || []).push({ x: ev.x, y: landY, t: 1.1, ttl: 1.1, kind: "rainbow" }); }
+      else if (ev.type === "BallWin") { (effects._roulFx = effects._roulFx || []).push({ x: ev.x, y: landY, t: 0.5, ttl: 0.5, kind: "win" }); }
     }
   },
 

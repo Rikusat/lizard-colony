@@ -35,6 +35,10 @@ const Roulette = {
     return this;
   },
   getSeed() { return this._seed; },
+  create() {
+    return Object.assign(Object.create(this), { balls: [], nails: [], events: [], reward: null, _rng: null,
+      onEgg: null, onLanding: null, canAcceptEgg: null }).reset();
+  },
   _rand(min, max) { return min + (this._rng() * (max - min)); },
 
   reset(seed) {
@@ -263,6 +267,7 @@ const Roulette = {
     else if (dx <= rbHalf) { rainbow = true; win = true; }         // 旧(ステージOFF): 中央極細=大当たり
     else if (dx <= pzOut && prizeOpen) { win = true; }            // 旧: 景品帯(満杯時は閉=ハズレ)
     this.events.push({ type: "BallLanded", x: b.x, rainbow, win });
+    if (this.onLanding) this.onLanding({ win, rainbow });
     if (win) {
       // 受け皿へコトンと収まる。cupは中央ポケット=中央 / 景品帯=左右帯の中央
       b.phase = "settle"; b.rainbow = rainbow;

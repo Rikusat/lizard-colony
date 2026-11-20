@@ -1303,8 +1303,45 @@ const Game = {
   rouletteRepGene() {
     const s = this.state;
     let g = s.lizards.find((l) => l.stage === "adult" && !this.isAway(l)) || s.lizards[0];
-    return g ? { hue: g.hue, sat: g.sat, light: g.light, speciesId: g.speciesId, morphId: g.morphId } : null;
+    return g ? { hue: g.hue, sat: g.sat, light: g.light, speciesId: g.speciesId, morphId: g.morphId, pattern: g.pattern, traits: g.traits } : null;
   },
+  canTurnFeedCrank() {
+    if (this.raid) return false;
+    return this.state.lizards.some((lizard) => lizard.injuredT <= 0 && !this.isAway(lizard))
+      && (this.state.crickets >= 1 || (!this.ensureDial().stopOnEmpty && this.state.coins >= CFG.feedGoldCost));
+  },
+
+  awardCrankRoulette({ gene, rainbow }) {
+    if (this.state.eggs.length >= this.eggSlotCap()) {
+      if (!rainbow) return "卵スロット満杯";
+      this.addOre("amethyst", 1);
+      this.save();
+      return "JACKPOT · アメジスト +1";
+    }
+    const pool = this.breedablePool();
+    const base = pool.some((species) => species.id === gene?.speciesId) ? gene : null;
+    if (!base && !pool.length) return "";
+    const seedGene = base || { speciesId: pool[0].id, morphId: "normal", hue: pool[0].hue,
+      sat: pool[0].sat, light: pool[0].light, pattern: "none" };
+    const genes = this.inherit(seedGene, seedGene);
+    if (rainbow) {
+      const unowned = pool.flatMap((sp) => MORPHS.filter((morph) => !this.state.dex[sp.id + ":" + morph.id])
+        .map((morph) => ({ speciesId: sp.id, morphId: morph.id, hue: sp.hue, sat: sp.sat, light: sp.light })));
+      Object.assign(genes, unowned[Math.floor(Math.random() * unowned.length)] || { morphId: "legendary" });
+      genes.traits = [];
+    }
+    this.storeBreedingEgg(genes);
+    this.save();
+    return (rainbow ? "JACKPOT · " : "入賞 · ") + this.lizardName(genes) + "の卵";
+  },
+
+  recordCrankRouletteLanding(win) {
+    const progress = this.pachinkoProgress();
+    progress.total++;
+    progress.streak = win ? progress.streak + 1 : 0;
+    progress.best = Math.max(progress.best, progress.streak);
+  },
+
   // Phase3.13 v4: ルーレットはボス討伐後の報酬。tier(0-6)に応じた球数で報酬セッションを開始しUI(C2)へ通知。
   // 給餌連動の常時発射(旧rouletteEmitOne/canFeedNow/rouletteEmitInterval)は撤廃(給餌はGold消費育成へ純化)。
   beginBossReward(tier, isElite) {
@@ -1375,12 +1412,15 @@ const Game = {
     this.checkNestWeb(false); // 繁殖直後は解放通知の理想タイミング(§3.4)
 
     const genes = this.inherit(a, b, options?.rng, options?.tier);
-    const sp = speciesById(genes.speciesId);
-    const hatchMult = Math.max(0.2, (1 - this.facLv("heat") * 0.025) * (1 - (((this.state.nest && this.state.nest.lv) || 1) - 1) * 0.03) * (1 - this.researchBonus("hatch")));
-    const total = CFG.hatchBasePerStar * sp.stars * hatchMult * (options?.tier?.hatch ?? 1);
-    this.state.eggs.push({ ...genes, t: total, total });
-    if (!options) UI.toast(`卵が産まれた! (${sp.name}系)`);
+    this.storeBreedingEgg(genes, options?.tier?.hatch);
+    if (!options) UI.toast(`卵が産まれた! (${speciesById(genes.speciesId).name}系)`);
     return true;
+  },
+
+  storeBreedingEgg(genes, speed = 1) {
+    const hatchMult = Math.max(0.2, (1 - this.facLv("heat") * 0.025) * (1 - (this.nestLv() - 1) * 0.03) * (1 - this.researchBonus("hatch")));
+    const total = CFG.hatchBasePerStar * speciesById(genes.speciesId).stars * hatchMult * speed;
+    this.state.eggs.push({ ...genes, t: total, total });
   },
 
   // ---------------- 遺伝子パチンコ ----------------

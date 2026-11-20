@@ -10,8 +10,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700&family=M+PLUS+Rounded+1c:wght@700&family=DotGothic16&display=swap">
 <link rel="stylesheet" href="tokens.css?v=2b0f44e7">
 <link rel="stylesheet" href="style.css?v=b7862fda">
-<link rel="stylesheet" href="pachinko-board.css?v=7305d3df">
-<link rel="stylesheet" href="pachinko.css?v=911f4583">
+<link rel="stylesheet" href="pachinko.css?v=7ee2cfb1">
 </head>
 <body>
 
@@ -50,10 +49,13 @@
     <section id="center" aria-label="ライブ飼育槽">
       <div id="frame" tabindex="-1" aria-label="トカゲの飼育槽と防衛">
         <canvas id="game" width="1280" height="720"></canvas>
+        <button id="habitat-fullscreen" type="button" aria-label="飼育槽を全画面表示" title="飼育槽を全画面表示" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/></svg>
+        </button>
         <div id="toasts"></div>
       </div>
       <div class="pachi-colony-line">
-        <span id="pachi-population"></span><span id="pachi-egg-count"></span><span id="pachi-feed-at-habitat"></span>
+        <span id="pachi-population"></span><span id="pachi-egg-count"></span>
       </div>
       <div id="detail" class="hidden"></div>
     </section>
@@ -77,7 +79,7 @@
         </div>
       </aside>
       <section id="pachi-raid-card" class="pachi-panel pachi-raid">
-        <div class="pachi-raid-top"><h3><svg class="icon" aria-hidden="true"><use href="#i-snake"/></svg> 襲来予告</h3><span id="pachi-rush-badge" hidden></span></div>
+        <div class="pachi-raid-top"><h3><svg class="icon" aria-hidden="true"><use href="#i-snake"/></svg> 襲来予告</h3></div>
         <div class="pachi-raid-info"><span id="pachi-raid-name">—</span><strong id="pachi-raid-timer">--:--</strong></div>
         <p id="pachi-guard"></p>
         <button id="pachi-raid-action" type="button">襲来を呼ぶ <span aria-hidden="true">↗</span></button>
@@ -88,47 +90,22 @@
   <section id="pachi-dashboard" class="pachi-cabinet" aria-labelledby="pachi-heading">
     <div class="pachi-cabinet-head">
       <h2 id="pachi-heading">遺伝子パチンコ</h2>
-      <span id="pachi-mode" class="pachi-mode"><i></i> 通常モード</span>
+      <span id="pachi-mode" class="pachi-mode"><i></i> クランク待機</span>
     </div>
-    <section class="pachi-fever" aria-label="入賞状況">
-      <div class="pachi-panel-head"><h3><svg class="icon" aria-hidden="true"><use href="#i-energy"/></svg> FEVER ゲージ</h3><strong id="pachi-fever-count">0%</strong></div>
-      <div id="pachi-fever-meter" class="pachi-meter" role="progressbar" aria-label="FEVER ゲージ" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
-      <p id="pachi-fever-note">発射で貯まり、満タンで期待度と配当が上昇。</p>
-      <dl class="pachi-combo"><div><dt>連続入賞</dt><dd id="pachi-streak">0回</dd></div><div><dt>レア以上</dt><dd id="pachi-rare-chance">—</dd></div></dl>
-      <p id="pachi-chance-note" class="pachi-chance"></p>
-    </section>
-    <div id="pachi-board"></div>
-    <div class="pachi-landing-row" aria-hidden="true"><div id="pachi-ball-trace"></div><span id="pachi-landing"></span></div>
-    <div class="pachi-control">
-      <div class="pachi-aim-control">
-        <label for="pachi-aim">発射位置 <span id="pachi-aim-label">バランス</span></label>
-        <input id="pachi-aim" type="range" min="-1" max="1" step=".25" value="0">
-        <div class="pachi-aim-extents" aria-hidden="true"><span>給餌重視</span><span>レア狙い</span></div>
-      </div>
-      <div class="pachi-fire-control">
-        <div class="pachi-counts" role="group" aria-label="発射する玉の数">
-          <button id="pachi-count-1" type="button" aria-pressed="true">1発</button>
-          <button id="pachi-count-10" type="button" aria-pressed="false">10連</button>
-        </div>
-        <button id="pachi-fire" class="pachi-fire" type="button"><span><svg class="icon" aria-hidden="true"><use href="#i-energy"/></svg> 発射する</span><small id="pachi-fire-price"></small></button>
-      </div>
+    <div class="pachi-machine">
+      <canvas id="crank-roulette-canvas" role="img" aria-label="レール、釘、左右の入賞口と中央の虹ポケットを持つパチンコ台"></canvas>
+      <div class="pachi-pocket-key"><span>左右 · 卵</span><strong>中央 · JACKPOT</strong></div>
     </div>
-    <div class="pachi-result" id="pachi-result" role="status" aria-atomic="true">
+    <p class="pachi-crank-help">給餌クランクを押すと1発。長押し・オートで連続発射します。</p>
+    <dl class="pachi-combo"><div><dt>累計着地</dt><dd id="pachi-total">0</dd></div><div><dt>連続入賞</dt><dd id="pachi-streak">0</dd></div></dl>
+    <div class="pachi-result" id="pachi-result" role="status">
       <svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg>
-      <div><strong id="pachi-result-title">発射準備完了</strong><span id="pachi-result-note">発射位置を決めて、玉を撃とう。</span></div>
+      <strong id="pachi-result-title">クランクを回すと玉が流れます。</strong>
     </div>
-    <div class="pachi-extra">
-      <section class="pachi-panel pachi-feed" aria-labelledby="pachi-feed-heading">
-        <div class="pachi-panel-head"><h3 id="pachi-feed-heading"><svg class="icon" aria-hidden="true"><use href="#i-cricket"/></svg> 給餌球</h3><b id="pachi-feed-progress"></b></div>
-        <p id="pachi-feed-note">クランクで給餌すると貯まります。</p>
-        <button id="pachi-feed-fire" type="button" disabled>給餌球を撃つ</button>
-      </section>
-      <section class="pachi-panel pachi-pair-panel">
-        <div class="pachi-panel-head"><h3>繁殖ペア</h3><svg class="icon pachi-panel-icon" aria-hidden="true"><use href="#i-egg"/></svg></div>
-        <p id="pachi-pair-status">親を2匹選ぶと、発射結果が卵の遺伝に反映されます。</p>
-        <div class="pachi-pair-actions"><button id="pachi-pair" type="button"><svg class="icon" aria-hidden="true"><use href="#i-breed"/></svg> 親を選ぶ <span aria-hidden="true">↗</span></button><button id="pachi-pair-clear" type="button" hidden>解除</button></div>
-      </section>
-    </div>
+    <section class="pachi-panel pachi-pair-panel">
+      <div class="pachi-panel-head"><h3>繁殖ペア</h3><svg class="icon pachi-panel-icon" aria-hidden="true"><use href="#i-egg"/></svg></div>
+      <div class="pachi-pair-actions"><button id="btn-breed-menu" type="button"><svg class="icon" aria-hidden="true"><use href="#i-breed"/></svg> 親を選ぶ <span aria-hidden="true">↗</span></button></div>
+    </section>
     <section class="pachi-panel pachi-goal" aria-label="パチンコのミッション">
       <button id="pachi-goal-action" type="button">
         <svg class="icon" aria-hidden="true"><use href="#i-mission"/></svg>
@@ -168,15 +145,15 @@
   </div>
 </div>
 
-<script src="js/data.js?v=116abe10"></script>
-<script src="js/game.js?v=00dcaa97"></script>
+<script src="js/data.js?v=2d912b7c"></script>
+<script src="js/game.js?v=5490314d"></script>
 <script src="js/render.js?v=e7d7f7be"></script>
-<script src="js/roulette.js?v=8a7a13b9"></script>
+<script src="js/roulette.js?v=e1a97ec3"></script>
 <script src="js/slit.js?v=5df53bec"></script>
 <script src="js/weather.js?v=8b1750e3"></script>
 <script src="js/holo.js?v=7bde44f4"></script>
 <script src="js/sound.js?v=718e49f4"></script>
-<script src="js/ui/core.js?v=a88505f2"></script>
+<script src="js/ui/core.js?v=fe7f13c3"></script>
 <script src="js/ui/icons.js?v=052f9611"></script>
 <script src="js/ui/components.js?v=0f01b534"></script>
 <script src="js/ui/motion.js?v=73fb55e5"></script>
@@ -186,22 +163,21 @@
 <script src="js/ui/hero/meteorite.js?v=e55dc2dd"></script>
 <script src="js/ui/hero/rocket.js?v=e69c4f1c"></script>
 <script src="js/ui/hero/species-reveal.js?v=b834c5b6"></script>
-<script src="js/ui/hero/boss-reward.js?v=321b5215"></script>
+<script src="js/ui/hero/boss-reward.js?v=f8f344ee"></script>
 <script src="js/ui/screens/main.js?v=03997d84"></script>
 <script src="js/ui/screens/feeder-skins.js?v=2215bf21"></script>
-<script src="js/ui/screens/feeder.js?v=41b264c4"></script>
-<script src="js/ui/screens/roulette.js?v=09b0b0eb"></script>
+<script src="js/ui/screens/feeder.js?v=f0212186"></script>
+<script src="js/ui/screens/roulette.js?v=74ad7cf0"></script>
 <script src="js/ui/screens/slit.js?v=6cd61da9"></script>
-<script src="js/ui/screens/breeding.js?v=fbb01b3d"></script>
+<script src="js/ui/screens/breeding.js?v=07c1a281"></script>
 <script src="js/ui/screens/equipment.js?v=93b44083"></script>
 <script src="js/ui/screens/planet-map.js?v=960c0796"></script>
-<script src="js/ui/screens/nest.js?v=9a293f6c"></script>
+<script src="js/ui/screens/nest.js?v=21cadee1"></script>
 <script src="js/ui/screens/hq.js?v=c6501180"></script>
 <script src="js/ui/screens/hqlab.js?v=e2932f8e"></script>
 <script src="js/ui/screens/dex.js?v=a2c36466"></script>
 <script src="js/ui/screens/meta.js?v=838db368"></script>
-<script src="js/ui/screens/pachinko-board.js?v=deaaab61"></script>
-<script src="js/ui/screens/pachinko.js?v=c8ae80ca"></script>
-<script src="js/ui/boot.js?v=fd5d2bdb"></script>
+<script src="js/ui/screens/pachinko.js?v=e120ff45"></script>
+<script src="js/ui/boot.js?v=ded3f46e"></script>
 </body>
 </html>

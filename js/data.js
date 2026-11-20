@@ -149,6 +149,7 @@ const CFG = {
   roulWarpXf: 0.17,         // ワープ穴の中心x(cx±これ・W比)
   roulWarpHalfWf: 0.0015,    // ワープ穴の半幅(W比・小=滅多に入らない)
   // Phase3.13: ルーレットはボス討伐後の報酬(給餌連動の常時発射は撤廃・roulette.md §1.2 v4)
+  roulCrankIntervals: [1.6, 0.7, 0.28], // 旧常設盤の低・中・高の発射間隔
   roulRewardEmitInterval: 0.35, // 報酬モードの球射出間隔(秒・長押し/スキップの自動発射ペース)
   roulRewardBalls: { 0: 8, 1: 10, 2: 16, 3: 22, 4: 28, 5: 34, 6: 40 }, // ボスTier別の報酬球数(見届けた強敵ほど厚い)
   roulRewardEliteBonus: 12, // Phase10.3: 大ボス(elite)は出球が増える(報酬が厚い)。★たたき台=Ric調整可
@@ -263,7 +264,7 @@ const CFG = {
   // 優先度表(Ric承認・SoundSkills §2-4: 石の生成>ボス撃破>孵化>繁殖>給餌)。
   //   defeat(通常撃破)は承認済み5項への**挿入**: ボス撃破(4)より軽く、孵化と同格(3)に置いた。
   //   ★並べ替えではないので承認済みの序列は不変。この1点はRicの確認事項。
-  soundPriority: { stone: 5, boss: 4, pachinkoJackpot: 4, hatch: 3, defeat: 3, pachinkoFever: 3, breed: 2, feed: 1 },
+  soundPriority: { stone: 5, boss: 4, pachinkoJackpot: 4, hatch: 3, defeat: 3, breed: 2, feed: 1 },
   // ---- V6-P5 S2: 飼育槽の環境音(常時鳴る音)。★全数値はRicが ?tune=1#sound で実機判定 ----
   //   SEとは設計思想が異なる: SE=一瞬の主張(物差しはpeak) / 環境音=背景に沈む(物差しは持続RMS・定常性)。
   //   最優先は「疲れないこと・主張しないこと」。BGMらしい旋律は置かない(SoundSkills §3)。
@@ -331,10 +332,7 @@ const CFG = {
     //   ★filterFreq/vol の初期案(800Hz/0.50)は装置QAの数値ゲートで**給餌より小さい**と判明した
     //     (ローパスがノイズの大半の帯域を削るため vol の額面どおりには鳴らない)。実測に合わせて是正。
     defeat: { type: "noise", filterType: "lowpass", filterFreq: 1600, dur: 0.14, vol: 0.75, attack: 0.002, release: 0.20, seed: 20260811 },
-    pachinkoLaunch: { type: "triangle", freq: 330, freqEnd: 580, dur: 0.05, vol: 0.17, attack: 0.002, release: 0.05 },
     pachinkoHit: { type: "sine", freq: 840, freqEnd: 1260, dur: 0.07, vol: 0.22, attack: 0.004, release: 0.2 },
-    pachinkoPocket: { type: "triangle", freq: 440, freqEnd: 300, dur: 0.028, vol: 0.12, attack: 0.002, release: 0.035 },
-    pachinkoFever: { type: "triangle", freq: 470, freqEnd: 1360, dur: 0.13, vol: 0.24, attack: 0.004, release: 0.16 },
     pachinkoJackpot: { type: "sine", freq: 310, freqEnd: 1550, dur: 0.24, vol: 0.34, attack: 0.007, release: 0.25 },
     // 賢者の石の生成(=四重スリットの全通過)。優先度表の最上位(stone:5)であり、**この作品で最も重い一撃**。
     //   ★全通過の正値は 1/4339(装置設計値・S-SLIT-R後の実測が整合。≈1/3900は旧MC値)。極めて稀な事象なので、ここに音予算を集中してよい(§2-7 核となる瞬間)。

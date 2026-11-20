@@ -17,8 +17,8 @@ const context = vm.createContext({
   UI: { toast() {} },
   Icon: { svg: () => "" },
 });
-const source = ["data.js", "game.js"].map((file) => fs.readFileSync(path.join(__dirname, "..", "js", file), "utf8")).join("\n");
-const { CFG, Game, MISSIONS, SAVE_VERSION } = vm.runInContext(`${source}\n;({ CFG, Game, MISSIONS, SAVE_VERSION })`, context);
+const source = ["data.js", "game.js", "roulette.js"].map((file) => fs.readFileSync(path.join(__dirname, "..", "js", file), "utf8")).join("\n");
+const { CFG, Game, MISSIONS, SAVE_VERSION, Roulette } = vm.runInContext(`${source}\n;({ CFG, Game, MISSIONS, SAVE_VERSION, Roulette })`, context);
 const { pachinko: config } = CFG;
 const plain = (data) => JSON.parse(JSON.stringify(data));
 const parents = () => Array.from(Game.state.lizards, ({ id }) => id);
@@ -203,3 +203,24 @@ assert.equal(saved().collection.pachinko.feedProgress, 0);
 assert.ok(Game.playPachinko(0, 1, [], complimentary).error);
 
 console.log("Pachinko: launch, geometry, save, breeding, FEVER, CHANCE, defense, RUSH and manual feed ball passed");
+
+Game.newGame();
+Roulette.startReward(2, null, "rare");
+const live = Roulette.create().setSeed(12345);
+live.canAcceptEgg = () => Game.state.eggs.length < Game.eggSlotCap();
+live.onLanding = ({ win }) => Game.recordCrankRouletteLanding(win);
+live.onEgg = (outcome) => Game.awardCrankRoulette(outcome);
+assert.ok(Game.canTurnFeedCrank());
+for (let shot = 0; shot < 40; shot++) {
+  live.emit(Game.rouletteRepGene());
+  for (let step = 0; step < 24; step++) live.advance(CFG.roulFixedDt);
+}
+for (let step = 0; step < 1600; step++) live.advance(CFG.roulFixedDt);
+assert.equal(Game.pachinkoStatus().total, 40);
+assert.ok(Game.state.eggs.length > 0 && Game.state.eggs.length <= Game.eggSlotCap());
+assert.equal(Roulette.rewardRemaining(), 2);
+assert.equal(Roulette.balls.length, 0);
+assert.ok(Game.state.eggs.every((egg) => Game.breedablePool().some((sp) => sp.id === egg.speciesId)));
+Game.state.crickets = 0;
+assert.equal(Game.canTurnFeedCrank(), false);
+console.log("Crank roulette: physical landings, egg rewards, stop gate and independent boss board passed");

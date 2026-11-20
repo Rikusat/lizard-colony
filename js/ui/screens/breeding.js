@@ -7,7 +7,7 @@
 //     ・クイック繁殖ボタン(全対総当たりargmax) ・希少スコア式(CFG.breedScoreW 系) ・繁殖予約トグル(autoBreed)
 //   残すもの: 種×モーフのタイル / A/Bスロット / 特性チップ / 固定印 / ◀▶切替 / 同種残0のグレーアウト。
 //   **スロット内の巡回・自動選出は id 昇順の安定順序**(希少スコア順ではない)=プレイヤーが順序を予測できる。
-// 発射盤向けには選んだペアを渡す。単独の検分ページでは既存の繁殖経路を使用する。
+// 選んだペアは既存の繁殖経路で処理する。
 // =============================================================
 
 Object.assign(UI, {
@@ -67,12 +67,10 @@ Object.assign(UI, {
     th += `</div>`;
     const cost = A && B ? Game.breedCost(A, B) : 0;
     const sl = `<div class="sp-slots">${this._bmSlotHtml("A", A)}${this._bmSlotHtml("B", B)}</div>`;
-    const pachi = this._pachi;
-    const goLabel = pachi ? "このペアをセット" : "この組で繁殖";
     const fee = A && B ? ` (${Icon.svg("coin")}${fmt(cost)})` : "";
     // 自動選出(クイック繁殖)と繁殖予約は撤廃(Ric裁定 2026-07-29)。残るのは手動確定のみ
     const act = `<div class="sp-actions">
-      <button id="bm-go" class="cta" ${A && B && (pachi || Game.state.coins >= cost) ? "" : "disabled"}>${Icon.svg("breed")} ${goLabel}${fee}</button>
+      <button id="bm-go" class="cta" ${A && B && Game.state.coins >= cost ? "" : "disabled"}>${Icon.svg("breed")} この組で繁殖${fee}</button>
     </div>`;
     body.innerHTML = th + sl + act;
     for (const cv of body.querySelectorAll("[data-tilelz]")) this._bmDrawLz(cv, Game.state.lizards.find((l) => l.id === +cv.dataset.tilelz), 0.55);
@@ -116,7 +114,6 @@ Object.assign(UI, {
     const go = body.querySelector("#bm-go");
     if (go) go.addEventListener("click", () => {
       if (!A || !B) return;
-      if (pachi) { this.selectPachinkoParents(A, B); return; }
       if (Game.breed(A.id, B.id)) { this._bmState = { a: null, b: null }; this._bmBuild(body); } // 実行=Game.breed(唯一の経路・旧UIと同一)
       else this._bmBuild(body);
     });

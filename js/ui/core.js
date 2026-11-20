@@ -152,12 +152,14 @@ const UI = {
         const gdt = Game.slowmo > 0 ? real * 0.25 : real;
         if (Game.slowmo > 0) Game.slowmo = Math.max(0, Game.slowmo - real);
         Game.tick(gdt);
-        // Phase3.13 v4: 給餌連動の常時発射は撤廃(ルーレット=ボス討伐後の報酬)。物理は固定dtで積分し続ける
+        // ボス報酬盤と常設盤の物理を別々に進める。
         if (typeof Roulette !== "undefined") Roulette.advance(gdt);
+        this.advanceCrankRoulette?.(gdt);
         if (typeof Slit !== "undefined") Slit.advance(gdt); // §9: 四重スリット装置(クールダウン/飛行/張り付き寿命)
       }
       Render.draw();
       if (this.drawRoulette) this.drawRoulette();
+      this.drawCrankRoulette?.();
       if (this.drawSlit) this.drawSlit(); // §9: 四重スリット装置(左メニュー下部・線のみ)
       if (this.drawBossReward) this.drawBossReward(); // Phase3.13 C2: ボス報酬オーバーレイ(稼働中のみ)
       this.acc += real;

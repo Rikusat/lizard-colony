@@ -25,6 +25,7 @@ Object.assign(UI, {
   // Game.beginBossReward から呼ばれる。撃破の余韻(CFGの「間」)を置いてからせり上がる
   openBossReward(reward) {
     if (typeof document === "undefined" || !reward) return;
+    this.closeHabitatFullscreen?.();
     if (this._brOpenTimer) clearTimeout(this._brOpenTimer);
     if (this._bossRewardOpen) this.closeBossReward(); // 前の報酬が残っていたら畳む(通常ボスは逐次なので稀)
     const delay = (Motion.reduced ? 0.2 : (CFG.roulRewardDelaySec || 1.5)) * 1000;

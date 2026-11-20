@@ -69,7 +69,7 @@ Object.assign(UI, {
       if (ok) {
         Motion.play(el, "fed");
         Motion.play(crank, "spin");
-        if (this._pachi && Game.notePachinkoCrank()) this.updatePachinko();
+        this.fireCrankRoulette?.();
         if (typeof Slit !== "undefined") Slit.onCrank(); // §9: クランク稼働で四重スリット装置が作動(クールダウン内蔵)
       } else if (!held) {
         Motion.play(el, "empty");
@@ -183,7 +183,7 @@ Object.assign(UI, {
     this.applyCrankSkin(); // 惑星移動でスキンが切り替わる(同一IDなら何もしない)
     const d = Game.ensureDial();
     const dial = document.getElementById("feeder-dial");
-    dial.classList.toggle("auto-on", d.auto && !Game.raid); // 3.11.3: ボス中はクランク回転停止(討伐後にd.auto維持で再開)
+    dial.classList.toggle("auto-on", d.auto && !Game.raid && (!this._liveRoulette || this._bossRewardOpen || Game.canTurnFeedCrank())); // 3.11.3: ボス中はクランク回転停止(討伐後にd.auto維持で再開)
     dial.classList.toggle("raid-lock", !!Game.raid);
     // V5 3.6: 折りたたみ撤廃(min状態は無視)・Gold駆動概念は消滅
     // オートの回転速度=レートに同期(CFG.dialSpinSec)

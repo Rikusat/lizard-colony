@@ -76,6 +76,7 @@ Object.assign(UI, {
   },
 
   openNest() {
+    this.closeHabitatFullscreen?.();
     Game.ensureNestWeb();
     const main = document.querySelector("main"), pg = document.getElementById("nestpage");
     if (!main || !pg) { // ページ骨格が無い環境(旧テストページ等)はモーダルへフォールバック(退路)
