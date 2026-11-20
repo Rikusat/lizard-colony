@@ -70,6 +70,7 @@ Object.assign(UI, {
   // コロニー全景の書き出し (⑨-25)
 
   exportShot() {
+    Render.draw(); // 発射盤の裏でも最新の飼育槽を出力する
     const src = document.getElementById("game");
     const out = document.createElement("canvas");
     out.width = W; out.height = H + 90;

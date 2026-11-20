@@ -3,13 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>トカゲコロニー 〜コロニーを育て、この星系を脱出せよ〜</title>
+<title>トカゲコロニー｜遺伝子パチンコ</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%232c2010'/%3E%3Cg stroke='%237bd986' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 13c3 0 4.5-3 8-3 2.5 0 4 .8 5.5 2.2L21 14l-3 1c-1.6 1.6-3.4 2.5-6 2.5-3.5 0-5-3-8-4.5z' fill='%237bd986'/%3E%3Cpath d='M8 17.5 7 20M13 18l1 2.5M19.5 12.5c.8-1.6.8-3.4 0-5' fill='none'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700&family=M+PLUS+Rounded+1c:wght@700&family=DotGothic16&display=swap">
 <link rel="stylesheet" href="tokens.css?v=2b0f44e7">
 <link rel="stylesheet" href="style.css?v=b7862fda">
+<link rel="stylesheet" href="pachinko-board.css?v=089d5f62">
+<link rel="stylesheet" href="pachinko.css?v=a955bdd6">
 </head>
 <body>
 
@@ -39,7 +41,85 @@
   <span id="hq-bar-label"><svg class="icon"><use href="#i-hq"/></svg> HQ Lv<b id="ui-rank">1</b></span>
 </div>
 
-<main>
+<main data-play-view="pachinko">
+  <div id="pachi-navigation" class="pachi-navigation" role="group" aria-label="プレイ画面">
+    <button id="pachi-open-board" class="pachi-tab" type="button" aria-controls="pachi-dashboard" aria-pressed="true"><svg class="icon" aria-hidden="true"><use href="#i-breed"/></svg> 遺伝子パチンコ</button>
+    <button id="pachi-open-habitat" class="pachi-tab" type="button" aria-controls="left center" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-lizardLogo"/></svg> コロニー<span class="pachi-raid-dot" hidden></span></button>
+  </div>
+
+  <section id="pachi-dashboard" aria-label="遺伝子パチンコ">
+    <header class="pachi-hero">
+      <div class="pachi-hero-content">
+        <span class="pachi-kicker"><i></i> GENESIS PACHINKO</span>
+        <h2>遺伝子パチンコ</h2>
+        <p>玉を撃ち、遺伝子を引き当てろ。</p>
+      </div>
+      <div class="pachi-location">
+        <span>現在のコロニー</span><strong id="pachi-stage-name"></strong>
+      </div>
+    </header>
+
+    <div class="pachi-layout">
+      <section class="pachi-cabinet" aria-label="発射盤">
+        <div class="pachi-cabinet-head">
+          <h3>遺伝子発射盤</h3>
+          <span id="pachi-mode" class="pachi-mode"><i></i> 通常モード</span>
+        </div>
+        <div id="pachi-board"></div>
+        <div class="pachi-control">
+          <div class="pachi-aim-control">
+            <label for="pachi-aim">発射位置 <span id="pachi-aim-label">バランス</span></label>
+            <input id="pachi-aim" type="range" min="-1" max="1" step=".25" value="0">
+            <div class="pachi-aim-extents" aria-hidden="true"><span>給餌重視</span><span>レア狙い</span></div>
+          </div>
+          <div class="pachi-fire-control">
+            <div class="pachi-counts" role="group" aria-label="発射する玉の数">
+              <button id="pachi-count-1" type="button" aria-pressed="true">1発</button>
+              <button id="pachi-count-10" type="button" aria-pressed="false">10連</button>
+            </div>
+            <button id="pachi-fire" class="pachi-fire" type="button"><span><svg class="icon" aria-hidden="true"><use href="#i-energy"/></svg> 発射する</span><small id="pachi-fire-price"></small></button>
+          </div>
+        </div>
+        <div class="pachi-result" id="pachi-result" role="status" aria-atomic="true">
+          <svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg>
+          <div><strong id="pachi-result-title">発射準備完了</strong><span id="pachi-result-note">発射位置を決めて、玉を撃とう。</span></div>
+        </div>
+      </section>
+
+      <aside class="pachi-sidebar" aria-label="パチンコとコロニーの進行">
+        <section class="pachi-panel pachi-fever">
+          <div class="pachi-panel-head"><h3><svg class="icon" aria-hidden="true"><use href="#i-energy"/></svg> FEVER ゲージ</h3><strong id="pachi-fever-count">0%</strong></div>
+          <div id="pachi-fever-meter" class="pachi-meter" role="progressbar" aria-label="FEVER ゲージ" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+          <p id="pachi-fever-note">発射で貯まり、満タンで期待度と配当が上昇。</p>
+          <dl class="pachi-combo"><div><dt>連続入賞</dt><dd id="pachi-streak">0回</dd></div><div><dt>レア以上</dt><dd id="pachi-rare-chance">—</dd></div></dl>
+          <p id="pachi-chance-note" class="pachi-chance"></p>
+        </section>
+
+        <section id="pachi-raid-card" class="pachi-panel pachi-raid">
+          <div class="pachi-raid-top"><h3><svg class="icon" aria-hidden="true"><use href="#i-snake"/></svg> 襲来予告</h3><span id="pachi-rush-badge" hidden></span></div>
+          <div class="pachi-raid-info"><span id="pachi-raid-name">—</span><strong id="pachi-raid-timer">--:--</strong></div>
+          <p id="pachi-guard"></p>
+          <button id="pachi-raid-action" type="button">襲来を呼ぶ <span aria-hidden="true">↗</span></button>
+        </section>
+
+        <section class="pachi-panel pachi-pair-panel">
+          <div class="pachi-panel-head"><h3>繁殖ペア</h3><svg class="icon pachi-panel-icon" aria-hidden="true"><use href="#i-egg"/></svg></div>
+          <p id="pachi-pair-status">親を2匹選ぶと、発射結果が卵の遺伝に反映されます。</p>
+          <div class="pachi-pair-actions"><button id="pachi-pair" type="button"><svg class="icon" aria-hidden="true"><use href="#i-breed"/></svg> 親を選ぶ <span aria-hidden="true">↗</span></button><button id="pachi-pair-clear" type="button" hidden>解除</button></div>
+          <div class="pachi-colony-line"><span id="pachi-population"></span><span id="pachi-egg-count"></span></div>
+        </section>
+
+        <section class="pachi-panel pachi-goal" aria-label="パチンコのミッション">
+          <button id="pachi-goal-action" type="button">
+            <svg class="icon" aria-hidden="true"><use href="#i-mission"/></svg>
+            <span><strong id="pachi-goal-title">ミッション</strong><small id="pachi-goal-note"></small></span>
+            <i aria-hidden="true">↗</i>
+          </button>
+        </section>
+      </aside>
+    </div>
+  </section>
+
   <!-- 3.13(再): C3全画面化をやめ2カラムへ復帰(左=操作卓)。空白より意味のある列(Ric判断)。
        操作卓は「コオロギ購入・設備」のみ(遺伝子ルーレットはボス討伐後の報酬モーダル=左に常設しない)。
        カードの見やすさ(アイコン+名称+数値)は維持 -->
@@ -113,15 +193,15 @@
   </div>
 </div>
 
-<script src="js/data.js?v=0abb509c"></script>
-<script src="js/game.js?v=37a1b3e4"></script>
-<script src="js/render.js?v=d1ff11d8"></script>
+<script src="js/data.js?v=7b915a9d"></script>
+<script src="js/game.js?v=1aa148f0"></script>
+<script src="js/render.js?v=f099e8da"></script>
 <script src="js/roulette.js?v=8a7a13b9"></script>
 <script src="js/slit.js?v=5df53bec"></script>
 <script src="js/weather.js?v=8b1750e3"></script>
 <script src="js/holo.js?v=7bde44f4"></script>
 <script src="js/sound.js?v=718e49f4"></script>
-<script src="js/ui/core.js?v=c521df8a"></script>
+<script src="js/ui/core.js?v=3b79e190"></script>
 <script src="js/ui/icons.js?v=052f9611"></script>
 <script src="js/ui/components.js?v=0f01b534"></script>
 <script src="js/ui/motion.js?v=73fb55e5"></script>
@@ -137,14 +217,16 @@
 <script src="js/ui/screens/feeder.js?v=bcf8bdfe"></script>
 <script src="js/ui/screens/roulette.js?v=09b0b0eb"></script>
 <script src="js/ui/screens/slit.js?v=6cd61da9"></script>
-<script src="js/ui/screens/breeding.js?v=44070c36"></script>
+<script src="js/ui/screens/breeding.js?v=c22dc900"></script>
 <script src="js/ui/screens/equipment.js?v=93b44083"></script>
 <script src="js/ui/screens/planet-map.js?v=960c0796"></script>
 <script src="js/ui/screens/nest.js?v=9a293f6c"></script>
 <script src="js/ui/screens/hq.js?v=c6501180"></script>
 <script src="js/ui/screens/hqlab.js?v=e2932f8e"></script>
 <script src="js/ui/screens/dex.js?v=a2c36466"></script>
-<script src="js/ui/screens/meta.js?v=838db368"></script>
-<script src="js/ui/boot.js?v=05c6d1b5"></script>
+<script src="js/ui/screens/meta.js?v=d05ae990"></script>
+<script src="js/ui/screens/pachinko-board.js?v=82100349"></script>
+<script src="js/ui/screens/pachinko.js?v=f94c78af"></script>
+<script src="js/ui/boot.js?v=fd5d2bdb"></script>
 </body>
 </html>

@@ -128,6 +128,7 @@ const UI = {
     this.initFeeder(); // 給餌ダイヤル(飼育槽右下・Brushup V2 Phase1)
     this.initRoulette(); // 遺伝子ルーレット(左メニュー下部・roulette.md §7)
     this.initSlit(); // 四重スリット実験装置(左メニュー下部・roulette.md §9)
+    if (this.initPachinko) this.initPachinko();
     this.initBossHud(); // ボスHPバー(上部中央・Brushup V2 Phase3)
     // #breed で繁殖画面を直接開く(動作確認・デバッグ用)
     if (location.hash === "#breed") setTimeout(() => this.openBreed(), 400);
@@ -155,7 +156,7 @@ const UI = {
         if (typeof Roulette !== "undefined") Roulette.advance(gdt);
         if (typeof Slit !== "undefined") Slit.advance(gdt); // §9: 四重スリット装置(クールダウン/飛行/張り付き寿命)
       }
-      Render.draw();
+      if (!this._pachi || this._pachi.main.dataset.playView === "colony") Render.draw();
       if (this.drawRoulette) this.drawRoulette();
       if (this.drawSlit) this.drawSlit(); // §9: 四重スリット装置(左メニュー下部・線のみ)
       if (this.drawBossReward) this.drawBossReward(); // Phase3.13 C2: ボス報酬オーバーレイ(稼働中のみ)
@@ -306,6 +307,7 @@ const UI = {
 
     this.updateFeeder();
     this.updateBossHud();
+    if (this.updatePachinko) this.updatePachinko();
     this.updateEggSlots();
     this.renderDetail(false);
     if (this._eggPop && this._renderEggPop) this._renderEggPop(); // ⑤ 卵の小ウィンドウを毎更新で同期(孵化秒数が進み表示が止まらない)

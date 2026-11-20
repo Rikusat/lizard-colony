@@ -148,6 +148,14 @@ const Render = {
     this.guardAllCanvases();                 // ★飼育槽以外(本部/オープニング/ルーレット/スリット)も含めて先に包む
     this.ctx = document.getElementById("game").getContext("2d");
     this.guardCtx(this.ctx);
+    if (document.querySelector("main[data-play-view]")) {
+      const art = new Image();
+      art.onload = () => {
+        this._aridBackdrop = art;
+        if (this._bgStage === 1) this._bgCache = null;
+      };
+      art.src = "image/pachinko/arid-colony.webp";
+    }
   },
 
   // ★全canvasへガードを行き渡らせる(2026-08-10)。init で #game だけを包んでいたため、
@@ -359,6 +367,8 @@ const Render = {
       ctx.fillStyle = "rgba(255,255,255,.28)";
       ctx.beginPath(); ctx.ellipse(x - r * 0.4, y - r * 0.35, r * 0.7, r * 0.35, 0, 0, 7); ctx.fill();
     }
+    const illustrated = st.id === 1 && this._aridBackdrop;
+    if (illustrated) ctx.drawImage(this._aridBackdrop, 0, 0, W, H);
     // 大きな岩(中〜大サイズを全体に散らす)。V5M④: 座標をレジストリへ登録(岩上見張りスポットの源・描画とスポットの単一の真実)
     this._stageBoulders = [];
     for (let i = 0; i < 13; i++) {
@@ -370,7 +380,7 @@ const Render = {
       this._stageBoulders.push({ x, y, r });
     }
     // ステージ固有の装飾
-    this.paintDeco(ctx, st, rand);
+    this.paintDeco(ctx, st, rand, illustrated);
   },
 
   ridge(ctx, rand, baseY, height, n) {
@@ -386,11 +396,11 @@ const Render = {
     ctx.lineTo(W, baseY); ctx.closePath(); ctx.fill();
   },
 
-  paintDeco(ctx, st, rand) {
+  paintDeco(ctx, st, rand, illustrated) {
     const groundY = () => HORIZON + 50 + rand() * (H - HORIZON - 80);
     if (st.id === 1) { // 乾燥地帯=始まりの地(素朴で温かい文明の起点。教科書ゆえ賑やかにせず、気配だけ足す)
       // 遠景のメサ(広い始まりの大地=希望の地平)
-      for (const [mx, mw, mh] of [[210, 170, 30], [1130, 200, 38]]) {
+      if (!illustrated) for (const [mx, mw, mh] of [[210, 170, 30], [1130, 200, 38]]) {
         ctx.fillStyle = "rgba(176,126,78,.4)";
         ctx.beginPath(); ctx.moveTo(mx - mw / 2, HORIZON); ctx.lineTo(mx - mw / 2 + 14, HORIZON - mh); ctx.lineTo(mx + mw / 2 - 18, HORIZON - mh); ctx.lineTo(mx + mw / 2, HORIZON); ctx.closePath(); ctx.fill();
         ctx.fillStyle = "rgba(214,164,104,.3)"; ctx.fillRect(mx - mw / 2 + 14, HORIZON - mh, mw - 32, 2); // 頂の朝陽

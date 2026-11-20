@@ -36,6 +36,24 @@ const CFG = {
   hatchBasePerStar: 45,     // 孵化秒数 = これ × 種族の星
   breedBaseCost: 100,       // 繁殖コスト = これ × 高い方の星
   breedCooldown: 90,        // 繁殖クールダウン(秒)
+  pachinko: {
+    cost: 30, costPerStage: 15,
+    rows: 8, pinGapX: 0.12, pinGapY: 0.096, firstPinY: 0.14, funnelY: 0.88,
+    aimSpread: 0.08, aimOdds: 0.052, aimCrickets: 3,
+    nestOddsPerLevel: 0.004, nestOddsCap: 0.024,
+    chanceLimit: 8,
+    feverChargeMax: 100, feverLength: 4, feverOdds: 0.08, feverPayout: 1.5,
+    rushBoss: 4, rushElite: 6, rushCap: 10, rushOdds: 0.04, rushPayout: 1.5,
+    streakStep: 0.06, streakCap: 0.30,
+    guardCap: 3, guardAttackBonus: 0.2,
+    tiers: [
+      { id: "normal",    forks: 0, coins: 0.19, crickets: 1, charge: 15, hatch: 1 },
+      { id: "mutation",  forks: 5, coins: 0.45, crickets: 2, charge: 20, hatch: 0.90, mutation: true },
+      { id: "rare",      forks: 6, coins: 0.81, crickets: 4, charge: 28, hatch: 0.75, morph: "golden", guard: 1 },
+      { id: "legendary", forks: 7, coins: 1.33, crickets: 6, charge: 42, hatch: 0.65, morph: "legendary", guard: 1, gems: 1 },
+      { id: "jackpot",   forks: 8, coins: 3.30, crickets: 9, charge: 100, hatch: 0.45, morph: "legendary", guard: 2, gems: 3, amethyst: 1 },
+    ],
+  },
   capacityBase: 10,
   capacityPerRank: 2,
   raidInterval: 300,        // ★襲撃周期(秒)=全襲来の固定周期。REL-3件1(Ric裁定 2026-08-29): 5分に1回へ統一(旧120)。
@@ -313,6 +331,8 @@ const CFG = {
     //   ★filterFreq/vol の初期案(800Hz/0.50)は装置QAの数値ゲートで**給餌より小さい**と判明した
     //     (ローパスがノイズの大半の帯域を削るため vol の額面どおりには鳴らない)。実測に合わせて是正。
     defeat: { type: "noise", filterType: "lowpass", filterFreq: 1600, dur: 0.14, vol: 0.75, attack: 0.002, release: 0.20, seed: 20260811 },
+    pachinkoLaunch: { type: "triangle", freq: 330, freqEnd: 580, dur: 0.05, vol: 0.17, attack: 0.002, release: 0.05 },
+    pachinkoHit: { type: "sine", freq: 840, freqEnd: 1260, dur: 0.07, vol: 0.22, attack: 0.004, release: 0.2 },
     // 賢者の石の生成(=四重スリットの全通過)。優先度表の最上位(stone:5)であり、**この作品で最も重い一撃**。
     //   ★全通過の正値は 1/4339(装置設計値・S-SLIT-R後の実測が整合。≈1/3900は旧MC値)。極めて稀な事象なので、ここに音予算を集中してよい(§2-7 核となる瞬間)。
     //   ★2層: ノイズバースト(衝撃)+ ベル(長い余韻)。稀さに見合う長い尾を持たせる=最も長い音でもある。
@@ -1340,6 +1360,11 @@ const researchById = (id) => RESEARCH.find((r) => r.id === id);
 
 // ミッション(実績型)。check は Game.state を受け取る
 const MISSIONS = [
+  ...[
+    { id: "pachi10", name: "遺伝子パチンコで10球発射", reward: { coins: 200 }, pachinko: { stat: "total", target: 10 } },
+    { id: "pachiCombo4", name: "変異以上に4球連続で入賞", reward: { coins: 100, gems: 2 }, pachinko: { stat: "best", target: 4 } },
+    { id: "pachi50", name: "遺伝子パチンコで50球発射", reward: { coins: 550, gems: 2 }, pachinko: { stat: "total", target: 50 } },
+  ].map((mission) => ({ ...mission, check: (s) => (s.pachinko?.[mission.pachinko.stat] || 0) >= mission.pachinko.target })),
   { id: "pop10",   name: "トカゲを10匹にする",       reward: { gems: 2 },              check: (s) => s.lizards.length >= 10 },
   { id: "pop25",   name: "トカゲを25匹にする",       reward: { gems: 5 },              check: (s) => s.lizards.length >= 25 },
   { id: "feed50",  name: "餌やり50回",               reward: { coins: 800 },           check: (s) => s.stats.fed >= 50 },
