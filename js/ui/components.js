@@ -6,6 +6,7 @@
 Object.assign(UI, {
   // ---------------- モーダル共通 ----------------
   openModal(title, buildBody) {
+    this.closeHabitatFullscreen?.();
     this.els["modal-title"].innerHTML = title; // SVGアイコンを含むため(内部生成のみ)
     this.els["modal-body"].innerHTML = "";
     // Phase0(Brushup V2): 構築中の例外で「無反応」に見える事故を防ぐセーフティ。
