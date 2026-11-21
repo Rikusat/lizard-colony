@@ -119,15 +119,20 @@ const UI = {
         }
       }
       // トカゲ選択(③: 巣・設備より優先=周囲のトカゲが巣に取られない)
-      let best = null, bestD = Infinity;
-      for (const lz of Game.state.lizards) {
-        if (!Game.isVisible(lz)) continue;
-        // 横向きスプライトの当たり判定(足元アンカーから上に伸びる箱・群衆スケール追従)
-        const L = 105 * speciesById(lz.speciesId).size * (lz.stage === "baby" ? 0.5 : 1) * Game.crowdScale();
-        const dx = x - lz.x, dy = y - lz.y;
-        if (Math.abs(dx) < Math.max(40, L * 0.7) && dy > -Math.max(36, L * 0.52) && dy < L * 0.15) {
-          const d = Math.hypot(dx, dy + L * 0.2);
-          if (d < bestD) { bestD = d; best = lz; }
+      let best = null;
+      if (typeof VoxelHabitat !== "undefined") {
+        best = VoxelHabitat.pickLizard(x, y);
+      } else {
+        let bestD = Infinity;
+        for (const lz of Game.state.lizards) {
+          if (!Game.isVisible(lz)) continue;
+          // 横向きスプライトの当たり判定(足元アンカーから上に伸びる箱・群衆スケール追従)
+          const L = 105 * speciesById(lz.speciesId).size * (lz.stage === "baby" ? 0.5 : 1) * Game.crowdScale();
+          const dx = x - lz.x, dy = y - lz.y;
+          if (Math.abs(dx) < Math.max(40, L * 0.7) && dy > -Math.max(36, L * 0.52) && dy < L * 0.15) {
+            const d = Math.hypot(dx, dy + L * 0.2);
+            if (d < bestD) { bestD = d; best = lz; }
+          }
         }
       }
       if (best) { Game.selectedId = best.id; this.renderDetail(true); return; }

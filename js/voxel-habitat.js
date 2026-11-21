@@ -4,7 +4,9 @@
 // pixel pitch so the glass, animals and habitat stay registered when the tank resizes.
 const VoxelHabitat = (() => {
   const WIDTH = 400, HEIGHT = 225, PIXEL = 3.2;
-  const SW = 126, SH = 69, AX = 63, AY = 40;
+  const SW = 156, SH = 74, AX = 78, AY = 42;
+  const TANK_SCALE = 3.85;
+  const visibleSprites = [];
   const spriteCache = new Map(), modelFrames = new Map(), projections = new Map();
   let scene, background, backdropStage, burrow;
   const families = {
@@ -44,8 +46,8 @@ const VoxelHabitat = (() => {
   function palette(lz, hue, sat, light, traitKeys) {
     const albino = lz.morphId === "albino";
     const base = [hue, sat, light];
-    const accent = [hue - 9, sat + 6, light - 18];
-    const cream = [hue * .35 + 27, sat * .48, Math.min(89, light + 24)];
+    const accent = [hue - 10, sat * .82, Math.max(9, light * .59)];
+    const cream = [hue * .35 + 27, sat * .52, Math.min(89, light + 19)];
     const firstTrait = TRAITS[traitKeys[0]];
     const traits = traitKeys.map(key => TRAITS[key]).filter(Boolean);
     // Distinguish eyes, dorsal markings and the inherited throat/scale features across
@@ -55,22 +57,21 @@ const VoxelHabitat = (() => {
       firstTrait ? hexHsl(firstTrait.rim) : [hue + 15, sat + 5, light + 8],
       albino ? [360, 62, 44] : [43, 88, 55],
       ...traits.slice(1).map(t => hexHsl(t.rim))];
-    return colors.map(([h,s,l]) => [-12,-5,5,13].map(k => packed(h + (k > 0 ? 0 : -3), s, l + k)));
+    return colors.map(([h,s,l]) => [-11,-4,3,9].map(k => packed(h + (k > 0 ? 0 : -3), s, l + k)));
   }
 
   // Model in lizard-local coordinates: x noseward, y across the body, z up.
   // Overlapping ellipsoids and articulated segments are sampled into occupied voxels.
   function model(lz, family, pose, phase, tailLength, traitKeys, tongue, blink) {
-    const cells = new Map();
+    const cells = new Map(), details = [];
     const key = (x,y,z) => (x + 30) + (y + 15) * 64 + (z + 3) * 2048;
     let turnHead = false;
+    function headPoint(x,y,z) {
+      const reach=x-4;
+      return [4+reach*.52-y*.8,reach*.8+y*.52,z];
+    }
     function cell(x,y,z,m) {
-      if (turnHead) {
-        // Bend the neck back towards the near shoulder for grooming.
-        const reach=x-4;
-        x=Math.round(4+reach*.52-y*.8);
-        y=Math.round(reach*.8+y*.52);
-      }
+      if (turnHead) [x,y,z]=headPoint(x,y,z).map(Math.round);
       cells.set(key(x,y,z), {x,y,z,m});
     }
     function oval(x,y,z,rx,ry,rz,material) {
@@ -97,67 +98,125 @@ const VoxelHabitat = (() => {
     const heavy=!slim && !frill && !gecko;
     const wave = Math.sin(phase * Math.PI / 2);
     const walk = pose === "walk", low = pose === "bask" || pose === "drink";
-    const snout = skink ? 9 : slim || id === "komodo" ? 12 : 10;
-    const mid = (skink || low ? 2.6 : 3.6) + (walk && phase%2 ? .45 : 0);
-    const neck = mid + (low ? .2 : pose === "look" ? 4.4 : 2.5);
-    const width = slim ? 1.75 : beard || skink ? 2.85 : gecko ? 2.35 : 2.65;
+    // Fine surfaces (digits, lip seam and distal whip) sit below the size of
+    // a model voxel. Rasterise these in the same camera as the solid limbs.
+    function stroke(a,b,w0,w1,material,shade,side=0) {
+      details.push({a:turnHead?headPoint(...a):a, b:turnHead?headPoint(...b):b,
+        w0,w1,material,shade,side});
+    }
+    const skull = slim ? 11.6 : gecko ? 9 : 9.5;
+    const nose = slim ? 18.6 : skink ? 13 : id === "komodo" ? 15 : 13.6;
+    const mid = (skink || low ? 2.8 : 4.1) + (walk && phase % 2 ? .45 : 0);
+    const neck = mid + (low ? 1.5 : pose === "look" ? 5.8 : slim ? 4.2 : 3.1);
+    const width = slim ? 2.05 : beard || skink ? 3.15 : gecko ? 2.75 : 2.95;
+    const flank = Math.round(mid + .7);
     const bodyColor = (x,y,z) => {
-      if (z < mid-.25) return 2;
-      if (traitKeys.length && z > mid + .5 && (x+8)%4===0) return 7;
-      if (lz.pattern==="bands" || id==="tegu" || id==="aojita") return (x+15)%5<=1 ? 1 : 0;
-      if (lz.pattern==="spots" || gecko || id==="mizuoo") return ((x+21)*13+(Math.abs(y)+2)*5+z*7)%13 < 3 ? 1 : 0;
-      if (lz.pattern==="stripe" || slim || id==="nihontokage") return Math.abs(y)>=1 && z===Math.round(mid+1) ? 2 : 0;
+      if (z < mid-.65) return 2;
+      if (traitKeys.length && z > mid + 1.5 && (x+10)%5===0) return 7;
+      if (lz.pattern==="bands" || id==="tegu" || id==="aojita") return (x+18)%6<=1 ? 1 : 0;
+      if (lz.pattern==="spots" || gecko || id==="mizuoo") {
+        // A handful of coherent markings, large enough to read at tank resolution.
+        const spot = (x+17+Math.floor((z-mid)*1.4))%6;
+        return z>=mid && spot<2 && (Math.abs(y)>width*.5 || z>mid+1.3) ? 1 : 0;
+      }
+      if (lz.pattern==="stripe" || slim || id==="nihontokage") {
+        if (Math.abs(y) >= width*.57 && z===flank) return 2;
+        if (Math.abs(y) >= width*.74 && z===flank-1) return 1;
+      }
       return 0;
     };
-    // Diagonal trot, separate elbows, splayed toes and short pale claws.
+    // Elbows turn backwards and knees forwards. The long ankle-to-toe span
+    // leaves open space between the belly and the four planted feet.
     for (const side of [-1,1]) for (const fore of [-1,1]) {
-      const x = fore === 1 ? 3 : -4, stride = walk ? wave * side * fore * 1.65 : 0;
-      const knee = [x + fore * -1.65 + stride*.25, side*(width+1.2), mid*.56];
-      const foot = [x + fore*.6 + stride,side*(width+2.35),walk && stride>1 ? 1 : 0];
-      limb([x,side*width*.6,mid],knee,heavy?1.15:.85,1);
-      limb(knee,foot,.8,0);
-      for (let toe=-1; toe<=1; toe++) {
-        limb(foot,[foot[0]+1+toe,foot[1]+side*(1+(toe===0?1:0)),foot[2]],.5,gecko?2:1);
+      const x = fore === 1 ? 4.4 : -5.1;
+      const stride = walk ? wave * side * fore * 1.9 : 0;
+      const knee = [x-fore*2.4+stride*.25, side*(width+1.65), mid*.55];
+      const far = side*(width + (skink ? 2.5 : 3.8));
+      const foot = [x+fore*1.35+stride, far, walk && stride>1 ? 1 : 0];
+      limb([x,side*width*.62,mid],knee,heavy ? 1.4 : 1.14,0);
+      limb(knee,foot,heavy ? 1.13 : 1,1);
+      // The longest toes reach ahead and out from the heel; the innermost
+      // digit hooks back. Fine individual claws leave gaps even on a phone.
+      const footX=foot[0], footZ=foot[2];
+      const toeLength=(gecko ? .86 : skink ? .82 : 1) * (fore===1 ? 1 : 1.22);
+      for (const [dx,dy] of [[-1.7,2.9],[.45,4.4],[3.2,4.2],[4.15,1.75]]) {
+        const tip=[footX+dx*toeLength,far+side*dy*toeLength,footZ-.25];
+        const bend=[footX+dx*.50,far+side*(dy*.62+.45),footZ-.15];
+        stroke(foot,bend,gecko?2.1:1.7,1.5,1,1,side);
+        stroke(bend,tip,1.5,gecko?1.35:.75,1,1,side);
       }
     }
-    const end = gecko ? -15 : skink ? -16 : slim ? -23 : -20;
-    const long = (Math.abs(end)-4)*tailLength;
-    for (let i=0; i<=Math.ceil(long); i++) {
-      const t = i / Math.max(long,1), x = -4-i;
-      const bend = Math.sin(t*4.5+phase*Math.PI*.5)*(gecko?.95:1.7)*t + (pose==="curl" ? t*t*5 : 0);
-      const z = 1.1+(mid-1.1)*(1-t)**2+(pose==="curl" ? t*t*2.1 : 0);
-      const r = (gecko ? 1.6*(1-t)+1.35*Math.sin(t*Math.PI) : 2*(1-t))+.43;
-      oval(x,Math.round(bend),Math.round(z),1.1,Math.max(.72,r),Math.max(.7,r*.86),
-        id==="nihontokage" && t>.35 ? 6 : (gecko || lz.pattern==="bands") && (i%5<2) ? 1 : 0);
+    const end = gecko ? -20 : skink ? -22 : slim ? -28 : -24;
+    const long = (Math.abs(end)-5)*tailLength;
+    const tailPoint = t => [
+      -5-t*long,
+      t*Math.sin(5.3*t+.65*wave)*(gecko?3.2:5.9)+(pose==="curl"?t*t*6:0),
+      .65+(mid-1.25)*(1-t)**2+(pose==="curl"?t*t*3.7:1.8*t*t),
+    ];
+    const tailColor = (t,i) => id==="nihontokage" && t>.35 ? 6 :
+      (gecko || lz.pattern==="bands") && i%6<2 ? 1 : 0;
+    const taperAt = gecko ? .86 : .68;
+    for (let i=0;i<=Math.ceil(long);i++) {
+      const t=Math.min(1,i/Math.max(long,1));
+      const p=tailPoint(t), mat=tailColor(t,i);
+      if(t>taperAt) {
+        const prev=tailPoint((i-1)/Math.max(long,1));
+        const thin=u=>.8+3.7*Math.max(0,(1-u)/(1-taperAt));
+        stroke(prev,p,thin((i-1)/long),thin(t),t>.90 && mat===0?1:mat,1);
+      } else {
+        const r=(gecko?1.85*(1-t)+1.6*Math.sin(t*Math.PI):2.2*(1-t))+.42;
+        oval(p[0],Math.round(p[1]),Math.round(p[2]),1.18,Math.max(.64,r),Math.max(.67,r*.82),mat);
+      }
     }
-    oval(-.6,0,mid,5.8,width,slim?1.72:2.1,bodyColor);
-    oval(3.6,0,mid+.55,3,width*.82,1.75,0);
+    oval(-1,0,mid,7,width,slim?1.95:2.5,bodyColor);
+    oval(3.4,0,mid+.45,3.5,width*.87,1.9,bodyColor);
     turnHead=pose==="groom";
-    limb([3,0,mid+.65],[6,0,neck],slim?1.2:1.65,0);
-    const skullWidth = beard || gecko || frill ? 2.65 : skink ? 2.15 : 1.85;
+    limb([4,0,mid+.65],[skull-1.5,0,neck],slim?1.35:1.72,0);
+    const cheek = beard || frill ? 3.3 : gecko ? 3.1 : skink ? 2.65 : slim ? 2.12 : 2.45;
     if (frill) {
-      for (let a=0; a<32; a++) {
-        const angle=a*Math.PI/16;
-        limb([5,0,neck],[4,4*Math.cos(angle),neck+3.3*Math.sin(angle)],.7,a%5===0?2:1);
+      for (let a=0; a<40; a++) {
+        const angle=a*Math.PI/20;
+        limb([7,0,neck],[5,5.2*Math.cos(angle),neck+4.3*Math.sin(angle)],.75,a%5===0?2:1);
       }
     }
-    if (beard) for (let j=-2; j<=2; j++) limb([7,j,neck-1],[6,j,neck-3+(Math.abs(j)===2?1:0)],.5,1);
-    oval(7,0,neck,3.05,skullWidth,gecko?2.15:1.85,(x,y,z)=>z<neck-.5?2:0);
-    oval(snout-1.3,0,neck-.55,2.1,skullWidth*.73,1.16,(x,y,z)=>z<neck-.75?2:0);
-    const ez = Math.round(neck+.65);
+    if (beard) for (let j=-2; j<=2; j++) limb([8,j,neck-1],[6,j,neck-3.4+(Math.abs(j)===2?1:0)],.65,1);
+    // High brow, wider cheek and a tapering wedge-shaped snout. A narrow dark
+    // lip sits above the pale jaw; the eye is set behind it, under the brow.
+    const headHeight=gecko?2.25:2.05;
+    oval(skull,0,neck,3.1,cheek,headHeight,(x,y,z)=>z<neck-.6?2:0);
+    for(let x=Math.round(skull); x<=Math.floor(nose); x++){
+      const t=(x-skull)/(nose-skull);
+      const yRadius=cheek*(1-(slim?.72:.58)*t);
+      const zRadius=headHeight*(.88-.45*t);
+      oval(x,0,neck-.28-.28*t,1.05,yRadius,zRadius,(vx,vy,vz)=>{
+        if(vz<neck-.7) return 2;
+        if(vz===Math.round(neck-.6) && Math.abs(vy)>=yRadius*.55) return 1;
+        return 0;
+      });
+    }
+    const ez=Math.round(neck+.5), eyeX = Math.round(skull);
     for (const side of [-1,1]) {
-      const eyeY = side*Math.round(skullWidth);
+      const eyeY=side*Math.round(cheek);
       if (id!=="menashi") {
-        cell(7,eyeY,ez,blink?1:8);
-        if (!blink) cell(8,eyeY,ez,4);
-        cell(7,side*Math.max(1,Math.round(skullWidth)-1),ez+1,gecko ? 5 : 2);
+        cell(eyeX-1,eyeY,ez,1);
+        cell(eyeX,eyeY,ez,blink?1:4);
+        cell(eyeX+1,eyeY,ez,blink?1:8);
+        cell(eyeX,side*(Math.abs(eyeY)-1),ez+1,2);
       }
-      cell(Math.round(snout-.5),side,Math.round(neck),1);
-      if (traitKeys.length) cell(6,eyeY,ez-1,7);
+      cell(Math.floor(nose)-1,side*Math.max(1,Math.round(cheek*.48)),Math.round(neck),1);
+      if (traitKeys.length) cell(eyeX-2,eyeY,ez-1,7);
+      const lip=[skull+1.1,side*(cheek-.22),neck-.45];
+      const hinge=[nose-2,side*(cheek*.55),neck-.76];
+      stroke(lip,hinge,1.5,1.15,1,0,side);
+      stroke(hinge,[nose+.4,side*.64,neck-.56],1.15,.75,1,0,side);
+      if (!blink && id!=="menashi") {
+        const glint=[eyeX+.03,eyeY,ez+.30];
+        stroke(glint,glint,1.05,1.05,5,2,side);
+      }
     }
     if (tongue) {
-      const tip = [snout+3,0,Math.round(neck-1.5)];
-      limb([snout,0,Math.round(neck-.8)],tip,.5,6);
+      const tip = [Math.round(nose)+3,0,Math.round(neck-1.5)];
+      limb([nose,0,Math.round(neck-.8)],tip,.5,6);
       if (!skink) for(const side of [-1,1]) cell(tip[0]+1,side,tip[2],6);
     }
     turnHead=false;
@@ -165,7 +224,7 @@ const VoxelHabitat = (() => {
       for (let i=-4; i<=4; i+=2) cell(i,0,Math.round(mid+2.45),id==="ancient"?3:1);
     }
     for (let i=1;i<traitKeys.length;i++) cell(2-i*2,0,Math.round(mid+2),8+i);
-    return { cells, key };
+    return { cells, key, details };
   }
 
   // The three visible faces of every unit cube share one projection. Rasterise their
@@ -222,16 +281,38 @@ const VoxelHabitat = (() => {
         for(const offset of face.masks[sub]) indices[center+offset]=ink;
       }
     }
+    const project=([x,y,z])=>[AX+(x*co-y*si)*unit,AY+((x*si+y*co)*.47-z*.88)*unit];
+    for(const d of data.details) {
+      const [x0,y0]=project(d.a), [x1,y1]=project(d.b);
+      const steps=Math.max(1,Math.ceil(Math.hypot(x1-x0,y1-y0)*1.7));
+      const far=d.side && d.side*co < 0;
+      for(let k=0;k<=steps;k++) {
+        const t=k/steps,x=x0+(x1-x0)*t,y=y0+(y1-y0)*t;
+        const rad=(d.w0+(d.w1-d.w0)*t)*.5;
+        // 128 identifies a fine feature that already carries its own edge ink.
+        const ink=128+1+d.material*4+d.shade;
+        const ix=Math.round(x),iy=Math.round(y);
+        if (!far || !indices[iy*SW+ix]) indices[iy*SW+ix]=ink;
+        for(let yy=Math.ceil(y-rad);yy<=y+rad;yy++) for(let xx=Math.ceil(x-rad);xx<=x+rad;xx++) {
+          const i=yy*SW+xx;
+          if((xx-x)**2+(yy-y)**2<=rad*rad && (!far || !indices[i])) indices[i]=ink;
+        }
+      }
+    }
     return indices;
   }
 
-  function tint(indices,colors) {
+  function tint(indices,colors,edge) {
     const c=canvas(SW,SH), ctx=c.getContext("2d");
     const image=ctx.createImageData(SW,SH), out=new Uint32Array(image.data.buffer);
     const palette=[0,...colors.flat()];
-    for(let i=0;i<indices.length;i++) out[i]=palette[indices[i]];
+    for (let i=0;i<indices.length;i++) {
+      if (indices[i]) out[i]=palette[indices[i]&127];
+      else if ((indices[i-1]||255)<128 || (indices[i+1]||255)<128 ||
+               (indices[i-SW]||255)<128 || (indices[i+SW]||255)<128) out[i]=edge;
+    }
     ctx.putImageData(image,0,0);
-    return c;
+    return { canvas:c, mask:indices };
   }
 
   function drawLizard(ctx,lz,inTank) {
@@ -251,7 +332,7 @@ const VoxelHabitat = (() => {
     const side=Math.cos(angle)>=0?1:-1;
     // Keep the head and tail legible when travelling directly towards/away from the glass.
     const sin=Math.sin(angle);
-    const yaw=(side===1?0:Math.PI)+side*(sin<-.48?-.78:sin>.48?.78:sin>=0?.30:-.30);
+    const yaw=(side===1?0:Math.PI)+side*(sin<-.48?-.55:sin>.48?.55:sin>=0?.24:-.24);
     const tail=lz.injuredT>0?Math.max(.12,Math.round((1-lz.injuredT/CFG.injuryTime)*4)/4):1;
     const gene=Render.lizardColor(lz);
     const hue=lz.morphId==="legendary"?Math.round(gene.h/24)*24:Math.round(gene.h);
@@ -267,17 +348,35 @@ const VoxelHabitat = (() => {
         if(modelFrames.size>=768) modelFrames.delete(modelFrames.keys().next().value);
         modelFrames.set(shapeKey,frame);
       }
-      sprite=tint(frame,palette(lz,hue,gene.s,gene.l,traits));
+      sprite=tint(frame,palette(lz,hue,gene.s,gene.l,traits),packed(hue-9,gene.s*.60,Math.max(12,Math.min(30,gene.l*.46))));
       if(spriteCache.size>=512) spriteCache.delete(spriteCache.keys().next().value);
       spriteCache.set(signature,sprite);
     }
-    const scale=species.size*(lz.stage==="baby"?.57:1)*Game.crowdScale()*(inTank?2.9:1.7);
+    const scale=species.size*(lz.stage==="baby"?.57:1)*Game.crowdScale()*(inTank?TANK_SCALE:1.55);
     ctx.save();ctx.imageSmoothingEnabled=false;
     const bob= !reduced && !lz.moving && Math.sin(phaseTime*1.6)>.65 ? scale*.45 : 0;
     ctx.fillStyle="rgba(37,39,27,.23)";
     ctx.beginPath();ctx.ellipse(lz.x-1,lz.y+2,scale*18,scale*4.5,0,0,Math.PI*2);ctx.fill();
-    ctx.drawImage(sprite,lz.x-AX*scale,lz.y-AY*scale-bob,SW*scale,SH*scale);
+    const left=lz.x-AX*scale, top=lz.y-AY*scale-bob;
+    ctx.drawImage(sprite.canvas,left,top,SW*scale,SH*scale);
+    if (inTank && ctx.canvas===scene) visibleSprites.push({lz,mask:sprite.mask,left,top,scale});
     ctx.restore();
+  }
+
+  // Hit the same silhouette last drawn on the glass, including an extended snout
+  // or curling tail. Reverse painter order resolves overlapping residents.
+  function pickLizard(x,y) {
+    for (const pad of [0,2]) {
+      for(let i=visibleSprites.length-1;i>=0;i--) {
+        const {lz,mask,left,top,scale}=visibleSprites[i];
+        const px=Math.floor((x-left)/scale), py=Math.floor((y-top)/scale);
+        if (px < -pad || py < -pad || px >= SW+pad || py >= SH+pad) continue;
+        for(let yy=Math.max(0,py-pad); yy<=Math.min(SH-1,py+pad); yy++)
+          for(let xx=Math.max(0,px-pad); xx<=Math.min(SW-1,px+pad); xx++)
+            if (mask[yy*SW+xx]) return lz;
+      }
+    }
+    return null;
   }
 
   function polygon(c,points,color) {
@@ -405,6 +504,7 @@ const VoxelHabitat = (() => {
     }
     for(const lz of Game.state.lizards) if(Game.isVisible(lz)) objects.push({y:lz.y,lz});
     objects.sort((a,b)=>a.y-b.y);
+    visibleSprites.length=0;
     for(const o of objects) {
       if(o.lz) {
         drawLizard(c,o.lz,true);
@@ -419,5 +519,5 @@ const VoxelHabitat = (() => {
   function present(target) {
     target.save();target.imageSmoothingEnabled=false;target.drawImage(scene,0,0,W,H);target.restore();
   }
-  return { drawScene, drawLizard, present };
+  return { drawScene, drawLizard, pickLizard, present };
 })();

@@ -139,11 +139,11 @@
 .colony-page {
   --rim: clamp(3px, .46vw, 8px);
   width: calc(100% - var(--rim) * 2);
-  max-width: min(2000px, calc((100dvh - 145px) * 2.54));
+  max-width: min(2400px, calc((100dvh - 155px) * 2.52));
   margin: var(--rim) auto;
   padding: var(--rim);
   display: grid;
-  grid-template-columns: minmax(0, 1.48fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.72fr) minmax(0, 1fr);
   align-items: stretch;
   align-content: start;
   flex: 0 1 auto;
@@ -216,6 +216,21 @@
   image-rendering: pixelated;
   box-shadow: none;
 }
+/* Keep the actual canvas in its native proportions. The 8:5 glass trims only
+   the two outer scenery margins; hit testing uses this same canvas rectangle. */
+.colony-page #frame:not(:fullscreen, .habitat-expanded) {
+  aspect-ratio: 8 / 5;
+  overflow: clip;
+}
+.colony-page #frame:not(:fullscreen, .habitat-expanded) #game {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: auto;
+  height: 100%;
+  max-width: none;
+  transform: translateX(-50%);
+}
 #habitat-fullscreen {
   position: absolute;
   z-index: 5;
@@ -257,24 +272,26 @@
   border-top: 2px solid #101e1a;
   box-shadow: inset 0 1px #4d5f50;
 }
-.habitat-deck { flex-wrap: wrap; justify-content: space-between; }
+.habitat-deck { position: relative; }
 .colony-page #left {
   display: flex;
+  flex: 1;
   flex-direction: row;
   align-items: stretch;
   gap: 0;
   overflow: visible;
   max-height: none;
 }
-.deck-button { min-height: 48px; border-right: 1px solid #405348; }
+.deck-button { flex: 1; min-width: 0; min-height: 48px; border-right: 1px solid #405348; }
+.deck-button:last-child { border-right: 0; }
 .deck-button span { text-align: left; }
 .deck-button small { display: block; margin-top: 2px; color: var(--plate-muted); font: 500 calc(9px * var(--fs-scale)) / 1.1 var(--readout); }
-.raid-meter { position: relative; display: flex; align-items: center; gap: 6px; padding-left: 8px; padding-right: 4px; min-height: 42px; }
+.raid-meter { margin-left: auto; position: relative; display: flex; align-items: center; gap: 6px; padding-left: 8px; padding-right: 4px; min-height: 32px; }
 .raid-meter > .icon { width: 20px; height: 20px; color: #cf967c; }
 .raid-readout { display: grid; gap: 2px; min-width: 0; }
 .raid-readout span { color: #ddba9d; font-size: calc(10px * var(--fs-scale)); line-height: 1.1; }
 .raid-readout strong { font: 600 calc(15px * var(--fs-scale)) / 1 var(--readout); color: #f3d0a6; }
-#pachi-raid-action { min-height: 38px; font-size: calc(11px * var(--fs-scale)); color: #e1bb90; padding-inline: 7px; }
+#pachi-raid-action { min-height: 33px; font-size: calc(11px * var(--fs-scale)); color: #e1bb90; padding-inline: 7px; }
 #pachi-guard:empty { display: none; }
 #pachi-guard:not(:empty) { font-size: calc(10px * var(--fs-scale)); color: var(--mint); max-width: 8em; }
 .pachi-mode { color: var(--plate-muted); font-size: calc(10px * var(--fs-scale)); white-space: nowrap; }
@@ -306,26 +323,23 @@
 .cabinet-ui #modal-box { background: var(--enamel-dark); border: 1px solid var(--metal); border-radius: 2px; }
 .cabinet-ui #modal-body button, .cabinet-ui #detail button { border-radius: 2px; }
 
-#residents-toggle {
-  display: inline-flex; align-items: center; gap: 4px; min-height: 29px;
-  padding: 3px; font: inherit; color: inherit; border: 0; border-radius: 0;
-  box-shadow: none; background: transparent; text-shadow: none;
-}
 #residents-toggle::after {
   content: ""; width: 5px; height: 5px; margin: -2px 2px 0 4px;
   border: solid var(--plate-muted); border-width: 0 1px 1px 0; transform: rotate(45deg);
 }
 #residents-toggle[aria-expanded="true"]::after { margin-top: 3px; transform: rotate(225deg); }
 #resident-list {
+  position: absolute;
+  inset: auto 0 100%;
+  z-index: 6;
   display: flex;
-  flex: 1 1 56px;
-  min-height: 44px;
+  height: clamp(64px, 9vh, 92px);
   gap: 4px;
   align-items: stretch;
   overflow-x: auto;
   overflow-y: hidden;
   padding: 5px;
-  border-top: 1px solid var(--seam);
+  border: 1px solid var(--metal);
   background: #172a24;
   scrollbar-width: thin;
   scrollbar-color: #5f7157 #152620;
@@ -400,19 +414,22 @@
   .instrument-head { padding-inline: 7px; }
   .instrument-name h2 { font-size: calc(13px * var(--fs-scale)); }
   .instrument-name > .icon { width: 16px; height: 16px; }
-  .colony-page #game { width: 100%; }
+  .colony-page #frame:not(:fullscreen, .habitat-expanded) { aspect-ratio: 1.65; }
   #habitat-fullscreen { width: 37px; height: 37px; right: 4px; top: 4px; }
   .habitat-deck { flex-wrap: nowrap; }
   .deck-button { gap: 3px; min-height: 42px; font-size: calc(11px * var(--fs-scale)); padding: 3px 6px; }
   .deck-button .icon { width: 15px; height: 15px; }
+  .colony-page #left { display: grid; grid-template-columns: 1.2fr .79fr .79fr 1.43fr; }
   .deck-button small { font-size: calc(8px * var(--fs-scale)); }
-  .raid-meter { flex: 1; justify-content: flex-end; gap: 3px; padding: 1px 3px; min-height: 40px; }
-  .raid-meter > .icon { width: 15px; height: 15px; }
+  .raid-meter { justify-content: flex-end; gap: 3px; padding: 1px 3px; min-height: 40px; }
+  .raid-meter > .icon { width: 14px; height: 14px; }
+  .colony-live .instrument-head { gap: 4px; }
+  .colony-live .raid-meter, .colony-live #pachi-raid-action { min-height: 30px; padding-block: 1px; }
   .raid-readout span { max-width: 7em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .raid-readout strong { font-size: calc(12px * var(--fs-scale)); }
   #pachi-raid-action { min-height: 38px; padding-inline: 4px; }
   #pachi-guard:not(:empty) { position: absolute; bottom: 100%; right: 0; width: max-content; max-width: 180px; background: #13271edc; }
-  .pachi-cabinet { display: grid; grid-template-columns: minmax(0, 1fr) 78px; grid-template-rows: auto 1fr; }
+  .pachi-cabinet { display: grid; grid-template-columns: minmax(0, 1fr) 86px; grid-template-rows: auto 1fr; }
   .pachi-cabinet .instrument-head { grid-column: 1 / -1; }
   .machine-deck { flex-direction: column; justify-content: space-evenly; gap: 4px; border: 0; border-left: 2px solid #101e1a; padding: 4px; }
   .crank-station { flex-direction: column; gap: 4px; }
@@ -426,12 +443,12 @@
   .colony-page #slit-device { width: 34px; }
   .pachi-result { bottom: 4px; left: 2px; right: 80px; }
   .pachi-result strong:not(:empty) { font-size: calc(10px * var(--fs-scale)); }
-  #resident-list { position: absolute; left: 4px; right: 4px; top: 32px; z-index: 5; height: 64px; border: 1px solid var(--metal); }
   .colony-page #boss-hud { top: 5px; padding: 3px 4px; gap: 3px; }
   .colony-page .bh-portrait { width: 26px; height: 26px; }
 }
 @media (max-width: 365px) and (orientation: portrait) {
   .deck-button { font-size: calc(10px * var(--fs-scale)); padding-inline: 4px; }
+  .colony-page #frame:not(:fullscreen, .habitat-expanded) { aspect-ratio: 1.68; }
   .raid-meter > .icon { display: none; }
   .cabinet-ui #topbar .res { font-size: calc(10px * var(--fs-scale)); }
   .cabinet-ui #topbar .ricon { width: 14px; height: 14px; }
@@ -441,14 +458,13 @@
   .colony-page { --rim: 2px; max-width: min(100%, calc((100dvh - 118px) * 2.54)); }
   .instrument-head { min-height: 24px; padding-block: 0; }
   .instrument-name h2 { font-size: calc(12px * var(--fs-scale)); }
-  #residents-toggle { min-height: 24px; }
   .machine-deck { padding-block: 1px; gap: 3px; }
   #crank-dock #feeder-dial { --fd-crank-size: 40px; --fd-auto-size: 30px; }
   #crank-dock .fd-lever { transform: scaleY(.7); height: 53px; }
   .crank-label { font-size: calc(9px * var(--fs-scale)); }
   .colony-page #slit-device { width: 25px; }
-  #resident-list { position: absolute; z-index: 5; left: 3px; right: 3px; top: 26px; height: 55px; }
-  .habitat-deck { flex-wrap: wrap; }
+  #resident-list { height: 55px; }
+  .colony-live .raid-meter, .colony-live #pachi-raid-action { min-height: 24px; }
   .deck-button { min-height: 34px; padding: 2px 5px; font-size: calc(9px * var(--fs-scale)); }
   .raid-meter { min-height: 32px; }
   #pachi-raid-action { min-height: 30px; }
@@ -489,9 +505,9 @@
   .colony-page {
     --rim: 3px; flex: 0 0 auto;
     grid-template-columns: minmax(0, 1fr);
-    width: calc(100% - 8px); max-width: calc((100dvh - 170px) * .75);
+    width: calc(100% - 8px); max-width: calc((100dvh - 162px) * .762);
   }
-  .pachi-cabinet { display: grid; grid-template-columns: minmax(0, 1fr) 22%; grid-template-rows: auto 1fr; }
+  .pachi-cabinet { display: grid; grid-template-columns: minmax(0, 1fr) 31%; grid-template-rows: auto 1fr; }
   .pachi-cabinet .instrument-head { grid-column: 1 / -1; }
   .machine-deck { flex-direction: column; justify-content: space-evenly; gap: 6px; border: 0; border-left: 2px solid #101e1a; }
   .crank-station { flex-direction: column; gap: 6px; }
@@ -499,10 +515,6 @@
   #crank-dock #feeder-dial { display: grid; grid-template-columns: auto 22px; align-items: center; }
   #crank-dock .fd-side { grid-column: 1 / -1; justify-content: center; }
   .pachi-result { bottom: 6px; left: 4px; right: 22%; }
-  #resident-list { position: absolute; top: 36px; left: 4px; right: 4px; z-index: 5; height: 76px; }
-}
-@media (orientation: landscape) and (min-height: 600px) and (max-aspect-ratio: 17/10) {
-  .colony-page { grid-template-columns: minmax(0, 1.27fr) minmax(0, 1fr); }
 }
 @media (orientation: landscape) and (max-height: 520px) {
   .colony-page { max-width: min(100%, calc((100dvh - 135px) * 2.54)); }

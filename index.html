@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="tokens.css?v=c7f55915">
 <link rel="stylesheet" href="style.css?v=895abd9e">
 <link rel="stylesheet" href="secondary.css?v=1af99e8b">
-<link rel="stylesheet" href="pachinko.css?v=171563d1">
+<link rel="stylesheet" href="pachinko.css?v=759a11b1">
 </head>
 <body class="cabinet-ui">
 
@@ -45,8 +45,14 @@
         <svg class="icon" aria-hidden="true"><use href="#i-planet"/></svg>
         <h2 id="pachi-stage-name">飼育槽</h2>
       </div>
+      <div id="pachi-raid-card" class="raid-meter" aria-label="襲来予告">
+        <svg class="icon" aria-hidden="true"><use href="#i-snake"/></svg>
+        <div class="raid-readout"><span id="pachi-raid-name"></span><strong id="pachi-raid-timer">--:--</strong></div>
+        <button id="pachi-raid-action" type="button">呼ぶ</button>
+        <span id="pachi-guard"></span>
+      </div>
       <div class="colony-meter">
-        <button id="residents-toggle" type="button" aria-controls="resident-list" aria-expanded="true" title="飼育中の個体を選ぶ" aria-label="飼育中の個体を選ぶ"><svg class="icon" aria-hidden="true"><use href="#i-lizardLogo"/></svg><b id="pachi-population"></b></button>
+        <span title="飼育数と収容数" aria-label="飼育数と収容数"><svg class="icon" aria-hidden="true"><use href="#i-lizard"/></svg><b id="pachi-population"></b></span>
         <span title="卵と卵スロット" aria-label="卵と卵スロット"><svg class="icon" aria-hidden="true"><use href="#i-egg"/></svg><b id="pachi-egg-count"></b></span>
       </div>
     </header>
@@ -67,15 +73,10 @@
         </button>
         <button id="btn-fac" class="deck-button" type="button" title="飼育設備"><svg class="icon" aria-hidden="true"><use href="#i-build"/></svg>設備</button>
         <button id="btn-breed-menu" class="deck-button" type="button" title="繁殖ペアを選ぶ"><svg class="icon" aria-hidden="true"><use href="#i-breed"/></svg>繁殖</button>
+        <button id="residents-toggle" class="deck-button" type="button" aria-controls="resident-list" aria-expanded="false"><svg class="icon" aria-hidden="true"><use href="#i-lizard"/></svg>トカゲを見る</button>
       </div>
-      <div id="pachi-raid-card" class="raid-meter" aria-label="襲来予告">
-        <svg class="icon" aria-hidden="true"><use href="#i-snake"/></svg>
-        <div class="raid-readout"><span id="pachi-raid-name"></span><strong id="pachi-raid-timer">--:--</strong></div>
-        <button id="pachi-raid-action" type="button">呼ぶ</button>
-        <span id="pachi-guard"></span>
-      </div>
+      <div id="resident-list" role="group" aria-label="飼育中の個体" hidden></div>
     </div>
-    <div id="resident-list" role="group" aria-label="飼育中の個体"></div>
   </section>
 
   <section id="pachi-dashboard" class="pachi-cabinet" aria-labelledby="pachi-heading">
@@ -132,14 +133,14 @@
 <script src="js/render.js?v=9a91df9b"></script>
 <script src="js/ink-reliefs.js?v=e9be5a9e"></script>
 <script src="js/voxel-landscape.js?v=111e207b"></script>
-<script src="js/voxel-habitat.js?v=0d7895b8"></script>
+<script src="js/voxel-habitat.js?v=d9a0f7b6"></script>
 <script src="js/roulette.js?v=e1a97ec3"></script>
 <script src="js/roul-table.js?v=66f0f319"></script>
 <script src="js/slit.js?v=5df53bec"></script>
 <script src="js/weather.js?v=8b1750e3"></script>
 <script src="js/holo.js?v=7bde44f4"></script>
 <script src="js/sound.js?v=718e49f4"></script>
-<script src="js/ui/core.js?v=3ac1f439"></script>
+<script src="js/ui/core.js?v=37c5d03b"></script>
 <script src="js/ui/icons.js?v=60549743"></script>
 <script src="js/ui/components.js?v=9ab85d59"></script>
 <script src="js/ui/motion.js?v=73fb55e5"></script>
@@ -164,7 +165,7 @@
 <script src="js/ui/screens/hq.js?v=c6501180"></script>
 <script src="js/ui/screens/hqlab.js?v=41a20d11"></script>
 <script src="js/ui/screens/dex.js?v=7219acbd"></script>
-<script src="js/ui/screens/residents.js?v=a4dd9989"></script>
+<script src="js/ui/screens/residents.js?v=18d8c485"></script>
 <script src="js/ui/screens/meta.js?v=838db368"></script>
 <script src="js/ui/screens/pachinko.js?v=8249d313"></script>
 <script src="js/ui/boot.js?v=ded3f46e"></script>

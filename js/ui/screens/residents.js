@@ -5,16 +5,19 @@ Object.assign(UI, {
       const list = document.getElementById("resident-list");
       if (!list) return;
       const toggle = document.getElementById("residents-toggle");
-      const small = matchMedia("(orientation: portrait), (max-height: 520px)");
       const setOpen = (open) => {
         toggle.setAttribute("aria-expanded", String(open));
         list.hidden = !open;
       };
-      setOpen(!small.matches);
-      small.addEventListener("change", () => setOpen(!small.matches));
       toggle.addEventListener("click", () => {
         setOpen(list.hidden);
         this.updateResidents();
+      });
+      list.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+          setOpen(false);
+          toggle.focus({ preventScroll: true });
+        }
       });
       list.addEventListener("click", event => {
         const button = event.target.closest("button[data-resident]");
@@ -22,9 +25,9 @@ Object.assign(UI, {
         const lizard = Game.state.lizards.find(lz => String(lz.id) === button.dataset.resident);
         if (!lizard) return;
         Game.selectedId = lizard.id;
-        if (small.matches) setOpen(false);
+        setOpen(false);
+        toggle.focus({ preventScroll: true });
         this.renderDetail(true);
-        this.updateResidents();
       });
       this._residents = { list, cards: new Map() };
     }
