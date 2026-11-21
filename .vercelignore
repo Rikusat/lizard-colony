@@ -60,3 +60,11 @@ image/nest/source-sheet.png
 # ローカル環境
 .claude/
 node_modules/
+
+# 遺伝子パチンコの実行時グラフィック
+!image/pachinko
+!image/pachinko/**
+
+# Ink Studio baked assets used by the habitat, table and specimen cards
+!image/ink
+!image/ink/**

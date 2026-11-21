@@ -4,8 +4,19 @@
 // =============================================================
 
 Object.assign(UI, {
+  // Atlas rows and columns follow the species/morph order used by the art baker.
+  specimenPortrait(speciesId, morphId) {
+    const row = SPECIES.findIndex(sp => sp.id === speciesId);
+    const col = MORPHS.findIndex(mo => mo.id === morphId);
+    if (row < 0 || col < 0) return "";
+    const size = `${MORPHS.length * 100}% ${SPECIES.length * 100}%`;
+    const position = `${100 * col / Math.max(1, MORPHS.length - 1)}% ${100 * row / Math.max(1, SPECIES.length - 1)}%`;
+    return `<span aria-hidden="true" class="specimen-portrait" style="background-size:${size};background-position:${position}"></span>`;
+  },
+
   // ---------------- モーダル共通 ----------------
   openModal(title, buildBody) {
+    this.closeHabitatFullscreen?.();
     this.els["modal-title"].innerHTML = title; // SVGアイコンを含むため(内部生成のみ)
     this.els["modal-body"].innerHTML = "";
     // Phase0(Brushup V2): 構築中の例外で「無反応」に見える事故を防ぐセーフティ。

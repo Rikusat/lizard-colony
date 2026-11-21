@@ -7,7 +7,7 @@
 //     ・クイック繁殖ボタン(全対総当たりargmax) ・希少スコア式(CFG.breedScoreW 系) ・繁殖予約トグル(autoBreed)
 //   残すもの: 種×モーフのタイル / A/Bスロット / 特性チップ / 固定印 / ◀▶切替 / 同種残0のグレーアウト。
 //   **スロット内の巡回・自動選出は id 昇順の安定順序**(希少スコア順ではない)=プレイヤーが順序を予測できる。
-// 実行は Game.breed(唯一の経路=コスト/CD/確率/遺伝は不変)。
+// 選んだペアは既存の繁殖経路で処理する。
 // =============================================================
 
 Object.assign(UI, {
@@ -60,16 +60,17 @@ Object.assign(UI, {
       // 同種(同タイル)の繁殖可残(A/B除く)が0=グレーアウト。繁殖可0のタイルもグレー
       const gray = (!hasA && !hasB && g.ready.length === 0) || ((hasA || hasB) && remain === 0 && !(hasA && hasB));
       const sp = speciesById(g.rep.speciesId), mo = morphById(g.rep.morphId);
-      th += `<div class="sp-tile ${hasA ? "picked-a" : hasB ? "picked-b" : ""} ${gray ? "grayed" : ""}" data-tile="${g.key}">
+      th += `<button type="button" class="sp-tile ${hasA ? "picked-a" : hasB ? "picked-b" : ""} ${gray ? "grayed" : ""}" data-tile="${g.key}" ${gray ? "disabled" : ""}>
         <canvas width="120" height="72" data-tilelz="${g.rep.id}"></canvas>
-        <b>${sp.name}</b><span class="cnt">${mo.name}${(CFG.breedCountBadge !== false) ? ` × ${g.list.length}匹 / 繁殖可 ${g.ready.length}` : ""}</span></div>`;
+        <b>${sp.name}</b><span class="cnt">${mo.name}${(CFG.breedCountBadge !== false) ? ` × ${g.list.length}匹 / 繁殖可 ${g.ready.length}` : ""}</span></button>`;
     }
     th += `</div>`;
     const cost = A && B ? Game.breedCost(A, B) : 0;
     const sl = `<div class="sp-slots">${this._bmSlotHtml("A", A)}${this._bmSlotHtml("B", B)}</div>`;
+    const fee = A && B ? ` (${Icon.svg("coin")}${fmt(cost)})` : "";
     // 自動選出(クイック繁殖)と繁殖予約は撤廃(Ric裁定 2026-07-29)。残るのは手動確定のみ
     const act = `<div class="sp-actions">
-      <button id="bm-go" class="cta" ${A && B && Game.state.coins >= cost ? "" : "disabled"}>${Icon.svg("breed")} この組で繁殖 ${A && B ? `(${Icon.svg("coin")}${fmt(cost)})` : ""}</button>
+      <button id="bm-go" class="cta" ${A && B && Game.state.coins >= cost ? "" : "disabled"}>${Icon.svg("breed")} この組で繁殖${fee}</button>
     </div>`;
     body.innerHTML = th + sl + act;
     for (const cv of body.querySelectorAll("[data-tilelz]")) this._bmDrawLz(cv, Game.state.lizards.find((l) => l.id === +cv.dataset.tilelz), 0.55);
@@ -79,14 +80,18 @@ Object.assign(UI, {
       el.addEventListener("click", () => {
         const g = groups.find((x) => x.key === el.dataset.tile);
         if (!g) return;
-        const other = st.a && !st.b ? st.a : st.b;
         const pick = g.ready.find((l) => l.id !== st.a && l.id !== st.b);
         if (!pick) return;
         if (!st.a) st.a = pick.id;
         else if (!st.b) st.b = pick.id;
         else { st.a = pick.id; st.b = null; } // 両方選択済みで別タイル=Aから選び直し
-        void other;
+        const tabbed = document.activeElement === el;
         this._bmBuild(body);
+        if (tabbed) {
+          const next = st.a && st.b ? body.querySelector("#bm-go")
+            : Array.from(body.querySelectorAll(".sp-tile:not(:disabled)")).find((tile) => tile.dataset.tile === g.key);
+          (next || body.querySelector(".sp-tile:not(:disabled)"))?.focus();
+        }
       });
     }
     // ◀▶: 同タイル内を id 昇順(安定順序)で巡回(他スロット占有は除く)

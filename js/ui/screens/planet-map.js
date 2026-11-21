@@ -39,45 +39,39 @@ Object.assign(UI, {
   // ---------------- V4 §4-1: 惑星マップ+宇宙船トランジション ----------------
   openMap() {
     if (Game.raid) { this.toast("ボス襲来中は惑星を移動できない! 討伐してから", true); return; } // 3.11.3
-    this.openModal(`${Icon.svg("planet")} 惑星マップ — Planet Reptile`, (body) => {
+    this.openModal(`${Icon.svg("planet")} 惑星マップ`, (body) => {
       const s = Game.state;
       const cur = Game.currentStage();
-      const pos = {
-        1: [7, 58], 2: [17, 26], 3: [27, 62], 4: [37, 24], 5: [47, 58],
-        6: [57, 26], 7: [67, 60], 8: [77, 26], 9: [86, 60], 10: [93, 38],
-      };
       let html = `<div id="planet-map">`;
       for (const st of STAGES) {
         const unlocked = s.rank >= st.rank;
         const data = st.id === cur.id ? Game.activeStageData() : Game.stageData(st.id);
-        const inv = 0; // V4.1: 侵略リング廃止(侵食は全惑星共通)
         const pop = data ? data.lizards.length : 0;
         const badges = unlocked && data ? Game.stageBadges(data).join("") : "";
-        const [x, y] = pos[st.id];
         const frontier = st.id === Game.frontierId();
         html += `
-          <div class="planet-node ${unlocked ? "" : "locked"} ${st.id === cur.id ? "here" : ""} ${frontier && unlocked ? "frontier" : ""}" data-planet="${st.id}"
-            style="left:${x}%;top:${y}%">
-            <div class="pn-ring" style="--pa:${UI.planetAccent(st.id)}">
-              <div class="pn-ball" style="background:radial-gradient(circle at 35% 30%, ${st.ground}, ${st.ground2})">${Icon.svg(unlocked ? st.icon : "lock")}</div>
-            </div>
-            <div class="pn-name">${unlocked ? st.pname : "HQ Lv" + st.rank}${frontier && unlocked ? " " + Icon.svg("star") : ""}</div>
-            <div class="pn-sub">${unlocked ? (data && data.pioneered ? `${Icon.svg("lizard")}${pop} ${badges}` : "未開拓") : ""}</div>
-          </div>`;
+          <button type="button" class="planet-node ${unlocked ? "" : "locked"} ${st.id === cur.id ? "here" : ""} ${frontier && unlocked ? "frontier" : ""}" data-planet="${st.id}"
+            ${!unlocked || st.id === cur.id ? "disabled" : ""} ${st.id === cur.id ? 'aria-current="location"' : ""}>
+            <span class="pn-ring" style="--pa:${UI.planetAccent(st.id)}">
+              <canvas width="36" height="36" class="pn-ball" aria-hidden="true"></canvas>
+              ${unlocked ? "" : Icon.svg("lock")}
+            </span>
+            <span class="pn-name">${unlocked ? st.pname : "HQ Lv" + st.rank}${frontier && unlocked ? " " + Icon.svg("star") : ""}</span>
+            <span class="pn-sub">${unlocked ? (st.id===cur.id ? "現在地" : data && data.pioneered ? `${Icon.svg("lizard")}${pop} ${badges}` : "未開拓") : ""}</span>
+          </button>`;
       }
       const ero = Math.round(Game.state.erosion || 0);
       html += `</div>
         <div class="map-legend">
           <span>${Icon.svg("star")} フロンティア(生産・報酬・XPボーナス)</span>
-          <span>◎ 現在地</span>
           <span class="map-ero">${Icon.svg("erosion")} 侵食率(全惑星共通)
             <span class="bar"><span style="width:${ero}%"></span></span> <b>${ero}%</b></span>
-          <span style="color:var(--sub)">タップで宇宙船が出発(航行には時間がかかる)</span>
         </div>`;
       body.innerHTML = html;
       for (const node of body.querySelectorAll(".planet-node")) {
         const id = +node.dataset.planet;
-        if (Game.state.rank < stageById(id).rank || id === cur.id) continue;
+        CabinetScenery.planet(node.querySelector(".pn-ball").getContext("2d"), stageById(id));
+        if (node.disabled) continue;
         node.addEventListener("click", () => this.travelTo(id));
       }
     });

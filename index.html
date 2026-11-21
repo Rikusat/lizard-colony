@@ -3,84 +3,99 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>トカゲコロニー 〜コロニーを育て、この星系を脱出せよ〜</title>
+<title>トカゲコロニー｜遺伝子パチンコ</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%232c2010'/%3E%3Cg stroke='%237bd986' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 13c3 0 4.5-3 8-3 2.5 0 4 .8 5.5 2.2L21 14l-3 1c-1.6 1.6-3.4 2.5-6 2.5-3.5 0-5-3-8-4.5z' fill='%237bd986'/%3E%3Cpath d='M8 17.5 7 20M13 18l1 2.5M19.5 12.5c.8-1.6.8-3.4 0-5' fill='none'/%3E%3C/g%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700&family=M+PLUS+Rounded+1c:wght@700&family=DotGothic16&display=swap">
-<link rel="stylesheet" href="tokens.css?v=2b0f44e7">
-<link rel="stylesheet" href="style.css?v=b7862fda">
+<link rel="stylesheet" href="tokens.css?v=c7f55915">
+<link rel="stylesheet" href="style.css?v=895abd9e">
+<link rel="stylesheet" href="secondary.css?v=1af99e8b">
+<link rel="stylesheet" href="pachinko.css?v=759a11b1">
 </head>
-<body>
+<body class="cabinet-ui">
 
 <header id="topbar">
-  <div id="brand">
-    <div class="logo"><svg class="icon"><use href="#i-lizardLogo"/></svg></div>
-    <h1>トカゲコロニー<small>LIZARD COLONY</small></h1>
+  <h1 class="visually-hidden">トカゲコロニー</h1>
+  <div class="wallet" aria-label="保有資源">
+    <div class="res" data-tip="コイン" aria-label="コイン"><span class="ricon coin"><svg class="icon" aria-hidden="true"><use href="#i-coin"/></svg></span><b id="ui-coins">0</b><small id="ui-cps">+0/秒</small></div>
+    <div class="res" data-tip="コオロギ" aria-label="コオロギ"><span class="ricon cricket"><svg class="icon" aria-hidden="true"><use href="#i-cricket"/></svg></span><b id="ui-crickets-top">0</b></div>
+    <div class="res" data-tip="ジェム" aria-label="ジェム"><span class="ricon gem"><svg class="icon" aria-hidden="true"><use href="#i-gem"/></svg></span><b id="ui-gems">0</b></div>
+    <div class="res" data-tip="アメジスト" aria-label="アメジスト"><span class="ricon amethyst"><svg class="icon" aria-hidden="true"><use href="#i-amethyst"/></svg></span><b id="ui-amethyst">0</b></div>
+    <div class="res" data-tip="賢者の石" aria-label="賢者の石"><span class="ricon stone"><svg class="icon" aria-hidden="true"><use href="#i-stone"/></svg></span><b id="ui-stones">0</b></div>
   </div>
-  <div class="res" data-tip="コイン — トカゲが毎秒生産。購入/繁殖/設備に使う"><span class="ricon coin">G</span><b id="ui-coins">0</b><small id="ui-cps">+0/秒</small></div>
-  <div class="res" data-tip="コオロギ — 餌の在庫(全コロニー共通)。給餌で消費・左メニューで購入"><span class="ricon cricket"><svg class="icon"><use href="#i-cricket"/></svg></span><b id="ui-crickets-top">0</b></div>
-  <div class="res" data-tip="ジェム — 即時孵化・即回復・レア卵に使う希少通貨"><span class="ricon gem"><svg class="icon"><use href="#i-gem"/></svg></span><b id="ui-gems">0</b></div>
-  <div class="res" data-tip="アメジスト — ダイヤの上位の貴重鉱石。繁殖クールダウンのリセットに使える"><span class="ricon amethyst"><svg class="icon"><use href="#i-amethyst"/></svg></span><b id="ui-amethyst">0</b></div>
-  <div class="res" data-tip="賢者の石 — 四重スリット実験装置でごく稀に得られる最上位の希少物質（保有中・用途は今後）"><span class="ricon stone"><svg class="icon"><use href="#i-stone"/></svg></span><b id="ui-stones">0</b></div>
-  <nav>
-    <button id="btn-map"><svg class="icon"><use href="#i-planet"/></svg> マップ<span id="map-badge" class="badge hidden">!</span></button>
-    <button id="btn-hq"><svg class="icon"><use href="#i-hq"/></svg> 本部<span id="hq-badge" class="badge hidden">!</span></button>
-    <button id="btn-dex"><svg class="icon"><use href="#i-dex"/></svg> 図鑑<span id="dex-badge" class="badge hidden">!</span></button>
-    <button id="btn-missions"><svg class="icon"><use href="#i-mission"/></svg> ミッション<span id="mission-badge" class="badge hidden">!</span></button>
-    <button id="btn-stats"><svg class="icon"><use href="#i-stats"/></svg> 統計<span id="stats-badge" class="badge hidden">!</span></button>
-    <button id="btn-settings"><svg class="icon"><use href="#i-settings"/></svg> 設定</button>
-  </nav>
+  <div id="hq-bar" title="本部レベルと進行度">
+    <div id="rank-bar"></div>
+    <span id="hq-bar-label">HQ Lv<b id="ui-rank">1</b></span>
+  </div>
+  <details id="game-menu">
+    <summary aria-label="ゲームメニュー" title="ゲームメニュー"><span class="menu-lines" aria-hidden="true"></span></summary>
+    <nav aria-label="ゲームメニュー">
+      <button id="btn-map"><svg class="icon" aria-hidden="true"><use href="#i-planet"/></svg>マップ<span id="map-badge" class="badge hidden">!</span></button>
+      <button id="btn-hq"><svg class="icon" aria-hidden="true"><use href="#i-hq"/></svg>本部<span id="hq-badge" class="badge hidden">!</span></button>
+      <button id="btn-dex"><svg class="icon" aria-hidden="true"><use href="#i-dex"/></svg>図鑑<span id="dex-badge" class="badge hidden">!</span></button>
+      <button id="btn-missions"><svg class="icon" aria-hidden="true"><use href="#i-mission"/></svg>ミッション<span id="mission-badge" class="badge hidden">!</span></button>
+      <button id="btn-stats"><svg class="icon" aria-hidden="true"><use href="#i-stats"/></svg>統計<span id="stats-badge" class="badge hidden">!</span></button>
+      <button id="btn-settings"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg>設定</button>
+    </nav>
+  </details>
 </header>
 
-<!-- 3.10.4: HQレベル=ヘッダー直下のプログレスバー(惑星アクセント色・太め・数値レス) -->
-<div id="hq-bar" title="HQレベル — 全惑星の成果で伸びる恒久バフ">
-  <div id="rank-bar"></div>
-  <span id="hq-bar-label"><svg class="icon"><use href="#i-hq"/></svg> HQ Lv<b id="ui-rank">1</b></span>
-</div>
-
-<main>
-  <!-- 3.13(再): C3全画面化をやめ2カラムへ復帰(左=操作卓)。空白より意味のある列(Ric判断)。
-       操作卓は「コオロギ購入・設備」のみ(遺伝子ルーレットはボス討伐後の報酬モーダル=左に常設しない)。
-       カードの見やすさ(アイコン+名称+数値)は維持 -->
-  <aside id="left">
-    <div class="card">
-      <h3>操作卓</h3>
-      <button id="btn-cricket" class="ft-card" title="コオロギ購入(まとめ買い / 長押しで連続)">
-        <svg class="icon"><use href="#i-cricket"/></svg>
-        <span class="ft-txt"><b>コオロギ購入</b><small id="cricket-lot-lbl">まとめ買い</small></span>
-      </button>
-      <button id="btn-fac" class="ft-card" title="設備 — コロニーを強化">
-        <svg class="icon"><use href="#i-build"/></svg>
-        <span class="ft-txt"><b>設備</b><small>コロニーを強化</small></span>
-      </button>
-      <!-- R1-1(2026-07-25): 繁殖=左メニュー常設(設備の直下)。スリット装置と下部レイアウトは不変 -->
-      <button id="btn-breed-menu" class="ft-card" title="繁殖 — 種を選んで掛け合わせる">
-        <svg class="icon"><use href="#i-breed"/></svg>
-        <span class="ft-txt"><b>繁殖</b><small>種を選んで掛け合わせ</small></span>
-      </button>
-    </div>
-    <!-- 四重スリット実験的瞬間遺伝決定装置(roulette.md §9): 左メニュー下部の極小窓・線のみ・
-         クランク稼働で作動(クールダウン~10s)・全通過=賢者の石(滅多に起きない奇跡)・失敗球は痕跡として張り付く -->
-    <div id="slit-device" title="四重スリット実験装置 — クランク稼働時にごく稀に作動。全ての切れ目を通れば賢者の石">
-      <canvas id="slit-canvas"></canvas>
-    </div>
-  </aside>
-
-  <section id="center">
-    <div id="frame">
-      <canvas id="game" width="1280" height="720"></canvas>
-      <!-- 3.10.3: 襲撃予告=飼育槽右上のコンパクト半透明HUD(生き物の動きを隠さない) -->
-      <div id="raid-hud">
-        <div class="rh-line"><svg class="icon"><use href="#i-snake"/></svg><span id="raid-timer">--:--</span></div>
-        <div id="next-boss" class="hidden"></div>
-        <button id="btn-raid-now" class="danger" title="今すぐ襲来（報酬狙いの前倒し）"><svg class="icon"><use href="#i-snake"/></svg> 今すぐ襲来</button>
+<main class="colony-page" aria-label="飼育槽と遺伝子パチンコ">
+  <section class="colony-live" aria-label="ライブ飼育槽">
+    <header class="instrument-head">
+      <div class="instrument-name">
+        <svg class="icon" aria-hidden="true"><use href="#i-planet"/></svg>
+        <h2 id="pachi-stage-name">飼育槽</h2>
       </div>
-      <!-- 3.11: トーストは飼育槽上部中央から下へスライドイン(スマホ通知の作法) -->
-      <div id="toasts"></div>
+      <div id="pachi-raid-card" class="raid-meter" aria-label="襲来予告">
+        <svg class="icon" aria-hidden="true"><use href="#i-snake"/></svg>
+        <div class="raid-readout"><span id="pachi-raid-name"></span><strong id="pachi-raid-timer">--:--</strong></div>
+        <button id="pachi-raid-action" type="button">呼ぶ</button>
+        <span id="pachi-guard"></span>
+      </div>
+      <div class="colony-meter">
+        <span title="飼育数と収容数" aria-label="飼育数と収容数"><svg class="icon" aria-hidden="true"><use href="#i-lizard"/></svg><b id="pachi-population"></b></span>
+        <span title="卵と卵スロット" aria-label="卵と卵スロット"><svg class="icon" aria-hidden="true"><use href="#i-egg"/></svg><b id="pachi-egg-count"></b></span>
+      </div>
+    </header>
+    <div id="center">
+      <div id="frame" tabindex="-1" aria-label="トカゲの飼育槽と防衛">
+        <canvas id="game" width="1280" height="720" aria-label="飼育槽。トカゲを選んで個体情報を表示"></canvas>
+        <button id="habitat-fullscreen" type="button" aria-label="飼育槽を全画面表示" title="飼育槽を全画面表示" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/></svg>
+        </button>
+        <div id="toasts"></div>
+      </div>
+      <div id="detail" class="hidden"></div>
     </div>
-    <div id="raid-banner" class="hidden"></div>
-    <div id="detail" class="hidden"></div>
+    <div class="habitat-deck">
+      <div id="left" role="group" aria-label="飼育操作">
+        <button id="btn-cricket" class="deck-button" type="button" title="コオロギを購入。長押しで連続購入">
+          <svg class="icon" aria-hidden="true"><use href="#i-cricket"/></svg><span>餌を買う<small id="cricket-lot-lbl"></small></span>
+        </button>
+        <button id="btn-fac" class="deck-button" type="button" title="飼育設備"><svg class="icon" aria-hidden="true"><use href="#i-build"/></svg>設備</button>
+        <button id="btn-breed-menu" class="deck-button" type="button" title="繁殖ペアを選ぶ"><svg class="icon" aria-hidden="true"><use href="#i-breed"/></svg>繁殖</button>
+        <button id="residents-toggle" class="deck-button" type="button" aria-controls="resident-list" aria-expanded="false"><svg class="icon" aria-hidden="true"><use href="#i-lizard"/></svg>トカゲを見る</button>
+      </div>
+      <div id="resident-list" role="group" aria-label="飼育中の個体" hidden></div>
+    </div>
+  </section>
+
+  <section id="pachi-dashboard" class="pachi-cabinet" aria-labelledby="pachi-heading">
+    <header class="instrument-head">
+      <div class="instrument-name"><svg class="icon" aria-hidden="true"><use href="#i-energy"/></svg><h2 id="pachi-heading">遺伝子パチンコ</h2></div>
+      <span id="pachi-mode" class="pachi-mode">待機中</span>
+    </header>
+    <div class="pachi-machine">
+      <canvas id="crank-roulette-canvas" role="img" aria-label="外周の発射レール、回転分岐、折り返し通路、入賞口を備えたパチンコ盤"></canvas>
+    </div>
+    <div class="machine-deck">
+      <div class="crank-station">
+        <span class="crank-label" aria-hidden="true">給餌・発射</span>
+        <div id="crank-dock" role="group" aria-label="給餌・発射操作"></div>
+      </div>
+      <dl class="pachi-combo"><div><dt>着地</dt><dd id="pachi-total">0</dd></div><div><dt>連続入賞</dt><dd id="pachi-streak">0</dd></div></dl>
+      <div id="slit-device" title="四重スリット実験装置" aria-label="四重スリット実験装置"><canvas id="slit-canvas"></canvas></div>
+    </div>
+    <div class="pachi-result" id="pachi-result" role="status"><strong id="pachi-result-title"></strong></div>
   </section>
 </main>
 
@@ -107,23 +122,27 @@
 </section>
 
 <div id="modal" class="hidden">
-  <div id="modal-box">
-    <header><h2 id="modal-title"></h2><button id="modal-close">×</button></header>
+  <div id="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <header><h2 id="modal-title"></h2><button id="modal-close" type="button" aria-label="閉じる">×</button></header>
     <div id="modal-body"></div>
   </div>
 </div>
 
-<script src="js/data.js?v=0abb509c"></script>
-<script src="js/game.js?v=37a1b3e4"></script>
-<script src="js/render.js?v=d1ff11d8"></script>
-<script src="js/roulette.js?v=8a7a13b9"></script>
+<script src="js/data.js?v=2d912b7c"></script>
+<script src="js/game.js?v=c79559cb"></script>
+<script src="js/render.js?v=9a91df9b"></script>
+<script src="js/ink-reliefs.js?v=e9be5a9e"></script>
+<script src="js/voxel-landscape.js?v=111e207b"></script>
+<script src="js/voxel-habitat.js?v=d9a0f7b6"></script>
+<script src="js/roulette.js?v=e1a97ec3"></script>
+<script src="js/roul-table.js?v=66f0f319"></script>
 <script src="js/slit.js?v=5df53bec"></script>
 <script src="js/weather.js?v=8b1750e3"></script>
 <script src="js/holo.js?v=7bde44f4"></script>
 <script src="js/sound.js?v=718e49f4"></script>
-<script src="js/ui/core.js?v=c521df8a"></script>
-<script src="js/ui/icons.js?v=052f9611"></script>
-<script src="js/ui/components.js?v=0f01b534"></script>
+<script src="js/ui/core.js?v=37c5d03b"></script>
+<script src="js/ui/icons.js?v=60549743"></script>
+<script src="js/ui/components.js?v=9ab85d59"></script>
 <script src="js/ui/motion.js?v=73fb55e5"></script>
 <script src="js/ui/hero/hero.js?v=34b5920e"></script>
 <script src="js/ui/hero/nest-reveal.js?v=81f5bfeb"></script>
@@ -131,20 +150,24 @@
 <script src="js/ui/hero/meteorite.js?v=e55dc2dd"></script>
 <script src="js/ui/hero/rocket.js?v=e69c4f1c"></script>
 <script src="js/ui/hero/species-reveal.js?v=b834c5b6"></script>
-<script src="js/ui/hero/boss-reward.js?v=321b5215"></script>
-<script src="js/ui/screens/main.js?v=6958d1c4"></script>
+<script src="js/ui/hero/boss-reward.js?v=a1c2cd2f"></script>
+<script src="js/ui/screens/main.js?v=aad965fe"></script>
 <script src="js/ui/screens/feeder-skins.js?v=2215bf21"></script>
-<script src="js/ui/screens/feeder.js?v=bcf8bdfe"></script>
-<script src="js/ui/screens/roulette.js?v=09b0b0eb"></script>
+<script src="js/ui/screens/feeder.js?v=e94f4015"></script>
+<script src="js/ui/screens/roulette.js?v=74ad7cf0"></script>
+<script src="js/ui/screens/roul-table.js?v=f74aa45a"></script>
 <script src="js/ui/screens/slit.js?v=6cd61da9"></script>
-<script src="js/ui/screens/breeding.js?v=44070c36"></script>
+<script src="js/ui/screens/breeding.js?v=07c1a281"></script>
 <script src="js/ui/screens/equipment.js?v=93b44083"></script>
-<script src="js/ui/screens/planet-map.js?v=960c0796"></script>
-<script src="js/ui/screens/nest.js?v=9a293f6c"></script>
+<script src="js/ui/screens/cabinet-scenery.js?v=35871420"></script>
+<script src="js/ui/screens/planet-map.js?v=c4daa35d"></script>
+<script src="js/ui/screens/nest.js?v=f0b852c5"></script>
 <script src="js/ui/screens/hq.js?v=c6501180"></script>
-<script src="js/ui/screens/hqlab.js?v=e2932f8e"></script>
-<script src="js/ui/screens/dex.js?v=a2c36466"></script>
+<script src="js/ui/screens/hqlab.js?v=41a20d11"></script>
+<script src="js/ui/screens/dex.js?v=7219acbd"></script>
+<script src="js/ui/screens/residents.js?v=18d8c485"></script>
 <script src="js/ui/screens/meta.js?v=838db368"></script>
-<script src="js/ui/boot.js?v=05c6d1b5"></script>
+<script src="js/ui/screens/pachinko.js?v=8249d313"></script>
+<script src="js/ui/boot.js?v=ded3f46e"></script>
 </body>
 </html>

@@ -1,0 +1,538 @@
+/* A single enclosure for the terrarium, mechanical table and their controls. */
+.cabinet-ui {
+  --enamel: #172b29;
+  --enamel-dark: #0b1718;
+  --enamel-light: #29413b;
+  --seam: #38514a;
+  --metal: #b39560;
+  --brass: #e4c38a;
+  --mint: #a1d9bc;
+  --plate-text: #ecebdd;
+  --plate-muted: #a8b8a9;
+  --plate-pad: clamp(8px, 1vw, 16px);
+  --readout: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --ink-900: #0e1e1d;
+  --ink-800: #192b28;
+  --ink-700: #243a33;
+  --ink-600: #375047;
+  --sand-200: #bec9b8;
+  --paper-100: #eeeede;
+  --amber-400: #e4c38a;
+  --amber-500: #b89760;
+  --amber-600: #856c46;
+  --life-400: #a1d9bc;
+  --life-500: #69b08d;
+  --life-600: #46836a;
+  --border: #465b4d;
+  --border-hi: #988659;
+  --card: #18302a;
+  --card-hi: #2f4235;
+  --grad-card: linear-gradient(150deg, #243933, #162824);
+  --grad-console: linear-gradient(#2c423b, #1c2c29);
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-pill: 3px;
+  color: var(--plate-text);
+  background-color: var(--enamel-dark);
+  background-image: repeating-linear-gradient(0deg, transparent 0 3px, #abc0a805 3px 4px);
+}
+
+/* Screen-reader headings and resource names retain their real labels. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  border: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.cabinet-ui #topbar {
+  z-index: 8;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  min-width: 0;
+  gap: 14px;
+  padding: 0 clamp(8px, 1.3vw, 24px);
+  min-height: 46px;
+  background: #132320;
+  border-bottom: 1px solid #365047;
+  box-shadow: inset 0 2px #3a4b40;
+}
+.wallet { display: flex; align-items: center; gap: clamp(6px, 1vw, 18px); min-width: 0; }
+.cabinet-ui #topbar .res {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+  padding: 0;
+  color: var(--plate-text);
+  background: none;
+  border: 0;
+  box-shadow: none;
+  font: 600 calc(13px * var(--fs-scale)) / 1 var(--readout);
+}
+.cabinet-ui #topbar .res :is(b, small) { min-width: 0; color: inherit; }
+.cabinet-ui #topbar #ui-cps { color: var(--mint); font-size: calc(9px * var(--fs-scale)); }
+.cabinet-ui #topbar .ricon {
+  width: 19px;
+  height: 19px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.cabinet-ui .ricon .icon { width: 100%; height: 100%; }
+.cabinet-ui .ricon.coin { color: #ebc178; }
+.cabinet-ui .ricon.cricket { color: #b1c882; }
+.cabinet-ui .ricon.gem { color: #8ac4d7; }
+.cabinet-ui .ricon.amethyst { color: #b89cdb; }
+.cabinet-ui .ricon.stone { color: #d78b7d; }
+.cabinet-ui #hq-bar {
+  align-self: center;
+  width: 63px;
+  height: 22px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: inset 0 -2px #405547;
+}
+.cabinet-ui #hq-bar #rank-bar { top: auto; height: 2px; background: var(--brass); box-shadow: none; }
+.cabinet-ui #hq-bar-label {
+  justify-content: center;
+  padding: 0 0 3px;
+  gap: 2px;
+  color: var(--plate-muted);
+  text-shadow: none;
+  font: 600 calc(10px * var(--fs-scale)) / 1 var(--readout);
+}
+.cabinet-ui #hq-bar-label b { color: var(--plate-text); }
+#game-menu { margin-left: auto; }
+#game-menu summary { display: none; }
+.cabinet-ui #topbar nav { gap: 0; margin: 0; align-items: center; }
+.cabinet-ui #topbar nav button, .deck-button, #pachi-raid-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  padding: 5px clamp(8px, .9vw, 15px);
+  min-height: 42px;
+  color: var(--plate-text);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  text-shadow: none;
+  white-space: nowrap;
+  font-size: calc(12px * var(--fs-scale));
+  line-height: 1.2;
+}
+.cabinet-ui #topbar nav button .icon, .deck-button .icon { color: var(--mint); width: 19px; height: 19px; }
+.cabinet-ui #topbar nav button:hover, .deck-button:hover, #pachi-raid-action:hover { background: #31453a; filter: none; box-shadow: none; }
+.cabinet-ui #topbar .badge { top: 2px; right: 2px; width: 12px; height: 12px; font: 700 10px/11px var(--readout); border: 0; border-radius: 1px; background: #b25742; }
+
+.colony-page {
+  --rim: clamp(3px, .46vw, 8px);
+  width: calc(100% - var(--rim) * 2);
+  max-width: min(2400px, calc((100dvh - 155px) * 2.52));
+  margin: var(--rim) auto;
+  padding: var(--rim);
+  display: grid;
+  grid-template-columns: minmax(0, 1.72fr) minmax(0, 1fr);
+  align-items: stretch;
+  align-content: start;
+  flex: 0 1 auto;
+  min-height: 0;
+  gap: var(--rim);
+  isolation: isolate;
+  overflow: visible;
+  color: var(--plate-text);
+  background: #36483d;
+  border: 1px solid #5a6651;
+  box-shadow: inset 0 1px #78826a, inset 0 -2px #17261f, 0 3px #071210;
+}
+.colony-live, .pachi-cabinet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--enamel);
+  border: 1px solid #071613;
+  box-shadow: 0 1px #66725e, inset 0 0 0 1px var(--seam);
+}
+.instrument-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+  gap: 6px;
+  min-height: 38px;
+  padding: 4px var(--plate-pad);
+  background: linear-gradient(180deg, #263d35 0%, #20332e 90%);
+  border-bottom: 2px solid #101c19;
+  box-shadow: inset 0 1px #526356;
+}
+.instrument-name, .colony-meter, .colony-meter span, .pachi-mode { display: inline-flex; align-items: center; gap: 7px; }
+.instrument-name { min-width: 0; }
+.instrument-name h2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 700 calc(15px * var(--fs-scale)) / 1.3 var(--font-retro);
+  letter-spacing: .035em;
+  color: var(--plate-text);
+}
+.instrument-name > .icon { flex: none; width: 19px; height: 19px; color: var(--metal); }
+.colony-meter { gap: clamp(8px, 1.4vw, 20px); font: 500 calc(11px * var(--fs-scale)) / 1 var(--readout); color: var(--plate-text); }
+.colony-meter span { gap: 4px; }
+.colony-meter .icon { width: 15px; height: 15px; color: var(--mint); }
+.colony-meter b { font-weight: 500; white-space: nowrap; }
+.colony-page #center { display: block; min-height: auto; }
+.colony-page #frame {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--enamel-dark);
+  box-shadow: none;
+}
+.colony-page #frame::before {
+  inset: 0;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px #0e1d1799;
+}
+.colony-page #frame::after { display: none; }
+.colony-page #game {
+  width: 100%;
+  height: auto;
+  max-height: none;
+  border-radius: 0;
+  image-rendering: pixelated;
+  box-shadow: none;
+}
+/* Keep the actual canvas in its native proportions. The 8:5 glass trims only
+   the two outer scenery margins; hit testing uses this same canvas rectangle. */
+.colony-page #frame:not(:fullscreen, .habitat-expanded) {
+  aspect-ratio: 8 / 5;
+  overflow: clip;
+}
+.colony-page #frame:not(:fullscreen, .habitat-expanded) #game {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: auto;
+  height: 100%;
+  max-width: none;
+  transform: translateX(-50%);
+}
+#habitat-fullscreen {
+  position: absolute;
+  z-index: 5;
+  top: 7px;
+  right: 7px;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid #91a788b3;
+  background: #152824db;
+  color: #f0f2d9;
+  border-radius: 2px;
+  box-shadow: 1px 1px #12221bd4;
+}
+#habitat-fullscreen svg { width: 20px; height: 20px; }
+.colony-page #boss-hud { top: 8px; min-width: 0; width: min(370px, 70%); max-width: none; }
+.colony-page #toasts { top: auto; bottom: 9px; max-width: 76%; }
+.colony-page #detail {
+  left: 8px;
+  bottom: 6px;
+  z-index: 5;
+  max-width: calc(100% - 16px);
+  max-height: min(430px, 57dvh);
+  overflow-y: auto;
+  color: var(--plate-text);
+  background: #142925fb;
+  border: 1px solid var(--metal);
+  border-radius: 2px;
+}
+.habitat-deck, .machine-deck {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+  color: var(--plate-text);
+  background: linear-gradient(180deg, #263a32, #1d2d28);
+  border-top: 2px solid #101e1a;
+  box-shadow: inset 0 1px #4d5f50;
+}
+.habitat-deck { position: relative; }
+.colony-page #left {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+  overflow: visible;
+  max-height: none;
+}
+.deck-button { flex: 1; min-width: 0; min-height: 48px; border-right: 1px solid #405348; }
+.deck-button:last-child { border-right: 0; }
+.deck-button span { text-align: left; }
+.deck-button small { display: block; margin-top: 2px; color: var(--plate-muted); font: 500 calc(9px * var(--fs-scale)) / 1.1 var(--readout); }
+.raid-meter { margin-left: auto; position: relative; display: flex; align-items: center; gap: 6px; padding-left: 8px; padding-right: 4px; min-height: 32px; }
+.raid-meter > .icon { width: 20px; height: 20px; color: #cf967c; }
+.raid-readout { display: grid; gap: 2px; min-width: 0; }
+.raid-readout span { color: #ddba9d; font-size: calc(10px * var(--fs-scale)); line-height: 1.1; }
+.raid-readout strong { font: 600 calc(15px * var(--fs-scale)) / 1 var(--readout); color: #f3d0a6; }
+#pachi-raid-action { min-height: 33px; font-size: calc(11px * var(--fs-scale)); color: #e1bb90; padding-inline: 7px; }
+#pachi-guard:empty { display: none; }
+#pachi-guard:not(:empty) { font-size: calc(10px * var(--fs-scale)); color: var(--mint); max-width: 8em; }
+.pachi-mode { color: var(--plate-muted); font-size: calc(10px * var(--fs-scale)); white-space: nowrap; }
+.pachi-mode::before { content: ""; width: 6px; height: 6px; background: #9a9f80; box-shadow: 1px 1px #0e211b; }
+.pachi-mode[data-mode="stream"] { color: var(--mint); }
+.pachi-mode[data-mode="stream"]::before { background: var(--mint); }
+.pachi-machine { min-width: 0; min-height: 0; background: #132b27; }
+#crank-roulette-canvas { display: block; width: 100%; height: auto; aspect-ratio: 208 / 205; image-rendering: pixelated; }
+.machine-deck { flex: 1 0 auto; justify-content: space-between; gap: 8px; padding: 4px var(--plate-pad); }
+.crank-station { flex: none; display: flex; align-items: center; gap: 8px; }
+.crank-label { color: var(--brass); font: 700 calc(11px * var(--fs-scale)) / 1.25 var(--font-retro); }
+#crank-dock #feeder-dial { position: static; }
+#crank-dock #feeder-dial { --fd-crank-size: 62px; --fd-auto-size: 40px; }
+#crank-dock #feeder-dial#feeder-dial { gap: 3px; }
+#crank-dock .fd-side { flex-direction: row; gap: 3px; }
+#crank-dock .fd-lever { width: 28px; }
+#crank-dock #feeder-dial .fd-sw { border-radius: 2px; }
+#crank-dock #feeder-dial #fd-auto.on, #crank-dock #feeder-dial #fd-empty.on { box-shadow: inset 0 -2px currentColor; }
+.pachi-combo { display: grid; gap: 4px; flex: 0 1 auto; min-width: 0; }
+.pachi-combo div { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.pachi-combo dt { color: var(--plate-muted); font-size: calc(10px * var(--fs-scale)); white-space: nowrap; }
+.pachi-combo dd { color: var(--brass); font: 600 calc(12px * var(--fs-scale)) / 1 var(--readout); white-space: nowrap; }
+.colony-page #slit-device { width: clamp(36px, 3.5vw, 64px); flex: none; padding: 0; margin: 0; align-self: center; }
+.pachi-result { position: absolute; left: 6px; right: 6px; bottom: 78px; pointer-events: none; text-align: center; }
+.pachi-result strong:not(:empty) { display: inline-block; padding: 4px 8px; color: var(--brass); font-size: calc(11px * var(--fs-scale)); background: #11241cf2; border: 1px solid var(--metal); }
+.pachi-result[data-tier="jackpot"] strong { color: #edcaff; border-color: #b697bd; }
+.cabinet-ui :focus-visible { outline: 2px solid var(--brass); outline-offset: -2px; }
+.cabinet-ui #hqlab-head, .cabinet-ui #nestpage-head, .cabinet-ui #modal-box > header { background: var(--enamel); }
+.cabinet-ui #modal-box { background: var(--enamel-dark); border: 1px solid var(--metal); border-radius: 2px; }
+.cabinet-ui #modal-body button, .cabinet-ui #detail button { border-radius: 2px; }
+
+#residents-toggle::after {
+  content: ""; width: 5px; height: 5px; margin: -2px 2px 0 4px;
+  border: solid var(--plate-muted); border-width: 0 1px 1px 0; transform: rotate(45deg);
+}
+#residents-toggle[aria-expanded="true"]::after { margin-top: 3px; transform: rotate(225deg); }
+#resident-list {
+  position: absolute;
+  inset: auto 0 100%;
+  z-index: 6;
+  display: flex;
+  height: clamp(64px, 9vh, 92px);
+  gap: 4px;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 5px;
+  border: 1px solid var(--metal);
+  background: #172a24;
+  scrollbar-width: thin;
+  scrollbar-color: #5f7157 #152620;
+}
+#resident-list[hidden] { display: none; }
+.resident-card {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  max-width: 210px;
+  border: 1px solid #3a5141;
+  border-radius: 1px;
+  padding: 3px 9px 3px 3px;
+  background: #21382d;
+  color: var(--plate-text);
+  box-shadow: none;
+  text-shadow: none;
+  text-align: left;
+}
+.resident-card[aria-pressed="true"] { border-color: var(--brass); }
+.resident-art { width: clamp(44px, 5vw, 80px); }
+.resident-art .specimen-portrait { width: 100%; }
+.resident-caption { display: grid; gap: 3px; }
+.resident-caption b { font-size: calc(11px * var(--fs-scale)); line-height: 1.35; }
+.resident-caption small { font: 500 calc(10px * var(--fs-scale)) / 1.2 var(--readout); color: var(--mint); }
+
+@media (max-width: 1150px) {
+  .cabinet-ui #topbar { gap: 9px; }
+  .cabinet-ui #topbar nav button { padding-inline: 6px; }
+  .deck-button { padding-inline: 7px; }
+  .crank-label { writing-mode: vertical-rl; letter-spacing: .06em; }
+  .machine-deck { gap: 4px; }
+  #crank-dock #feeder-dial { --fd-crank-size: 56px; --fd-auto-size: 35px; }
+}
+@media (max-width: 899px) {
+  /* Keep the close button under the finger throughout a touch, even on the first frame. */
+  .cabinet-ui #modal-box { animation: none; }
+  .cabinet-ui #topbar { min-height: 39px; padding: 0 8px; }
+  #game-menu summary {
+    display: grid; place-items: center; width: 42px; height: 38px;
+    cursor: pointer; list-style: none;
+  }
+  #game-menu summary::-webkit-details-marker { display: none; }
+  .menu-lines { width: 18px; height: 2px; background: var(--brass); box-shadow: 0 -5px var(--brass), 0 5px var(--brass); }
+  #game-menu[open] summary { background: var(--enamel-light); }
+  .cabinet-ui #game-menu nav {
+    position: absolute; right: 6px; top: 100%; display: grid;
+    grid-template-columns: 1fr 1fr; min-width: min(270px, 95vw);
+    padding: 4px; background: #172b25; border: 1px solid var(--metal);
+    box-shadow: 0 4px #06140dc9;
+  }
+  .cabinet-ui #game-menu nav button { justify-content: start; min-height: 45px; padding-inline: 12px; }
+  .pachi-combo div { gap: 3px; }
+  .instrument-head { min-height: 31px; padding-block: 1px; }
+}
+@media (max-width: 700px) and (orientation: portrait) {
+  .cabinet-ui { height: 100dvh; }
+  .cabinet-ui #topbar { gap: 6px; }
+  .wallet { flex: 1; justify-content: space-between; gap: 3px; }
+  .cabinet-ui #topbar #ui-cps { display: none; }
+  .cabinet-ui #topbar .res { gap: 2px; font-size: calc(11px * var(--fs-scale)); }
+  .cabinet-ui #topbar .ricon { width: 16px; height: 16px; }
+  .cabinet-ui #hq-bar { width: 40px; margin-left: 4px; }
+  #game-menu summary { width: 35px; }
+  .colony-page {
+    --rim: 3px; flex: 0 0 auto; grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto; align-items: start;
+    width: calc(100% - 4px); max-width: min(100%, calc((100dvh - 136px) * .92));
+    margin: 2px auto; padding: 2px;
+  }
+  .instrument-head { padding-inline: 7px; }
+  .instrument-name h2 { font-size: calc(13px * var(--fs-scale)); }
+  .instrument-name > .icon { width: 16px; height: 16px; }
+  .colony-page #frame:not(:fullscreen, .habitat-expanded) { aspect-ratio: 1.65; }
+  #habitat-fullscreen { width: 37px; height: 37px; right: 4px; top: 4px; }
+  .habitat-deck { flex-wrap: nowrap; }
+  .deck-button { gap: 3px; min-height: 42px; font-size: calc(11px * var(--fs-scale)); padding: 3px 6px; }
+  .deck-button .icon { width: 15px; height: 15px; }
+  .colony-page #left { display: grid; grid-template-columns: 1.2fr .79fr .79fr 1.43fr; }
+  .deck-button small { font-size: calc(8px * var(--fs-scale)); }
+  .raid-meter { justify-content: flex-end; gap: 3px; padding: 1px 3px; min-height: 40px; }
+  .raid-meter > .icon { width: 14px; height: 14px; }
+  .colony-live .instrument-head { gap: 4px; }
+  .colony-live .raid-meter, .colony-live #pachi-raid-action { min-height: 30px; padding-block: 1px; }
+  .raid-readout span { max-width: 7em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .raid-readout strong { font-size: calc(12px * var(--fs-scale)); }
+  #pachi-raid-action { min-height: 38px; padding-inline: 4px; }
+  #pachi-guard:not(:empty) { position: absolute; bottom: 100%; right: 0; width: max-content; max-width: 180px; background: #13271edc; }
+  .pachi-cabinet { display: grid; grid-template-columns: minmax(0, 1fr) 86px; grid-template-rows: auto 1fr; }
+  .pachi-cabinet .instrument-head { grid-column: 1 / -1; }
+  .machine-deck { flex-direction: column; justify-content: space-evenly; gap: 4px; border: 0; border-left: 2px solid #101e1a; padding: 4px; }
+  .crank-station { flex-direction: column; gap: 4px; }
+  .crank-label { writing-mode: horizontal-tb; font-size: calc(10px * var(--fs-scale)); }
+  #crank-dock #feeder-dial { --fd-crank-size: 46px; --fd-auto-size: 33px; display: grid; grid-template-columns: 46px 16px; justify-content: center; align-items: center; }
+  #crank-dock .fd-lever { width: 16px; }
+  #crank-dock .fd-side { grid-column: 1 / -1; justify-content: center; gap: 0; }
+  .pachi-combo { align-self: stretch; gap: 5px; }
+  .pachi-combo dt { font-size: calc(9px * var(--fs-scale)); }
+  .pachi-combo dd { font-size: calc(10px * var(--fs-scale)); }
+  .colony-page #slit-device { width: 34px; }
+  .pachi-result { bottom: 4px; left: 2px; right: 80px; }
+  .pachi-result strong:not(:empty) { font-size: calc(10px * var(--fs-scale)); }
+  .colony-page #boss-hud { top: 5px; padding: 3px 4px; gap: 3px; }
+  .colony-page .bh-portrait { width: 26px; height: 26px; }
+}
+@media (max-width: 365px) and (orientation: portrait) {
+  .deck-button { font-size: calc(10px * var(--fs-scale)); padding-inline: 4px; }
+  .colony-page #frame:not(:fullscreen, .habitat-expanded) { aspect-ratio: 1.68; }
+  .raid-meter > .icon { display: none; }
+  .cabinet-ui #topbar .res { font-size: calc(10px * var(--fs-scale)); }
+  .cabinet-ui #topbar .ricon { width: 14px; height: 14px; }
+  .cabinet-ui #hq-bar { margin: 0; }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .colony-page { --rim: 2px; max-width: min(100%, calc((100dvh - 118px) * 2.54)); }
+  .instrument-head { min-height: 24px; padding-block: 0; }
+  .instrument-name h2 { font-size: calc(12px * var(--fs-scale)); }
+  .machine-deck { padding-block: 1px; gap: 3px; }
+  #crank-dock #feeder-dial { --fd-crank-size: 40px; --fd-auto-size: 30px; }
+  #crank-dock .fd-lever { transform: scaleY(.7); height: 53px; }
+  .crank-label { font-size: calc(9px * var(--fs-scale)); }
+  .colony-page #slit-device { width: 25px; }
+  #resident-list { height: 55px; }
+  .colony-live .raid-meter, .colony-live #pachi-raid-action { min-height: 24px; }
+  .deck-button { min-height: 34px; padding: 2px 5px; font-size: calc(9px * var(--fs-scale)); }
+  .raid-meter { min-height: 32px; }
+  #pachi-raid-action { min-height: 30px; }
+}
+.colony-page #frame:is(:fullscreen, .habitat-expanded) {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--enamel-dark);
+}
+.colony-page #frame.habitat-expanded { position: fixed; inset: 0; z-index: 40; }
+.colony-page:has(.habitat-expanded) { z-index: 10; }
+.colony-page #frame:is(:fullscreen, .habitat-expanded) #game { width: min(100%, 177.7778dvh); height: auto; max-height: 100%; }
+.colony-page #frame:is(:fullscreen, .habitat-expanded) #detail { max-width: min(65vw, 330px); max-height: 65vh; bottom: 10px; }
+.colony-page #frame:is(:fullscreen, .habitat-expanded) #feeder-dial { right: 12px; bottom: 12px; }
+@media (max-width: 700px) {
+  .colony-page #frame:is(:fullscreen, .habitat-expanded) #feeder-dial { --fd-crank-size: 60px; --fd-auto-size: 34px; }
+}
+
+/* Tall handsets have enough vertical travel for the full-width table and lever shelf. */
+@media (max-width: 520px) and (min-height: 700px) and (max-aspect-ratio: 12/25) {
+  .pachi-cabinet { display: flex; }
+  .machine-deck { flex-direction: row; justify-content: space-between; padding: 4px 8px; border: 0; border-top: 2px solid #101e1a; }
+  .crank-station { flex-direction: row; gap: 5px; }
+  #crank-dock #feeder-dial { display: flex; --fd-crank-size: 56px; --fd-auto-size: 32px; }
+  #crank-dock .fd-lever { width: 20px; }
+  .pachi-combo { align-self: center; }
+  .pachi-result { left: 4px; right: 4px; bottom: 78px; }
+}
+/* Portrait tablets get two large drawing surfaces with controls beside the table. */
+@media (min-width: 521px) and (orientation: portrait) {
+  .colony-page {
+    --rim: 3px; flex: 0 0 auto;
+    grid-template-columns: minmax(0, 1fr);
+    width: calc(100% - 8px); max-width: calc((100dvh - 162px) * .762);
+  }
+  .pachi-cabinet { display: grid; grid-template-columns: minmax(0, 1fr) 31%; grid-template-rows: auto 1fr; }
+  .pachi-cabinet .instrument-head { grid-column: 1 / -1; }
+  .machine-deck { flex-direction: column; justify-content: space-evenly; gap: 6px; border: 0; border-left: 2px solid #101e1a; }
+  .crank-station { flex-direction: column; gap: 6px; }
+  .crank-label { writing-mode: horizontal-tb; }
+  #crank-dock #feeder-dial { display: grid; grid-template-columns: auto 22px; align-items: center; }
+  #crank-dock .fd-side { grid-column: 1 / -1; justify-content: center; }
+  .pachi-result { bottom: 6px; left: 4px; right: 22%; }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .colony-page { max-width: min(100%, calc((100dvh - 135px) * 2.54)); }
+}
+
+.resident-growth { display: block; width: 100%; max-width: 12em; height: 3px; margin-top: 3px; appearance: none; background: #101e18; border: 0; }
+.resident-growth::-webkit-progress-bar { background: #101e18; }
+.resident-growth::-webkit-progress-value { background: var(--mint); }
+.resident-growth::-moz-progress-bar { background: var(--mint); }
+@media (orientation: landscape) and (min-height: 521px) {
+  .resident-card {
+    flex: 1 0 150px; max-width: none; justify-content: flex-start;
+    gap: clamp(6px, 1vw, 20px); padding: 5px 10px;
+    background: linear-gradient(115deg, #2d4434, #1c342a 75%);
+  }
+  .resident-art { width: clamp(60px, 10vw, 154px); max-width: 46%; }
+  .resident-caption { flex: 1; }
+  .resident-caption b { font-size: calc(12px * var(--fs-scale)); }
+}
+
+.colony-page #center > #detail { max-height: min(430px, calc(100% - 12px)); }

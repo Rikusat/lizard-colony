@@ -29,11 +29,37 @@ const UI = {
     this._placeT = setTimeout(() => { this._placeT = null; if (this._ambSync) this._ambSync(); }, 0);
   },
 
+  initNavigation() {
+    const menu = document.getElementById("game-menu");
+    if (!menu) return;
+    const wide = window.matchMedia("(min-width: 900px)");
+    const sync = () => { menu.open = wide.matches; };
+    sync();
+    wide.addEventListener("change", sync);
+    menu.addEventListener("click", (event) => {
+      if (!wide.matches && event.target.closest("nav button")) menu.open = false;
+    });
+    document.addEventListener("pointerdown", (event) => {
+      if (menu.open && !wide.matches && !menu.contains(event.target)) menu.open = false;
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      if (!this.els.modal.classList.contains("hidden")) {
+        this.closeModal();
+      } else if (!wide.matches && menu.open) {
+        menu.open = false;
+        menu.querySelector("summary").focus();
+      }
+    });
+  },
+
   init() {
     const ids = ["ui-coins", "ui-cps", "ui-gems", "ui-amethyst", "ui-stones", "ui-rank", "rank-bar",
       "raid-timer", "raid-banner",
       "detail", "modal", "modal-title", "modal-body", "toasts", "mission-badge"];
     for (const id of ids) this.els[id] = document.getElementById(id);
+
+    this.initNavigation();
 
     // ボタン(購入・餌やりは長押しで加速連続実行 / GameExpansion_v2 ④)
     // V5.1: 購入単位(ショップ)は撤去
@@ -48,10 +74,10 @@ const UI = {
     if (cricketBtn) attachHold(cricketBtn, () => Game.buyCrickets(undefined, true));
     on("btn-map", () => this.openMap()); // 3.10.2: 惑星バー撤廃→右上マップボタンから惑星マップ
     on("btn-dex", () => this.openDex());
-    on("btn-breed-menu", () => this.openBreedMenu()); // R1: 繁殖=左メニュー常設
+    document.getElementById("btn-breed-menu")?.addEventListener("click", () => this.openBreedMenu());
     on("btn-missions", () => this.openMissions());
     on("btn-settings", () => this.openSettings());
-    on("btn-raid-now", () => Game.raidNow());
+    document.getElementById("btn-raid-now")?.addEventListener("click", () => Game.raidNow());
     on("modal-close", () => this.closeModal());
     this.els["modal"].addEventListener("pointerdown", (e) => {
       if (e.target === this.els["modal"]) this.closeModal();
@@ -93,15 +119,20 @@ const UI = {
         }
       }
       // トカゲ選択(③: 巣・設備より優先=周囲のトカゲが巣に取られない)
-      let best = null, bestD = Infinity;
-      for (const lz of Game.state.lizards) {
-        if (!Game.isVisible(lz)) continue;
-        // 横向きスプライトの当たり判定(足元アンカーから上に伸びる箱・群衆スケール追従)
-        const L = 105 * speciesById(lz.speciesId).size * (lz.stage === "baby" ? 0.5 : 1) * Game.crowdScale();
-        const dx = x - lz.x, dy = y - lz.y;
-        if (Math.abs(dx) < Math.max(40, L * 0.7) && dy > -Math.max(36, L * 0.52) && dy < L * 0.15) {
-          const d = Math.hypot(dx, dy + L * 0.2);
-          if (d < bestD) { bestD = d; best = lz; }
+      let best = null;
+      if (typeof VoxelHabitat !== "undefined") {
+        best = VoxelHabitat.pickLizard(x, y);
+      } else {
+        let bestD = Infinity;
+        for (const lz of Game.state.lizards) {
+          if (!Game.isVisible(lz)) continue;
+          // 横向きスプライトの当たり判定(足元アンカーから上に伸びる箱・群衆スケール追従)
+          const L = 105 * speciesById(lz.speciesId).size * (lz.stage === "baby" ? 0.5 : 1) * Game.crowdScale();
+          const dx = x - lz.x, dy = y - lz.y;
+          if (Math.abs(dx) < Math.max(40, L * 0.7) && dy > -Math.max(36, L * 0.52) && dy < L * 0.15) {
+            const d = Math.hypot(dx, dy + L * 0.2);
+            if (d < bestD) { bestD = d; best = lz; }
+          }
         }
       }
       if (best) { Game.selectedId = best.id; this.renderDetail(true); return; }
@@ -128,6 +159,7 @@ const UI = {
     this.initFeeder(); // 給餌ダイヤル(飼育槽右下・Brushup V2 Phase1)
     this.initRoulette(); // 遺伝子ルーレット(左メニュー下部・roulette.md §7)
     this.initSlit(); // 四重スリット実験装置(左メニュー下部・roulette.md §9)
+    if (this.initPachinko) this.initPachinko();
     this.initBossHud(); // ボスHPバー(上部中央・Brushup V2 Phase3)
     // #breed で繁殖画面を直接開く(動作確認・デバッグ用)
     if (location.hash === "#breed") setTimeout(() => this.openBreed(), 400);
@@ -151,12 +183,14 @@ const UI = {
         const gdt = Game.slowmo > 0 ? real * 0.25 : real;
         if (Game.slowmo > 0) Game.slowmo = Math.max(0, Game.slowmo - real);
         Game.tick(gdt);
-        // Phase3.13 v4: 給餌連動の常時発射は撤廃(ルーレット=ボス討伐後の報酬)。物理は固定dtで積分し続ける
+        // ボス報酬盤と常設盤の物理を別々に進める。
         if (typeof Roulette !== "undefined") Roulette.advance(gdt);
+        this.advanceCrankRoulette?.(gdt);
         if (typeof Slit !== "undefined") Slit.advance(gdt); // §9: 四重スリット装置(クールダウン/飛行/張り付き寿命)
       }
       Render.draw();
       if (this.drawRoulette) this.drawRoulette();
+      this.drawCrankRoulette?.();
       if (this.drawSlit) this.drawSlit(); // §9: 四重スリット装置(左メニュー下部・線のみ)
       if (this.drawBossReward) this.drawBossReward(); // Phase3.13 C2: ボス報酬オーバーレイ(稼働中のみ)
       this.acc += real;
@@ -253,30 +287,33 @@ const UI = {
       if (fr) Motion.play(fr, "quake");
     }
     this._dreadWas = dread;
-    if (Game.raid) {
-      const r = Game.raid;
-      rt.textContent = "襲撃中!!";
-      rt.classList.add("soon");
-      this.els["raid-banner"].classList.remove("hidden");
-      this.els["raid-banner"].innerHTML =
-        `${r.elite ? Icon.svg("crown") + " " : ""}${Icon.svg(r.type.icon)} ${Game.bossDisplayName(r)}${r.tier ? " T" + r.tier : ""} 襲来中!!`;
-      nb.classList.add("hidden");
-    } else {
-      rt.textContent = fmtTime(s.raidTimer);
-      rt.classList.toggle("soon", s.raidTimer <= 10);
-      this.els["raid-banner"].classList.add("hidden");
-      // 次の襲撃の予告(R30+はBOSSバッジ+名前+脅威)
-      if (s.nextRaid && (s.nextRaid.tier || s.nextRaid.boss)) {
-        const t = bossTypeById(s.nextRaid.typeId);
-        // ★名前は必ず単一窓口(Game.bossDisplayName)を通す。ここは §5z-2 で「表示4経路すべてを新窓口へ」と
-        //   報告した際に**見落とされていた5つ目の経路**で、汎用名(オオグモ/ダイジャ等)を直に出していた。
-        //   アイコンと脅威文は脅威型の"挙動"の予告なので従来どおり BOSS_TYPES 由来のままでよい。
-        nb.classList.remove("hidden");
-        nb.innerHTML = `<span class="boss-badge">BOSS</span>${s.nextRaid.elite ? `<span class="elite-badge">ELITE</span>` : ""}
-          <span class="nb-icon">${Icon.svg(t.icon)}</span> ${Game.bossDisplayName(s.nextRaid)}${s.nextRaid.tier ? " T" + s.nextRaid.tier : ""}
-          <div class="nb-threat">${t.threat}</div>`;
-      } else {
+    const banner = this.els["raid-banner"];
+    if (rt && nb && banner) {
+      if (Game.raid) {
+        const r = Game.raid;
+        rt.textContent = "襲撃中!!";
+        rt.classList.add("soon");
+        banner.classList.remove("hidden");
+        banner.innerHTML =
+          `${r.elite ? Icon.svg("crown") + " " : ""}${Icon.svg(r.type.icon)} ${Game.bossDisplayName(r)}${r.tier ? " T" + r.tier : ""} 襲来中!!`;
         nb.classList.add("hidden");
+      } else {
+        rt.textContent = fmtTime(s.raidTimer);
+        rt.classList.toggle("soon", s.raidTimer <= 10);
+        banner.classList.add("hidden");
+        // 次の襲撃の予告(R30+はBOSSバッジ+名前+脅威)
+        if (s.nextRaid && (s.nextRaid.tier || s.nextRaid.boss)) {
+          const t = bossTypeById(s.nextRaid.typeId);
+          // ★名前は必ず単一窓口(Game.bossDisplayName)を通す。ここは §5z-2 で「表示4経路すべてを新窓口へ」と
+          //   報告した際に**見落とされていた5つ目の経路**で、汎用名(オオグモ/ダイジャ等)を直に出していた。
+          //   アイコンと脅威文は脅威型の"挙動"の予告なので従来どおり BOSS_TYPES 由来のままでよい。
+          nb.classList.remove("hidden");
+          nb.innerHTML = `<span class="boss-badge">BOSS</span>${s.nextRaid.elite ? `<span class="elite-badge">ELITE</span>` : ""}
+            <span class="nb-icon">${Icon.svg(t.icon)}</span> ${Game.bossDisplayName(s.nextRaid)}${s.nextRaid.tier ? " T" + s.nextRaid.tier : ""}
+            <div class="nb-threat">${t.threat}</div>`;
+        } else {
+          nb.classList.add("hidden");
+        }
       }
     }
 
@@ -306,6 +343,8 @@ const UI = {
 
     this.updateFeeder();
     this.updateBossHud();
+    if (this.updatePachinko) this.updatePachinko();
+    this.updateResidents?.();
     this.updateEggSlots();
     this.renderDetail(false);
     if (this._eggPop && this._renderEggPop) this._renderEggPop(); // ⑤ 卵の小ウィンドウを毎更新で同期(孵化秒数が進み表示が止まらない)

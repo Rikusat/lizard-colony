@@ -18,7 +18,8 @@ Object.assign(UI, {
         <div class="bh-bar"><div class="bh-fill" id="bh-fill"></div></div>
         <div class="bh-nums"><span id="bh-hp"></span><span id="bh-time"></span></div>
       </div>`;
-    center.appendChild(el);
+    const host = center.closest(".colony-page") ? document.getElementById("frame") : center;
+    host.appendChild(el);
   },
 
   updateBossHud() {
@@ -101,7 +102,6 @@ Object.assign(UI, {
     }
     el.classList.remove("hidden");
     const mo = morphById(lz.morphId); // 種の★(レア度表示)は撤廃=特性カードへ置換(内部数値=経済係数は残置・trait_system判断⑦(i))
-    const col = Render.lizardColor(lz);
     const xpMax = lz.stage === "baby" ? CFG.babyXpToAdult : CFG.adultXpPerLevel;
     // S5-a: この個体に創世できる新特性(未所持・上限3未満・非レジェンダリー)。最安コストで活性判定。
     const createable = Game.createableTraits(lz);
@@ -110,7 +110,7 @@ Object.assign(UI, {
     const fixable = Game.fixUnlocked() ? Game.fixableTraits(lz) : [];
     const fixMinCost = fixable.length ? Math.min(...fixable.map((k) => Game.stoneFixCost(TRAITS[k].tier))) : 0;
     el.innerHTML = `
-      <h4><span class="sw" style="display:inline-block;width:20px;height:12px;border-radius:6px;background:${col.css};border:1px solid #0006"></span>
+      <h4>${this.specimenPortrait(lz.speciesId, lz.morphId)}
         ${Game.lizardName(lz)}</h4>
       ${mo.legendary
         ? `<div class="legendary-tag">✦ レジェンダリー</div>`

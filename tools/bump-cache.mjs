@@ -26,8 +26,8 @@ const hashOf = (relPath) => {
   return createHash("sha1").update(buf).digest("hex").slice(0, 8);
 };
 
-// href="tokens.css" / href="style.css" / src="js/....js" (既存の ?v=... は置換)
-const assetRe = /(href|src)="((?:tokens|style)\.css|js\/[^"?]+\.js)(?:\?v=[^"]*)?"/g;
+// href="tokens.css" / href="style.css" / href="pachinko*.css" / src="js/....js" (既存の ?v=... は置換)
+const assetRe = /(href|src)="((?:tokens|style|pachinko(?:-board)?|secondary)\.css|js\/[^"?]+\.js)(?:\?v=[^"]*)?"/g;
 let count = 0, changed = [];
 html = html.replace(assetRe, (_m, attr, rel) => {
   const v = hashOf(rel);

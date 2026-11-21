@@ -9,6 +9,15 @@
 // =============================================================
 
 Object.assign(UI, {
+  // 常設ドックと全画面の間で同じ操作部を移す。ボス報酬が借りている間はそちらを優先する。
+  placeFeederDial(dial = document.getElementById("feeder-dial")) {
+    if (!dial || dial.classList.contains("in-reward")) return;
+    const frame = document.getElementById("frame");
+    const expanded = frame && (frame === document.fullscreenElement || frame.classList.contains("habitat-expanded"));
+    const dock = expanded ? frame : document.getElementById("crank-dock") || frame || document.getElementById("center");
+    if (dock && dial.parentElement !== dock) dock.appendChild(dial);
+  },
+
   initFeeder() {
     const center = document.getElementById("center");
     if (!center) return; // 検証ページ等でフィールドが無ければ据え付けない
@@ -20,7 +29,7 @@ Object.assign(UI, {
     el.id = "feeder-dial";
     el.innerHTML = `
       <div class="fd-main">
-        <button id="fd-crank" title="タップ=1掴み給餌 / 長押し=連続給餌" aria-label="給餌クランク(タップで1掴み・長押しで連続給餌)">
+        <button id="fd-crank" title="給餌して発射（長押しで連続）" aria-label="給餌・発射クランク（タップで1発、長押しで連続）">
           ${CrankSkins.current().face()}
         </button>
       </div>
@@ -44,7 +53,7 @@ Object.assign(UI, {
       </div>`;
     // 3.11-7: クランクは飼育槽(#frame)の内側に据える(#centerの余白でなく飼育槽基準)=縁と重ならず生き物を邪魔しない右下
     const frame = document.getElementById("frame");
-    (frame || center).appendChild(el);
+    this.placeFeederDial(el);
     // 3.12.1: クランクは右下固定(ドラッグ移動+位置保存は撤去)。旧位置キーがあれば掃除
     try { localStorage.removeItem("feederPos"); } catch (e) { /* noop */ }
     // 危機ヴィネット(Brushup V2 §3.1): 飼育槽の縁の内側だけを赤く。魂(Canvas描画)不変
@@ -69,7 +78,7 @@ Object.assign(UI, {
       if (ok) {
         Motion.play(el, "fed");
         Motion.play(crank, "spin");
-        // Phase3.13 v4: 給餌は球を出さない(Gold消費の育成に純化)。ルーレットはボス討伐後の報酬
+        this.fireCrankRoulette?.();
         if (typeof Slit !== "undefined") Slit.onCrank(); // §9: クランク稼働で四重スリット装置が作動(クールダウン内蔵)
       } else if (!held) {
         Motion.play(el, "empty");
@@ -183,7 +192,7 @@ Object.assign(UI, {
     this.applyCrankSkin(); // 惑星移動でスキンが切り替わる(同一IDなら何もしない)
     const d = Game.ensureDial();
     const dial = document.getElementById("feeder-dial");
-    dial.classList.toggle("auto-on", d.auto && !Game.raid); // 3.11.3: ボス中はクランク回転停止(討伐後にd.auto維持で再開)
+    dial.classList.toggle("auto-on", d.auto && !Game.raid && (!this._liveRoulette || this._bossRewardOpen || Game.canTurnFeedCrank())); // 3.11.3: ボス中はクランク回転停止(討伐後にd.auto維持で再開)
     dial.classList.toggle("raid-lock", !!Game.raid);
     // V5 3.6: 折りたたみ撤廃(min状態は無視)・Gold駆動概念は消滅
     // オートの回転速度=レートに同期(CFG.dialSpinSec)

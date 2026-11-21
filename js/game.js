@@ -7,6 +7,43 @@ const W = 1280, H = 720;                     // Canvas 内部解像度
 const FIELD = { x1: 80, y1: 240, x2: 1200, y2: 660 }; // トカゲの行動範囲
 const SNAKE_HOME = { x: 850, y: 470 };        // 蛇が居座る位置
 
+// 球の経路と遺伝を再現するための局所乱数。既存のボス報酬盤の状態は共有しない。
+function pachinkoRng(seed) {
+  let value = seed >>> 0 || 0x9e3779b9;
+  return () => {
+    value ^= value << 13;
+    value ^= value >>> 17;
+    value ^= value << 5;
+    return (value >>> 0) / 0x100000000;
+  };
+}
+
+function pachinkoPinX(row, forks) { return 0.5 + (forks - row / 2) * CFG.pachinko.pinGapX; }
+function pachinkoPinY(row) { return CFG.pachinko.firstPinY + row * CFG.pachinko.pinGapY; }
+
+const PACHINKO_BOARD = Object.freeze({
+  pegs: Object.freeze(Array.from({ length: CFG.pachinko.rows }, (_, row) =>
+    Array.from({ length: row + 1 }, (_, forks) => Object.freeze({ x: pachinkoPinX(row, forks), y: pachinkoPinY(row) }))
+  ).flat()),
+  aimSpread: CFG.pachinko.aimSpread,
+  funnelY: CFG.pachinko.funnelY,
+  tiers: Object.freeze(CFG.pachinko.tiers.map((tier) => tier.id)),
+});
+const PACHINKO_RARE_INDEX = PACHINKO_BOARD.tiers.indexOf("rare");
+const PACHINKO_FEED_TARGET = 3;
+
+// 残りの釘を通って指定数以上右にはじかれる確率。
+function pachinkoTail(remaining, needed, probability) {
+  if (needed <= 0) return 1;
+  if (needed > remaining) return 0;
+  let chance = 0, combinations = 1;
+  for (let right = 0; right <= remaining; right++) {
+    if (right >= needed) chance += combinations * probability ** right * (1 - probability) ** (remaining - right);
+    combinations *= (remaining - right) / (right + 1);
+  }
+  return chance;
+}
+
 const Game = {
   state: null,
   world: null,           // WorldData (V3: 全Stageのルート)
@@ -59,6 +96,7 @@ const Game = {
       facilities: Object.fromEntries(FACILITIES.map((f) => [f.id, 0])),
       dex: {},
       stats: { fed: 0, hatched: 0, raidsWon: 0, bossWon: 0, bred: 0, sold: 0, bossPlanets: {} },
+      pachinko: this.normalizePachinko(),
       missionsClaimed: {},
       raidTimer: CFG.raidInterval,
       autoSupply: false,
@@ -395,12 +433,12 @@ const Game = {
   },
 
   // 確率先行解放(§3.3-2): 繁殖成功時の嬉しいサプライズ。ハズレ演出はしない
-  nestSurprise() {
-    if (Math.random() >= CFG.nestSurpriseChance) return null;
+  nestSurprise(rng = Math.random) {
+    if (rng() >= CFG.nestSurpriseChance) return null;
     const web = this.ensureNestWeb();
     const locked = buildNestWeb().filter((n) => n.id !== "core" && !web.nodes[n.id]);
     if (!locked.length) return null;
-    const node = locked[Math.floor(Math.random() * locked.length)];
+    const node = locked[Math.floor(rng() * locked.length)];
     web.nodes[node.id] = true;
     web.surprises = (web.surprises || 0) + 1;
     for (const o2 of nestRewardList(node)) this.addOre(o2.ore, o2.n); // P2-3: 配列
@@ -1261,12 +1299,56 @@ const Game = {
     return fed > 0;
   },
 
-  // v3.1ルーレット: 球に乗せる代表個体の遺伝(卵の内容)。アダルト優先→先頭→null
-  rouletteRepGene() {
-    const s = this.state;
-    let g = s.lizards.find((l) => l.stage === "adult" && !this.isAway(l)) || s.lizards[0];
-    return g ? { hue: g.hue, sat: g.sat, light: g.light, speciesId: g.speciesId, morphId: g.morphId } : null;
+  // 発射時の遺伝子を球に封入。観察中の地元の成体を優先し、未選択時とボス戦は従来の代表個体へ。
+  rouletteRepGene(preferredId) {
+    const residents = this.state.lizards;
+    const preferred = preferredId == null ? null : residents.find((lz) => lz.id === preferredId
+      && lz.stage === "adult" && lz.injuredT <= 0 && !this.isAway(lz)
+      && this.endemicSpecies(this.currentStage().id).includes(lz.speciesId));
+    const source = preferred || residents.find((lz) => lz.stage === "adult" && !this.isAway(lz)) || residents[0];
+    if (!source) return null;
+    const { hue, sat, light, speciesId, morphId, pattern } = source;
+    return { hue, sat, light, speciesId, morphId, pattern,
+      traits: (source.traits || []).map((trait) => typeof trait === "string" ? trait : { ...trait }),
+      fixedTraits: (source.fixedTraits || []).slice() };
   },
+  canTurnFeedCrank() {
+    if (this.raid) return false;
+    return this.state.lizards.some((lizard) => lizard.injuredT <= 0 && !this.isAway(lizard))
+      && (this.state.crickets >= 1 || (!this.ensureDial().stopOnEmpty && this.state.coins >= CFG.feedGoldCost));
+  },
+
+  awardCrankRoulette({ gene, rainbow }) {
+    if (this.state.eggs.length >= this.eggSlotCap()) {
+      if (!rainbow) return "卵スロット満杯";
+      this.addOre("amethyst", 1);
+      this.save();
+      return "JACKPOT · アメジスト +1";
+    }
+    const pool = this.breedablePool();
+    const base = pool.some((species) => species.id === gene?.speciesId) ? gene : null;
+    if (!base && !pool.length) return "";
+    const seedGene = base || { speciesId: pool[0].id, morphId: "normal", hue: pool[0].hue,
+      sat: pool[0].sat, light: pool[0].light, pattern: "none" };
+    const genes = this.inherit(seedGene, seedGene);
+    if (rainbow) {
+      const unowned = pool.flatMap((sp) => MORPHS.filter((morph) => !this.state.dex[sp.id + ":" + morph.id])
+        .map((morph) => ({ speciesId: sp.id, morphId: morph.id, hue: sp.hue, sat: sp.sat, light: sp.light })));
+      Object.assign(genes, unowned[Math.floor(Math.random() * unowned.length)] || { morphId: "legendary" });
+      genes.traits = [];
+    }
+    this.storeBreedingEgg(genes);
+    this.save();
+    return (rainbow ? "JACKPOT · " : "入賞 · ") + this.lizardName(genes) + "の卵";
+  },
+
+  recordCrankRouletteLanding(win) {
+    const progress = this.pachinkoProgress();
+    progress.total++;
+    progress.streak = win ? progress.streak + 1 : 0;
+    progress.best = Math.max(progress.best, progress.streak);
+  },
+
   // Phase3.13 v4: ルーレットはボス討伐後の報酬。tier(0-6)に応じた球数で報酬セッションを開始しUI(C2)へ通知。
   // 給餌連動の常時発射(旧rouletteEmitOne/canFeedNow/rouletteEmitInterval)は撤廃(給餌はGold消費育成へ純化)。
   beginBossReward(tier, isElite) {
@@ -1307,17 +1389,23 @@ const Game = {
     return CFG.breedBaseCost * stars;
   },
 
-  breed(aId, bId, silent) {
+  breedEligibility(a, b) {
+    if (!a || !b || a === b) return "異なる親を2匹選んでください";
+    // ヌシオオトカゲの威嚇中は繁殖できない
+    if (this.raid && this.raid.typeId === "monitor" && this.raid.snake.arrived) {
+      return "ヌシに威嚇されて繁殖できない! 先に撃退しよう";
+    }
+    if (!this.canBreed(a) || !this.canBreed(b)) return "繁殖できない状態のトカゲがいる";
+    if (this.state.eggs.length >= this.eggSlotCap()) return "卵スロットがいっぱい!";
+    return "";
+  },
+
+  breed(aId, bId, silent, options) {
     const a = this.state.lizards.find((x) => x.id === aId);
     const b = this.state.lizards.find((x) => x.id === bId);
     if (!a || !b || a === b) return false;
-    // ヌシオオトカゲの威嚇中は繁殖できない
-    if (this.raid && this.raid.typeId === "monitor" && this.raid.snake.arrived) {
-      if (!silent) UI.toast("ヌシに威嚇されて繁殖できない! 先に撃退しよう", true);
-      return false;
-    }
-    if (!this.canBreed(a) || !this.canBreed(b)) { if (!silent) UI.toast("繁殖できない状態のトカゲがいる", true); return false; }
-    if (this.state.eggs.length >= this.eggSlotCap()) { if (!silent) UI.toast("卵スロットがいっぱい!", true); return false; }
+    const error = this.breedEligibility(a, b);
+    if (error) { if (!silent) UI.toast(error, true); return false; }
     const cost = this.breedCost(a, b);
     if (this.state.coins < cost) { if (!silent) UI.denyFlash("coins"); return false; }
 
@@ -1327,16 +1415,198 @@ const Game = {
     this.state.stats.bred++;
     this.addRes("bio", CFG.resBioPerBreed);
     this.addRankXp(10);
-    this.nestSurprise();      // V4.1: 確率先行解放(嬉しい驚き)
+    this.nestSurprise(options?.rng); // V4.1: 確率先行解放(嬉しい驚き)
     this.checkNestWeb(false); // 繁殖直後は解放通知の理想タイミング(§3.4)
 
-    const genes = this.inherit(a, b);
-    const sp = speciesById(genes.speciesId);
-    const hatchMult = Math.max(0.2, (1 - this.facLv("heat") * 0.025) * (1 - (((this.state.nest && this.state.nest.lv) || 1) - 1) * 0.03) * (1 - this.researchBonus("hatch")));
-    const total = CFG.hatchBasePerStar * sp.stars * hatchMult;
-    this.state.eggs.push({ ...genes, t: total, total });
-    UI.toast(`卵が産まれた! (${sp.name}系)`);
+    const genes = this.inherit(a, b, options?.rng, options?.tier);
+    this.storeBreedingEgg(genes, options?.tier?.hatch);
+    if (!options) UI.toast(`卵が産まれた! (${speciesById(genes.speciesId).name}系)`);
     return true;
+  },
+
+  storeBreedingEgg(genes, speed = 1) {
+    const hatchMult = Math.max(0.2, (1 - this.facLv("heat") * 0.025) * (1 - (this.nestLv() - 1) * 0.03) * (1 - this.researchBonus("hatch")));
+    const total = CFG.hatchBasePerStar * speciesById(genes.speciesId).stars * hatchMult * speed;
+    this.state.eggs.push({ ...genes, t: total, total });
+  },
+
+  // ---------------- 遺伝子パチンコ ----------------
+  normalizePachinko(raw) {
+    const cfg = CFG.pachinko;
+    const int = (value, max = Number.MAX_SAFE_INTEGER) => Number.isFinite(value) ? clamp(Math.floor(value), 0, max) : 0;
+    const p = raw || {};
+    const streak = int(p.streak);
+    return {
+      total: int(p.total), streak, best: Math.max(streak, int(p.best)),
+      dry: int(p.dry, cfg.chanceLimit - 1),
+      fever: int(p.fever, cfg.feverChargeMax - 1), feverShots: int(p.feverShots, cfg.feverLength),
+      rushShots: int(p.rushShots, cfg.rushCap), guard: int(p.guard, cfg.guardCap),
+      feedProgress: int(p.feedProgress, PACHINKO_FEED_TARGET),
+    };
+  },
+
+  pachinkoProgress() {
+    return this.state.pachinko || (this.state.pachinko = this.normalizePachinko());
+  },
+
+  pachinkoBoard() { return PACHINKO_BOARD; },
+
+  // UIの手動クランクが給餌に成功した時だけ呼ぶ。オート給餌・報酬盤は対象外。
+  notePachinkoCrank() {
+    const progress = this.pachinkoProgress();
+    if (progress.feedProgress >= PACHINKO_FEED_TARGET) return false;
+    progress.feedProgress++;
+    this.save();
+    return true;
+  },
+
+  pachinkoPair(parentIds) {
+    if (parentIds == null || (Array.isArray(parentIds) && parentIds.length === 0)) {
+      return { pair: [], fee: 0, canBreed: false, pairError: "" };
+    }
+    if (!Array.isArray(parentIds) || parentIds.length !== 2 || parentIds[0] === parentIds[1]) {
+      return { pair: [], fee: 0, canBreed: false, pairError: "異なる親を2匹選んでください" };
+    }
+    const pair = parentIds.map((id) => this.state.lizards.find((lz) => lz.id === id));
+    const [a, b] = pair;
+    const pairError = this.breedEligibility(a, b);
+    return { pair: a && b ? pair : [], fee: a && b ? this.breedCost(a, b) : 0, canBreed: !pairError, pairError };
+  },
+
+  pachinkoMeters(progress) {
+    const cfg = CFG.pachinko, feverShots = progress.feverShots;
+    const untilChance = cfg.chanceLimit - progress.dry;
+    return {
+      fever: feverShots ? Math.round(feverShots / cfg.feverLength * cfg.feverChargeMax) : progress.fever,
+      feverShots, streak: progress.streak, untilChance, chanceReady: untilChance === 1,
+    };
+  },
+
+  pachinkoOptions(progress, aim, feedBall = false) {
+    const cfg = CFG.pachinko;
+    const meters = this.pachinkoMeters(progress);
+    const fever = progress.feverShots > 0, rush = !feedBall && progress.rushShots > 0;
+    const tierBoost = Math.min(cfg.nestOddsCap, (this.nestLv() - 1) * cfg.nestOddsPerLevel)
+      + (fever ? cfg.feverOdds : 0) + (rush ? cfg.rushOdds : 0);
+    const probability = 0.5 + cfg.aimOdds * aim + tierBoost;
+    const multiplier = (fever ? cfg.feverPayout : 1) * (rush ? cfg.rushPayout : 1);
+    return { fever, rush, chance: meters.chanceReady, probability, tierBoost, multiplier, meters };
+  },
+
+  pachinkoStatus(parentIds, aim = 0, options) {
+    const cfg = CFG.pachinko, p = this.pachinkoProgress();
+    const complimentary = options?.feedBall === true;
+    const opts = this.pachinkoOptions(p, Number.isFinite(aim) ? clamp(aim, -1, 1) : 0, complimentary);
+    const rareForks = cfg.tiers[PACHINKO_RARE_INDEX].forks;
+    const hitChance = opts.chance ? 1 : pachinkoTail(cfg.rows, rareForks, opts.probability);
+    return {
+      cost: complimentary ? 0 : cfg.cost + (this.currentStage().id - 1) * cfg.costPerStage,
+      coins: this.state.coins,
+      ...this.pachinkoPair(parentIds),
+      ...opts.meters,
+      total: p.total, best: p.best,
+      rushShots: p.rushShots, rushActive: opts.rush, guard: p.guard, guardBonus: Math.round(cfg.guardAttackBonus * 100),
+      rareChance: Math.round(hitChance * 100), tierBoost: Math.round(opts.tierBoost * 100),
+      multiplier: complimentary ? 0 : opts.multiplier,
+      feedProgress: p.feedProgress, feedTarget: PACHINKO_FEED_TARGET, feedBall: p.feedProgress >= PACHINKO_FEED_TARGET,
+    };
+  },
+
+  pachinkoSeed() { return Math.floor(Math.random() * 0x100000000); },
+
+  pachinkoDrop(seed, aim, probability, chance) {
+    const cfg = CFG.pachinko;
+    const rng = pachinkoRng(seed);
+    const rareForks = cfg.tiers[PACHINKO_RARE_INDEX].forks;
+    const points = [{ x: 0.5 + aim * cfg.aimSpread, y: 0 }];
+    let forks = 0;
+    for (let row = 0; row < cfg.rows; row++) {
+      points.push({ x: pachinkoPinX(row, forks), y: pachinkoPinY(row) });
+      let right = probability;
+      if (chance) {
+        const remaining = cfg.rows - row - 1, needed = rareForks - forks;
+        // チャンス時だけ、レアに届く経路の重みで釘の分岐を条件づける。
+        const passRight = probability * pachinkoTail(remaining, needed - 1, probability);
+        const passLeft = (1 - probability) * pachinkoTail(remaining, needed, probability);
+        right = passRight / (passRight + passLeft);
+      }
+      if (rng() < right) forks++;
+    }
+    let index = cfg.tiers.length - 1;
+    while (forks < cfg.tiers[index].forks) index--;
+    points.push({ x: pachinkoPinX(cfg.rows, forks), y: cfg.funnelY });
+    points.push({ x: (index + 0.5) / cfg.tiers.length, y: 1 });
+    return { points, index };
+  },
+
+  playPachinko(aim, count, parentIds, options) {
+    if ((count !== 1 && count !== 10) || !Number.isFinite(aim) || Math.abs(aim) > 1) {
+      return { error: "発射数と狙いを選び直してください" };
+    }
+    if (this.raid) return { error: "襲来中はコロニーの防衛に集中しよう" };
+    const state = this.state, cfg = CFG.pachinko;
+    const feedBall = options?.feedBall === true;
+    const status = this.pachinkoStatus(parentIds, aim, options);
+    if (status.pairError) return { error: status.pairError };
+    if (feedBall && (count !== 1 || status.pair.length)) return { error: "給餌玉は親を選ばず1発だけ発射できます" };
+    if (feedBall && !status.feedBall) return { error: "給餌玉の準備ができていません" };
+    const launchCost = status.cost * count;
+    const cost = launchCost + status.fee;
+    if (state.coins < cost) return { error: `発射に ${fmt(cost)}G 必要です` };
+
+    const seed = this.pachinkoSeed(), rng = pachinkoRng(seed);
+    const progress = { ...this.pachinkoProgress() }, shots = [];
+    if (feedBall) progress.feedProgress = 0;
+    const total = { coins: 0, crickets: 0, gems: 0, amethyst: 0, guard: 0 };
+    let best = 0;
+    for (let i = 0; i < count; i++) {
+      const opts = this.pachinkoOptions(progress, aim, feedBall);
+      const shotSeed = Math.floor(rng() * 0x100000000);
+      const { points, index } = this.pachinkoDrop(shotSeed, aim, opts.probability, opts.chance);
+      const tier = cfg.tiers[index];
+      best = Math.max(best, index);
+      progress.total++;
+      progress.streak = index > 0 ? progress.streak + 1 : 0;
+      progress.best = Math.max(progress.best, progress.streak);
+      progress.dry = index >= PACHINKO_RARE_INDEX ? 0 : progress.dry + 1;
+      const combo = 1 + Math.min(Math.max(0, progress.streak - 1) * cfg.streakStep, cfg.streakCap);
+      const rewards = {
+        coins: Math.floor(status.cost * tier.coins * opts.multiplier * combo),
+        crickets: tier.crickets + Math.round(Math.max(0, -aim) * cfg.aimCrickets),
+        gems: tier.gems || 0, amethyst: tier.amethyst || 0,
+        guard: Math.min(cfg.guardCap - progress.guard, tier.guard || 0),
+      };
+      progress.guard += rewards.guard;
+      if (opts.rush) progress.rushShots--;
+      let feverStarted = false;
+      if (opts.fever) progress.feverShots--;
+      else {
+        progress.fever += tier.charge;
+        if (progress.fever >= cfg.feverChargeMax) {
+          progress.fever = 0;
+          progress.feverShots = cfg.feverLength;
+          feverStarted = true;
+        }
+      }
+      for (const key of Object.keys(total)) total[key] += rewards[key];
+      shots.push({ tier: tier.id, seed: shotSeed, points, ...rewards, streak: progress.streak,
+        fever: opts.fever, rush: opts.rush, chance: opts.chance, feverStarted, progress: this.pachinkoMeters(progress) });
+    }
+
+    const bestTier = cfg.tiers[best];
+    let egg = null;
+    if (status.canBreed) {
+      const [a, b] = status.pair;
+      if (!this.breed(a.id, b.id, true, { rng, tier: bestTier })) return { error: "繁殖条件を確認してください" };
+      egg = state.eggs[state.eggs.length - 1];
+    }
+    state.coins += total.coins - launchCost;
+    state.crickets += total.crickets;
+    state.gems += total.gems;
+    if (total.amethyst) this.addOre("amethyst", total.amethyst);
+    state.pachinko = progress;
+    this.save();
+    return { seed, shots, egg, cost, bestTier: bestTier.id, total, feedBall };
   },
 
   // 【撤廃(Ric裁定 2026-07-29)】クイック繁殖(quickBreedScore/quickBreedPick/quickBreed)はここにあった。
@@ -1366,37 +1636,37 @@ const Game = {
 
   // 遺伝: 種族50/50(低確率で上位変異)、体色は平均±ゆらぎ、モーフ突然変異
   // §8.12: 上位種変異/モーフ変異/伝説の底上げは巣(nest.lv)が担う(旧・繁殖施設から統合)。環境モーフ・研究は据置
-  inherit(a, b) {
+  inherit(a, b, rng = Math.random, tier) {
     const nLv = this.nestLv();
-    let speciesId = Math.random() < 0.5 ? a.speciesId : b.speciesId;
-    if (Math.random() < CFG.mutationSpeciesChance + nLv * CFG.nestSpeciesMutPerLv) {
+    let speciesId = rng() < 0.5 ? a.speciesId : b.speciesId;
+    if (rng() < CFG.mutationSpeciesChance + nLv * CFG.nestSpeciesMutPerLv) {
       const base = speciesById(speciesId);
       const ups = this.breedablePool().filter((s) => s.stars > base.stars); // 純血: 上位変異も現惑星の固有種内のみ
-      if (ups.length) speciesId = ups[Math.floor(Math.random() * ups.length)].id;
+      if (ups.length) speciesId = ups[Math.floor(rng() * ups.length)].id;
     }
-    let morphId = Math.random() < 0.5 ? a.morphId : b.morphId;
+    let morphId = rng() < 0.5 ? a.morphId : b.morphId;
     const morphChance = CFG.mutationMorphChance
       + nLv * CFG.nestMorphMutPerLv
-      + (this.currentStage().env.morphBonus || 0)
-;
-    if (Math.random() < morphChance) {
+      + (this.currentStage().env.morphBonus || 0);
+    if (rng() < morphChance || (tier?.mutation && morphId === "normal")) {
       // 伝説は通常変異では出ない(専用抽選のみ)
-      const others = MORPHS.filter((m) => m.id !== morphId && !m.legendary);
-      morphId = others[Math.floor(Math.random() * others.length)].id;
+      const others = MORPHS.filter((m) => m.id !== morphId && !m.legendary && (!tier?.mutation || m.id !== "normal"));
+      morphId = others[Math.floor(rng() * others.length)].id;
     }
     // 伝説個体の抽選 (⑨-6): 極低確率、巣Lv/研究で微増
-    if (Math.random() < CFG.legendChance + nLv * CFG.nestLegendPerLv
+    if (rng() < CFG.legendChance + nLv * CFG.nestLegendPerLv
       + this.researchBonus("legend")) {
       morphId = "legendary";
     }
+    if (tier?.morph && morphById(morphId).mult < morphById(tier.morph).mult) morphId = tier.morph;
     // 特性(S4): 子がレジェンダリーなら特性なし(①・§16.4)。それ以外は両親からの組み替え(genesis限定=血統外は出さない)。
-    const traits = morphId === "legendary" ? [] : this.inheritTraits(a, b);
+    const traits = morphId === "legendary" ? [] : this.inheritTraits(a, b, rng);
     return {
       speciesId, morphId,
-      hue: clamp(((a.hue + b.hue) / 2 + rnd(-15, 15) + 360) % 360, 0, 359),
-      sat: clamp((a.sat + b.sat) / 2 + rnd(-8, 8), 5, 100),
-      light: clamp((a.light + b.light) / 2 + rnd(-6, 6), 12, 85),
-      pattern: Math.random() < 0.5 ? a.pattern : b.pattern,
+      hue: clamp(((a.hue + b.hue) / 2 + (-15 + rng() * 30) + 360) % 360, 0, 359),
+      sat: clamp((a.sat + b.sat) / 2 + (-8 + rng() * 16), 5, 100),
+      light: clamp((a.light + b.light) / 2 + (-6 + rng() * 12), 12, 85),
+      pattern: rng() < 0.5 ? a.pattern : b.pattern,
       traits,
     };
   },
@@ -1691,6 +1961,7 @@ const Game = {
     this.raid = {
       typeId: nr.typeId, type, boss: nr.boss, elite: nr.elite,
       tier: nr.tier, tierDef,
+      pachinkoGuard: this.pachinkoProgress().guard > 0,
       snakeTier: snakeTierFor(s.rank),            // 蛇の見た目階級
       snake: {
         hp: Math.floor(hp), maxHp: Math.floor(hp),
@@ -1710,7 +1981,9 @@ const Game = {
     // §9.2: ボス出現の全画面カットイン/トーストを撤廃。飼育槽中央の軽い通知のみ(タップ不要・自動フェード)
     if (typeof Render !== "undefined" && Render.showCenterNotice) {
       const boss = nr.boss || nr.tier;
-      Render.showCenterNotice(boss ? `${label} 襲来` : `${this.bossDisplayName(this.raid)} 襲来`, boss ? (type.threat || "コロニーを守れ") : "コロニーを守れ", "boss");
+      const threat = (boss && type.threat) || "コロニーを守れ";
+      const guard = this.raid.pachinkoGuard ? ` / 迎撃強化 +${Math.round(CFG.pachinko.guardAttackBonus * 100)}%` : "";
+      Render.showCenterNotice(boss ? `${label} 襲来` : `${this.bossDisplayName(this.raid)} 襲来`, threat + guard, "boss");
     }
     this.combatSurge(); // V3: 巣から全軍一斉出撃
   },
@@ -1725,6 +1998,7 @@ const Game = {
     for (const lz of this.fighters()) dps += this.lizardAtk(lz);
     dps *= 1 + this.facLv("watchtower") * 0.04            // 監視塔
       + this.researchBonus("atk");                          // HQ研究
+    if (r.pachinkoGuard) dps *= 1 + CFG.pachinko.guardAttackBonus;
     if (r.typeId === "spider") dps *= Math.max(0.5, 1 - r.webs.filter((w) => w.hp > 0).length * CFG.webDpsPenalty);
     return dps;
   },
@@ -1976,6 +2250,12 @@ const Game = {
   endRaid(win, reason) {
     const r = this.raid;
     const s = this.state;
+    const p = this.pachinkoProgress();
+    let pachinkoChanged = false;
+    if (r.pachinkoGuard && p.guard > 0) {
+      p.guard--;
+      pachinkoChanged = true;
+    }
     if (win) {
       let coins = Math.floor(r.snake.maxHp * 2) * (r.elite ? 2 : 1);
       if (this.isFrontier()) coins = Math.floor(coins * CFG.frontierRaidMult); // フロンティア報酬(§2.2)
@@ -2020,7 +2300,16 @@ const Game = {
       }
       // Phase3.13 v4: ボス討伐(tier or boss)は報酬ルーレットを起動。通常の蛇(非ボス)は起動しない
       // §1.2.2: eliteは虹レアポケット(新種)、それ以外の通常ボスはレアポケット(レア卵)
-      if (r.tier || r.boss) this.beginBossReward(r.tier || 0, !!r.elite);
+      if (r.tier || r.boss) {
+        const cfg = CFG.pachinko;
+        const added = Math.min(cfg.rushCap - p.rushShots, r.elite ? cfg.rushElite : cfg.rushBoss);
+        if (added > 0) {
+          p.rushShots += added;
+          msg += ` / 報酬RUSH +${added}球`;
+          pachinkoChanged = true;
+        }
+        this.beginBossReward(r.tier || 0, !!r.elite);
+      }
       if (r.typeId === "hawk") {
         let rescued = 0;
         for (const lz of s.lizards) if (lz.hiddenT > 0) { lz.hiddenT = 0; rescued++; }
@@ -2046,6 +2335,7 @@ const Game = {
     this.raid = null;
     s.raidTimer = CFG.raidInterval;
     this.rollNextRaid();
+    if (pachinkoChanged) this.save();
   },
 
   popupBurst(x, y) {
@@ -2790,6 +3080,7 @@ const Game = {
       collection: {
         dex: s.dex, stats: s.stats, missionsClaimed: s.missionsClaimed,
         titles: s.titles, titleSel: s.titleSel, daily: s.daily,
+        pachinko: s.pachinko,
         bossCall: s.bossCall || null, // 3.11.3: 「今すぐ呼ぶ」1日3回カウンタ
       },
       allies: s.allies,
@@ -3155,6 +3446,7 @@ const Game = {
       forged: w.forged || {},
       lore: w.lore || {},
       dex: w.collection.dex, stats: w.collection.stats,
+      pachinko: this.normalizePachinko(w.collection.pachinko),
       missionsClaimed: w.collection.missionsClaimed,
       titles: w.collection.titles || {}, titleSel: w.collection.titleSel || null,
       daily: w.collection.daily || { last: "", streak: 0 },

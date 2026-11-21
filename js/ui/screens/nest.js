@@ -57,24 +57,6 @@ Object.assign(UI, {
   // V6-P2-1(2026-08-10 Ric指示): 巣=モーダル→独立ページへ(本部#hqlabの様式を踏襲)。
   //   機能(閲覧専用・進捗・ツールチップ・パン)は buildNest のまま非接触=表示層と導線のみの変更。
   //   openNest は従来名の入口として維持(呼び出し側=飼育槽の巣穴クリックは無変更)。
-  // v2(素材化): 素材の遅延ロード窓口。読めなければ null=呼び出し側が手続き描画へ退化(壊れない)。
-  //   ?noassets=1 で強制退化(フォールバックの実測用)。読了時は再レイアウト(どの器でも寸法ガード済み)。
-  _nestAssets: {},
-  _nestAssetFailed: {},
-  _nestAsset(name) {
-    if (typeof location !== "undefined" && /[?&]noassets=1(?:&|$)/.test(location.search)) return null;
-    if (this._nestAssetFailed[name]) return null;
-    let img = this._nestAssets[name];
-    if (!img) {
-      img = new Image();
-      img.onload = () => { if (this._nestLayout) this._nestLayout(); if (this._nestRingApply) this._nestRingApply(); };
-      img.onerror = () => { this._nestAssetFailed[name] = true; delete this._nestAssets[name]; };
-      img.src = "image/nest/" + name + ".png";
-      this._nestAssets[name] = img;
-    }
-    return img.complete && img.naturalWidth ? img : null;
-  },
-
   openNest() {
     Game.ensureNestWeb();
     const main = document.querySelector("main"), pg = document.getElementById("nestpage");
@@ -91,6 +73,7 @@ Object.assign(UI, {
     if (body) this.buildNest(body); // 開くたび再構築=モーダル時代と同じ鮮度
     Game.state.nestWeb.seen = Game.nestWebCounts().open; // 既読化(バッジ解除)=従来どおり
     this.placeChanged();   // V6-P5 S3: 場所の環境音(巣=籠もった安息)へ沈み込みで切り替える
+    this.closeHabitatFullscreen?.();
   },
   closeNestPage() {
     const main = document.querySelector("main"), pg = document.getElementById("nestpage");
@@ -126,7 +109,7 @@ Object.assign(UI, {
       const b = document.createElement("button");
       b.type = "button";
       b.title = it.jp;
-      b.innerHTML = `${Icon.svg(it.icon)}<span class="hm-tx"><span class="hm-jp">${it.jp}</span><span class="hm-en">${it.en}</span></span>`;
+      b.innerHTML = `${Icon.svg(it.icon)}<span class="hm-tx"><span class="hm-jp">${it.jp}</span></span>`;
       b.addEventListener("click", () => {
         if (it.key === "hq") { this.closeNestPage(); this.openHqLab(); }
         else if (it.key === "dex") this.openDex();
@@ -148,24 +131,13 @@ Object.assign(UI, {
       const p = Game.nestProgress(n);
       if (p > nextP) { nextP = p; next = n; }
     }
-    // V6-P2-2 B0/B4: レイアウト=中央ステージ(canvas背景+コア+web)+右パネル+ヒント帯(nest_image2 準拠)。
-    //   右パネルの数値は実データのみ(モックの見本値 Lv.12/325/800 等は使わない・Ric裁定 2026-08-11)。
-    //   B4: 大表示=解放ノード数 / 進捗バー=次に開きそうなノード / レア資源=6鉱石(写像対応表どおり)。
     const rate = counts.total ? (counts.open / counts.total * 100).toFixed(1) : "0.0"; // P2-3: 小数1桁(参照様式28.7%)
     const nearCount = nodes.filter((n) => n.id !== "core" && !web.nodes[n.id] && Game.nestProgress(n) >= CFG.nestNearThreshold).length;
     body.innerHTML = `
-      <div class="nest-head">
-        <span>解放済み <b>${counts.open}/${counts.total}</b>
-          ${next ? ` / 次の結節: <b>${next.name}</b>(${Math.floor(nextP * 100)}%)` : ""}</span>
-        <span class="nest-legend">
-          <i class="lg on"></i>解放済み <i class="lg near"></i>もうすぐ <i class="lg off"></i>未解放
-        </span>
-      </div>
       <div id="nest-main">
         <div id="nest-stage">
           <canvas id="nest-canvas"></canvas>
           <div id="nest-web"></div>
-          <div id="nest-openrate"><span class="npo-cap">総解放率</span><b>${rate}%</b></div>
         </div>
         <aside id="nest-side">
           <div id="nest-quest" class="hidden"></div>
@@ -185,8 +157,7 @@ Object.assign(UI, {
           </div>
           <button id="nest-fx-btn" class="np-cta">${Icon.svg("spark")} 巣の効果一覧</button>
         </aside>
-      </div>
-      <div id="nest-hint">各結節は繁殖と営みの記録から自律的に解放される。網が広がるほど、資源は満ちる。</div>`;
+      </div>`;
     const wrap = body.querySelector("#nest-web");
     const { SIZE, C } = NESTWEB_GEO;
     const posOf = nestWebPos; // V6-P2-2 B2: 幾何は data.js の単一の真実(検分ゲートと共用)
@@ -205,9 +176,6 @@ Object.assign(UI, {
       const cls = n.id === "core" ? "core" : open ? "on" : near ? "near" : "off";
       const tip = n.id === "core" ? "巣の中心"
         : open ? `${n.name} — 解放済み` : `${n.name} — 進捗${Math.floor(p * 100)}%`;
-      // V6-P2-2 B3: メダリオン意匠(参照準拠)。未解放=錠前 / 解放=報酬鉱石のグリフ(ORES.colorで彩色=データ駆動)。
-      //   ラベルピルは on/near のみ(実UIは81ノード=モックの約14より密なため、全数表示は判読不能。数の差はRic裁定で再現対象外)。
-      //   条件などの副記はタップのツールチップが引き続き担う。
       const ore = n.id === "core" ? null : oreById(nestRewardList(n)[0].ore); // P2-3: 主要鉱石=配列先頭(メダリオン色/グリフの基準)
       // P2-3追補2: ロック中もリング色+グリフを薄く敷き(チラ見せ=気配)、錠前素材を上に重ねる(無改変・縮小のみ)
       const glyph = n.id === "core" ? Icon.svg("nestweb") : `<b style="color:${ore.color}">${Icon.svg(ore.icon)}</b>`;
@@ -215,12 +183,10 @@ Object.assign(UI, {
       // P2-3ステップ2: ピルは全ノード常時(短名+解放率%・解放済みは短名のみ)。文字はこれが上限(詳細はタップ後のカード)
       const pill = n.id === "core" ? "" : open ? `<i class="wn-pill">${n.name}</i>` : `<i class="wn-pill">${n.name}<em>${Math.floor(p * 100)}%</em></i>`;
       const ring = n.id === "core" ? "" : ` data-ring="${ore.ring}"`; // P2-3追補2: 常に鉱石色(ロックはオーバーレイ)
-      html += `<div class="wnode ${cls}" data-node="${n.id}" data-tip="${tip}"${ring} style="left:${x}px;top:${y}px">
-        <span>${glyph}</span>${lockMark}${pill}</div>`;
+      html += `<button type="button" class="wnode ${cls}" data-node="${n.id}" aria-label="${tip}" title="${tip}"${ring} style="left:${x}px;top:${y}px;--ore:${ore?.color || "currentColor"}">
+        <span>${glyph}</span>${lockMark}${pill}</button>`;
     }
     wrap.innerHTML = html;
-    wrap.style.setProperty("--tease-off", CFG.nestTeaseOff != null ? CFG.nestTeaseOff : 0.4);
-    wrap.style.setProperty("--tease-near", CFG.nestTeaseNear != null ? CFG.nestTeaseNear : 0.65);
     // P2-3ステップ2: タップ=クエストカード(右カラム最上部・#nest-tipは廃止)。解放操作は存在しない(§4.2)
     for (const el of wrap.querySelectorAll(".wnode")) {
       el.addEventListener("click", () => {
@@ -232,18 +198,20 @@ Object.assign(UI, {
       });
     }
     // V6-P2-2 B0/B1: ステージ実寸に合わせて背景+コアを描き、web(1100座標)をコア位置へスケール配置。
-    //   パンは廃止(参照画像=全体が一望の構図)。座標は NEST_VIS=検分ゲートと同じ単一の真実。
+    // 結線とボタンは共通の座標変換を使う。
     const stage = body.querySelector("#nest-stage");
     const layoutStage = () => {
       const cv = body.querySelector("#nest-canvas");
       if (!cv || !stage) return;
       const sw = stage.clientWidth, sh = stage.clientHeight;
       if (!sw || !sh) return;
-      cv.width = sw; cv.height = sh;
+      const pixelScale = Math.min(1, 440 / sw, 300 / sh);
+      cv.width = Math.max(1, Math.round(sw * pixelScale));
+      cv.height = Math.max(1, Math.round(sh * pixelScale));
       const nctx = cv.getContext("2d");
-      const ccx = sw * NEST_VIS.core.x, ccy = sh * NEST_VIS.core.y, R = Math.min(sw, sh) * NEST_VIS.core.r;
-      Render.nestBg(nctx, sw, sh);
-      Render.nestCoreDraw(nctx, ccx, ccy, R, this._nestAsset("nest-core")); // v2: 素材(未着ならコード描画へ退化)
+      const ccx = sw / 2, ccy = sh / 2, R = Math.min(sw, sh) * .115;
+      CabinetScenery.nestFloor(nctx, cv.width, cv.height, cv.width / 2, cv.height / 2, R * pixelScale);
+      nctx.setTransform(cv.width / sw, 0, 0, cv.height / sh, 0, 0);
       const k = (Math.min(sw, sh) / SIZE) * 0.98;
       // B2: 糸(放射=結線規則+状態 / 横糸=網の織り・両端が解放済みのときだけ淡く灯る)
       const tf = ([x, y]) => [ccx + (x - C) * k, ccy + (y - C) * k];
@@ -254,22 +222,6 @@ Object.assign(UI, {
       Render.nestThreads(nctx, Render.nestThreadSegs(links.concat(laterals), tf, ccx, ccy, R));
       wrap.style.transform = `translate(${ccx - C * k}px, ${ccy - C * k}px) scale(${k})`;
     };
-    // v2-V2/V3: DOM系素材(リング6+パネル枠2+ボタン1=同一トーンの装飾群)を先読みし、
-    //   **全て**読めた時だけ .assets で一括切替(部分適用の混在意匠を作らない=欠けたら丸ごと退化)。
-    //   コア素材(canvas)は別要素種のため独立退化(nestCoreDrawのフォールバック)。
-    const ringKeys = Object.values(NEST_RING_ASSETS).concat(["panel-rank", "panel-rate", "btn-effects"]);
-    const side = body.querySelector("#nest-side");
-    const applyRingAssets = () => {
-      const all = ringKeys.every((k2) => this._nestAsset(k2));
-      wrap.classList.toggle("assets", all);
-      if (side) side.classList.toggle("assets", all);
-      const orate = body.querySelector("#nest-openrate");
-      if (orate) orate.classList.toggle("assets", all);
-    };
-    ringKeys.forEach((k2) => this._nestAsset(k2));
-    this._nestAsset("spark-big-b"); // スパークFx用の先読み(.assets条件には含めない=無くてもFxを黙って省くだけ)
-    this._nestRingApply = applyRingAssets;
-    applyRingAssets();
     this._nestLayout = layoutStage;
     requestAnimationFrame(layoutStage);
     // B4: 効果一覧(閲覧専用・実データ=解放済みノードの獲得報酬)
@@ -300,25 +252,16 @@ Object.assign(UI, {
       ${open ? "" : `<div class="nq-note">繁殖の記録が条件を満たしたとき、結節は開く</div>`}`;
   },
 
-  // v2-V3+(Ric裁定: スパークは「①解放の瞬間の一回性」のみ採用・②常設微飾は不採用)。
-  //   一回性=animationendで自壊(残らない) / reduced-motionでは出さない(解放状態の表示自体が変化を伝える) /
-  //   決定論(乱数なし・1解放=1つ) / CFG.nestSparkOn でOFF可 / 素材が無ければ出さない(退化=状態表示のみ)。
+  // Newly unlocked nodes highlight once while this screen is visible.
   nestSparkFx(nodes) {
     if (!this.nestPageOpen || !this.nestPageOpen()) return;
     const body = document.getElementById("nestpage-body");
     if (body) this.buildNest(body); // 解放後の状態を即反映(スパークは変化の瞬間の徴)
     if (CFG.nestSparkOn === false) return;
     if (typeof Motion !== "undefined" && Motion.reduced) return;
-    if (!this._nestAsset("spark-big-b")) return;
-    for (const n of (nodes || []).slice(0, 3)) { // 同時多発は3つまで(過剰にしない・通常プレイは1〜2解放/回)
+    for (const n of (nodes || []).slice(0,3)) {
       const el = body && body.querySelector(`.wnode[data-node="${n.id}"]`);
-      if (!el) continue;
-      const img = document.createElement("img");
-      img.className = "wn-spark";
-      img.src = "image/nest/spark-big-b.png";
-      img.alt = "";
-      img.addEventListener("animationend", () => img.remove());
-      el.appendChild(img);
+      if (el && el.animate) el.animate([{filter:"brightness(1.8)"},{filter:"brightness(1)"}],{duration:420});
     }
   },
   // B4: 巣の効果一覧(モーダル・閲覧専用)。解放済みノードと獲得済み報酬の一覧=実データのみ
