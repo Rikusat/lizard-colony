@@ -17,8 +17,8 @@ const context = vm.createContext({
   UI: { toast() {} },
   Icon: { svg: () => "" },
 });
-const source = ["data.js", "game.js", "roulette.js"].map((file) => fs.readFileSync(path.join(__dirname, "..", "js", file), "utf8")).join("\n");
-const { CFG, Game, MISSIONS, SAVE_VERSION, Roulette } = vm.runInContext(`${source}\n;({ CFG, Game, MISSIONS, SAVE_VERSION, Roulette })`, context);
+const source = ["data.js", "game.js", "roulette.js", "roul-table.js"].map((file) => fs.readFileSync(path.join(__dirname, "..", "js", file), "utf8")).join("\n");
+const { CFG, Game, MISSIONS, SAVE_VERSION, Roulette, CrankTable } = vm.runInContext(`${source}\n;({ CFG, Game, MISSIONS, SAVE_VERSION, Roulette, CrankTable })`, context);
 const { pachinko: config } = CFG;
 const plain = (data) => JSON.parse(JSON.stringify(data));
 const parents = () => Array.from(Game.state.lizards, ({ id }) => id);
@@ -205,8 +205,19 @@ assert.ok(Game.playPachinko(0, 1, [], complimentary).error);
 console.log("Pachinko: launch, geometry, save, breeding, FEVER, CHANCE, defense, RUSH and manual feed ball passed");
 
 Game.newGame();
+const [firstResident, chosenResident] = Game.state.lizards;
+chosenResident.hue = 202;
+chosenResident.fixedTraits = ["mask"];
+const tagged = Game.rouletteRepGene(chosenResident.id);
+assert.equal(tagged.hue, 202);
+assert.equal(tagged.fixedTraits[0], "mask");
+chosenResident.fixedTraits.length = 0;
+assert.equal(tagged.fixedTraits[0], "mask");
+chosenResident.injuredT = 2;
+assert.equal(Game.rouletteRepGene(chosenResident.id).hue, firstResident.hue);
+chosenResident.injuredT = 0;
 Roulette.startReward(2, null, "rare");
-const live = Roulette.create().setSeed(12345);
+const live = CrankTable.create().setSeed(12345);
 live.canAcceptEgg = () => Game.state.eggs.length < Game.eggSlotCap();
 live.onLanding = ({ win }) => Game.recordCrankRouletteLanding(win);
 live.onEgg = (outcome) => Game.awardCrankRoulette(outcome);
@@ -224,3 +235,51 @@ assert.ok(Game.state.eggs.every((egg) => Game.breedablePool().some((sp) => sp.id
 Game.state.crickets = 0;
 assert.equal(Game.canTurnFeedCrank(), false);
 console.log("Crank roulette: physical landings, egg rewards, stop gate and independent boss board passed");
+
+// A player's lever and spring choices change the path itself. The same seed, inputs
+// and elapsed fixed steps must resolve every ball identically across frame durations.
+function runTable(group, direction, rate) {
+  const board = CrankTable.create().reset(527);
+  const seen = new Set();
+  const outcomes = [];
+  if (direction > 0) board.flipGate();
+  for (let frame = 0; frame < 6000; frame += group) {
+    if (frame < 4800 && frame % 32 === 0) board.emit(null, rate);
+    board.advance(CFG.roulFixedDt * group);
+    for (const event of board.drainEvents()) {
+      seen.add(event.track || event.type);
+      if (event.type === "BallLanded") outcomes.push([event.x, event.win, event.rainbow]);
+    }
+  }
+  assert.equal(outcomes.length, 150);
+  assert.equal(board.balls.length, 0);
+  return { seen, outcomes };
+}
+const baseTable = runTable(1, -1, 0);
+assert.deepEqual(baseTable.outcomes, runTable(2, -1, 0).outcomes);
+assert.notDeepEqual(baseTable.outcomes, runTable(2, 1, 0).outcomes);
+assert.notDeepEqual(baseTable.outcomes, runTable(2, -1, 2).outcomes);
+for (const feature of ["kickback", "bypass", "BallRotor", "BallGate", "BallWin", "BallRainbow"]) {
+  assert.ok(baseTable.seen.has(feature), feature);
+}
+console.log("Wire tracks, live rotor and lever contacts, skill shot and fixed-step replay passed");
+
+// Both balls reach the same egg cup on a single step with one slot available.
+// Clearing the board while the successful ball settles must preserve its reward.
+const fullCup = CrankTable.create().reset(15);
+let eggsReceived = 0;
+const contacts = [];
+fullCup.canAcceptEgg = () => eggsReceived === 0;
+fullCup.onLanding = ({ win }) => contacts.push(win);
+fullCup.onEgg = () => eggsReceived++;
+for (let i = 0; i < 2; i++) {
+  const ball = fullCup.emit(null);
+  Object.assign(ball, { track: null, phase: "fall", x: 69 + i, y: 182.8, vy: 80 });
+}
+fullCup.advance(CFG.roulFixedDt);
+assert.equal(eggsReceived, 1);
+assert.deepEqual(contacts, [true, false]);
+fullCup.reset(15);
+fullCup.advance(0.08);
+assert.equal(eggsReceived, 1);
+console.log("One available egg slot is credited atomically on contact, including before reset");

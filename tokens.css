@@ -8,6 +8,14 @@
    - 肥大化したら responsibilities 単位で分割を検討(HANDOFF参照)
    ============================================================= */
 
+@font-face {
+  font-family: "DotGothic16";
+  src: url("fonts/DotGothic16-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* ---------- [1.1] ベース(大地・土壌 = 魂の色) ---------- */
   --ink-900: #1A120B;   /* 最暗部・背景の底 */
@@ -76,8 +84,8 @@
   /* ---------- [2] タイポグラフィ ----------
      Webフォントは font-display: swap で読込(読込前/失敗時はシステムfallback表示)。
      サブセット化は後回し(ディレクター判断 2026-07-15) */
-  --font-body: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif;
-  --font-display: "M PLUS Rounded 1c", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif;
+  --font-body: "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif;
+  --font-display: "DotGothic16", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif;
   --font-retro: "DotGothic16", "MS Gothic", "Yu Gothic", monospace; /* 判子ラベル(STAGE名/称号/BOSS等)限定 */
   --fs-scale: 1.1;          /* V5 Phase2: 全UI文字の倍率(1=旧サイズ。1値で一律調整) */
   --fs-caption: calc(13px * var(--fs-scale));

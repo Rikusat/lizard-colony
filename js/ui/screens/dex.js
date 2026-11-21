@@ -67,12 +67,11 @@ Object.assign(UI, {
           const cell = document.createElement("div");
           cell.className = "dex-cell" + (found ? "" : " locked");
           if (found) {
-            const [h, s, l] = mo.recolor(sp.hue, sp.sat, sp.light);
-            cell.innerHTML = `<div class="sw" style="background:hsl(${h},${s}%,${l}%)"></div>
+            cell.innerHTML = `${this.specimenPortrait(sp.id, mo.id)}
               <div class="nm">${sp.name}</div><div class="mo">${mo.name} ${"★".repeat(sp.stars)}</div>`;
           } else {
             const known = sp.stage <= stageId || sp.stage <= 5;
-            cell.innerHTML = `<div class="sw" style="background:#222"></div>
+            cell.innerHTML = `${this.specimenPortrait(sp.id, mo.id)}
               <div class="nm">???</div><div class="mo">${known ? mo.name : st.pname + "で発見"}</div>`;
           }
           grid.appendChild(cell);

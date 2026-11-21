@@ -1299,11 +1299,18 @@ const Game = {
     return fed > 0;
   },
 
-  // v3.1ルーレット: 球に乗せる代表個体の遺伝(卵の内容)。アダルト優先→先頭→null
-  rouletteRepGene() {
-    const s = this.state;
-    let g = s.lizards.find((l) => l.stage === "adult" && !this.isAway(l)) || s.lizards[0];
-    return g ? { hue: g.hue, sat: g.sat, light: g.light, speciesId: g.speciesId, morphId: g.morphId, pattern: g.pattern, traits: g.traits } : null;
+  // 発射時の遺伝子を球に封入。観察中の地元の成体を優先し、未選択時とボス戦は従来の代表個体へ。
+  rouletteRepGene(preferredId) {
+    const residents = this.state.lizards;
+    const preferred = preferredId == null ? null : residents.find((lz) => lz.id === preferredId
+      && lz.stage === "adult" && lz.injuredT <= 0 && !this.isAway(lz)
+      && this.endemicSpecies(this.currentStage().id).includes(lz.speciesId));
+    const source = preferred || residents.find((lz) => lz.stage === "adult" && !this.isAway(lz)) || residents[0];
+    if (!source) return null;
+    const { hue, sat, light, speciesId, morphId, pattern } = source;
+    return { hue, sat, light, speciesId, morphId, pattern,
+      traits: (source.traits || []).map((trait) => typeof trait === "string" ? trait : { ...trait }),
+      fixedTraits: (source.fixedTraits || []).slice() };
   },
   canTurnFeedCrank() {
     if (this.raid) return false;

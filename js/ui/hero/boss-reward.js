@@ -86,7 +86,7 @@ Object.assign(UI, {
     const fd = document.getElementById("feeder-dial");
     if (!fd) return;
     fd.classList.remove("in-reward");
-    (document.getElementById("frame") || document.body).appendChild(fd);
+    this.placeFeederDial(fd);
     if (UI.updateFeeder) UI.updateFeeder();
   },
 
@@ -110,8 +110,8 @@ Object.assign(UI, {
     if (cv && ctx) {
       const rect = cv.getBoundingClientRect();
       if (rect.width > 0) {
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const ww = Math.round(rect.width * dpr), hh = Math.round(rect.height * dpr);
+        const scale = Math.min(1, 280 / rect.width);
+        const ww = Math.max(1, Math.round(rect.width * scale)), hh = Math.max(1, Math.round(rect.height * scale));
         if (cv.width !== ww || cv.height !== hh) { cv.width = ww; cv.height = hh; }
         this._paintRoulBoard(ctx, cv.width, cv.height, this._brReward.jackpotMode);
       }

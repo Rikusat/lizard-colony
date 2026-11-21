@@ -36,7 +36,8 @@
   <div id="hqlab-wrap"><canvas id="hqlab-canvas" width="1000" height="620"></canvas></div></section>
 <div id="modal" class="hidden"><div id="modal-box"><header><h2 id="modal-title"></h2><button id="modal-close">×</button></header><div id="modal-body"></div></div></div>
 
-<script src="js/data.js"></script><script src="js/game.js"></script><script src="js/render.js"></script>
+<script>for (const id of ["game", "hqlab-canvas"]) document.getElementById(id).getContext("2d", { willReadFrequently: true });</script>
+<script src="js/data.js"></script><script src="js/game.js"></script><script src="js/render.js"></script><script src="js/ink-reliefs.js"></script><script src="js/voxel-landscape.js"></script><script src="js/voxel-habitat.js"></script><script src="js/ui/screens/cabinet-scenery.js"></script>
 <script src="js/roulette.js"></script><script src="js/slit.js"></script>
 <script src="js/ui/core.js"></script><script src="js/ui/icons.js"></script><script src="js/ui/components.js"></script><script src="js/ui/motion.js"></script>
 <script src="js/ui/hero/hero.js"></script><script src="js/ui/hero/nest-reveal.js"></script><script src="js/ui/hero/boss.js"></script>
@@ -83,8 +84,11 @@ if (location.hash !== "#now") window.addEventListener("load", () => setTimeout((
   UI._drawLabScreenVideo = function (t) {
     vidN++;
     try { orig(t); } catch (e) { vidErr = String(e).slice(0, 60); }
-    try { const cv2 = document.getElementById("hqlab-canvas"), r = { x: 800 - 60, y: 418 - 60, w: 120, h: 120 }, b = UI._labBlit; // v5: 中央フィード中心部(設計座標)
-      const d = cv2.getContext("2d").getImageData(Math.round(b.bx + (r.x + r.w / 2) * b.k), Math.round(b.by + (r.y + r.h / 2) * b.k), 2, 2).data;
+    try {
+      const cv2 = document.getElementById("hqlab-canvas");
+      const station = CabinetScenery.workshop.stations.find(s => s.key === "feed");
+      const [x,y] = CabinetScenery.stationPoint(station);
+      const d = cv2.getContext("2d").getImageData(Math.round(x),Math.round(y-27),2,2).data;
       dstPix = [d[0], d[1], d[2]].join(","); } catch (e) { dstPix = "err"; }
   };
   setInterval(() => { const src = document.getElementById("game");

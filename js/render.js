@@ -148,14 +148,6 @@ const Render = {
     this.guardAllCanvases();                 // ★飼育槽以外(本部/オープニング/ルーレット/スリット)も含めて先に包む
     this.ctx = document.getElementById("game").getContext("2d");
     this.guardCtx(this.ctx);
-    if (document.querySelector(".colony-page")) {
-      const art = new Image();
-      art.onload = () => {
-        this._aridBackdrop = art;
-        if (this._bgStage === 1) this._bgCache = null;
-      };
-      art.src = "image/pachinko/arid-colony.webp";
-    }
   },
 
   // ★全canvasへガードを行き渡らせる(2026-08-10)。init で #game だけを包んでいたため、
@@ -224,38 +216,47 @@ const Render = {
   },
 
   draw() {
-    const ctx = this.ctx;
+    let ctx = this.ctx;
     Game.refreshCrowdScale();
-    this.drawStage(ctx);
-    if (Game.currentStage().id === 8) this.drawMonolith8(ctx); // 氷の前線: モノリスの冷光(背景層)
-    if (Game.currentStage().id === 9) this.drawReactor9(ctx); // 廃原子炉: チェレンコフ冷光の脈動(背景層)
-    if (Game.currentStage().id === 7) this.drawAbyss7(ctx); // 水中都市: 気泡/海藻/コースティクス/深海の影(背景層)
-    if (Game.currentStage().id === 6) this.drawJungle6(ctx); // 密林: 篝火の炎/火の粉・御神体の翡翠脈動・緑の木漏れ日(背景層)
-    if (Game.currentStage().id === 4) this.drawTomb4(ctx); // 古代古墳: 玄室の金の脈動・燐火(緑の鬼火)・水面のゆらぎ(背景層)
-    if (Game.currentStage().id === 5) this.drawFurnace5(ctx); // 火山: 溶鉱炉の赤熱脈動・火の粉・溶岩の明滅(ふいご・背景層)
-    if (Game.currentStage().id === 3) this.drawForest3(ctx); // 森林: からくり時計の振り子・木漏れ日・蛍(背景層)
-    if (Game.currentStage().id === 1) this.drawDawn1(ctx); // 始まりの地: 朝の光にただよう花粉(希望の粒・背景層)
-    if (Game.currentStage().id === 2) this.drawSlum2(ctx); // 摩天楼スラム: ネオンの明滅/サーチライト/雨/企業ホログラム(背景層)
-    this.drawNest(ctx);
-    this.drawFacilities(ctx);
-    this.drawSmallFacilities(ctx);
-    this.drawBurrow(ctx);
-    this.drawAutotomyTails(ctx); // §9.1 切り離された尾(地面・トカゲの下)
-    // y座標順に描画(奥行き)。さらわれ中・休憩中の個体は描かない
-    this._frameCount = (this._frameCount || 0) + 1; // §8.15 スプライトキャッシュのLRU用
-    const sorted = Game.state.lizards.filter((lz) => Game.isVisible(lz)).sort((a, b) => a.y - b.y);
-    for (const lz of sorted) this.drawLizard(ctx, lz);
-    this._pruneLizCache();
-    this.drawDriftMotes(ctx); // D7(第2波) 漂う環境粒子(惑星別・控えめな背景装飾)
-    // W1 天候の粒子(D7と同じ層。天候中はD7側が減衰するので二重に降らない)
-    if (typeof Weather !== "undefined") this._wxParts = Weather.drawParticles(ctx, W, H, this.time, this._wx, FIELD.y1, FIELD.y2);
+    const voxel = typeof VoxelHabitat !== "undefined";
+    if (voxel) {
+      ctx = VoxelHabitat.drawScene(this);
+    } else {
+      this.drawStage(ctx);
+      if (Game.currentStage().id === 8) this.drawMonolith8(ctx); // 氷の前線: モノリスの冷光(背景層)
+      if (Game.currentStage().id === 9) this.drawReactor9(ctx); // 廃原子炉: チェレンコフ冷光の脈動(背景層)
+      if (Game.currentStage().id === 7) this.drawAbyss7(ctx); // 水中都市: 気泡/海藻/コースティクス/深海の影(背景層)
+      if (Game.currentStage().id === 6) this.drawJungle6(ctx); // 密林: 篝火の炎/火の粉・御神体の翡翠脈動・緑の木漏れ日(背景層)
+      if (Game.currentStage().id === 4) this.drawTomb4(ctx); // 古代古墳: 玄室の金の脈動・燐火(緑の鬼火)・水面のゆらぎ(背景層)
+      if (Game.currentStage().id === 5) this.drawFurnace5(ctx); // 火山: 溶鉱炉の赤熱脈動・火の粉・溶岩の明滅(ふいご・背景層)
+      if (Game.currentStage().id === 3) this.drawForest3(ctx); // 森林: からくり時計の振り子・木漏れ日・蛍(背景層)
+      if (Game.currentStage().id === 1) this.drawDawn1(ctx); // 始まりの地: 朝の光にただよう花粉(希望の粒・背景層)
+      if (Game.currentStage().id === 2) this.drawSlum2(ctx); // 摩天楼スラム: ネオンの明滅/サーチライト/雨/企業ホログラム(背景層)
+      this.drawNest(ctx);
+      this.drawFacilities(ctx);
+      this.drawSmallFacilities(ctx);
+      this.drawBurrow(ctx);
+      this.drawAutotomyTails(ctx); // §9.1 切り離された尾(地面・トカゲの下)
+      // y座標順に描画(奥行き)。さらわれ中・休憩中の個体は描かない
+      this._frameCount = (this._frameCount || 0) + 1; // §8.15 スプライトキャッシュのLRU用
+      const sorted = Game.state.lizards.filter((lz) => Game.isVisible(lz)).sort((a, b) => a.y - b.y);
+      for (const lz of sorted) this.drawLizard(ctx, lz);
+      this._pruneLizCache();
+      this.drawDriftMotes(ctx); // D7(第2波) 漂う環境粒子(惑星別・控えめな背景装飾)
+      // W1 天候の粒子(D7と同じ層。天候中はD7側が減衰するので二重に降らない)
+      if (typeof Weather !== "undefined") this._wxParts = Weather.drawParticles(ctx, W, H, this.time, this._wx, FIELD.y1, FIELD.y2);
+    }
     this.drawSpawnFx(ctx); // §9-C2 誕生の登場エフェクト(生き物の上に重ねる祝祭)
     this.drawGenesisFx(ctx); // S5 創世エフェクト(賢者の石の錬成=深紅の静かな重み)
     if (Game.raid) { this.drawBoss(ctx, Game.raid); this.drawAim(ctx, Game.raid); }
     else if (Game.corpse) this.drawCorpse(ctx, Game.corpse);
-    if (Game.currentStage().id === 8) this.drawBugSweep(ctx); // 氷の前線: 自動掃討(純演出)
+    if (!voxel && Game.currentStage().id === 8) this.drawBugSweep(ctx);
+    if (voxel) {
+      VoxelHabitat.present(this.ctx);
+      ctx = this.ctx;
+    }
     this.drawPopups(ctx);
-    this.drawVignette(ctx);
+    if (!voxel) this.drawVignette(ctx);
     // イベント中の表示
     if (Game.event) {
       ctx.font = "bold 16px sans-serif";
@@ -1908,6 +1909,11 @@ const Render = {
   //   本体描画は _paintLizardBody(魂・不変)、状態表示(選択/毒/負傷/BABY等・動的)は _paintLizardState に分離。
   //   drawLizard がキャッシュ経由か直接手続きかを振り分ける(発光/伝説はぼかしのため常に手続き)。
   drawLizard(ctx, lz, noCache) {
+    if (typeof VoxelHabitat !== "undefined") {
+      VoxelHabitat.drawLizard(ctx, lz, false);
+      this._paintLizardState(ctx, lz);
+      return;
+    }
     const sp = speciesById(lz.speciesId);
     const glowy = sp.glow || lz.morphId === "legendary";
     // モーション(§8.5): 居場所で留まる個体に姿勢の"揺れ"を付ける。魂ピクセルは不変=配置トランスフォーム(整数bob)のみ。
@@ -2645,6 +2651,7 @@ const Render = {
   // 状態表示オーバーレイ(選択リング/毒/負傷/BABY/創始者)。動的(明滅・選択)なのでキャッシュせず毎フレーム描画。
   _paintLizardState(ctx, lz) {
     const sp = speciesById(lz.speciesId);
+    const voxel = typeof VoxelHabitat !== "undefined";
     const L = 105 * sp.size * (lz.stage === "baby" ? 0.5 : 1) * Game.crowdScale();
     // --- 状態表示(反転なし) ---
     ctx.save();
@@ -2730,7 +2737,7 @@ const Render = {
       ctx.globalAlpha = 1;
     }
     // K 毛づくろい(くつろぎのgroomポーズ・B近似): 舌を体側/肩へ伸ばして舐める気配(前脚C変形なしで成立)。周期的。
-    if (lz._relaxing && lz._relaxPose === "groom" && CFG.motRelaxOn !== false && !lz.moving && !(typeof Motion !== "undefined" && Motion.reduced)) {
+    if (!voxel && lz._relaxing && lz._relaxPose === "groom" && CFG.motRelaxOn !== false && !lz.moving && !(typeof Motion !== "undefined" && Motion.reduced)) {
       const face = Math.cos(lz.angle) >= 0 ? 1 : -1;
       const g = (this.time * 1.6 + (lz.id % 11) * 0.2) % 1;
       if (g < 0.6) {
@@ -2742,7 +2749,7 @@ const Render = {
     }
     // V5M②: 舌出し(ちろちろ)。魂の上乗せ描画=スプライトキャッシュ非接触。個体idで位相分散・決定論。
     //   アオジタ(固有の青い舌が既にある)/移動中/負傷/スポット姿勢中/reduced-motionでは出さない。くつろぎ中も出さない(休息)。
-    if (CFG.motTongueOn !== false && !(typeof Motion !== "undefined" && Motion.reduced)
+    if (!voxel && CFG.motTongueOn !== false && !(typeof Motion !== "undefined" && Motion.reduced)
       && !lz.moving && lz.injuredT <= 0 && !lz.spot && !lz._relaxing && sp.id !== "aojita") {
       const win = CFG.motTongueWin || 45, dur = CFG.motTongueDur || 0.5;
       const tt = this.time + (lz.id % 89) * 3.37;
@@ -2779,7 +2786,7 @@ const Render = {
       ctx.font = "13px sans-serif";
       this.glyphSkull(ctx, 0, -L * 0.52 - 6, 9);
     }
-    if (lz.stage === "baby") { // §9.1 負傷マーカー(赤十字)は撤廃=尾の断端+再生で伝える
+    if (!voxel && lz.stage === "baby") { // §9.1 負傷マーカー(赤十字)は撤廃=尾の断端+再生で伝える
       ctx.fillStyle = "rgba(0,0,0,.45)";
       rr(ctx, -19, -L * 0.52 - 13, 38, 15, 7); ctx.fill();
       ctx.fillStyle = "#ffe9b0"; ctx.font = "bold 10px sans-serif";

@@ -30,7 +30,7 @@
 </section>
 <div id="modal" class="hidden"><div id="modal-box"><header><h2 id="modal-title"></h2><button id="modal-close">×</button></header><div id="modal-body"></div></div></div>
 
-<script src="js/data.js"></script><script src="js/game.js"></script><script src="js/render.js"></script>
+<script src="js/data.js"></script><script src="js/game.js"></script><script src="js/render.js"></script><script src="js/ink-reliefs.js"></script><script src="js/voxel-landscape.js"></script><script src="js/voxel-habitat.js"></script><script src="js/ui/screens/cabinet-scenery.js"></script>
 <script src="js/roulette.js"></script><script src="js/slit.js"></script><script src="js/holo.js"></script><script src="js/sound.js"></script><!-- P4-2/P5: index.htmlと同構成(Lore再生・音窓口の検査) -->
 <script src="js/ui/core.js"></script><script src="js/ui/icons.js"></script><script src="js/ui/components.js"></script><script src="js/ui/motion.js"></script>
 <script src="js/ui/hero/hero.js"></script><script src="js/ui/hero/nest-reveal.js"></script><script src="js/ui/hero/boss.js"></script>
@@ -211,32 +211,34 @@ window.__err = null; window.addEventListener("error", (e) => { window.__err = (w
       ok("撤廃: tier6も乱択創世で到達できる(獲得不能を作らない)", Object.keys(TRAITS).filter(function (k) { return TRAITS[k].tier >= 6; }).length === 6 && CFG.traitGenesisT6Weight > 0);
       UI.closeModal(); UI.closeHqLab();
 
-      // ===== 当たり判定の整合(v5 HOLO COMMAND・設計座標1600×900。各モジュールの代表点がそのzoneを返す) =====
-      // 更新履歴: GBA俯瞰→v3→v4→R4-1復元→v5 HOLO COMMAND(2026-07-25)。zones=錬成槽/標本アーカイブ/投資リング/中央フィード。
-      UI._labRoomTierOverride = 3; UI.openHqLab(); // T3=全モジュール点灯で判定
-      var reps = { tank: [190, 243], archive: [190, 509], desks: [1382, 461], feed: [800, 418] };
-      for (var zk in reps) {
-        var zp = { x: reps[zk][0], y: reps[zk][1] };
-        ok("判定: " + zk + " の代表点がzone一致(v5モジュール座標)", UI._hqlabZoneAt(zp.x, zp.y) === zk, JSON.stringify(zp) + "→" + UI._hqlabZoneAt(zp.x, zp.y));
+      // The pixel scene and pointer conversion share room coordinates.
+      UI._labRoomTierOverride = 3; UI.openHqLab();
+      var reps = {tank:[114,96],archive:[104,130],desks:[214,144],feed:[180,104],shelf:[174,163],rocket:[254,89]};
+      for (var key in reps) {
+        var pos = reps[key];
+        ok("判定: "+key, UI._hqlabZoneAt(pos[0],pos[1]) === key);
       }
-      var labCv2 = document.getElementById("hqlab-canvas"), bl = UI._labBlit, rr = labCv2.getBoundingClientRect();
-      function holoClick(px, py) {
-        var dx = rr.left + (bl.bx + px * bl.k) * rr.width / labCv2.width, dy = rr.top + (bl.by + py * bl.k) * rr.height / labCv2.height;
-        labCv2.dispatchEvent(new MouseEvent("click", { clientX: dx, clientY: dy, bubbles: true }));
+      var labCv2 = document.getElementById("hqlab-canvas");
+      function stationClick(key) {
+        var rr=labCv2.getBoundingClientRect(), p=reps[key];
+        labCv2.dispatchEvent(new MouseEvent("click", {
+          clientX:rr.left + p[0] * rr.width / labCv2.width,
+          clientY:rr.top + p[1] * rr.height / labCv2.height, bubbles:true
+        }));
       }
-      holoClick(1382, 461);
+      stationClick("desks");
       ok("判定: 投資リング実クリックで研究デスクパネルが開く", !!document.getElementById("modal-body").querySelector("#lab-invest"));
       UI.closeModal();
-      holoClick(190, 243);
+      stationClick("tank");
       ok("判定: 錬成槽実クリックでパネルが開く(遺伝子ラボ)", !!document.querySelector("#modal-body #hq-gene"));
       UI.closeModal();
-      holoClick(800, 418);
+      stationClick("feed");
       ok("判定: 中央フィードクリックで飼育槽へ戻る", !UI.hqLabOpen());
       UI.openHqLab();
-      holoClick(1382, 660);
+      stationClick("shelf");
       ok("判定: 観測ログ実クリックで標本棚パネルが開く(裁定①・T3)", !!document.getElementById("modal-body").querySelector("#hq-lore"));
       UI.closeModal();
-      holoClick(1450, 54);
+      stationClick("rocket");
       ok("判定: SPACEPORTインジケータ実クリックで宇宙港パネルが開く(裁定①)", /段階|完成/.test(document.getElementById("modal-body").textContent));
       UI.closeModal();
       // ===== §14: 右メニュー(常設導線)全項目の実クリック =====

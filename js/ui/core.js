@@ -29,11 +29,37 @@ const UI = {
     this._placeT = setTimeout(() => { this._placeT = null; if (this._ambSync) this._ambSync(); }, 0);
   },
 
+  initNavigation() {
+    const menu = document.getElementById("game-menu");
+    if (!menu) return;
+    const wide = window.matchMedia("(min-width: 900px)");
+    const sync = () => { menu.open = wide.matches; };
+    sync();
+    wide.addEventListener("change", sync);
+    menu.addEventListener("click", (event) => {
+      if (!wide.matches && event.target.closest("nav button")) menu.open = false;
+    });
+    document.addEventListener("pointerdown", (event) => {
+      if (menu.open && !wide.matches && !menu.contains(event.target)) menu.open = false;
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      if (!this.els.modal.classList.contains("hidden")) {
+        this.closeModal();
+      } else if (!wide.matches && menu.open) {
+        menu.open = false;
+        menu.querySelector("summary").focus();
+      }
+    });
+  },
+
   init() {
     const ids = ["ui-coins", "ui-cps", "ui-gems", "ui-amethyst", "ui-stones", "ui-rank", "rank-bar",
       "raid-timer", "raid-banner",
       "detail", "modal", "modal-title", "modal-body", "toasts", "mission-badge"];
     for (const id of ids) this.els[id] = document.getElementById(id);
+
+    this.initNavigation();
 
     // ボタン(購入・餌やりは長押しで加速連続実行 / GameExpansion_v2 ④)
     // V5.1: 購入単位(ショップ)は撤去
@@ -313,6 +339,7 @@ const UI = {
     this.updateFeeder();
     this.updateBossHud();
     if (this.updatePachinko) this.updatePachinko();
+    this.updateResidents?.();
     this.updateEggSlots();
     this.renderDetail(false);
     if (this._eggPop && this._renderEggPop) this._renderEggPop(); // ⑤ 卵の小ウィンドウを毎更新で同期(孵化秒数が進み表示が止まらない)
