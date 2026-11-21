@@ -6,11 +6,14 @@ Object.assign(UI, {
     const main = canvas.closest("main");
     const frame = main.querySelector("#frame");
     const board = CrankTable.create();
-    const syncGate = () => canvas.setAttribute("aria-pressed", String(board.gateDirection > 0));
+    const syncGate = () => {
+      const right = board.gateDirection > 0;
+      canvas.setAttribute("aria-pressed", String(right));
+      canvas.setAttribute("aria-label", `パチンコ台の分岐レバー（${right ? "右" : "左"}向き）。押して切り替え`);
+    };
     const flipGate = () => { board.flipGate(); syncGate(); };
     canvas.tabIndex = 0;
     canvas.setAttribute("role", "button");
-    canvas.setAttribute("aria-label", "パチンコ台の分岐レバー・右向き");
     canvas.title = "盤面を押して分岐レバーを切替（Enter・Space）";
     canvas.addEventListener("click", flipGate);
     canvas.addEventListener("keydown", (event) => {
@@ -27,15 +30,20 @@ Object.assign(UI, {
       els["result-title"].textContent = "";
       delete els.result.dataset.tier;
     };
+    const showResult = (message, tier) => {
+      if (!message || (els.result.dataset.tier === "stone" && tier !== "stone")) return;
+      clearTimeout(resultTimer);
+      els["result-title"].textContent = message;
+      els.result.dataset.tier = tier;
+      resultTimer = setTimeout(clearResult, 3000);
+    };
     board.canAcceptEgg = () => Game.state.eggs.length < Game.eggSlotCap();
     board.onLanding = ({ win }) => Game.recordCrankRouletteLanding(win);
+    board.onStone = () => showResult(Game.awardCrankStone(), "stone");
     board.onEgg = (outcome) => {
-      const result = Game.awardCrankRoulette(outcome);
-      if (!result) return;
-      clearTimeout(resultTimer);
-      els["result-title"].textContent = result;
-      els.result.dataset.tier = outcome.rainbow ? "jackpot" : "win";
-      resultTimer = setTimeout(clearResult, 3000);
+      const message = Game.awardCrankRoulette(outcome);
+      if (!message) return;
+      showResult(message, outcome.rainbow ? "jackpot" : "win");
       if (typeof Sound !== "undefined") Sound.play(outcome.rainbow ? "pachinkoJackpot" : "pachinkoHit");
     };
     Game.onEvent((name) => {
@@ -63,7 +71,6 @@ Object.assign(UI, {
       const active = fallback || document.fullscreenElement === frame;
       const detailHost = active ? frame : detailHome;
       if (detail.parentElement !== detailHost) detailHost.appendChild(detail);
-      this.placeFeederDial();
       const label = active ? "全画面表示を解除" : "飼育槽を全画面表示";
       button.setAttribute("aria-pressed", String(active));
       button.setAttribute("aria-label", label);
@@ -162,10 +169,6 @@ Object.assign(UI, {
     text("stage-name", Game.currentStage().name);
     text("population", `${state.lizards.length}/${Game.capacity()}`);
     text("egg-count", `${state.eggs.length}/${Game.eggSlotCap()}`);
-    text("total", fmt(progress.total));
-    text("streak", progress.streak + "回");
-    text("mode", Game.raid ? "迎撃中" : live.running ? "連続発射中" : live.board.balls.length ? "走行中" : "待機中");
-    els.mode.dataset.mode = live.running ? "stream" : "normal";
     els["raid-card"].dataset.snake = String(!raidType || raidType.typeId === "snake");
     els["raid-card"].dataset.active = String(!!raid);
     text("raid-name", raidType ? Game.bossDisplayName(raidType) : "襲来を警戒");

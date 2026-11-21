@@ -1212,7 +1212,7 @@ const Game = {
       const smallLv = auto && CFG.autoFeedLevelPopSmall;
       // オートの大量同時Lvアップで画面が埋まらないよう、控えめLvポップは同時表示数を上限で間引く(手動は常に表示)
       if (!smallLv || this.popups.filter((p) => p.small).length < CFG.autoFeedLevelPopMax) {
-        this.popup(lz.x, lz.y - 34, "Lv" + lz.level + "!", "#ffd24c", false, smallLv);
+        this.popup(lz.x, lz.y - 34, "成長", "#ffd24c", false, smallLv);
       }
     }
     return true;
@@ -1278,8 +1278,7 @@ const Game = {
     if (this._dialT < interval) return;
     this._dialT = 0;
     // V5.2: 自動給餌はコオロギ在庫を消費。切れ時トグルON=停止/OFF=Gold換算補充(feedAll内で処理)
-    const ok = this.feedAll(true);
-    if (ok && typeof Slit !== "undefined") Slit.onCrank(); // §9: オートのクランク稼働でも作動(クールダウン内蔵)
+    this.feedAll(true);
   },
 
   feedAll(silent) {
@@ -1340,6 +1339,13 @@ const Game = {
     this.storeBreedingEgg(genes);
     this.save();
     return (rainbow ? "JACKPOT · " : "入賞 · ") + this.lizardName(genes) + "の卵";
+  },
+
+  awardCrankStone() {
+    this.addStone(1);
+    this.save();
+    this.emit("SlitSuccess");
+    return "賢者の石 +1";
   },
 
   recordCrankRouletteLanding(win) {
@@ -1875,7 +1881,7 @@ const Game = {
       return false;
     }
     if ((r.cost.stones || 0) > this.stones()) { // §8.5: レシピ解読の後半は賢者の石を少量
-      UI.toast("賢者の石が足りない(四重スリットの奇跡で手に入る)", true);
+      UI.toast("賢者の石が足りません。パチンコ台右側の星で獲得できます。", true);
       return false;
     }
     this.addRes("science", -(r.cost.science || 0));

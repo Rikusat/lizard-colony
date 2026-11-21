@@ -5,7 +5,7 @@
 const VoxelHabitat = (() => {
   const WIDTH = 400, HEIGHT = 225, PIXEL = 3.2;
   const SW = 156, SH = 74, AX = 78, AY = 42;
-  const TANK_SCALE = 3.85;
+  const TANK_SCALE = 3.15;
   const visibleSprites = [];
   const spriteCache = new Map(), modelFrames = new Map(), projections = new Map();
   let scene, background, backdropStage, burrow;
@@ -365,10 +365,12 @@ const VoxelHabitat = (() => {
 
   // Hit the same silhouette last drawn on the glass, including an extended snout
   // or curling tail. Reverse painter order resolves overlapping residents.
-  function pickLizard(x,y) {
-    for (const pad of [0,2]) {
+  function pickLizard(x,y,touchRadius = 0) {
+    // All exact hits take priority over the extra finger allowance on small residents.
+    for (const precise of [true,false]) {
       for(let i=visibleSprites.length-1;i>=0;i--) {
         const {lz,mask,left,top,scale}=visibleSprites[i];
+        const pad = precise ? 0 : Math.max(2, Math.ceil(touchRadius / scale));
         const px=Math.floor((x-left)/scale), py=Math.floor((y-top)/scale);
         if (px < -pad || py < -pad || px >= SW+pad || py >= SH+pad) continue;
         for(let yy=Math.max(0,py-pad); yy<=Math.min(SH-1,py+pad); yy++)

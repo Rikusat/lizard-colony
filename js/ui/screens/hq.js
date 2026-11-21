@@ -32,15 +32,24 @@ Object.assign(UI, {
     }
     return rows;
   },
+  rosterCounts(rows) {
+    const counts = new Map();
+    for (const { lz } of rows) {
+      const key = Game.dispKey(lz);
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    return counts;
+  },
   buildRosterTable(host, state) {
     const rebuild = () => this.buildRosterTable(host, state);
     const rows = this.rosterCollect();
+    const counts = this.rosterCounts(rows);
     const sorted = rows.slice().sort((a, b) => {
       const key = state.sort;
-      const v = (r) => key === "lv" ? (r.lz.level || 1) : key === "name" ? Game.lizardName(r.lz) : key === "sp" ? r.lz.speciesId : key === "mo" ? r.lz.morphId : key === "cd" ? (r.lz.breedCd || 0) : key === "pl" ? r.planet : 0;
+      const v = (r) => key === "owned" ? counts.get(Game.dispKey(r.lz)) : key === "name" ? Game.lizardName(r.lz) : key === "sp" ? r.lz.speciesId : key === "mo" ? r.lz.morphId : key === "cd" ? (r.lz.breedCd || 0) : key === "pl" ? r.planet : 0;
       const va = v(a), vb = v(b);
       if (key !== "default" && va !== vb) return (va < vb ? -1 : 1) * state.dir;
-      return (a.planet - b.planet) || (a.lz.speciesId < b.lz.speciesId ? -1 : a.lz.speciesId > b.lz.speciesId ? 1 : 0) || ((b.lz.level || 1) - (a.lz.level || 1));
+      return (a.planet - b.planet) || Game.dispKey(a.lz).localeCompare(Game.dispKey(b.lz)) || (a.lz.id - b.lz.id);
     }).filter((r) =>
       (!state.fSp || r.lz.speciesId === state.fSp) &&
       (!state.fPl || String(r.planet) === state.fPl) &&
@@ -57,16 +66,16 @@ Object.assign(UI, {
       <label>特性 <select data-f="fTr"><option value="">すべて</option><option value="y" ${state.fTr === "y" ? "selected" : ""}>あり</option><option value="n" ${state.fTr === "n" ? "selected" : ""}>なし</option></select></label>
       <button class="rst-refresh">更新</button><span class="rst-count">表示 ${sorted.length} / ${rows.length}</span></div>
       <div class="rst-scroll"><table class="rst-table"><thead><tr>
-      <th>#</th>${th("name", "名前")}${th("sp", "種")}${th("mo", "モーフ", "rc-mo")}${th("lv", "Lv")}<th>特性</th>${th("cd", "CD残", "rc-cd")}<th class="rc-st">状態</th>${th("pl", "惑星")}</tr></thead><tbody>`;
+      <th>#</th>${th("name", "名前")}${th("sp", "種")}${th("mo", "モーフ", "rc-mo")}${th("owned", "全惑星の保有数")}<th>特性</th>${th("cd", "CD残", "rc-cd")}<th class="rc-st">状態</th>${th("pl", "惑星")}</tr></thead><tbody>`;
     sorted.forEach((r, i) => {
       const lz = r.lz, mo = morphById(lz.morphId) || { name: lz.morphId };
       const leg = lz.morphId === "legendary";
-      const status = lz.injuredT > 0 ? `負傷 ${Math.ceil(lz.injuredT)}s` : lz.tailRegrowT > 0 ? "尾再生中" : lz.poisonT > 0 ? "毒" : "—";
+      const status = lz.injuredT > 0 ? `負傷 ${Math.ceil(lz.injuredT)}s` : lz.tailRegrowT > 0 ? "尾再生中" : lz.poisonT > 0 ? "毒" : lz.stage === "baby" ? "ベビー" : "—";
       html += `<tr><td class="rc-i">${i + 1}</td>
         <td><b class="${leg ? "leg-name" : ""}">${Game.lizardName(lz)}</b></td>
         <td>${(speciesById(lz.speciesId) || {}).name || lz.speciesId}</td>
         <td class="rc-mo">${mo.name}</td>
-        <td class="rc-num">${lz.stage === "baby" ? "ベビー" : "Lv" + (lz.level || 1)}</td>
+        <td class="rc-num">${counts.get(Game.dispKey(lz))}匹</td>
         <td>${UI.breedTraitChips ? UI.breedTraitChips(lz) : ""}</td>
         <td class="rc-cd rc-num">${lz.breedCd > 0 ? Math.ceil(lz.breedCd) + "s" : "—"}</td>
         <td class="rc-st">${status}</td>

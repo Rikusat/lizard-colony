@@ -93,7 +93,11 @@ Object.assign(UI, {
   },
 
   // ---------------- トカゲ詳細 ----------------
-  renderDetail(force) {
+  residentMembers(key) {
+    return Game.state.lizards.filter(lz => Game.dispKey(lz) === key);
+  },
+
+  renderDetail(force = false) {
     const el = this.els["detail"];
     const lz = Game.state.lizards.find((x) => x.id === Game.selectedId);
     if (!lz) {
@@ -101,23 +105,28 @@ Object.assign(UI, {
       return;
     }
     el.classList.remove("hidden");
+    // Keep a pressed button attached until click fires, even when a cooldown changes mid-tap.
+    if (!force && el.matches(":active")) return;
     const mo = morphById(lz.morphId); // 種の★(レア度表示)は撤廃=特性カードへ置換(内部数値=経済係数は残置・trait_system判断⑦(i))
-    const xpMax = lz.stage === "baby" ? CFG.babyXpToAdult : CFG.adultXpPerLevel;
+    const members = this.residentMembers(Game.dispKey(lz));
+    const stage = lz.stage === "baby" ? "ベビー" : "アダルト";
     // S5-a: この個体に創世できる新特性(未所持・上限3未満・非レジェンダリー)。最安コストで活性判定。
     const createable = Game.createableTraits(lz);
     const genesisRandCost = CFG.stoneGenesisRandCost || 4; // R5-a: ランダム創世=一律コスト
     // S5-b: 固定化できる特性(クリア後解禁・この個体が持つ未固定の特性)。
     const fixable = Game.fixUnlocked() ? Game.fixableTraits(lz) : [];
     const fixMinCost = fixable.length ? Math.min(...fixable.map((k) => Game.stoneFixCost(TRAITS[k].tier))) : 0;
-    el.innerHTML = `
+    const html = `
       <h4>${this.specimenPortrait(lz.speciesId, lz.morphId)}
-        ${Game.lizardName(lz)}</h4>
-      ${mo.legendary
-        ? `<div class="legendary-tag">✦ レジェンダリー</div>`
-        : this.traitCardsHtml(lz)}
-      <div class="stat"><span>${lz.stage === "baby" ? "ベビー" : "アダルト Lv" + lz.level}</span>
-        <span>XP ${Math.floor(lz.xp)}/${xpMax}</span></div>
-      <div class="bar"><div style="width:${clamp(lz.xp / xpMax * 100, 0, 100)}%"></div></div>
+        ${speciesById(lz.speciesId).name}</h4>
+      <div class="stat"><span${mo.legendary ? ' class="legendary-tag"' : ""}>${mo.name}</span>
+        <b>この惑星に${members.length}匹</b></div>
+      <div class="resident-individual">
+        ${members.length > 1 ? `<button class="resident-picker" data-act="prev" aria-label="前の個体">‹</button>
+          <span>${members.indexOf(lz) + 1} / ${members.length} · ${stage}</span>
+          <button class="resident-picker" data-act="next" aria-label="次の個体">›</button>` : stage}
+      </div>
+      ${mo.legendary ? "" : this.traitCardsHtml(lz)}
       <div class="stat"><span>攻撃力</span><b>${Game.lizardAtk(lz).toFixed(1)}</b></div>
       <div class="stat"><span>生産/秒</span><b>${Game.lizardIncome(lz).toFixed(2)}G</b></div>
       ${lz.injuredT > 0 ? `<div class="injured">負傷中 (あと${Math.ceil(lz.injuredT)}秒)</div>` : ""}
@@ -133,6 +142,14 @@ Object.assign(UI, {
         ${fixable.length ? `<button data-act="fix"${Game.stones() < fixMinCost ? " disabled" : ""}>${Icon.svg("stone")} 石で固定</button>` : ""}
         <button data-act="close">閉じる</button>
       </div>`;
+    if (html === this._detailHtml) return;
+    this._detailHtml = html;
+    const focusedAction = el.contains(document.activeElement) && document.activeElement.dataset.act;
+    el.innerHTML = html;
+    if (focusedAction) {
+      const button = el.querySelector(`[data-act="${focusedAction}"]:not(:disabled)`) || el.querySelector("[data-act=close]");
+      button.focus({ preventScroll: true });
+    }
   },
 
   // S3③: 繁殖ピッカーの特性チップ(表示のみ・読み取り専用)。相手選択の時点で特性の有無と固定印が見える=2枚持ち=合成への道筋。
@@ -174,6 +191,13 @@ Object.assign(UI, {
     const lz = Game.state.lizards.find((x) => x.id === Game.selectedId);
     if (!lz) return;
     switch (btn.dataset.act) {
+      case "prev":
+      case "next": {
+        const members = this.residentMembers(Game.dispKey(lz));
+        const step = btn.dataset.act === "prev" ? -1 : 1;
+        Game.selectedId = members[(members.indexOf(lz) + step + members.length) % members.length].id;
+        break;
+      }
       case "feed": Game.feed(lz); break;
       case "cd-amethyst": if (Game.amethystCdReset(lz)) this.renderDetail(); break; // R3: 繁殖CDリセット(⬡消費)
       case "heal": Game.healWithGem(lz); break;
@@ -181,7 +205,10 @@ Object.assign(UI, {
       case "breed": this.openBreedPicker(lz); return; // 3.11.4: 相手選択ウィンドウへ
       case "genesis": this.openGenesisPicker(lz); return; // S5-a: 賢者の石で特性を創世
       case "fix": this.openFixPicker(lz); return; // S5-b: 賢者の石で遺伝を固定
-      case "close": Game.selectedId = null; break;
+      case "close":
+        Game.selectedId = null;
+        document.getElementById("residents-toggle")?.focus({ preventScroll: true });
+        break;
     }
     this.renderDetail(true);
   },

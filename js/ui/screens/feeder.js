@@ -2,19 +2,17 @@
 // screens/feeder — 給餌クランクの【操作骨格】(Brushup V2.1→V5.2 §2で引き算UX改訂)
 // 操作系: タップ=1掴み / 長押し=連続給餌(=オート高と同速) /
 //         レート=タップで低→中→高を循環(広い当たり) / オート=ボタン全体が緑の後光(ランプ/枠なし) /
-//         安全装置=同サイズ・在庫僅少で警告ランプ / 群はグリップでドラッグ移動(位置保存)
+//         安全装置=同サイズ・在庫僅少で警告ランプ / 飼育槽右下に固定
 // 見た目(盤面SVG)は feeder-skins.js の機構スキン層が提供(惑星で差し替え可)。
 // 骨格が保証する契約: .fd-wheel に spin/boing/オート回転を適用する。
 // 給餌の効果は既存 Game.feedAll() の再利用のみ。数値は CFG.dialRates/dialSpinSec。
 // =============================================================
 
 Object.assign(UI, {
-  // 常設ドックと全画面の間で同じ操作部を移す。ボス報酬が借りている間はそちらを優先する。
+  // 通常・全画面共通の飼育槽ドックへ戻す。ボス報酬が借りている間はそちらを優先する。
   placeFeederDial(dial = document.getElementById("feeder-dial")) {
     if (!dial || dial.classList.contains("in-reward")) return;
-    const frame = document.getElementById("frame");
-    const expanded = frame && (frame === document.fullscreenElement || frame.classList.contains("habitat-expanded"));
-    const dock = expanded ? frame : document.getElementById("crank-dock") || frame || document.getElementById("center");
+    const dock = document.getElementById("crank-dock") || document.getElementById("frame") || document.getElementById("center");
     if (dock && dial.parentElement !== dock) dock.appendChild(dial);
   },
 
@@ -33,8 +31,8 @@ Object.assign(UI, {
           ${CrankSkins.current().face()}
         </button>
       </div>
-      <div class="fd-lever" id="fd-lever" tabindex="0" role="button"
-        aria-label="オート給餌レート(タップで 低→中→高 循環)" aria-valuemin="0" aria-valuemax="2" aria-valuenow="1"
+      <div class="fd-lever" id="fd-lever" tabindex="0" role="slider" aria-orientation="vertical"
+        aria-label="オート給餌レート" aria-valuemin="0" aria-valuemax="2" aria-valuenow="1"
         title="タップで給餌レート循環(低→中→高)">
         <span class="fd-track"></span>
         <span class="fd-notch n2"></span><span class="fd-notch n1"></span><span class="fd-notch n0"></span>
@@ -79,7 +77,6 @@ Object.assign(UI, {
         Motion.play(el, "fed");
         Motion.play(crank, "spin");
         this.fireCrankRoulette?.();
-        if (typeof Slit !== "undefined") Slit.onCrank(); // §9: クランク稼働で四重スリット装置が作動(クールダウン内蔵)
       } else if (!held) {
         Motion.play(el, "empty");
         UI.toast(Game.state.coins < CFG.feedGoldCost ? "Goldが足りない!" : "餌をあげられるトカゲがいない…", true);
@@ -141,8 +138,10 @@ Object.assign(UI, {
     lever.addEventListener("keydown", (e) => {
       const d = Game.ensureDial();
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setRate(d.rate + 1); }
-      if (e.key === "ArrowUp" || e.key === "ArrowRight") { e.preventDefault(); setRate(d.rate + 1); }
-      if (e.key === "ArrowDown" || e.key === "ArrowLeft") { e.preventDefault(); setRate(d.rate - 1); }
+      if (e.key === "Home") { e.preventDefault(); setRate(0); }
+      if (e.key === "End") { e.preventDefault(); setRate(2); }
+      if (e.key === "ArrowUp" || e.key === "ArrowRight") { e.preventDefault(); setRate(Math.min(2, d.rate + 1)); }
+      if (e.key === "ArrowDown" || e.key === "ArrowLeft") { e.preventDefault(); setRate(Math.max(0, d.rate - 1)); }
     });
 
     // ---- オート給餌(ON=ボタン全体が緑の後光。ランプ/囲み枠は廃止・2-2/2-3) ----

@@ -22,7 +22,7 @@ const CFG = {
   saveBackupKeyV14: "lizardColonyV14Backup", // V13→V14移行前のバックアップ(Phase6 惑星味方への旧味方Lv移送。ロールバック可)
   saveBackupKeyV15: "lizardColonyV15Backup", // V14→V15移行前のバックアップ(Phase10 再純血化=自動移行汚染の除去+空惑星再配置。ロールバック可)
   startCoins: 500,
-  startStones: 0,           // 賢者の石(四重スリット装置のレア報酬・保有のみ・用途は後日)。新規は0
+  startStones: 0,           // 賢者の石の初期保有数
 
   startCrickets: 20,
   startGems: 3,
@@ -165,7 +165,7 @@ const CFG = {
   // 「見ていられる速さ」を守る(給餌のdialRates高=0.15sは速すぎるので別値)。レートで手触りを変える
   roulRewardRateInterval: [0.7, 0.5, 0.32],
 
-  // ── 四重スリット実験的瞬間遺伝決定装置(roulette.md §9・左メニュー下部・クランク稼働で作動) ──
+  // 旧円環装置の検証値。現行の星レーンの形状と速度は CRANK_TABLE.starLane を参照。
   // 同心円レール(外→内)+基準角に整列した入れ子スリット(外ほど広く内ほど狭い narrowing corridor)。
   // 外縁の360°ランダム位置から中心へ放射状に射出。角度が各円のスリット内なら通過、外れた最外円で消滅。
   // 全通過=中心到達=成功(賢者の石)。結果は射出角θ(単一シード)と幾何から創発(事前確定なし)。
@@ -314,8 +314,7 @@ const CFG = {
   //   ルール層は Game.emit(name) で「何が起きたか」だけを流し、ここで「何を鳴らすか」に変換する。
   //   ★対応表に無いイベントは鳴らない=音を足すにはまずSoundSkills §4の対象表へ追記し、ここに1行足す。
   //   ★憲章§2-2: 各イベントは既存の視覚表示と対(feed=+xpポップ / hatch=登場エフェクト / defeat=撃破通知)。
-  //   ★S3: ルール層のイベント源は Game だけではない。四重スリット(Slit)も自前のイベント列を持つ
-  //     (Slit.drainEvents)。**変換点を2つに割らない**ため、どちらの源のイベントもこの1つの表で引く。
+  //   星レーンの全通過は Game.awardCrankStone から SlitSuccess を通知する。
   soundCues: { feed: "feed", hatch: "hatch", defeat: "defeat", SlitSuccess: "stone" },
   // ---- 音の定義。probe=テスト器専用(ゲームから鳴らさない)/ feed・hatch・defeat=S1基準音3種 ----
   //   ★S1たたき台=全数値はRicが ?tune=1#sound で実機判定して調整する。
@@ -335,7 +334,6 @@ const CFG = {
     pachinkoHit: { type: "sine", freq: 840, freqEnd: 1260, dur: 0.07, vol: 0.22, attack: 0.004, release: 0.2 },
     pachinkoJackpot: { type: "sine", freq: 310, freqEnd: 1550, dur: 0.24, vol: 0.34, attack: 0.007, release: 0.25 },
     // 賢者の石の生成(=四重スリットの全通過)。優先度表の最上位(stone:5)であり、**この作品で最も重い一撃**。
-    //   ★全通過の正値は 1/4339(装置設計値・S-SLIT-R後の実測が整合。≈1/3900は旧MC値)。極めて稀な事象なので、ここに音予算を集中してよい(§2-7 核となる瞬間)。
     //   ★2層: ノイズバースト(衝撃)+ ベル(長い余韻)。稀さに見合う長い尾を持たせる=最も長い音でもある。
     //   ★序列: peak は撃破(0.259)を明確に超える。ただし**未実装のボス撃破(優先度4)が撃破と石の間に
     //     入る余地**を残してある(石を撃破のすぐ上に置くとボスの居場所が無くなる)。
@@ -538,7 +536,7 @@ const CFG = {
   traitTierPenalty: 0.005,  // tierが1上がるごとに-0.5%(希少ほど遺伝しにくい=射幸心)。tier3ミミカクシ=4.0%
   traitInheritFloor: 0.03,  // 下限=3%(最も希少な特性を保証)
   traitMaxPerLizard: 3,     // 1個体が持てる特性数の上限(§16 ③)
-  // S5 賢者の石の用途(§16 ④ 案III=創世+固定化)。石は四重スリット成功で+1(1/85=希少)=precious。★全て たたき台=Ric実機で石ペースを見て調整。
+  // S5 賢者の石の用途(§16 ④ 案III=創世+固定化)。盤面の星に到達すると+1。★全て たたき台=Ric実機で石ペースを見て調整。
   stoneGenesisBase: 1,      // (内部API genesisTrait用に残置=テスト/合成検証フィクスチャ。プレイヤー導線はR5-aでランダム化)
   stoneGenesisRandCost: 4,  // R5-a: ランダム創世の一律コスト(結果を知らずに払う=定額・現行期待値近似)★[A]調整
   stoneFixBase: 4,          // S5-b 固定化コスト = これ + tier×stoneFixPerTier(tier1=6…tier5=14個)。両親固定で2枚持ち確定=601回の錬金ショートカット

@@ -18,7 +18,7 @@ const context = vm.createContext({
   Icon: { svg: () => "" },
 });
 const source = ["data.js", "game.js", "roulette.js", "roul-table.js"].map((file) => fs.readFileSync(path.join(__dirname, "..", "js", file), "utf8")).join("\n");
-const { CFG, Game, MISSIONS, SAVE_VERSION, Roulette, CrankTable } = vm.runInContext(`${source}\n;({ CFG, Game, MISSIONS, SAVE_VERSION, Roulette, CrankTable })`, context);
+const { CFG, Game, MISSIONS, SAVE_VERSION, Roulette, CrankTable, CRANK_TABLE } = vm.runInContext(`${source}\n;({ CFG, Game, MISSIONS, SAVE_VERSION, Roulette, CrankTable, CRANK_TABLE })`, context);
 const { pachinko: config } = CFG;
 const plain = (data) => JSON.parse(JSON.stringify(data));
 const parents = () => Array.from(Game.state.lizards, ({ id }) => id);
@@ -283,3 +283,84 @@ fullCup.reset(15);
 fullCup.advance(0.08);
 assert.equal(eggsReceived, 1);
 console.log("One available egg slot is credited atomically on contact, including before reset");
+
+// A real steel ball must physically cross the mouth, all four openings, and finally
+// reach the star before settlement. Each moving shutter can also return it to play.
+const lane = CRANK_TABLE.starLane;
+for (const [seed, passes] of [[2, 0], [5, 1], [11, 2], [0, 3], [10, 4]]) {
+  const board = CrankTable.create().reset(seed);
+  const ball = board.emit(null);
+  Object.assign(ball, { track: null, phase: "fall", x: lane.x, y: lane.entryY - 0.1, vy: 50 });
+  let stones = 0, landings = 0, eggs = 0;
+  board.canAcceptEgg = () => false;
+  board.onLanding = () => landings++;
+  board.onEgg = () => eggs++;
+  board.onStone = ({ id }) => {
+    assert.equal(id, ball.id);
+    assert.equal(ball.slitsPassed, 4);
+    assert.equal(ball.y, lane.starY);
+    stones++;
+  };
+  const seen = [];
+  for (let i = 0; i < 1200; i++) {
+    const inFlight = ball.phase === "starShot", oldX = ball.x, oldY = ball.y;
+    board.advance(CFG.roulFixedDt);
+    seen.push(...board.drainEvents());
+    if (inFlight && ball.phase === "starShot") {
+      assert.equal(ball.x, oldX);
+      assert.ok(ball.y < oldY);
+    }
+  }
+  assert.equal(seen.filter((event) => event.type === "StarLaunch").length, 1);
+  assert.deepEqual(seen.filter((event) => event.type === "StarPass").map((event) => event.slit),
+    Array.from({ length: passes }, (_, i) => i));
+  assert.equal(stones, passes === 4 ? 1 : 0);
+  if (passes < 4) assert.equal(seen.find((event) => event.type === "StarBlocked").slit, passes);
+  else assert.equal(eggs, 0);
+  assert.equal(landings, 1);
+  assert.equal(board.starBall, null);
+  assert.equal(board.balls.length, 0);
+}
+const edge = CrankTable.create().reset(10);
+const outside = edge.emit(null);
+Object.assign(outside, { track: null, phase: "fall", x: lane.x + lane.half, y: lane.entryY - 0.1, vy: 50 });
+edge.advance(CFG.roulFixedDt);
+assert.equal(outside.phase, "fall");
+for (const [index, spring] of CRANK_TABLE.bumpers.entries()) {
+  const board = CrankTable.create().reset(3), ball = board.emit(null);
+  Object.assign(ball, { track: null, phase: "fall", x: spring.x, y: spring.y - spring.r - ball.r - 0.1, vy: 80 });
+  board.advance(CFG.roulFixedDt);
+  assert.ok(ball.vy < -80);
+  assert.equal(board.bumperPulse[index], 1);
+  assert.ok(board.drainEvents().some((event) => event.type === "BallBumper" && event.bumper === index));
+}
+// Time the high-powered launcher at its normal crank cadence, without placing a
+// ball in the lane by hand. Identical inputs must also match across render rates.
+function playStarShot(group) {
+  Game.applyWorld(plain(old));
+  const board = CrankTable.create().reset(317);
+  board.flipGate();
+  const winners = [];
+  board.onLanding = ({ win }) => Game.recordCrankRouletteLanding(win);
+  board.onStone = ({ id }) => {
+    Game.awardCrankStone();
+    winners.push(id);
+  };
+  const cadence = Math.round(CFG.roulCrankIntervals[2] / CFG.roulFixedDt);
+  for (let tick = 0; tick < cadence * 40; tick += group) {
+    if (tick % cadence === 0) board.emit(null, 2);
+    board.advance(CFG.roulFixedDt * group);
+  }
+  assert.equal(Game.stones(), old.wallet.stones + winners.length);
+  assert.equal(saved().wallet.stones, Game.stones());
+  board.reset(317);
+  assert.equal(board.starBall, null);
+  board.advance(0.08);
+  Game.applyWorld(saved());
+  assert.equal(Game.stones(), old.wallet.stones + winners.length);
+  return winners;
+}
+const naturalWinners = playStarShot(1);
+assert.ok(naturalWinners.includes(13));
+assert.deepEqual(playStarShot(5), naturalWinners);
+console.log("Spring rebound, physical star-shot entry, four shutters, once-only stone and natural fixed-step replay passed");

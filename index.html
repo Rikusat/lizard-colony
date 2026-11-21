@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="tokens.css?v=c7f55915">
 <link rel="stylesheet" href="style.css?v=895abd9e">
 <link rel="stylesheet" href="secondary.css?v=1af99e8b">
-<link rel="stylesheet" href="pachinko.css?v=759a11b1">
+<link rel="stylesheet" href="pachinko.css?v=52bd4961">
 </head>
 <body class="cabinet-ui">
 
@@ -62,6 +62,7 @@
         <button id="habitat-fullscreen" type="button" aria-label="飼育槽を全画面表示" title="飼育槽を全画面表示" aria-pressed="false">
           <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/></svg>
         </button>
+        <div id="crank-dock" role="group" aria-label="給餌・発射操作"></div>
         <div id="toasts"></div>
       </div>
       <div id="detail" class="hidden"></div>
@@ -79,23 +80,11 @@
     </div>
   </section>
 
-  <section id="pachi-dashboard" class="pachi-cabinet" aria-labelledby="pachi-heading">
-    <header class="instrument-head">
-      <div class="instrument-name"><svg class="icon" aria-hidden="true"><use href="#i-energy"/></svg><h2 id="pachi-heading">遺伝子パチンコ</h2></div>
-      <span id="pachi-mode" class="pachi-mode">待機中</span>
-    </header>
+  <section id="pachi-dashboard" class="pachi-cabinet" aria-label="遺伝子パチンコ">
     <div class="pachi-machine">
-      <canvas id="crank-roulette-canvas" role="img" aria-label="外周の発射レール、回転分岐、折り返し通路、入賞口を備えたパチンコ盤"></canvas>
+      <canvas id="crank-roulette-canvas" width="208" height="205" aria-label="遺伝子パチンコの分岐レバー。盤面を押して向きを切り替え"></canvas>
+      <div class="pachi-result" id="pachi-result" role="status"><strong id="pachi-result-title"></strong></div>
     </div>
-    <div class="machine-deck">
-      <div class="crank-station">
-        <span class="crank-label" aria-hidden="true">給餌・発射</span>
-        <div id="crank-dock" role="group" aria-label="給餌・発射操作"></div>
-      </div>
-      <dl class="pachi-combo"><div><dt>着地</dt><dd id="pachi-total">0</dd></div><div><dt>連続入賞</dt><dd id="pachi-streak">0</dd></div></dl>
-      <div id="slit-device" title="四重スリット実験装置" aria-label="四重スリット実験装置"><canvas id="slit-canvas"></canvas></div>
-    </div>
-    <div class="pachi-result" id="pachi-result" role="status"><strong id="pachi-result-title"></strong></div>
   </section>
 </main>
 
@@ -128,19 +117,18 @@
   </div>
 </div>
 
-<script src="js/data.js?v=2d912b7c"></script>
-<script src="js/game.js?v=c79559cb"></script>
+<script src="js/data.js?v=b6e4721b"></script>
+<script src="js/game.js?v=4c9141c9"></script>
 <script src="js/render.js?v=9a91df9b"></script>
 <script src="js/ink-reliefs.js?v=e9be5a9e"></script>
 <script src="js/voxel-landscape.js?v=111e207b"></script>
-<script src="js/voxel-habitat.js?v=d9a0f7b6"></script>
+<script src="js/voxel-habitat.js?v=5abe247e"></script>
 <script src="js/roulette.js?v=e1a97ec3"></script>
-<script src="js/roul-table.js?v=66f0f319"></script>
-<script src="js/slit.js?v=5df53bec"></script>
+<script src="js/roul-table.js?v=cf5162be"></script>
 <script src="js/weather.js?v=8b1750e3"></script>
 <script src="js/holo.js?v=7bde44f4"></script>
 <script src="js/sound.js?v=718e49f4"></script>
-<script src="js/ui/core.js?v=37c5d03b"></script>
+<script src="js/ui/core.js?v=6a05130d"></script>
 <script src="js/ui/icons.js?v=60549743"></script>
 <script src="js/ui/components.js?v=9ab85d59"></script>
 <script src="js/ui/motion.js?v=73fb55e5"></script>
@@ -151,23 +139,22 @@
 <script src="js/ui/hero/rocket.js?v=e69c4f1c"></script>
 <script src="js/ui/hero/species-reveal.js?v=b834c5b6"></script>
 <script src="js/ui/hero/boss-reward.js?v=a1c2cd2f"></script>
-<script src="js/ui/screens/main.js?v=aad965fe"></script>
+<script src="js/ui/screens/main.js?v=16ec5404"></script>
 <script src="js/ui/screens/feeder-skins.js?v=2215bf21"></script>
-<script src="js/ui/screens/feeder.js?v=e94f4015"></script>
+<script src="js/ui/screens/feeder.js?v=b82ef500"></script>
 <script src="js/ui/screens/roulette.js?v=74ad7cf0"></script>
-<script src="js/ui/screens/roul-table.js?v=f74aa45a"></script>
-<script src="js/ui/screens/slit.js?v=6cd61da9"></script>
-<script src="js/ui/screens/breeding.js?v=07c1a281"></script>
+<script src="js/ui/screens/roul-table.js?v=a6d6898f"></script>
+<script src="js/ui/screens/breeding.js?v=207ca68c"></script>
 <script src="js/ui/screens/equipment.js?v=93b44083"></script>
 <script src="js/ui/screens/cabinet-scenery.js?v=35871420"></script>
 <script src="js/ui/screens/planet-map.js?v=c4daa35d"></script>
 <script src="js/ui/screens/nest.js?v=f0b852c5"></script>
-<script src="js/ui/screens/hq.js?v=c6501180"></script>
+<script src="js/ui/screens/hq.js?v=5363782e"></script>
 <script src="js/ui/screens/hqlab.js?v=41a20d11"></script>
-<script src="js/ui/screens/dex.js?v=7219acbd"></script>
-<script src="js/ui/screens/residents.js?v=18d8c485"></script>
-<script src="js/ui/screens/meta.js?v=838db368"></script>
-<script src="js/ui/screens/pachinko.js?v=8249d313"></script>
-<script src="js/ui/boot.js?v=ded3f46e"></script>
+<script src="js/ui/screens/dex.js?v=05cdf8ba"></script>
+<script src="js/ui/screens/residents.js?v=0095d9e9"></script>
+<script src="js/ui/screens/meta.js?v=738043a7"></script>
+<script src="js/ui/screens/pachinko.js?v=6fe0594f"></script>
+<script src="js/ui/boot.js?v=161b86ed"></script>
 </body>
 </html>

@@ -24,6 +24,19 @@ const CRANK_TABLE = {
   left: 21, right: 198, launchVelocity: [60, 91, 127],
   wheel: { x: 103, y: 77, radius: 21, arms: 5, speed: 0.95 },
   gate: { x: 108, y: 136, length: 22, tilt: 0.36, speed: 2.8 },
+  bumpers: [
+    { x: 66, y: 87, r: 5.7, kick: 78 },
+    { x: 143, y: 58, r: 5.8, kick: 91 },
+  ],
+  starLane: {
+    x: 179, entryY: 108, starY: 34, half: 8, speed: 115,
+    slits: [
+      { y: 94, half: 7.6, amplitude: 5.5, speed: 0.93, phase: 0 },
+      { y: 78, half: 7.1, amplitude: 6.8, speed: 1.27, phase: 1.1 },
+      { y: 63, half: 6.7, amplitude: 7.1, speed: 0.76, phase: 2.3 },
+      { y: 48, half: 6.3, amplitude: 7.3, speed: 1.47, phase: 3.7 },
+    ],
+  },
   pockets: [
     { x: 69, half: 10, tier: 'egg' },
     { x: 108, half: 4.5, tier: 'rare' },
@@ -40,8 +53,8 @@ const CRANK_TABLE = {
 // Deliberately open lanes separate the dense fans of pins from the rotor and track mouths.
 for (const [y, xs] of [
   [32, [58, 72, 89, 111, 131]], [42, [46, 65, 81, 100, 121, 140]],
-  [55, [39, 56, 74, 132, 151, 166]], [70, [33, 51, 66, 143, 160, 177]],
-  [84, [44, 61, 73, 132, 150, 169, 185]], [100, [59, 71, 85, 119, 137, 179]],
+  [55, [39, 56, 74, 132, 158]], [70, [33, 51, 66, 143, 160]],
+  [84, [44, 132, 150, 164]], [100, [59, 71, 85, 119, 137]],
   [113, [65, 80, 98, 114, 131]], [123, [72, 140]],
   [146, [48, 65, 78]], [155, [36, 58, 75, 92, 114]],
   [167, [43, 61, 82, 100, 118, 155, 176]],
@@ -78,7 +91,15 @@ const CrankTable = Object.assign(Object.create(Roulette), {
     this.wheelAngle = -0.3;
     this.gateDirection = -1;
     this.gateAngle = this.gateDirection * CRANK_TABLE.gate.tilt;
+    this.bumperPulse = CRANK_TABLE.bumpers.map(() => 0);
+    this.starTime = this._rand(0, 3600);
+    this.starFlash = 0;
+    this.starBall = null;
     return this;
+  },
+  slitCenter(index, time = this.starTime) {
+    const lane = CRANK_TABLE.starLane, slit = lane.slits[index];
+    return lane.x + slit.amplitude * Math.sin(time * slit.speed + slit.phase);
   },
   flipGate() { this.gateDirection *= -1; },
   emit(gene, rate = 1) {
@@ -126,9 +147,38 @@ const CrankTable = Object.assign(Object.create(Roulette), {
     // Credit the pocket at contact so the next ball observes the updated egg capacity.
     if (win && this.onEgg) this.onEgg({ gene: ball.gene, rainbow, mode: rainbow ? 'rainbow' : null });
   },
+  _shootStarLane(ball, dt) {
+    const lane = CRANK_TABLE.starLane;
+    ball.y -= lane.speed * dt;
+    while (ball.slitsPassed < lane.slits.length) {
+      const i = ball.slitsPassed, slit = lane.slits[i];
+      const contactY = slit.y + ball.r;
+      if (ball.y > contactY) break;
+      const contactTime = this.starTime - (contactY - ball.y) / lane.speed;
+      if (Math.abs(ball.x - this.slitCenter(i, contactTime)) + ball.r > slit.half) {
+        ball.y = contactY;
+        ball.vx = -45;
+        ball.vy = lane.speed * 0.46;
+        ball.phase = 'fall';
+        this.starBall = null;
+        this.events.push({ type: 'StarBlocked', id: ball.id, slit: i });
+        return;
+      }
+      ball.slitsPassed++;
+      this.events.push({ type: 'StarPass', id: ball.id, slit: i });
+    }
+    if (ball.y > lane.starY) return;
+    ball.y = lane.starY;
+    ball.phase = 'starPrize';
+    ball.settleT = CFG.roulSettleT;
+    this.starFlash = 1;
+    this.events.push({ type: 'BallLanded', id: ball.id, x: ball.x, win: true, rainbow: false, stone: true });
+    if (this.onLanding) this.onLanding({ win: true, rainbow: false, stone: true });
+    if (this.onStone) this.onStone({ id: ball.id });
+  },
   _freeFall(ball, dt, gateSpeed) {
     const table = CRANK_TABLE, wheel = table.wheel, gate = table.gate;
-    const lastY = ball.y;
+    const lastX = ball.x, lastY = ball.y;
     ball.vy += table.gravity * dt;
     ball.x += ball.vx * dt;
     ball.y += ball.vy * dt;
@@ -136,9 +186,23 @@ const CrankTable = Object.assign(Object.create(Roulette), {
       ball.x = Math.max(table.left + ball.r, Math.min(table.right - ball.r, ball.x));
       ball.vx *= -CFG.roulWallRestitution;
     }
+    if (ball.y < 6 + ball.r) {
+      ball.y = 6 + ball.r;
+      ball.vy = Math.abs(ball.vy) * CFG.roulWallRestitution;
+    }
     for (const pin of this.nails) {
       if (tableContact(ball, pin.x, pin.y, pin.r, 0, 0, 0.63)) {
         ball.vx += this._rand(-CFG.roulNailJit, CFG.roulNailJit);
+      }
+    }
+    for (let i = 0; i < table.bumpers.length; i++) {
+      const spring = table.bumpers[i];
+      if (tableContact(ball, spring.x, spring.y, spring.r, 0, 0, 0.64) && this.bumperPulse[i] === 0) {
+        const reach = ball.r + spring.r;
+        ball.vx += (ball.x - spring.x) / reach * spring.kick;
+        ball.vy += (ball.y - spring.y) / reach * spring.kick;
+        this.bumperPulse[i] = 1;
+        this.events.push({ type: 'BallBumper', id: ball.id, bumper: i });
       }
     }
     if (Math.abs(ball.x - wheel.x) < wheel.radius + 7 && Math.abs(ball.y - wheel.y) < wheel.radius + 7) {
@@ -154,6 +218,22 @@ const CrankTable = Object.assign(Object.create(Roulette), {
       if (tableArm(ball, gate, this.gateAngle, gate.length, gateSpeed, -gate.length, 1.9)) {
         if (!ball.touchedGate) this.events.push({ type: 'BallGate', id: ball.id });
         ball.touchedGate = true;
+      }
+    }
+    const lane = table.starLane;
+    if (!this.starBall && !ball.triedStar && lastY < lane.entryY && ball.y >= lane.entryY) {
+      const crossX = lastX + (ball.x - lastX) * (lane.entryY - lastY) / (ball.y - lastY);
+      if (Math.abs(crossX - lane.x) + ball.r <= lane.half) {
+        ball.x = crossX;
+        ball.y = lane.entryY;
+        ball.vx = 0;
+        ball.vy = -lane.speed;
+        ball.triedStar = true;
+        ball.slitsPassed = 0;
+        ball.phase = 'starShot';
+        this.starBall = ball;
+        this.events.push({ type: 'StarLaunch', id: ball.id });
+        return;
       }
     }
     for (let i = 0; i < table.tracks.length; i++) {
@@ -173,6 +253,11 @@ const CrankTable = Object.assign(Object.create(Roulette), {
   },
   _step(dt) {
     const table = CRANK_TABLE;
+    this.starTime += dt;
+    this.starFlash = Math.max(0, this.starFlash - dt * 2);
+    for (let i = 0; i < this.bumperPulse.length; i++) {
+      this.bumperPulse[i] = Math.max(0, this.bumperPulse[i] - dt * 5);
+    }
     this.wheelAngle = (this.wheelAngle + table.wheel.speed * dt) % (Math.PI * 2);
     const change = this.gateDirection * table.gate.tilt - this.gateAngle;
     const step = Math.sign(change) * Math.min(Math.abs(change), table.gate.speed * dt);
@@ -181,8 +266,13 @@ const CrankTable = Object.assign(Object.create(Roulette), {
     for (let i = balls.length - 1; i >= 0; i--) {
       const b = balls[i];
       if (b.track) { this._rollTrack(b, dt); continue; }
+      if (b.phase === 'starShot') { this._shootStarLane(b, dt); continue; }
       if (b.phase === 'fall') { this._freeFall(b, dt, step / dt); continue; }
-      if (b.phase === 'settle') {
+      if (b.phase === 'starPrize') {
+        b.settleT -= dt;
+        if (b.settleT > 0) continue;
+        this.starBall = null;
+      } else if (b.phase === 'settle') {
         b.x += (b.cupX - b.x) * dt * 12;
         b.y += (table.landY + 5 - b.y) * dt * 12;
         b.settleT -= dt;

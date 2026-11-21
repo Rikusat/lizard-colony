@@ -1,4 +1,4 @@
-// A stable set of focusable cards lets the player inspect a moving animal without chasing it.
+// One card per owned species and morph. Individual animals stay selectable in the tank and detail panel.
 Object.assign(UI, {
   updateResidents() {
     if (!this._residents) {
@@ -22,54 +22,59 @@ Object.assign(UI, {
       list.addEventListener("click", event => {
         const button = event.target.closest("button[data-resident]");
         if (!button) return;
-        const lizard = Game.state.lizards.find(lz => String(lz.id) === button.dataset.resident);
+        const members = this.residentMembers(button.dataset.resident);
+        const lizard = members.find(lz => lz.id === Game.selectedId)
+          || members.find(lz => lz.stage === "adult" && !Game.isAway(lz) && lz.injuredT <= 0)
+          || members[0];
         if (!lizard) return;
         Game.selectedId = lizard.id;
         setOpen(false);
-        toggle.focus({ preventScroll: true });
         this.renderDetail(true);
+        const detail = this.els.detail;
+        const control = detail.querySelector("[data-act=next]") || detail.querySelector("[data-act]");
+        control?.focus({ preventScroll: true });
       });
       this._residents = { list, cards: new Map() };
     }
     const { list, cards } = this._residents;
     if (list.hidden) return;
-    const residentIds = new Set(Game.state.lizards.map(lz => lz.id));
-    for (const [id, card] of cards) {
-      if (!residentIds.has(id)) {
+    const groups = new Map();
+    for (const lz of Game.state.lizards) {
+      const key = Game.dispKey(lz);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(lz);
+    }
+    for (const [key, card] of cards) {
+      if (!groups.has(key)) {
         card.el.remove();
-        cards.delete(id);
+        cards.delete(key);
       }
     }
-    const localSpecies = Game.endemicSpecies(Game.currentStage().id);
-    for (const lz of Game.state.lizards) {
-      let card = cards.get(lz.id);
+    // Rarer holdings come first. Ties retain the acquisition order of the groups.
+    const sorted = [...groups].sort((a, b) => a[1].length - b[1].length);
+    for (const [index, [key, members]] of sorted.entries()) {
+      let card = cards.get(key);
       if (!card) {
+        const lz = members[0];
         const el = document.createElement("button");
         el.className = "resident-card";
         el.type = "button";
-        el.dataset.resident = lz.id;
-        el.innerHTML = '<span class="resident-art"></span><span class="resident-caption"><b></b><small></small><progress class="resident-growth" aria-label="成長経験値"></progress></span>';
-        card = { el, art: el.firstElementChild, name: el.querySelector("b"), level: el.querySelector("small"), growth: el.querySelector("progress") };
-        cards.set(lz.id, card);
-        list.appendChild(el);
+        el.dataset.resident = key;
+        el.innerHTML = `<span class="resident-art">${this.specimenPortrait(lz.speciesId, lz.morphId)}</span>
+          <span class="resident-caption"><b>${speciesById(lz.speciesId).name}</b><small>${morphById(lz.morphId).name}</small></span>
+          <strong class="resident-quantity"></strong>`;
+        card = { el, quantity: el.querySelector(".resident-quantity") };
+        cards.set(key, card);
       }
-      const kind = lz.speciesId + "/" + lz.morphId;
-      if (card.kind !== kind) {
-        card.art.innerHTML = this.specimenPortrait(lz.speciesId, lz.morphId);
-        card.name.textContent = Game.lizardName(lz);
-        card.kind = kind;
+      const qty = members.length + "匹";
+      if (card.quantity.textContent !== qty) {
+        card.quantity.textContent = qty;
+        card.el.classList.toggle("resident-single", members.length === 1);
       }
-      const status = Game.isAway(lz) ? "遠征中" : lz.injuredT > 0 ? "療養中" : lz.stage === "baby" ? "ベビー" : "Lv." + lz.level;
-      if (card.level.textContent !== status) card.level.textContent = status;
-      const targetXp = lz.stage === "baby" ? CFG.babyXpToAdult : CFG.adultXpPerLevel;
-      const xp = Math.floor(lz.xp);
-      if (card.growth.max !== targetXp) card.growth.max = targetXp;
-      if (card.growth.value !== xp) card.growth.value = xp;
-      const eligible = lz.stage === "adult" && !Game.isAway(lz) && lz.injuredT <= 0 && localSpecies.includes(lz.speciesId);
-      const title = card.name.textContent + " · " + status + (eligible ? " ／ 観察して発射球に遺伝子を乗せる" : " ／ 観察する");
-      if (card.el.title !== title) card.el.title = title;
-      const selected = String(lz.id === Game.selectedId);
+      const selected = String(members.some(lz => lz.id === Game.selectedId));
       if (card.el.getAttribute("aria-pressed") !== selected) card.el.setAttribute("aria-pressed", selected);
+      const slot = list.children[index];
+      if (slot !== card.el) list.insertBefore(card.el, slot || null);
     }
   },
 });

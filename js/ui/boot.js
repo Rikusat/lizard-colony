@@ -14,14 +14,6 @@ if (typeof Roulette !== "undefined") {
   Roulette.canAcceptEgg = null;
 }
 
-// 四重スリット装置(§9): 成功時に賢者の石を付与(ルール層Slit→Gameの資源。種・卵は生成しない)
-if (typeof Slit !== "undefined") {
-  Slit.onSuccess = () => {
-    Game.addStone(1);
-    if (UI.slitSuccessFx) UI.slitSuccessFx(); // C-slit.3: 静かな祝祭
-  };
-}
-
 // ---- dev支援(Ric指示 2026-07-24・HANDOFF §5www): ?tune=1 セッション限定のデバッグ資源付与 ----
 // 通常アクセスでは Dev は生成しない(undefined)=ゲームUIへの露出ゼロ。記載はHANDOFFのみ。
 // 付与は既存の加算関数(正規経路)のみ=整合性・下限0・表示更新を既存ロジックに委ねる。聖域(確率/物理/遺伝/純血/魂)非接触。
@@ -173,60 +165,6 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
       window.addEventListener("hashchange", sdGate);
       if (location.hash === "#spotdebug") setTimeout(sdGate, 400);
     }
-
-    // dev支援(7B.1確認 2026-07-27): 四重スリット惑星別意匠の比較ビューア(?tune=1#slitskin・読み取り専用・物理非接触)。
-    //   default+展開済み全惑星を横並びで描画=骨格同一・色のみ差替を一目で比較。骨格はCFG幾何で自己完結描画(Slit物理slit.jsは非接触)。
-    {
-      let ssPanel = null;
-      const stopSS = () => { if (ssPanel) ssPanel.remove(); ssPanel = null; };
-      const rc = (a, al) => `rgba(${a[0]},${a[1]},${a[2]},${al})`;
-      // 骨格をCFG幾何で自己完結描画(color=palette・比較用の固定失敗痕/球)。Slit状態には触れない。
-      const drawCell = (cvv, sk, bg) => {
-        const ctx = cvv.getContext("2d"), W = cvv.width, H = cvv.height, cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.44;
-        const N = CFG.slitRings, radii = CFG.slitRadiif, half = CFG.slitHalfDeg, base = CFG.slitBaseAngleDeg, sc = W / 240;
-        const pt = (r, thd) => { const t = thd * Math.PI / 180; return [cx + r * R * Math.cos(t), cy - r * R * Math.sin(t)]; };
-        ctx.clearRect(0, 0, W, H);
-        ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H); // 惑星背景の薄敷き(馴染み)
-        // リング描画は実描画関数(UI._slitRing)をそのまま呼ぶ=ビューアと実機の描画が原理的にズレない(Slit物理には非接触=角度は自前で与える)
-        // 各リングの切れ目角=静止スナップショット(物理の独立回転slitSpinDegを6秒相当で位相化=枠が互いにズレて回る様を静止画で読ませる)
-        const ang = []; for (let i = 0; i < N; i++) ang.push(base + (CFG.slitSpinDeg && CFG.slitSpinDeg[i] ? CFG.slitSpinDeg[i] * 6 : 0));
-        const rsk = (i) => UI._slitRingSkin(sk, i); // リング別の幾何(惑星によっては4基が別々の幾何=重なりが組み変わる)
-        for (let i = 0; i < N; i++) UI._slitRing(ctx, cx, cy, radii[i] * R, ang[i], half[i], rc(rsk(i).rail, 0.5), Math.max(1, 1.15 * sc), rsk(i)); // レール(枠ごと位相回転)
-        // 角度窓ガイド(物理整合の証明・淡): 各リングの切れ目「中心角」へ中心から極細の破線=見た目の隙間と物理の通過角が一致することを可視化
-        ctx.save(); ctx.setLineDash([3, 4]); ctx.lineWidth = 1; for (let i = 0; i < N; i++) { const t = ang[i] * Math.PI / 180, r0 = (i < N - 1 ? radii[i + 1] : 0) * R, r1 = radii[i] * R; ctx.strokeStyle = rc(sk.glow, 0.16); ctx.beginPath(); ctx.moveTo(cx + r0 * Math.cos(t), cy - r0 * Math.sin(t)); ctx.lineTo(cx + r1 * Math.cos(t), cy - r1 * Math.sin(t)); ctx.stroke(); } ctx.restore();
-        // 失敗痕(固定・比較用)。実機同様に「弾かれた壁の上」=姿形で変調した半径へ写像=痕が枠から浮かないことも確認できる
-        for (let i = 0; i < N; i++) { const thd = 60 + i * 40; const [x, y] = pt(UI._slitShapeR(rsk(i), radii[i], thd, ang[i]), thd); const depth = (i + 1) / N; ctx.beginPath(); ctx.arc(x, y, (2 + depth * 2.8) * sc, 0, 7); ctx.fillStyle = rc(sk.trace, 0.5 + depth * 0.45); ctx.fill(); if (depth >= 0.99) { ctx.beginPath(); ctx.arc(x, y, (2 + depth * 2.8) * sc + 2.2 * sc, 0, 7); ctx.strokeStyle = rc(sk.traceRing, 0.7); ctx.lineWidth = 1.2 * sc; ctx.stroke(); } }
-        // 中心=球の着地点/石の生成点(常に最も明瞭・合格条件4)
-        ctx.fillStyle = rc(sk.center, 0.7); const cr0 = Math.max(1.6, R * (CFG.slitCenterCoreF || 0.028));
-        ctx.beginPath(); ctx.arc(cx, cy, cr0, 0, 7); ctx.fill();
-        const [lx, ly] = pt(0.6, ang[0]), [lx2, ly2] = pt(0.74, ang[0]); const g = ctx.createLinearGradient(lx2, ly2, lx, ly); g.addColorStop(0, rc(sk.laser, 0)); g.addColorStop(1, rc(sk.laser, 0.95)); ctx.strokeStyle = g; ctx.lineWidth = Math.max(1.4, 1.8 * (W / 200)); ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(lx2, ly2); ctx.lineTo(lx, ly); ctx.stroke(); ctx.beginPath(); ctx.arc(lx, ly, Math.max(1.4, 1.6 * (W / 200)), 0, 7); ctx.fillStyle = rc(sk.laser, 0.98); ctx.fill(); // 飛行球
-        const bl = R * 0.5, gg = ctx.createRadialGradient(cx, cy, 1, cx, cy, bl); gg.addColorStop(0, rc(sk.bloom, 0.5)); gg.addColorStop(1, rc(sk.bloom, 0)); ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(cx, cy, bl, 0, 7); ctx.fill(); // 成功ブルーム(色見本)
-      };
-      const buildSS = () => {
-        stopSS();
-        const def = CFG.slitSkinDefault, byStage = CFG.slitSkinByStage || {};
-        const stName = (id) => { const st = (typeof STAGES !== "undefined") && STAGES.find((s) => s.id === id); return st ? st.name : ("惑星" + id); };
-        const stBg = (id) => { const st = (typeof STAGES !== "undefined") && STAGES.find((s) => s.id === id); return st ? (st.sky2 || st.ground2 || "#1a1410") : "#1a1410"; };
-        // セル一覧: default + 展開済み全惑星(slitSkinByStageのキー昇順)
-        const cells = [{ id: null, label: "default(現行)", sk: def, bg: "#141018" }];
-        Object.keys(byStage).map(Number).sort((a, b) => a - b).forEach((id) => cells.push({ id, label: stName(id) + " (" + id + ")", sk: Object.assign({}, def, byStage[id]), bg: stBg(id) }));
-        const panel = document.createElement("div"); panel.id = "slitskin-view";
-        panel.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(8,6,10,.94);color:#e8dccb;font:13px/1.5 system-ui;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;overflow:auto;";
-        const title = document.createElement("div"); title.style.cssText = "font-size:15px;font-weight:600;"; title.textContent = "四重スリット 意匠比較 (?tune=1#slitskin) — 骨格同一(半径/切れ目角/回転)・姿形+色を惑星別。破線=切れ目中心角(物理の角度窓と一致)。#で閉じる";
-        panel.appendChild(title);
-        const row = document.createElement("div"); row.style.cssText = "display:flex;flex-wrap:wrap;gap:18px;justify-content:center;"; panel.appendChild(row);
-        cells.forEach((c) => {
-          const box = document.createElement("div"); box.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:6px;";
-          const cvv = document.createElement("canvas"); cvv.width = 240; cvv.height = 240; cvv.style.cssText = "width:240px;height:240px;border-radius:10px;border:1px solid #443;";
-          const lab = document.createElement("div"); lab.textContent = c.label;
-          box.appendChild(cvv); box.appendChild(lab); row.appendChild(box);
-          drawCell(cvv, c.sk, c.bg);
-        });
-        document.body.appendChild(panel); ssPanel = panel;
-      };
-      const ssGate = () => { if (location.hash === "#slitskin") { buildSS(); console.log("[slitskin] 意匠比較ビューア表示"); } else stopSS(); };
-      window.addEventListener("hashchange", ssGate);
-      if (location.hash === "#slitskin") setTimeout(ssGate, 400);
 
     // dev支援(W1・2026-07-27): 天候の検分(?tune=1#weather・読み取り専用)。
     //   全10惑星の天候意匠を一覧し、クリックでその惑星の「最盛時刻」へ表示クロックを飛ばす=待たずに見られる。
@@ -699,7 +637,7 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
           stopS();
           if (typeof Sound === "undefined") { console.warn("[sound] js/sound.js 未読込"); return; }
           const LBL = { probe: "probe(テスト器専用・ゲームでは鳴らさない)", feed: "給餌 feed", hatch: "孵化 hatch", defeat: "撃破 defeat",
-            stone: "★賢者の石の生成 stone(=四重スリットの全通過・正値1/4339)",
+            stone: "★賢者の石 stone（盤面の四重スリットを通過）",
             mvScan: "S4 走査 mvScan(calm・route / Lore net)", mvAlert: "S4 警告点灯 mvAlert(anomaly)",
             mvSurge: "S4 暴走 mvSurge(rampage / Lore bugger章)", mvShadow: "S4 影 mvShadow(bagger・1グリッドのみ)",
             mvHud: "S4 HUD mvHud(decision / Lore archive)", mvRise: "S4 上昇 mvRise(launch / Lore purity)",
@@ -878,7 +816,6 @@ if (typeof location !== "undefined" && /[?&]tune=1(?:&|$)/.test(location.search)
         window.addEventListener("hashchange", sGate);
         if (location.hash === "#sound") setTimeout(sGate, 400);
       }
-    }
     }
     }
   }

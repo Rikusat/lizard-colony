@@ -46,7 +46,8 @@ Object.assign(UI, {
     const total = SPECIES.length * MORPHS.length;
     const got = Object.keys(Game.state.dex).length;
     const bonus = Game.dexCompBonus();
-    box.innerHTML = `<div class="dex-summary">コンプ率: <b style="color:var(--gold)">${(got / total * 100).toFixed(1)}%</b> (${got}/${total})
+    const counts = this.rosterCounts(this.rosterCollect());
+    box.innerHTML = `<div class="dex-summary">コンプ率: <b style="color:var(--gold)">${(got / total * 100).toFixed(1)}%</b> (${got}/${total}) · 保有数は全惑星の合計
       <div class="bar"><div style="width:${got / total * 100}%"></div></div>
       <div style="font-size:calc(12px * var(--fs-scale, 1));color:var(--sub);margin-top:5px">
         ${Icon.svg("crown")} コンプ報酬(恒久): 現在 生産+${Math.round(bonus * 100)}% — 25%/50%/75%/100%で +2/4/6/10%</div></div>`;
@@ -67,8 +68,9 @@ Object.assign(UI, {
           const cell = document.createElement("div");
           cell.className = "dex-cell" + (found ? "" : " locked");
           if (found) {
+            const count = counts.get(Game.dispKey({ speciesId: sp.id, morphId: mo.id })) || 0;
             cell.innerHTML = `${this.specimenPortrait(sp.id, mo.id)}
-              <div class="nm">${sp.name}</div><div class="mo">${mo.name} ${"★".repeat(sp.stars)}</div>`;
+              <div class="nm">${sp.name}</div><div class="mo">${mo.name} ${"★".repeat(sp.stars)}</div><b>保有 ${count}匹</b>`;
           } else {
             const known = sp.stage <= stageId || sp.stage <= 5;
             cell.innerHTML = `${this.specimenPortrait(sp.id, mo.id)}

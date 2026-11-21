@@ -143,7 +143,8 @@
   margin: var(--rim) auto;
   padding: var(--rim);
   display: grid;
-  grid-template-columns: minmax(0, 1.72fr) minmax(0, 1fr);
+  /* Match the square table to the height of the 8:5 glass plus its two control strips. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, calc(38.8% + 54px));
   align-items: stretch;
   align-content: start;
   flex: 0 1 auto;
@@ -177,7 +178,7 @@
   border-bottom: 2px solid #101c19;
   box-shadow: inset 0 1px #526356;
 }
-.instrument-name, .colony-meter, .colony-meter span, .pachi-mode { display: inline-flex; align-items: center; gap: 7px; }
+.instrument-name, .colony-meter, .colony-meter span { display: inline-flex; align-items: center; gap: 7px; }
 .instrument-name { min-width: 0; }
 .instrument-name h2 {
   overflow: hidden;
@@ -249,7 +250,7 @@
 }
 #habitat-fullscreen svg { width: 20px; height: 20px; }
 .colony-page #boss-hud { top: 8px; min-width: 0; width: min(370px, 70%); max-width: none; }
-.colony-page #toasts { top: auto; bottom: 9px; max-width: 76%; }
+.colony-page #toasts { top: auto; bottom: 6px; left: 6px; transform: none; align-items: flex-start; max-width: calc(100% - clamp(124px, 11vw, 160px)); }
 .colony-page #detail {
   left: 8px;
   bottom: 6px;
@@ -262,7 +263,7 @@
   border: 1px solid var(--metal);
   border-radius: 2px;
 }
-.habitat-deck, .machine-deck {
+.habitat-deck {
   display: flex;
   align-items: center;
   gap: 0;
@@ -294,29 +295,36 @@
 #pachi-raid-action { min-height: 33px; font-size: calc(11px * var(--fs-scale)); color: #e1bb90; padding-inline: 7px; }
 #pachi-guard:empty { display: none; }
 #pachi-guard:not(:empty) { font-size: calc(10px * var(--fs-scale)); color: var(--mint); max-width: 8em; }
-.pachi-mode { color: var(--plate-muted); font-size: calc(10px * var(--fs-scale)); white-space: nowrap; }
-.pachi-mode::before { content: ""; width: 6px; height: 6px; background: #9a9f80; box-shadow: 1px 1px #0e211b; }
-.pachi-mode[data-mode="stream"] { color: var(--mint); }
-.pachi-mode[data-mode="stream"]::before { background: var(--mint); }
-.pachi-machine { min-width: 0; min-height: 0; background: #132b27; }
-#crank-roulette-canvas { display: block; width: 100%; height: auto; aspect-ratio: 208 / 205; image-rendering: pixelated; }
-.machine-deck { flex: 1 0 auto; justify-content: space-between; gap: 8px; padding: 4px var(--plate-pad); }
-.crank-station { flex: none; display: flex; align-items: center; gap: 8px; }
-.crank-label { color: var(--brass); font: 700 calc(11px * var(--fs-scale)) / 1.25 var(--font-retro); }
-#crank-dock #feeder-dial { position: static; }
-#crank-dock #feeder-dial { --fd-crank-size: 62px; --fd-auto-size: 40px; }
-#crank-dock #feeder-dial#feeder-dial { gap: 3px; }
-#crank-dock .fd-side { flex-direction: row; gap: 3px; }
-#crank-dock .fd-lever { width: 28px; }
-#crank-dock #feeder-dial .fd-sw { border-radius: 2px; }
+.pachi-machine { position: absolute; inset: 0; overflow: hidden; background: #132b27; }
+#crank-roulette-canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; touch-action: manipulation; }
+#crank-dock {
+  --fd-crank-size: clamp(46px, 4.3vw, 62px);
+  --fd-auto-size: clamp(27px, 2.2vw, 34px);
+  position: absolute;
+  z-index: 4;
+  right: clamp(4px, .7vw, 10px);
+  bottom: clamp(4px, .7vw, 10px);
+}
+#crank-dock #feeder-dial {
+  position: static;
+  gap: 2px;
+  padding: 2px 3px;
+  background: #152822eb;
+  border: 1px solid #81917a;
+  border-radius: 4px;
+  box-shadow: 1px 2px 0 #101c1cb3;
+}
+#crank-dock .fd-side { gap: 1px; }
+#crank-dock .fd-lever { width: clamp(26px, 2.1vw, 32px); height: var(--fd-crank-size); }
+#crank-dock .fd-notch.n1 { top: calc(50% - 1px); }
+#crank-dock .fd-lever[data-rate="1"] .fd-lknob { top: calc(50% - 6px); }
+#crank-dock .fd-lever[data-rate="0"] .fd-lknob { top: calc(100% - 17px); }
+#crank-dock #feeder-dial .fd-sw.fd-glow { border-radius: 2px; color: #c5cabb; }
+#crank-dock #feeder-dial .fd-sw.fd-glow .icon { width: 18px; height: 18px; }
 #crank-dock #feeder-dial #fd-auto.on, #crank-dock #feeder-dial #fd-empty.on { box-shadow: inset 0 -2px currentColor; }
-.pachi-combo { display: grid; gap: 4px; flex: 0 1 auto; min-width: 0; }
-.pachi-combo div { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
-.pachi-combo dt { color: var(--plate-muted); font-size: calc(10px * var(--fs-scale)); white-space: nowrap; }
-.pachi-combo dd { color: var(--brass); font: 600 calc(12px * var(--fs-scale)) / 1 var(--readout); white-space: nowrap; }
-.colony-page #slit-device { width: clamp(36px, 3.5vw, 64px); flex: none; padding: 0; margin: 0; align-self: center; }
-.pachi-result { position: absolute; left: 6px; right: 6px; bottom: 78px; pointer-events: none; text-align: center; }
+.pachi-result { position: absolute; left: 6px; right: 6px; bottom: 5px; pointer-events: none; text-align: center; }
 .pachi-result strong:not(:empty) { display: inline-block; padding: 4px 8px; color: var(--brass); font-size: calc(11px * var(--fs-scale)); background: #11241cf2; border: 1px solid var(--metal); }
+.pachi-result[data-tier="stone"] strong { color: #ffe5a6; border-color: #c5a268; }
 .pachi-result[data-tier="jackpot"] strong { color: #edcaff; border-color: #b697bd; }
 .cabinet-ui :focus-visible { outline: 2px solid var(--brass); outline-offset: -2px; }
 .cabinet-ui #hqlab-head, .cabinet-ui #nestpage-head, .cabinet-ui #modal-box > header { background: var(--enamel); }
@@ -366,14 +374,15 @@
 .resident-caption { display: grid; gap: 3px; }
 .resident-caption b { font-size: calc(11px * var(--fs-scale)); line-height: 1.35; }
 .resident-caption small { font: 500 calc(10px * var(--fs-scale)) / 1.2 var(--readout); color: var(--mint); }
+.resident-quantity { flex: none; margin-left: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.resident-single .resident-quantity { color: var(--brass); }
+.resident-individual { display: flex; align-items: center; gap: 8px; margin-block: 5px; color: var(--plate-muted); font-variant-numeric: tabular-nums; }
+#detail .resident-picker { min-width: 32px; min-height: 32px; padding: 0 5px; font-size: 18px; }
 
 @media (max-width: 1150px) {
   .cabinet-ui #topbar { gap: 9px; }
   .cabinet-ui #topbar nav button { padding-inline: 6px; }
   .deck-button { padding-inline: 7px; }
-  .crank-label { writing-mode: vertical-rl; letter-spacing: .06em; }
-  .machine-deck { gap: 4px; }
-  #crank-dock #feeder-dial { --fd-crank-size: 56px; --fd-auto-size: 35px; }
 }
 @media (max-width: 899px) {
   /* Keep the close button under the finger throughout a touch, even on the first frame. */
@@ -393,7 +402,6 @@
     box-shadow: 0 4px #06140dc9;
   }
   .cabinet-ui #game-menu nav button { justify-content: start; min-height: 45px; padding-inline: 12px; }
-  .pachi-combo div { gap: 3px; }
   .instrument-head { min-height: 31px; padding-block: 1px; }
 }
 @media (max-width: 700px) and (orientation: portrait) {
@@ -405,12 +413,6 @@
   .cabinet-ui #topbar .ricon { width: 16px; height: 16px; }
   .cabinet-ui #hq-bar { width: 40px; margin-left: 4px; }
   #game-menu summary { width: 35px; }
-  .colony-page {
-    --rim: 3px; flex: 0 0 auto; grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto; align-items: start;
-    width: calc(100% - 4px); max-width: min(100%, calc((100dvh - 136px) * .92));
-    margin: 2px auto; padding: 2px;
-  }
   .instrument-head { padding-inline: 7px; }
   .instrument-name h2 { font-size: calc(13px * var(--fs-scale)); }
   .instrument-name > .icon { width: 16px; height: 16px; }
@@ -429,19 +431,6 @@
   .raid-readout strong { font-size: calc(12px * var(--fs-scale)); }
   #pachi-raid-action { min-height: 38px; padding-inline: 4px; }
   #pachi-guard:not(:empty) { position: absolute; bottom: 100%; right: 0; width: max-content; max-width: 180px; background: #13271edc; }
-  .pachi-cabinet { display: grid; grid-template-columns: minmax(0, 1fr) 86px; grid-template-rows: auto 1fr; }
-  .pachi-cabinet .instrument-head { grid-column: 1 / -1; }
-  .machine-deck { flex-direction: column; justify-content: space-evenly; gap: 4px; border: 0; border-left: 2px solid #101e1a; padding: 4px; }
-  .crank-station { flex-direction: column; gap: 4px; }
-  .crank-label { writing-mode: horizontal-tb; font-size: calc(10px * var(--fs-scale)); }
-  #crank-dock #feeder-dial { --fd-crank-size: 46px; --fd-auto-size: 33px; display: grid; grid-template-columns: 46px 16px; justify-content: center; align-items: center; }
-  #crank-dock .fd-lever { width: 16px; }
-  #crank-dock .fd-side { grid-column: 1 / -1; justify-content: center; gap: 0; }
-  .pachi-combo { align-self: stretch; gap: 5px; }
-  .pachi-combo dt { font-size: calc(9px * var(--fs-scale)); }
-  .pachi-combo dd { font-size: calc(10px * var(--fs-scale)); }
-  .colony-page #slit-device { width: 34px; }
-  .pachi-result { bottom: 4px; left: 2px; right: 80px; }
   .pachi-result strong:not(:empty) { font-size: calc(10px * var(--fs-scale)); }
   .colony-page #boss-hud { top: 5px; padding: 3px 4px; gap: 3px; }
   .colony-page .bh-portrait { width: 26px; height: 26px; }
@@ -455,14 +444,9 @@
   .cabinet-ui #hq-bar { margin: 0; }
 }
 @media (orientation: landscape) and (max-height: 520px) {
-  .colony-page { --rim: 2px; max-width: min(100%, calc((100dvh - 118px) * 2.54)); }
+  .colony-page { --rim: 2px; max-width: min(100%, calc((100dvh - 100px) * 2.54)); grid-template-columns: minmax(0, 1fr) minmax(0, calc(38.8% + 38px)); }
   .instrument-head { min-height: 24px; padding-block: 0; }
   .instrument-name h2 { font-size: calc(12px * var(--fs-scale)); }
-  .machine-deck { padding-block: 1px; gap: 3px; }
-  #crank-dock #feeder-dial { --fd-crank-size: 40px; --fd-auto-size: 30px; }
-  #crank-dock .fd-lever { transform: scaleY(.7); height: 53px; }
-  .crank-label { font-size: calc(9px * var(--fs-scale)); }
-  .colony-page #slit-device { width: 25px; }
   #resident-list { height: 55px; }
   .colony-live .raid-meter, .colony-live #pachi-raid-action { min-height: 24px; }
   .deck-button { min-height: 34px; padding: 2px 5px; font-size: calc(9px * var(--fs-scale)); }
@@ -485,47 +469,26 @@
 .colony-page:has(.habitat-expanded) { z-index: 10; }
 .colony-page #frame:is(:fullscreen, .habitat-expanded) #game { width: min(100%, 177.7778dvh); height: auto; max-height: 100%; }
 .colony-page #frame:is(:fullscreen, .habitat-expanded) #detail { max-width: min(65vw, 330px); max-height: 65vh; bottom: 10px; }
-.colony-page #frame:is(:fullscreen, .habitat-expanded) #feeder-dial { right: 12px; bottom: 12px; }
-@media (max-width: 700px) {
-  .colony-page #frame:is(:fullscreen, .habitat-expanded) #feeder-dial { --fd-crank-size: 60px; --fd-auto-size: 34px; }
-}
 
-/* Tall handsets have enough vertical travel for the full-width table and lever shelf. */
-@media (max-width: 520px) and (min-height: 700px) and (max-aspect-ratio: 12/25) {
-  .pachi-cabinet { display: flex; }
-  .machine-deck { flex-direction: row; justify-content: space-between; padding: 4px 8px; border: 0; border-top: 2px solid #101e1a; }
-  .crank-station { flex-direction: row; gap: 5px; }
-  #crank-dock #feeder-dial { display: flex; --fd-crank-size: 56px; --fd-auto-size: 32px; }
-  #crank-dock .fd-lever { width: 20px; }
-  .pachi-combo { align-self: center; }
-  .pachi-result { left: 4px; right: 4px; bottom: 78px; }
-}
-/* Portrait tablets get two large drawing surfaces with controls beside the table. */
-@media (min-width: 521px) and (orientation: portrait) {
+/* In portrait the whole table sits beneath the glass. On a short screen,
+   fit the two physical surfaces together so the crank and pockets stay in reach. */
+@media (orientation: portrait) {
   .colony-page {
-    --rim: 3px; flex: 0 0 auto;
+    --rim: 3px;
+    flex: 0 0 auto;
     grid-template-columns: minmax(0, 1fr);
-    width: calc(100% - 8px); max-width: calc((100dvh - 162px) * .762);
+    width: calc(100% - 4px);
+    max-width: calc((100dvh - 148px) * .625);
+    margin: 2px auto;
+    padding: 2px;
   }
-  .pachi-cabinet { display: grid; grid-template-columns: minmax(0, 1fr) 31%; grid-template-rows: auto 1fr; }
-  .pachi-cabinet .instrument-head { grid-column: 1 / -1; }
-  .machine-deck { flex-direction: column; justify-content: space-evenly; gap: 6px; border: 0; border-left: 2px solid #101e1a; }
-  .crank-station { flex-direction: column; gap: 6px; }
-  .crank-label { writing-mode: horizontal-tb; }
-  #crank-dock #feeder-dial { display: grid; grid-template-columns: auto 22px; align-items: center; }
-  #crank-dock .fd-side { grid-column: 1 / -1; justify-content: center; }
-  .pachi-result { bottom: 6px; left: 4px; right: 22%; }
+  .pachi-cabinet { aspect-ratio: 208 / 205; }
 }
-@media (orientation: landscape) and (max-height: 520px) {
-  .colony-page { max-width: min(100%, calc((100dvh - 135px) * 2.54)); }
+@media (orientation: portrait) and (max-width: 700px) {
+  .colony-page { max-width: calc((100dvh - 122px) * .635); }
 }
 
-.resident-growth { display: block; width: 100%; max-width: 12em; height: 3px; margin-top: 3px; appearance: none; background: #101e18; border: 0; }
-.resident-growth::-webkit-progress-bar { background: #101e18; }
-.resident-growth::-webkit-progress-value { background: var(--mint); }
-.resident-growth::-moz-progress-bar { background: var(--mint); }
-@media (orientation: landscape) and (min-height: 521px) {
-  .resident-card {
+.resident-card {
     flex: 1 0 150px; max-width: none; justify-content: flex-start;
     gap: clamp(6px, 1vw, 20px); padding: 5px 10px;
     background: linear-gradient(115deg, #2d4434, #1c342a 75%);

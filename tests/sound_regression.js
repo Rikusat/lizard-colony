@@ -271,6 +271,12 @@ function loadSound(extraCfg) {
   check("★孵化: 登場エフェクトが出て hatch イベントも出る",
     (Game._spawnFx || []).length > fx0 && evs.filter((n) => n === "hatch").length === 1,
     "fx+" + ((Game._spawnFx || []).length - fx0) + " evs=" + JSON.stringify(evs));
+  evs.length = 0;
+  const startingStones = Game.stones();
+  const message = Game.awardCrankStone();
+  check("星への入賞は賢者の石、表示メッセージ、石の音イベントを各1回返す",
+    Game.stones() === startingStones + 1 && message === "賢者の石 +1" &&
+    evs.length === 1 && CFG2.soundCues[evs[0]] === "stone");
 }
 
 // ---- 7c) 配線の構造検査: emit は必ず視覚呼び出しの隣に置く(§2-2を構造で守る) ----
@@ -306,10 +312,8 @@ function loadSound(extraCfg) {
   check("CFG.soundCues が対応づける(S1の3種 + S3の石)",
     Object.keys(cues).length === 4 && cues.feed === "feed" && cues.hatch === "hatch" && cues.defeat === "defeat" && cues.SlitSuccess === "stone");
   check("対応先の音idが全て soundDefs にある(鳴らない配線を作らない)", Object.values(cues).every((id) => !!CFG.soundDefs[id]));
-  // ★S3: ルール層のイベント源は Game だけではない。四重スリット(Slit)は自前のイベント列を持つため、
-  //   「対応表のイベントが本当に流れているか」は**両方の源**を見ないと素通しする。
-  const gameSrc = codeOf(read("js/game.js")), slitSrc0 = codeOf(read("js/slit.js"));
-  const emitted = (n) => gameSrc.includes('this.emit("' + n + '"') || slitSrc0.includes('type: "' + n + '"');
+  const gameSrc = codeOf(read("js/game.js"));
+  const emitted = (n) => gameSrc.includes('this.emit("' + n + '"');
   check("対応表のイベントは全てルール層が実際に流している", Object.keys(cues).every(emitted));
   check("★カナリア: 流れていないイベント名は捕まる(対応表の書き間違いを素通ししない)", !emitted("nosuchEvent"));
   const boot = codeOf(read("js/ui/boot.js"));
@@ -469,21 +473,9 @@ function loadSound(extraCfg) {
     Object.keys(CFG.soundDefs).filter((k) => CFG.soundDefs[k].layers).join(",") === "stone");
   check("★層があっても尺は最も長い層に合わせる(ベルの余韻が切られない)",
     Sound._span(Sound.def("stone")) > Sound.def("defeat").dur + Sound.def("defeat").release);
-  check("★全通過は正値1/4339の極めて稀な事象(希少性に見合う音予算の根拠・S-SLIT-R後の設計値)",
-    CFG.slitHalfDeg.reduce((a, d) => a * (2 * d / 360), 1) < 1 / 1000,
-    "1/" + Math.round(1 / CFG.slitHalfDeg.reduce((a, d) => a * (2 * d / 360), 1)));
-  check("★変換点は1つのまま(Slitのイベントも同じ CFG.soundCues を引く)", CFG.soundCues.SlitSuccess === "stone");
-  const slitSrc = codeOf(read("js/slit.js")), slitUi = codeOf(read("js/ui/screens/slit.js"));
-  check("ルール層が全通過のイベントを流している", /SlitSuccess/.test(slitSrc));
-  check("ルール層に音コードは無い(憲章§2-3)", !/Sound\./.test(slitSrc));
-  check("★演出層は CFG.soundCues 経由で鳴らす(2つ目の変換点を作らない)",
-    /CFG\.soundCues\[ev\.type\]/.test(slitUi) && /Sound\.play\(/.test(slitUi));
-  // ★§2-2: 音は視覚と対。石の音は「中心のブルームを積む行」と同じ分岐の中にある
-  const winBlock = slitUi.split('ev.type === "SlitSuccess"')[1] || "";
-  check("★石の音は視覚(中心のブルーム)と同じ分岐の中にある(音だけが鳴る箇所を作らない)",
-    /_slitFx\.push/.test(winBlock.slice(0, 400)) && /Sound\.play/.test(winBlock.slice(0, 400)));
-  check("★常時無音(クランク稼働中の微音は置かない=Ric裁定 S3)",
-    !/SlitFired|SlitPass|SlitBlocked/.test(Object.keys(CFG.soundCues).join(",")));
+  check("四重スリットは星に届いたときだけ石の音を割り当てる",
+    CFG.soundCues.SlitSuccess === "stone" && !["StarLaunch", "StarPass", "StarBlocked"].some((e) => CFG.soundCues[e]));
+  check("常設盤の物理判定は音響の設定から独立", !codeOf(read("js/roul-table.js")).includes("Sound."));
 
   // --- 定常性の計測: 立ち上がりの除外(S3で新設)---
   check("立ち上がりを定常性から外す設定がある(巣の反響が積み上がるまでは疲れではない)",

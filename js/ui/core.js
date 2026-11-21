@@ -121,7 +121,8 @@ const UI = {
       // トカゲ選択(③: 巣・設備より優先=周囲のトカゲが巣に取られない)
       let best = null;
       if (typeof VoxelHabitat !== "undefined") {
-        best = VoxelHabitat.pickLizard(x, y);
+        const touchRadius = e.pointerType === "touch" ? 5 * W / r.width : 0;
+        best = VoxelHabitat.pickLizard(x, y, touchRadius);
       } else {
         let bestD = Infinity;
         for (const lz of Game.state.lizards) {
@@ -146,8 +147,7 @@ const UI = {
       this.renderDetail(true);
     });
 
-    // 動的パネルは pointerdown 委譲(再描画でclickが失われないように)
-    this.els["detail"].addEventListener("pointerdown", (e) => this.onDetailAction(e));
+    this.els["detail"].addEventListener("click", (e) => this.onDetailAction(e));
     // V5 3.8: 卵スロットパネルは撤廃(卵ロジックは不変・ルーレットが卵生成を担う)
     if (this.els["egg-slots"]) {
       this.els["egg-slots"].addEventListener("pointerdown", (e) => {
@@ -158,7 +158,6 @@ const UI = {
     }
     this.initFeeder(); // 給餌ダイヤル(飼育槽右下・Brushup V2 Phase1)
     this.initRoulette(); // 遺伝子ルーレット(左メニュー下部・roulette.md §7)
-    this.initSlit(); // 四重スリット実験装置(左メニュー下部・roulette.md §9)
     if (this.initPachinko) this.initPachinko();
     this.initBossHud(); // ボスHPバー(上部中央・Brushup V2 Phase3)
     // #breed で繁殖画面を直接開く(動作確認・デバッグ用)
@@ -186,12 +185,10 @@ const UI = {
         // ボス報酬盤と常設盤の物理を別々に進める。
         if (typeof Roulette !== "undefined") Roulette.advance(gdt);
         this.advanceCrankRoulette?.(gdt);
-        if (typeof Slit !== "undefined") Slit.advance(gdt); // §9: 四重スリット装置(クールダウン/飛行/張り付き寿命)
       }
       Render.draw();
       if (this.drawRoulette) this.drawRoulette();
       this.drawCrankRoulette?.();
-      if (this.drawSlit) this.drawSlit(); // §9: 四重スリット装置(左メニュー下部・線のみ)
       if (this.drawBossReward) this.drawBossReward(); // Phase3.13 C2: ボス報酬オーバーレイ(稼働中のみ)
       this.acc += real;
       if (this.acc >= 0.2) { this.acc = 0; this.update(); }
@@ -211,7 +208,6 @@ const UI = {
     if (this._accentId === id) return;
     this._accentId = id;
     document.documentElement.style.setProperty("--planet-accent", this.planetAccent(id));
-    if (typeof Slit !== "undefined" && Slit.reset) Slit.reset(); // §9: 惑星切替で装置の痕跡もクリア(惑星別意匠の布石)
   },
 
   // ランクアップ(§6: 軽)。3.10.4: HQバー(ヘッダー直下)が発光+数値ロールアップ

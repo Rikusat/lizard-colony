@@ -63,6 +63,92 @@ const TableArt = {
     this.disk(ctx,x,y,2.1,'#bb9b68');
     ctx.fillStyle = '#5b543e'; ctx.fillRect(x-1,y,3,1);
   },
+  starRail(c, lane) {
+    const { x, starY, entryY } = lane;
+    const half = Math.ceil(Math.max(lane.half + 2, ...lane.slits.map(slit => slit.half + slit.amplitude + 1)));
+    const left = x - half, right = x + half, top = starY + 3;
+    // The slotted brass guides stand off the cloth. The darker center is the shooter's bore.
+    this.notch(c, left - 2, top, half * 2 + 5, entryY - top + 6, '#1c413a');
+    this.notch(c, left - 1, top, half * 2 + 2, entryY - top + 3, '#687b64');
+    this.notch(c, left, top, half * 2, entryY - top + 2, '#24463f');
+    c.fillStyle = '#1d3c37'; c.fillRect(left + 3, top + 4, half * 2 - 6, entryY - top - 12);
+    for (const dx of [-4, 4]) {
+      c.fillStyle = '#38574b'; c.fillRect(x + dx, top + 3, 1, entryY - top - 8);
+    }
+    for (const railX of [left, right]) {
+      c.fillStyle = '#b19871'; c.fillRect(railX - 1, top + 6, 2, entryY - top - 10);
+      c.fillStyle = '#79978a'; c.fillRect(railX + (railX === left ? 1 : -2), top + 6, 1, entryY - top - 11);
+      for (const slit of lane.slits) {
+        c.fillStyle = '#c3ae7d'; c.fillRect(railX - 2, slit.y - 2, 4, 5);
+        c.fillStyle = '#526858'; c.fillRect(railX - 1, slit.y + 1, 2, 2);
+      }
+    }
+    // The flared receiving cup feeds the ball back up into the barrel.
+    const mouth = lane.half;
+    this.notch(c, x - mouth - 3, entryY + 1, mouth * 2 + 6, 7, '#534934');
+    this.notch(c, x - mouth - 2, entryY, mouth * 2 + 4, 6, '#af9160');
+    c.fillStyle = '#32413a'; c.fillRect(x - mouth, entryY, mouth * 2, 4);
+    c.fillStyle = '#152d2b'; c.fillRect(x - mouth, entryY, mouth * 2, 2);
+    c.fillStyle = '#ddc587'; c.fillRect(x - mouth, entryY + 4, mouth * 2, 1);
+    for (const y of [entryY-5, entryY-8]) {
+      this.stroke(c, [{x:x-2,y:y+1},{x,y:y-1},{x:x+2,y:y+1}], '#a7a079', 1);
+    }
+  },
+  starSocket(c, lane, flash) {
+    const x = lane.x, y = lane.starY;
+    this.notch(c, x - 10, y - 10, 22, 23, '#173a34');
+    this.notch(c, x - 11, y - 11, 22, 22, '#b59a6d');
+    this.notch(c, x - 10, y - 10, 20, 20, '#645340');
+    this.notch(c, x - 9, y - 9, 18, 18, '#293932');
+    const star = [[0,-8],[2,-3],[8,-3],[4,1],[5,7],[0,4],[-5,7],[-4,1],[-8,-3],[-2,-3]];
+    this.polygon(c, star.map(([dx,dy]) => [x + dx, y + dy + 1]), '#0e2a25');
+    this.polygon(c, star.map(([dx,dy]) => [x + dx, y + dy]), flash > 0 ? '#ffe6a4' : '#d5b777');
+    this.polygon(c, [[x,y-8],[x,y],[x-2,y-3]], '#f6d799');
+    this.polygon(c, [[x,y],[x+8,y-3],[x+4,y+1],[x+5,y+7]], '#a57e4f');
+    this.polygon(c, [[x-3,y-2],[x,y-4],[x+3,y-2],[x+3,y+1],[x,y+4],[x-3,y+1]],
+      flash > 0 ? '#ffac7a' : '#a64945');
+    this.polygon(c, [[x-3,y-2],[x,y-4],[x+1,y-2],[x-1,y]], flash > 0 ? '#fff1cd' : '#efa288');
+    c.fillStyle = flash > 0 ? '#cc6a56' : '#672f32'; c.fillRect(x, y + 1, 2, 1);
+  },
+  shutters(c, board) {
+    const lane = CRANK_TABLE.starLane;
+    const reached = board.starBall?.slitsPassed || 0;
+    for (const [i, slit] of lane.slits.entries()) {
+      const center = board.slitCenter(i), y = slit.y;
+      const reach = Math.ceil(slit.amplitude + slit.half + 1);
+      const left = lane.x - reach, right = lane.x + reach;
+      const a = Math.round(center - slit.half), b = Math.round(center + slit.half);
+      for (const [start, end] of [[left, a], [b, right]]) {
+        const width = end - start;
+        c.fillStyle = '#1b3630'; c.fillRect(start,y,width,3);
+        c.fillStyle = '#b99a6b'; c.fillRect(start,y-1,width,2);
+        c.fillStyle = '#dfc492'; c.fillRect(start,y-1,width,1);
+      }
+      c.fillStyle = '#8b7252';
+      c.fillRect(a-2,y,2,2); c.fillRect(b,y,2,2);
+      // An ivory witness mark is replaced by a ruby telltale as the shot clears each shutter.
+      c.fillStyle = i < reached || board.starFlash > 0 ? '#ffd49d' : '#7a6350';
+      c.fillRect(right + 1, y - 1, 2, 2);
+    }
+    if (board.starFlash > 0) this.starSocket(c, lane, board.starFlash);
+  },
+  bumper(c, part, pulse) {
+    const { x, y, r } = part;
+    const travel = Math.round(pulse * 2);
+    // The rubber skirt follows the physical circle. The cap plunges onto a pair of spring feet.
+    this.disk(c, x+1, y+2, r+1.5, '#183b32');
+    for (const dx of [-3, 3]) {
+      c.fillStyle = '#8d7d61'; c.fillRect(x+dx-1, y+2, 3, 5);
+      c.fillStyle = '#d1bb86'; c.fillRect(x+dx-1, y+5, 3, 1);
+      c.fillStyle = '#514f3f'; c.fillRect(x+dx-1, y+7, 3, 1);
+    }
+    this.disk(c, x, y+1, r+.65, '#433e32');
+    this.disk(c, x, y, r, '#c9aa70');
+    this.disk(c, x, y-1+travel, r-1, '#743e39');
+    this.disk(c, x, y-2+travel, r-1.6, pulse > .5 ? '#d28562' : '#b1614f');
+    this.stroke(c, [{x:x-2,y:y-2+travel},{x,y:y-4+travel},{x:x+2,y:y-2+travel}], '#ecd29a', 1.2);
+    c.fillStyle = '#773d37'; c.fillRect(x-1,y+travel,3,1);
+  },
   makeBase() {
     const t = CRANK_TABLE;
     const base = document.createElement('canvas');
@@ -93,11 +179,11 @@ const TableArt = {
       c.strokeStyle = k===1 ? '#a4a87858' : '#1e4d42'; c.lineWidth=1; c.stroke();
     }
     // The brass escutcheon carries a small model-derived gecko engraving.
-    this.notch(c,146,26,44,20,'#1d4e43');
-    this.notch(c,147,26,42,19,'#54795c');
-    this.notch(c,148,27,40,17,'#2c594a');
-    for (const y of [29,42]) {
-      c.fillStyle='#b19c63'; c.fillRect(150,y,1,1); c.fillRect(185,y,1,1);
+    this.notch(c,114,9,44,19,'#1d4e43');
+    this.notch(c,115,9,42,18,'#628267');
+    this.notch(c,116,10,40,16,'#315f4d');
+    for (const y of [12,23]) {
+      c.fillStyle='#b19c63'; c.fillRect(118,y,1,1); c.fillRect(153,y,1,1);
     }
     // Lower relief under the moving controls and from the outer pin fields.
     const wheel = t.wheel;
@@ -122,6 +208,8 @@ const TableArt = {
     for(let x=7;x<14;x+=3) {
       c.fillStyle='#789484';c.fillRect(x,176,1,3);
     }
+    this.starRail(c, t.starLane);
+    this.starSocket(c, t.starLane, 0);
     for(const n of t.nails) this.peg(c,n);
     this.notch(c,84,129,49,16,'#225648');
     this.notch(c,86,130,45,14,'#57795c');
@@ -189,6 +277,26 @@ const TableArt = {
     const sign=board.gateDirection, x=gate.x+sign*11, y=149;
     this.polygon(c,[[x-sign*3,y-2],[x+sign*2,y],[x-sign*3,y+2]],'#dcc184');
   },
+  ball(c, ball, table) {
+    const x = Math.round(ball.x), y = Math.round(ball.y);
+    if (ball.phase === 'starShot') {
+      // Brief ivory reflection inside the barrel shows the direction of the returning shot.
+      const tail = Math.min(8, table.starLane.entryY - y);
+      if (tail > 3) {
+        c.fillStyle = '#71958a';
+        c.fillRect(x, y+3, 1, tail-2);
+      }
+    }
+    const winningStone = ball.phase === 'starPrize';
+    c.globalAlpha = ball.phase === 'miss' ? Math.max(0,1-(y-table.landY)/14) : 1;
+    this.disk(c,x+1,y+2,3.6,'#19372e');
+    this.disk(c,x,y,3.4,winningStone ? '#6c3c31' : '#5c6860');
+    this.notch(c,x-3,y-3,6,6,winningStone ? '#dc8765' : '#c2c9be');
+    c.fillStyle = winningStone ? '#ffdaa8' : '#f0f4e6'; c.fillRect(x-2,y-2,3,2);
+    c.fillStyle = '#fffce5'; c.fillRect(x-1,y-2,2,1);
+    c.fillStyle = winningStone ? '#a8544a' : '#72887d'; c.fillRect(x,y+1,2,1);
+    c.globalAlpha = 1;
+  },
   paint(ctx,w,h,board,effects) {
     if(!effects.base) {
       effects.base=this.makeBase();
@@ -201,27 +309,22 @@ const TableArt = {
     const c=effects.pixel, t=CRANK_TABLE;
     c.drawImage(effects.base,0,0);
     if(this.gecko.complete && this.gecko.naturalWidth) {
-      c.drawImage(this.gecko,0,10,92,37,151,29,34,14);
+      c.drawImage(this.gecko,0,10,92,37,119,11,34,14);
     }
     this.rotor(c,board.wheelAngle);
     this.gate(c,board);
+    t.bumpers.forEach((part, i) => this.bumper(c, part, board.bumperPulse[i]));
+    this.shutters(c, board);
     if(board.canAcceptEgg && !board.canAcceptEgg()) {
       for(const p of t.pockets.filter((p)=>p.tier==='egg')) {
         this.notch(c,p.x-p.half,180,p.half*2,5,'#626b5b');
         c.fillStyle='#9fa18a';c.fillRect(p.x-p.half+2,181,p.half*2-4,1);
       }
     }
-    for(const ball of board.balls) {
-      const x=Math.round(ball.x), y=Math.round(ball.y);
-      const alpha=ball.phase==='miss' ? Math.max(0,1-(y-t.landY)/14) : 1;
-      c.globalAlpha=alpha;
-      this.disk(c,x+1,y+2,3.25,'#16372f');
-      this.notch(c,x-3,y-3,6,6,'#aab9ac');
-      c.fillStyle='#e7eee0'; c.fillRect(x-2,y-2,3,2);
-      c.fillStyle='#fffde7'; c.fillRect(x-1,y-2,2,1);
-      c.fillStyle='#607e73'; c.fillRect(x,y+1,2,1);
+    for (const ball of board.balls) {
+      if (ball !== board.starBall) this.ball(c, ball, t);
     }
-    c.globalAlpha=1;
+    if (board.starBall) this.ball(c, board.starBall, t);
     board.drainEvents();
     ctx.imageSmoothingEnabled=false;
     ctx.fillStyle='#162e29';ctx.fillRect(0,0,w,h);

@@ -39,12 +39,13 @@ Object.assign(UI, {
     Render.drawLizard(c, tmp, true);
     c.restore();
   },
-  _bmSlotHtml(tag, lz) {
+  _bmSlotHtml(tag, lz, groups) {
     if (!lz) return `<div class="sp-slot"><span class="tag">${tag}</span><span class="empty">${tag === "A" ? "種タイルを選ぶ" : "A選択後にBを選ぶ"}</span></div>`;
     const mo = morphById(lz.morphId);
+    const group = groups.find((g) => g.list.includes(lz));
     return `<div class="sp-slot"><span class="tag">${tag}</span>
       <canvas width="120" height="84" data-slotlz="${lz.id}"></canvas>
-      <div class="who"><b class="${mo.legendary ? "leg-name" : ""}">${Game.lizardName(lz)}</b><span class="desc">${mo.name} / Lv${lz.level || 1}</span>${this.breedTraitChips(lz)}</div>
+      <div class="who"><b class="${mo.legendary ? "leg-name" : ""}">${speciesById(lz.speciesId).name}</b><span class="desc">${mo.name} · この惑星に${group.list.length}匹</span>${this.breedTraitChips(lz)}</div>
       <div class="sp-nav"><button data-nav="${tag}:-1" title="同種同モーフ内で前へ">◀</button><button data-nav="${tag}:1" title="同種同モーフ内で次へ">▶</button></div>
     </div>`;
   },
@@ -66,7 +67,7 @@ Object.assign(UI, {
     }
     th += `</div>`;
     const cost = A && B ? Game.breedCost(A, B) : 0;
-    const sl = `<div class="sp-slots">${this._bmSlotHtml("A", A)}${this._bmSlotHtml("B", B)}</div>`;
+    const sl = `<div class="sp-slots">${this._bmSlotHtml("A", A, groups)}${this._bmSlotHtml("B", B, groups)}</div>`;
     const fee = A && B ? ` (${Icon.svg("coin")}${fmt(cost)})` : "";
     // 自動選出(クイック繁殖)と繁殖予約は撤廃(Ric裁定 2026-07-29)。残るのは手動確定のみ
     const act = `<div class="sp-actions">
