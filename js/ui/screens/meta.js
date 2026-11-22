@@ -162,6 +162,7 @@ Object.assign(UI, {
           <button id="set-reset" class="danger">初期化</button></div>
         <div style="font-size:calc(12px * var(--fs-scale, 1));color:var(--sub);line-height:1.7;margin-top:10px">
           <b style="color:var(--gold)">${Icon.svg("lizard")} 遊び方</b><br>
+          飼育槽はドラッグで回転、ピンチ・ホイールで拡大縮小できます。<br>
           1. 飼育槽右下のクランクで餌をやると、玉が発射されます。<br>
           2. 盤面を押すと分岐レバーが切り替わります。卵のポケットを狙えます。<br>
           3. 右の発射口に入った玉は直進します。四枚のシャッターを抜けて星に届くと、賢者の石を1個獲得します。<br>

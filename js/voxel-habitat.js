@@ -316,9 +316,7 @@ const VoxelHabitat = (() => {
     return { canvas:c, mask:indices };
   }
 
-  function drawLizard(ctx,lz,inTank) {
-    const species=speciesById(lz.speciesId);
-    if (!species) return;
+  function appearance(lz) {
     const reduced=typeof Motion!=="undefined" && Motion.reduced;
     const t=reduced?0:Render.time;
     const phaseTime=t+(lz.id%71)*.81;
@@ -329,15 +327,22 @@ const VoxelHabitat = (() => {
     const phase=reduced?0:Math.floor(phaseTime*(lz.moving?5.5:1.1))%4;
     const blink=!reduced && phaseTime%5.6<.19;
     const tongue=!reduced && !blink && (pose==="groom" ? phase%2===0 : phaseTime%4.75<.45);
+    const tail=lz.injuredT>0?Math.max(.12,Math.round((1-lz.injuredT/CFG.injuryTime)*4)/4):1;
+    const gene=Render.lizardColor(lz);
+    const hue=lz.morphId==="legendary"?Math.round(gene.h/24)*24:Math.round(gene.h);
+    const traits=(lz.traits||[]).map(t=>typeof t==="string"?t:t.key).filter(k=>TRAITS[k]);
+    return {pose,phase,tail,traits,tongue,blink,hue,gene,reduced,phaseTime};
+  }
+
+  function drawLizard(ctx,lz,inTank) {
+    const species=speciesById(lz.speciesId);
+    if (!species) return;
+    const {pose,phase,tail,traits,tongue,blink,hue,gene,reduced,phaseTime}=appearance(lz);
     const angle=Number.isFinite(lz.angle)?lz.angle:0;
     const side=Math.cos(angle)>=0?1:-1;
     // Keep the head and tail legible when travelling directly towards/away from the glass.
     const sin=Math.sin(angle);
     const yaw=(side===1?0:Math.PI)+side*(sin<-.48?-.55:sin>.48?.55:sin>=0?.24:-.24);
-    const tail=lz.injuredT>0?Math.max(.12,Math.round((1-lz.injuredT/CFG.injuryTime)*4)/4):1;
-    const gene=Render.lizardColor(lz);
-    const hue=lz.morphId==="legendary"?Math.round(gene.h/24)*24:Math.round(gene.h);
-    const traits=(lz.traits||[]).map(t=>typeof t==="string"?t:t.key).filter(k=>TRAITS[k]);
     const signature=[species.id,lz.morphId,lz.pattern,hue,gene.s,gene.l,...traits,yaw,pose,phase,tail,+blink,+tongue].join("/");
     let sprite=spriteCache.get(signature);
     if (!sprite) {
@@ -533,5 +538,9 @@ const VoxelHabitat = (() => {
   function present(target) {
     target.save();target.imageSmoothingEnabled=false;target.drawImage(scene,0,0,W,H);target.restore();
   }
-  return { drawScene, drawLizard, pickLizard, present };
+  function volume(lz, state) {
+    return model(lz, families[lz.speciesId] || "monitor", state.pose, state.phase,
+      state.tail, state.traits, state.tongue, state.blink);
+  }
+  return { drawScene, drawLizard, pickLizard, present, appearance, volume, palette };
 })();

@@ -514,3 +514,12 @@
   height: 100%;
   transform: none;
 }
+
+.colony-live #game { touch-action: none; cursor: grab; }
+.colony-live #game:active { cursor: grabbing; }
+#habitat-home {
+  position: absolute; z-index: 3; top: 7px; left: 7px; width: 38px; height: 38px;
+  padding: 7px; border: 1px solid #79917f; border-radius: 3px; background: #20382fe8; color: #eee4bb;
+}
+#habitat-home[hidden] { display: none; }
+#habitat-home svg { width: 100%; height: 100%; }

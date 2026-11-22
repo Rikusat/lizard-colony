@@ -219,7 +219,10 @@ const Render = {
     let ctx = this.ctx;
     Game.refreshCrowdScale();
     const voxel = typeof VoxelHabitat !== "undefined";
-    if (voxel) {
+    const volume = typeof Terrarium !== "undefined";
+    if (volume) {
+      Terrarium.draw(this);
+    } else if (voxel) {
       ctx = VoxelHabitat.drawScene(this);
     } else {
       this.drawStage(ctx);
@@ -246,14 +249,16 @@ const Render = {
       // W1 天候の粒子(D7と同じ層。天候中はD7側が減衰するので二重に降らない)
       if (typeof Weather !== "undefined") this._wxParts = Weather.drawParticles(ctx, W, H, this.time, this._wx, FIELD.y1, FIELD.y2);
     }
-    this.drawSpawnFx(ctx); // §9-C2 誕生の登場エフェクト(生き物の上に重ねる祝祭)
-    this.drawGenesisFx(ctx); // S5 創世エフェクト(賢者の石の錬成=深紅の静かな重み)
-    if (Game.raid) { this.drawBoss(ctx, Game.raid); this.drawAim(ctx, Game.raid); }
-    else if (Game.corpse) this.drawCorpse(ctx, Game.corpse);
-    if (!voxel && Game.currentStage().id === 8) this.drawBugSweep(ctx);
-    if (voxel) {
-      VoxelHabitat.present(this.ctx);
-      ctx = this.ctx;
+    if (!volume) {
+      this.drawSpawnFx(ctx); // §9-C2 誕生の登場エフェクト(生き物の上に重ねる祝祭)
+      this.drawGenesisFx(ctx); // S5 創世エフェクト(賢者の石の錬成=深紅の静かな重み)
+      if (Game.raid) { this.drawBoss(ctx, Game.raid); this.drawAim(ctx, Game.raid); }
+      else if (Game.corpse) this.drawCorpse(ctx, Game.corpse);
+      if (!voxel && Game.currentStage().id === 8) this.drawBugSweep(ctx);
+      if (voxel) {
+        VoxelHabitat.present(this.ctx);
+        ctx = this.ctx;
+      }
     }
     this.drawPopups(ctx);
     if (!voxel) this.drawVignette(ctx);
@@ -5673,21 +5678,22 @@ const Render = {
   drawPopups(ctx) {
     ctx.textAlign = "center";
     for (const p of Game.popups) {
+      const pos = typeof Terrarium === "undefined" ? p : Terrarium.label(p.x,p.y);
       ctx.globalAlpha = clamp(p.ttl, 0, 1);
       if (p.big) {
         // 重いダメージ数値(Brushup V2 §3.3): 大きく出て弾んで着地
         const age = 1.2 - p.ttl;
         const pop = 1 + Math.max(0, 0.5 - age) * 0.9;
         ctx.font = p.small ? `10px sans-serif` : `bold ${Math.round(26 * pop)}px sans-serif`;
-        ctx.fillStyle = "rgba(0,0,0,.75)"; ctx.fillText(p.txt, p.x + 2, p.y + 2);
+        ctx.fillStyle = "rgba(0,0,0,.75)"; ctx.fillText(p.txt, pos.x + 2, pos.y + 2);
       } else {
         // small=オート給餌のLvアップ(控えめ表示・CFGでpx調整可)。手動(small無し)は17px固定
         const fs = p.small ? (CFG.autoFeedLevelPopSize || 10) : 17;
         const sh = p.small ? 1 : 1.5;
         ctx.font = `bold ${fs}px sans-serif`;
-        ctx.fillStyle = "rgba(0,0,0,.7)"; ctx.fillText(p.txt, p.x + sh, p.y + sh);
+        ctx.fillStyle = "rgba(0,0,0,.7)"; ctx.fillText(p.txt, pos.x + sh, pos.y + sh);
       }
-      ctx.fillStyle = p.color; ctx.fillText(p.txt, p.x, p.y);
+      ctx.fillStyle = p.color; ctx.fillText(p.txt, pos.x, pos.y);
     }
     ctx.globalAlpha = 1;
   },

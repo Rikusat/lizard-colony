@@ -85,7 +85,8 @@ const UI = {
 
     // Canvas クリック → ボスギミック対応 or トカゲ選択
     const cv = document.getElementById("game");
-    cv.addEventListener("pointerdown", (e) => {
+    if (typeof Terrarium !== "undefined") this.initTerrariumInput(cv);
+    else cv.addEventListener("pointerdown", (e) => {
       const r = cv.getBoundingClientRect();
       const x = (e.clientX - r.left) * (W / r.width);
       const y = (e.clientY - r.top) * (H / r.height);
@@ -182,6 +183,7 @@ const UI = {
         const gdt = Game.slowmo > 0 ? real * 0.25 : real;
         if (Game.slowmo > 0) Game.slowmo = Math.max(0, Game.slowmo - real);
         Game.tick(gdt);
+        if (typeof Terrarium !== "undefined") Terrarium.step(gdt);
         // ボス報酬盤と常設盤の物理を別々に進める。
         if (typeof Roulette !== "undefined") Roulette.advance(gdt);
         this.advanceCrankRoulette?.(gdt);
