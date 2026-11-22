@@ -35,6 +35,7 @@ const VoxelLandscape = (() => {
     return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
   }
   function raster(ctx) {
+    const height = ctx.canvas.height;
     const image = ctx.createImageData(width, height), bytes = image.data;
     // Byte order independent scanlines, including the shared edges of projected voxels.
     function rect(x, y, w, h, c) {
@@ -78,9 +79,9 @@ const VoxelLandscape = (() => {
     r.poly([[x,y],[x+b,y-b/2],[x+b,t-b/2],[x,t]],right);
     r.poly([[x,t],[x-a,t-a/2],[x-a+b,t-(a+b)/2],[x+b,t-b/2]],top);
   }
-  function sky(r, p, id) {
-    for (let y=0; y<90; y++) {
-      const level = Math.min(1, y/79);
+  function sky(r, p, id, offset) {
+    for (let y=Math.floor(-offset); y<90; y++) {
+      const level = Math.max(0, Math.min(1, (y+offset)/(79+offset)));
       r.rect(0,y,width,1,mix(p[0],p[1],level * (2-level)*.91));
     }
     if (id !== 7) {
@@ -347,8 +348,23 @@ const VoxelLandscape = (() => {
   }
   function paint(ctx,stage) {
     const id=Number(stage && stage.id)||1;
-    const p=(palettes[id-1]||palettes[0]).map(color), r=raster(ctx);
-    sky(r,p,id); terrain(r,p,id); landmarks(r,p,id); canyon(r,p,id);
+    const p=(palettes[id-1]||palettes[0]).map(color), target=raster(ctx);
+    // Spread the floor in depth and translate each piece of scenery by its
+    // ground contact. Its original pixel pitch and silhouette stay intact.
+    const depth=ctx.canvas.height/height;
+    let sy=1, offset=0;
+    const r={
+      rect(x,y,w,h,c) { target.rect(x,y*sy+offset,w,h*sy,c); },
+      poly(points,c) { target.poly(points.map(([x,y])=>[x,y*sy+offset]),c); },
+      oval(x,y,rx,ry,c) { target.oval(x,y*sy+offset,rx,ry,c); },
+    };
+    target.rect(0,0,width,ctx.canvas.height,p[0]);
+    offset=(depth-1)*62;
+    sky(r,p,id,offset);
+    offset=0; sy=depth;
+    terrain(r,p,id);
+    sy=1; offset=(depth-1)*62;
+    landmarks(r,p,id); canyon(r,p,id);
     const rand=rng(123+id), props=[];
     // Depth-sort scenery by its contact point, just as with the roaming creatures.
     function add(y,draw) { props.push({y,draw}); }
@@ -377,12 +393,16 @@ const VoxelLandscape = (() => {
       add(y,()=>rock(r,p,x,y,s,109+i));
       add(y+.6,()=>{ plant(r,p,x+s*.67,y+2,s*.065,50+i,i%3===0); });
     });
-    props.sort((a,b)=>a.y-b.y).forEach(a=>a.draw());
-    r.flush();
+    for (const prop of props.sort((a,b)=>a.y-b.y)) {
+      offset=(depth-1)*prop.y;
+      prop.draw();
+    }
+    target.flush();
   }
   function animate(ctx,stage,t) {
     // Short ripples drift down the visible river. The same cross-section paints the
     // permanent bed and bounds the moving highlights, so they follow its two bends.
+    const depth=ctx.canvas.height/height;
     ctx.fillStyle=stage.id===5 ? "#eaa16e" : "#9ec7b5";
     for(let i=0;i<8;i++){
       const age=(t*.18+i*.367)%1;
@@ -390,7 +410,7 @@ const VoxelLandscape = (() => {
       const y=Math.floor(98+(i*17)%89+age*8);
       const {center,half}=stream(y);
       const x=Math.round(center+half*Math.sin(i*5.32)*.55);
-      ctx.fillRect(x,y,1+Math.round(Math.sin(age/.63*Math.PI)*3),1);
+      ctx.fillRect(x,Math.round(y*depth),1+Math.round(Math.sin(age/.63*Math.PI)*3),1);
     }
     if(stage.id===7 || stage.id===9)return;
     // A little flock periodically crosses the horizon far behind the animals.
@@ -399,7 +419,7 @@ const VoxelLandscape = (() => {
     ctx.fillStyle="rgba(68,89,79,.71)";
     for(let i=0;i<3;i++){
       const x=Math.round(128+passage*9-i*5);
-      const y=Math.round(18+i*2+Math.sin(t*.8+i)*1.4);
+      const y=Math.round(18+(depth-1)*62+i*2+Math.sin(t*.8+i)*1.4);
       const wing=Math.floor(t*3+i)%2 ? -1 : 0;
       ctx.fillRect(x-1,y+wing,1,1);ctx.fillRect(x,y,1,1);ctx.fillRect(x+1,y+wing,1,1);
     }

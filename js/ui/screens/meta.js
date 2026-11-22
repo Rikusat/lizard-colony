@@ -72,11 +72,13 @@ Object.assign(UI, {
   exportShot() {
     const src = document.getElementById("game");
     const out = document.createElement("canvas");
-    out.width = W; out.height = H + 90;
+    const glass = src.getBoundingClientRect();
+    const imageHeight = glass.width ? Math.round(W * glass.height / glass.width) : H;
+    out.width = W; out.height = imageHeight + 90;
     const ctx = out.getContext("2d");
     ctx.fillStyle = "#241a0e";
     ctx.fillRect(0, 0, out.width, out.height);
-    ctx.drawImage(src, 0, 90);
+    ctx.drawImage(src, 0, 90, W, imageHeight);
     const s = Game.state;
     const tt = s.titleSel && TITLES.find((t) => t.id === s.titleSel);
     ctx.fillStyle = "#f2c65e";

@@ -9,6 +9,7 @@ const VoxelHabitat = (() => {
   const visibleSprites = [];
   const spriteCache = new Map(), modelFrames = new Map(), projections = new Map();
   let scene, background, backdropStage, burrow;
+  let depth = 1;
   const families = {
     kanahebi: "slender", yukikana: "slender", nihontokage: "skink", aojita: "skink", menashi: "skink",
     leopa: "gecko", jade: "gecko", yougan: "gecko", dokuyubi: "gecko",
@@ -359,7 +360,9 @@ const VoxelHabitat = (() => {
     ctx.beginPath();ctx.ellipse(lz.x-1,lz.y+2,scale*18,scale*4.5,0,0,Math.PI*2);ctx.fill();
     const left=lz.x-AX*scale, top=lz.y-AY*scale-bob;
     ctx.drawImage(sprite.canvas,left,top,SW*scale,SH*scale);
-    if (inTank && ctx.canvas===scene) visibleSprites.push({lz,mask:sprite.mask,left,top,scale});
+    if (inTank && ctx.canvas===scene) {
+      visibleSprites.push({lz,mask:sprite.mask,left,top:lz.y+(top-lz.y)/depth,scale,scaleY:scale/depth});
+    }
     ctx.restore();
   }
 
@@ -369,9 +372,9 @@ const VoxelHabitat = (() => {
     // All exact hits take priority over the extra finger allowance on small residents.
     for (const precise of [true,false]) {
       for(let i=visibleSprites.length-1;i>=0;i--) {
-        const {lz,mask,left,top,scale}=visibleSprites[i];
+        const {lz,mask,left,top,scale,scaleY}=visibleSprites[i];
         const pad = precise ? 0 : Math.max(2, Math.ceil(touchRadius / scale));
-        const px=Math.floor((x-left)/scale), py=Math.floor((y-top)/scale);
+        const px=Math.floor((x-left)/scale), py=Math.floor((y-top)/scaleY);
         if (px < -pad || py < -pad || px >= SW+pad || py >= SH+pad) continue;
         for(let yy=Math.max(0,py-pad); yy<=Math.min(SH-1,py+pad); yy++)
           for(let xx=Math.max(0,px-pad); xx<=Math.min(SW-1,px+pad); xx++)
@@ -399,7 +402,7 @@ const VoxelHabitat = (() => {
   function burrowProp(c) {
     const openings=Render.burrowEntrances(Game.nestLv());
     for(const e of openings){
-      const x=e.x/PIXEL,y=e.y/PIXEL;
+      const x=e.x/PIXEL,y=e.y/PIXEL*depth;
       c.fillStyle="rgba(67,55,38,.23)";c.fillRect(x-20,y,43,3);
       if(burrow.complete && burrow.naturalWidth) {
         c.drawImage(burrow,x-25,y-22,49,26);
@@ -413,7 +416,7 @@ const VoxelHabitat = (() => {
   }
 
   function nursery(c) {
-    const x=NEST.x/PIXEL,y=NEST.y/PIXEL;
+    const x=NEST.x/PIXEL,y=NEST.y/PIXEL*depth;
     // Low ring of split wood. Eggs retain the exact same hit positions as the hatchery.
     const outer=[[-14,0],[-9,-4],[7,-4],[14,-1],[14,2],[8,5],[-8,5],[-14,2]];
     const face=(outline,dy,color)=>polygon(c,outline.map(([px,py])=>[x+px,y+py+dy]),color);
@@ -424,7 +427,7 @@ const VoxelHabitat = (() => {
       c.fillStyle="#dac083";c.fillRect(Math.round(x+dx),Math.round(y+dy),w,1);
     }
     for(let i=0;i<Game.state.eggs.length;i++){
-      const egg=Game.state.eggs[i], ex=(NEST.x-24+i*24)/PIXEL, ey=(NEST.y+1)/PIXEL;
+      const egg=Game.state.eggs[i], ex=(NEST.x-24+i*24)/PIXEL, ey=(NEST.y+1)/PIXEL*depth;
       const wiggle=egg.t<8 && egg.t>0 && !(typeof Motion!=="undefined" && Motion.reduced)?Math.round(Math.sin(Render.time*9+i)):0;
       c.save();c.translate(ex+wiggle,ey);
       const tones=egg.lucky?["#d5bbec","#bd7eab","#8e729f"]:["#faecd0","#dac9a8","#b79979"];
@@ -437,7 +440,7 @@ const VoxelHabitat = (() => {
   function facility(c,id,level) {
     const p=id==="heat"?FAC_POS.light:FAC_POS[id];
     const x=id==="fence"?FAC_POS.fenceX/PIXEL:p.x/PIXEL;
-    const y=id==="fence"?0:p.y/PIXEL;
+    const y=id==="fence"?0:p.y/PIXEL*depth;
     const size=1+Math.min(.65,(level-1)*.047);
     c.save(); c.translate(x,y); c.scale(size,size);
     if(id==="water") {
@@ -453,8 +456,8 @@ const VoxelHabitat = (() => {
       c.fillStyle="#ffe69e"; c.fillRect(-6,-24,6,2);
     } else if(id==="fence") {
       for(let yy=76;yy<213/size;yy+=12){
-        block(c,1,yy-2,4,10,4,wood);
-        block(c,0,yy,4,4,13,wood);
+        block(c,1,yy*depth-2,4,10,4,wood);
+        block(c,0,yy*depth,4,4,13,wood);
       }
     } else if(id==="trap") {
       block(c,0,0,17,12,3,stone);
@@ -479,9 +482,15 @@ const VoxelHabitat = (() => {
       burrow=new Image();
       burrow.src=INK_RELIEFS.burrow;
     }
-    if(!background || backdropStage!==stage.id) {
+    const glass=render.ctx.canvas;
+    const viewHeight=glass.clientWidth && glass.clientHeight
+      ? Math.min(1200,Math.max(64,Math.round(WIDTH*glass.clientHeight/glass.clientWidth)))
+      : scene.height;
+    if(scene.height!==viewHeight) scene.height=viewHeight;
+    depth=viewHeight/HEIGHT;
+    if(!background || background.height!==viewHeight || backdropStage!==stage.id) {
       backdropStage=stage.id;
-      background=canvas(WIDTH,HEIGHT);
+      background=canvas(WIDTH,viewHeight);
       VoxelLandscape.paint(background.getContext("2d"),stage);
       render._stageBoulders=VoxelLandscape.perches || [];
     }
@@ -489,7 +498,7 @@ const VoxelHabitat = (() => {
     c.setTransform(1,0,0,1,0,0); c.imageSmoothingEnabled=false;
     c.drawImage(background,0,0);
     if (!(typeof Motion!=="undefined" && Motion.reduced)) VoxelLandscape.animate(c,stage,render.time);
-    c.scale(1/PIXEL,1/PIXEL);
+    c.scale(1/PIXEL,depth/PIXEL);
     if (typeof Weather!=="undefined") {
       render._wx=Weather.now(stage.id,Game._motClock||0);
       Weather.drawSky(c,W,H,render._wx,FIELD.y1,FIELD.y2);
@@ -509,8 +518,11 @@ const VoxelHabitat = (() => {
     visibleSprites.length=0;
     for(const o of objects) {
       if(o.lz) {
+        c.save();
+        c.setTransform(1/PIXEL,0,0,1/PIXEL,0,(depth-1)*o.lz.y/PIXEL);
         drawLizard(c,o.lz,true);
         render._paintLizardState(c,o.lz);
+        c.restore();
       } else {
         c.save();c.setTransform(1,0,0,1,0,0);o.draw(c);c.restore();
       }

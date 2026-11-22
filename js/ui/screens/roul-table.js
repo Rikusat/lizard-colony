@@ -130,7 +130,6 @@ const TableArt = {
       c.fillStyle = i < reached || board.starFlash > 0 ? '#ffd49d' : '#7a6350';
       c.fillRect(right + 1, y - 1, 2, 2);
     }
-    if (board.starFlash > 0) this.starSocket(c, lane, board.starFlash);
   },
   bumper(c, part, pulse) {
     const { x, y, r } = part;
@@ -209,8 +208,6 @@ const TableArt = {
       c.fillStyle='#789484';c.fillRect(x,176,1,3);
     }
     this.starRail(c, t.starLane);
-    this.starSocket(c, t.starLane, 0);
-    for(const n of t.nails) this.peg(c,n);
     this.notch(c,84,129,49,16,'#225648');
     this.notch(c,86,130,45,14,'#57795c');
     this.notch(c,87,131,43,12,'#315d4b');
@@ -297,6 +294,52 @@ const TableArt = {
     c.fillStyle = winningStone ? '#a8544a' : '#72887d'; c.fillRect(x,y+1,2,1);
     c.globalAlpha = 1;
   },
+  // Stretch the approach and the return below the rotor to fit the installed glass.
+  // The rotor and both pop bumpers occupy one rigid section. Balls, pegs and the
+  // star socket use the same projected centers but keep their machined diameters.
+  fitGlass(effects, height) {
+    const t = CRANK_TABLE;
+    const view = document.createElement('canvas');
+    view.width = t.w;
+    view.height = height;
+    const pixels = view.getContext('2d');
+    pixels.imageSmoothingEnabled = false;
+    const top = 47, bottom = 108;
+    const middle = Math.min(bottom - top, Math.round(height * 0.42));
+    const freeScale = (height - middle) / (t.h - (bottom - top));
+    const seam = Math.round(top * freeScale);
+    const yAt = y => {
+      if (y < top) return y * seam / top;
+      if (y < bottom) return seam + (y - top) * middle / (bottom - top);
+      return seam + middle + (y - bottom) * (height - seam - middle) / (t.h - bottom);
+    };
+    const bands = [
+      [0, top, 0, seam], [top, bottom - top, seam, middle],
+      [bottom, t.h - bottom, seam + middle, height - seam - middle],
+    ];
+    const fixed = document.createElement('canvas');
+    fixed.width = view.width;
+    fixed.height = height;
+    const hardware = fixed.getContext('2d');
+    hardware.imageSmoothingEnabled = false;
+    this.projectBands(hardware, effects.base, bands);
+    for (const nail of t.nails) this.peg(hardware, { x: nail.x, y: yAt(nail.y) });
+    const socketY = Math.round(yAt(t.starLane.starY) - t.starLane.starY);
+    hardware.translate(0, socketY);
+    this.starSocket(hardware, t.starLane, 0);
+    effects.glass = { view, pixels, fixed, yAt, bands, socketY };
+  },
+  projectBands(ctx, surface, bands) {
+    for (const [y, rows, dest, depth] of bands) {
+      if (depth > 0) ctx.drawImage(surface, 0, y, surface.width, rows, 0, dest, surface.width, depth);
+    }
+  },
+  drawProjectedBall(ctx, ball, yAt) {
+    ctx.save();
+    ctx.translate(0, Math.round(yAt(ball.y) - ball.y));
+    this.ball(ctx, ball, CRANK_TABLE);
+    ctx.restore();
+  },
   paint(ctx,w,h,board,effects) {
     if(!effects.base) {
       effects.base=this.makeBase();
@@ -307,7 +350,7 @@ const TableArt = {
       if(!this.gecko) { this.gecko=new Image(); this.gecko.src=INK_RELIEFS.gecko; }
     }
     const c=effects.pixel, t=CRANK_TABLE;
-    c.drawImage(effects.base,0,0);
+    c.clearRect(0,0,t.w,t.h);
     if(this.gecko.complete && this.gecko.naturalWidth) {
       c.drawImage(this.gecko,0,10,92,37,119,11,34,14);
     }
@@ -321,15 +364,23 @@ const TableArt = {
         c.fillStyle='#9fa18a';c.fillRect(p.x-p.half+2,181,p.half*2-4,1);
       }
     }
-    for (const ball of board.balls) {
-      if (ball !== board.starBall) this.ball(c, ball, t);
+    const height = Math.max(1, Math.round(h * t.w / w));
+    if (effects.glass?.view.height !== height) this.fitGlass(effects, height);
+    const { view, pixels, fixed, yAt, bands, socketY } = effects.glass;
+    pixels.drawImage(fixed, 0, 0);
+    this.projectBands(pixels, effects.surface, bands);
+    if (board.starFlash > 0) {
+      pixels.save();
+      pixels.translate(0, socketY);
+      this.starSocket(pixels, t.starLane, board.starFlash);
+      pixels.restore();
     }
-    if (board.starBall) this.ball(c, board.starBall, t);
+    for (const ball of board.balls) {
+      if (ball !== board.starBall) this.drawProjectedBall(pixels, ball, yAt);
+    }
+    if (board.starBall) this.drawProjectedBall(pixels, board.starBall, yAt);
     board.drainEvents();
-    ctx.imageSmoothingEnabled=false;
-    ctx.fillStyle='#162e29';ctx.fillRect(0,0,w,h);
-    const scale=Math.min(w/t.w,h/t.h);
-    const sw=Math.round(t.w*scale),sh=Math.round(t.h*scale);
-    ctx.drawImage(effects.surface,Math.floor((w-sw)/2),Math.floor((h-sh)/2),sw,sh);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(view, 0, 0, w, h);
   },
 };

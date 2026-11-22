@@ -139,15 +139,15 @@
 .colony-page {
   --rim: clamp(3px, .46vw, 8px);
   width: calc(100% - var(--rim) * 2);
-  max-width: min(2400px, calc((100dvh - 155px) * 2.52));
+  max-width: none;
   margin: var(--rim) auto;
   padding: var(--rim);
   display: grid;
-  /* Match the square table to the height of the 8:5 glass plus its two control strips. */
-  grid-template-columns: minmax(0, 1fr) minmax(0, calc(38.8% + 54px));
+  grid-template-columns: minmax(0, 1fr) minmax(0, clamp(41%, 72dvh, 48%));
+  grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
-  align-content: start;
-  flex: 0 1 auto;
+  align-content: stretch;
+  flex: 1 1 0;
   min-height: 0;
   gap: var(--rim);
   isolation: isolate;
@@ -444,7 +444,7 @@
   .cabinet-ui #hq-bar { margin: 0; }
 }
 @media (orientation: landscape) and (max-height: 520px) {
-  .colony-page { --rim: 2px; max-width: min(100%, calc((100dvh - 100px) * 2.54)); grid-template-columns: minmax(0, 1fr) minmax(0, calc(38.8% + 38px)); }
+  .colony-page { --rim: 2px; }
   .instrument-head { min-height: 24px; padding-block: 0; }
   .instrument-name h2 { font-size: calc(12px * var(--fs-scale)); }
   #resident-list { height: 55px; }
@@ -475,18 +475,16 @@
 @media (orientation: portrait) {
   .colony-page {
     --rim: 3px;
-    flex: 0 0 auto;
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 46fr) minmax(0, 54fr);
     width: calc(100% - 4px);
-    max-width: calc((100dvh - 148px) * .625);
     margin: 2px auto;
     padding: 2px;
   }
-  .pachi-cabinet { aspect-ratio: 208 / 205; }
 }
-@media (orientation: portrait) and (max-width: 700px) {
-  .colony-page { max-width: calc((100dvh - 122px) * .635); }
-}
+
+/* Wide portrait cards use the room offered by the expanded resident drawer. */
+@media (orientation: portrait) {
 
 .resident-card {
     flex: 1 0 150px; max-width: none; justify-content: flex-start;
@@ -499,3 +497,21 @@
 }
 
 .colony-page #center > #detail { max-height: min(430px, calc(100% - 12px)); }
+
+/* World coordinates remain fixed. The habitat camera uses the glass dimensions
+   to lay out the ground; the resident drawer opens over the glass. */
+.colony-live { min-height: 0; }
+.colony-live > .habitat-deck { flex: none; }
+.colony-live #center { flex: 1; min-height: 0; }
+.colony-live #frame:not(:fullscreen, .habitat-expanded) {
+  height: 100%;
+  aspect-ratio: auto;
+}
+.colony-live #frame:not(:fullscreen, .habitat-expanded) #game,
+.colony-live #frame:is(:fullscreen, .habitat-expanded) #game {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: none;
+}
